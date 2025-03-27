@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
-import Navbar from "./components/layout/Navbar";
+import { User } from "lucide-react";
 
 // Import all pages
 import Dashboard from "./pages/Dashboard";
@@ -29,7 +29,11 @@ const App = () => (
         <div className="flex h-screen overflow-hidden">
           <Sidebar />
           <div className="flex-1 flex flex-col overflow-hidden">
-            <Navbar />
+            <div className="h-16 border-b border-gray-200 bg-white flex items-center justify-end px-6">
+              <div className="h-9 w-9 rounded-full bg-connect-purple/20 flex items-center justify-center text-connect-purple font-medium cursor-pointer hover:bg-connect-purple/30 transition-all">
+                <User size={18} />
+              </div>
+            </div>
             <div className="flex-1 overflow-y-auto bg-gray-50">
               <Routes>
                 <Route path="/" element={<Index />} />

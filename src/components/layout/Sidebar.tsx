@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import Logo from '../../assets/Logo';
 
 const Sidebar = () => {
@@ -51,6 +50,17 @@ const Sidebar = () => {
             </NavLink>
           ))}
         </nav>
+      </div>
+      
+      <div className="p-4 border-t border-gray-200">
+        <button 
+          className={`flex items-center gap-3 py-2 px-4 rounded-md text-gray-700 hover:bg-gray-100 hover:text-red-600 transition-colors w-full ${
+            collapsed ? 'justify-center px-2' : ''
+          }`}
+        >
+          <LogOut size={20} />
+          {!collapsed && <span>登出</span>}
+        </button>
       </div>
     </div>
   );
