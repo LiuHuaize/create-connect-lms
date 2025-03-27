@@ -1,34 +1,32 @@
 
 import React, { useState, useEffect } from 'react';
 import Editor from '@yoopta/editor';
-import * as Headings from '@yoopta/headings';
-import * as Paragraph from '@yoopta/paragraph';
-import * as Blockquote from '@yoopta/blockquote';
-import * as Lists from '@yoopta/lists';
-import * as Link from '@yoopta/link';
-import * as Code from '@yoopta/code';
-import * as Image from '@yoopta/image';
-import * as Divider from '@yoopta/divider';
-import * as Marks from '@yoopta/marks';
-import type { JSONContent } from '@yoopta/editor/dist/types';
+import { createHeadingExtension } from '@yoopta/headings';
+import { createParagraphExtension } from '@yoopta/paragraph';
+import { createBlockquoteExtension } from '@yoopta/blockquote';
+import { createBulletedListExtension, createNumberedListExtension } from '@yoopta/lists';
+import { createLinkExtension } from '@yoopta/link';
+import { createCodeExtension } from '@yoopta/code';
+import { createImageExtension } from '@yoopta/image';
+import { createDividerExtension } from '@yoopta/divider';
+import { createBoldExtension, createItalicExtension, createUnderlineExtension, createCodeMarkExtension } from '@yoopta/marks';
+import type { JSONContent } from '@yoopta/editor';
 
 // Define available extensions based on the Yoopta documentation
 const extensions = [
-  Headings.HeadingOne,
-  Headings.HeadingTwo,
-  Headings.HeadingThree,
-  Paragraph.Paragraph,
-  Blockquote.Blockquote,
-  Lists.BulletedList,
-  Lists.NumberedList,
-  Link.Link,
-  Code.Code,
-  Image.Image,
-  Divider.Divider,
-  Marks.Bold,
-  Marks.Italic,
-  Marks.Underline,
-  Marks.Code,
+  createHeadingExtension(),
+  createParagraphExtension(),
+  createBlockquoteExtension(),
+  createBulletedListExtension(),
+  createNumberedListExtension(),
+  createLinkExtension(),
+  createCodeExtension(),
+  createImageExtension(),
+  createDividerExtension(),
+  createBoldExtension(),
+  createItalicExtension(),
+  createUnderlineExtension(),
+  createCodeMarkExtension(),
 ];
 
 // Convert markdown to Yoopta JSON format
@@ -181,11 +179,11 @@ const YooptaEditor: React.FC<YooptaEditorProps> = ({
   return (
     <div className="border border-gray-200 rounded-lg">
       <Editor
-        initialValue={content}
+        value={content}
         onChange={handleEditorChange}
-        extensions={extensions}
+        plugins={extensions}
         placeholder={placeholder}
-        editable={!readOnly}
+        readOnly={readOnly}
         className="min-h-[300px] p-4 focus:outline-none"
       />
     </div>
