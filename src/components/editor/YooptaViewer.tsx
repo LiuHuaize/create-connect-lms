@@ -13,21 +13,21 @@ import * as Marks from '@yoopta/marks';
 import type { JSONContent } from '@yoopta/editor/dist/types';
 
 const extensions = [
-  Headings.createHeadingOnePlugin(),
-  Headings.createHeadingTwoPlugin(),
-  Headings.createHeadingThreePlugin(),
-  Paragraph.createParagraphPlugin(),
-  Blockquote.createBlockquotePlugin(),
-  Lists.createBulletedListPlugin(),
-  Lists.createNumberedListPlugin(),
-  Link.createLinkPlugin(),
-  Code.createCodePlugin(),
-  Image.createImagePlugin(),
-  Divider.createDividerPlugin(),
-  Marks.createBoldPlugin(),
-  Marks.createItalicPlugin(),
-  Marks.createUnderlinePlugin(),
-  Marks.createCodePlugin(),
+  Headings.HeadingOne,
+  Headings.HeadingTwo,
+  Headings.HeadingThree,
+  Paragraph.Paragraph,
+  Blockquote.Blockquote,
+  Lists.BulletedList,
+  Lists.NumberedList,
+  Link.Link,
+  Code.Code,
+  Image.Image,
+  Divider.Divider,
+  Marks.Bold,
+  Marks.Italic,
+  Marks.Underline,
+  Marks.Code,
 ];
 
 // Convert markdown to Yoopta JSON format (same as in YooptaEditor)
