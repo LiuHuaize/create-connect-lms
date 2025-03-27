@@ -17,6 +17,21 @@ const LESSON_TYPES = [
   { id: 'assignment', name: 'Assignment', icon: <CheckSquare size={16} className="text-purple-600" /> }
 ];
 
+const getInitialContentByType = (type) => {
+  switch(type) {
+    case 'video':
+      return { videoUrl: '' };
+    case 'text':
+      return { text: '' };
+    case 'quiz':
+      return { questions: [] };
+    case 'assignment':
+      return { instructions: '', criteria: '' };
+    default:
+      return { text: '' }; // Default to text content
+  }
+};
+
 const initialModules = [
   {
     id: 'm1',
@@ -63,7 +78,7 @@ const CourseCreator = () => {
       id: `l${Date.now()}`,
       type: lessonType,
       title: `New ${LESSON_TYPES.find(type => type.id === lessonType)?.name} Lesson`,
-      content: {}
+      content: getInitialContentByType(lessonType)
     };
     
     setModules(modules.map(module => 

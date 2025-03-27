@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +25,25 @@ const QUESTION_TYPES = [
 ];
 
 const LessonEditor = ({ lesson, onSave }) => {
-  const [currentContent, setCurrentContent] = useState(lesson.content || {});
+  // Initialize content with the correct structure based on lesson type
+  const initializeContent = () => {
+    const baseContent = lesson.content || {};
+    
+    switch (lesson.type) {
+      case 'video':
+        return { videoUrl: baseContent.videoUrl || '', description: baseContent.description || '' };
+      case 'text':
+        return { text: baseContent.text || '' };
+      case 'quiz':
+        return { questions: baseContent.questions || [] };
+      case 'assignment':
+        return { instructions: baseContent.instructions || '', criteria: baseContent.criteria || '' };
+      default:
+        return baseContent;
+    }
+  };
+  
+  const [currentContent, setCurrentContent] = useState(initializeContent());
   
   // Form setup for lesson details
   const form = useForm({
