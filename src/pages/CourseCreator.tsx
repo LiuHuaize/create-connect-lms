@@ -1,11 +1,110 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { FilePlus, Upload, Trash2, Plus, Pencil, Edit, Save, BookOpen, Video, FileText, Image, Clock } from 'lucide-react';
+import { 
+  FilePlus, Upload, Trash2, Plus, Pencil, Edit, Save, 
+  BookOpen, Video, FileText, Image, Clock, CheckSquare, 
+  FileQuestion, ChevronDown, ChevronRight
+} from 'lucide-react';
+import LessonEditor from '@/components/course/LessonEditor';
+
+const LESSON_TYPES = [
+  { id: 'video', name: 'Video', icon: <Video size={16} className="text-blue-600" /> },
+  { id: 'text', name: 'Text Content', icon: <FileText size={16} className="text-green-600" /> },
+  { id: 'quiz', name: 'Quiz', icon: <FileQuestion size={16} className="text-amber-600" /> },
+  { id: 'assignment', name: 'Assignment', icon: <CheckSquare size={16} className="text-purple-600" /> }
+];
+
+const initialModules = [
+  {
+    id: 'm1',
+    title: 'Introduction to Business Planning',
+    lessons: [
+      { id: 'l1', type: 'video', title: 'Introduction Video', content: { videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } },
+      { id: 'l2', type: 'text', title: 'Business Plan Overview', content: { text: "# Business Plan Overview\n\nA business plan is a written document that describes in detail how a business—usually a startup—defines its objectives and how it plans to achieve its goals. A business plan lays out a written roadmap for the firm from marketing, financial, and operational standpoints." } }
+    ]
+  },
+  {
+    id: 'm2',
+    title: 'Market Research and Analysis',
+    lessons: []
+  }
+];
 
 const CourseCreator = () => {
+  const [modules, setModules] = useState(initialModules);
+  const [currentLesson, setCurrentLesson] = useState(null);
+  const [expandedModule, setExpandedModule] = useState('m1');
+  
+  const addModule = () => {
+    const newModule = {
+      id: `m${modules.length + 1}`,
+      title: `New Module ${modules.length + 1}`,
+      lessons: []
+    };
+    setModules([...modules, newModule]);
+    setExpandedModule(newModule.id);
+  };
+  
+  const updateModuleTitle = (moduleId, newTitle) => {
+    setModules(modules.map(module => 
+      module.id === moduleId ? { ...module, title: newTitle } : module
+    ));
+  };
+  
+  const deleteModule = (moduleId) => {
+    setModules(modules.filter(module => module.id !== moduleId));
+  };
+  
+  const addLesson = (moduleId, lessonType) => {
+    const newLesson = {
+      id: `l${Date.now()}`,
+      type: lessonType,
+      title: `New ${LESSON_TYPES.find(type => type.id === lessonType)?.name} Lesson`,
+      content: {}
+    };
+    
+    setModules(modules.map(module => 
+      module.id === moduleId 
+        ? { ...module, lessons: [...module.lessons, newLesson] } 
+        : module
+    ));
+    
+    setCurrentLesson(newLesson);
+  };
+  
+  const updateLesson = (moduleId, lessonId, updatedLesson) => {
+    setModules(modules.map(module => 
+      module.id === moduleId 
+        ? { 
+            ...module, 
+            lessons: module.lessons.map(lesson => 
+              lesson.id === lessonId ? { ...lesson, ...updatedLesson } : lesson
+            ) 
+          } 
+        : module
+    ));
+    setCurrentLesson(null);
+  };
+  
+  const deleteLesson = (moduleId, lessonId) => {
+    setModules(modules.map(module => 
+      module.id === moduleId 
+        ? { ...module, lessons: module.lessons.filter(lesson => lesson.id !== lessonId) } 
+        : module
+    ));
+    
+    if (currentLesson && currentLesson.id === lessonId) {
+      setCurrentLesson(null);
+    }
+  };
+  
+  const toggleModuleExpand = (moduleId) => {
+    setExpandedModule(expandedModule === moduleId ? null : moduleId);
+  };
+
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -96,106 +195,127 @@ const CourseCreator = () => {
             </TabsContent>
             
             <TabsContent value="content" className="space-y-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-lg font-bold">Course Structure</h2>
-                  <Button size="sm">
-                    <Plus size={16} className="mr-2" /> Add Module
-                  </Button>
-                </div>
-                
-                <div className="space-y-4">
-                  {/* Module */}
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-4 flex justify-between items-center">
-                      <div className="flex items-center">
-                        <span className="font-medium">Module 1:</span>
-                        <Input 
-                          value="Introduction to Business Planning" 
-                          className="ml-2 border-0 bg-transparent focus:ring-0" 
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button className="p-1 text-gray-500 hover:text-gray-700">
-                          <Edit size={16} />
-                        </button>
-                        <button className="p-1 text-gray-500 hover:text-red-500">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 space-y-3">
-                      {/* Lesson item */}
-                      <div className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg">
-                        <div className="flex items-center">
-                          <div className="p-2 bg-blue-50 rounded-md mr-3">
-                            <Video size={16} className="text-connect-blue" />
-                          </div>
-                          <span>Introduction Video</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button className="p-1 text-gray-500 hover:text-gray-700">
-                            <Pencil size={14} />
-                          </button>
-                          <button className="p-1 text-gray-500 hover:text-red-500">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Lesson item */}
-                      <div className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg">
-                        <div className="flex items-center">
-                          <div className="p-2 bg-green-50 rounded-md mr-3">
-                            <FileText size={16} className="text-green-600" />
-                          </div>
-                          <span>Business Plan Overview</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button className="p-1 text-gray-500 hover:text-gray-700">
-                            <Pencil size={14} />
-                          </button>
-                          <button className="p-1 text-gray-500 hover:text-red-500">
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Plus size={14} className="mr-2" /> Add Lesson
-                      </Button>
-                    </div>
+              {currentLesson ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-bold">Edit Lesson</h2>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentLesson(null)}>
+                      Back to Course Structure
+                    </Button>
                   </div>
                   
-                  {/* Module 2 */}
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 p-4 flex justify-between items-center">
-                      <div className="flex items-center">
-                        <span className="font-medium">Module 2:</span>
-                        <Input 
-                          value="Market Research and Analysis" 
-                          className="ml-2 border-0 bg-transparent focus:ring-0" 
-                        />
+                  <LessonEditor 
+                    lesson={currentLesson}
+                    onSave={(updatedLesson) => {
+                      const moduleId = modules.find(m => 
+                        m.lessons.some(l => l.id === currentLesson.id)
+                      )?.id;
+                      
+                      if (moduleId) {
+                        updateLesson(moduleId, currentLesson.id, updatedLesson);
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-bold">Course Structure</h2>
+                    <Button size="sm" onClick={addModule}>
+                      <Plus size={16} className="mr-2" /> Add Module
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {modules.map((module) => (
+                      <div key={module.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 p-4 flex justify-between items-center">
+                          <div className="flex items-center flex-1">
+                            <button 
+                              onClick={() => toggleModuleExpand(module.id)}
+                              className="mr-2 text-gray-500 hover:text-gray-700"
+                            >
+                              {expandedModule === module.id ? 
+                                <ChevronDown size={18} /> : 
+                                <ChevronRight size={18} />
+                              }
+                            </button>
+                            <span className="font-medium mr-2">Module {modules.indexOf(module) + 1}:</span>
+                            <Input 
+                              value={module.title} 
+                              onChange={(e) => updateModuleTitle(module.id, e.target.value)}
+                              className="border-0 bg-transparent focus:ring-0" 
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button className="p-1 text-gray-500 hover:text-gray-700">
+                              <Edit size={16} />
+                            </button>
+                            <button 
+                              className="p-1 text-gray-500 hover:text-red-500"
+                              onClick={() => deleteModule(module.id)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {expandedModule === module.id && (
+                          <div className="p-4 space-y-3">
+                            {module.lessons.map((lesson) => {
+                              const lessonType = LESSON_TYPES.find(type => type.id === lesson.type);
+                              
+                              return (
+                                <div key={lesson.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg">
+                                  <div className="flex items-center">
+                                    <div className="p-2 bg-gray-50 rounded-md mr-3">
+                                      {lessonType?.icon}
+                                    </div>
+                                    <span>{lesson.title}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button 
+                                      className="p-1 text-gray-500 hover:text-gray-700"
+                                      onClick={() => setCurrentLesson(lesson)}
+                                    >
+                                      <Pencil size={14} />
+                                    </button>
+                                    <button 
+                                      className="p-1 text-gray-500 hover:text-red-500"
+                                      onClick={() => deleteLesson(module.id, lesson.id)}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            
+                            <div className="relative">
+                              <Button variant="outline" size="sm" className="w-full">
+                                <Plus size={14} className="mr-2" /> Add Lesson
+                              </Button>
+                              
+                              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg">
+                                {LESSON_TYPES.map((type) => (
+                                  <button
+                                    key={type.id}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-left hover:bg-gray-50"
+                                    onClick={() => addLesson(module.id, type.id)}
+                                  >
+                                    <span className="mr-2">{type.icon}</span>
+                                    {type.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button className="p-1 text-gray-500 hover:text-gray-700">
-                          <Edit size={16} />
-                        </button>
-                        <button className="p-1 text-gray-500 hover:text-red-500">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="p-4">
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Plus size={14} className="mr-2" /> Add Lesson
-                      </Button>
-                    </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
             </TabsContent>
             
             <TabsContent value="settings" className="space-y-6">
@@ -263,7 +383,7 @@ const CourseCreator = () => {
                   
                   <div className="flex items-center text-sm text-gray-500 mb-1">
                     <BookOpen size={14} className="mr-1" />
-                    <span>0 Modules</span>
+                    <span>{modules.length} Modules</span>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-500">

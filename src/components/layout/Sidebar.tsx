@@ -39,7 +39,9 @@ const Sidebar = () => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'active' : ''} ${
+                `flex items-center gap-3 py-2 px-4 rounded-md text-gray-700 hover:bg-gray-100 transition-colors ${
+                  isActive ? 'bg-blue-50 text-blue-700 font-medium' : ''
+                } ${
                   collapsed ? 'justify-center px-2' : ''
                 }`
               }
