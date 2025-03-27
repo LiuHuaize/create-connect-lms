@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Calendar, FolderKanban, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import Logo from '../../assets/Logo';
 
 const Sidebar = () => {
@@ -9,10 +9,10 @@ const Sidebar = () => {
 
   const sidebarItems = [
     { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { to: '/learning', icon: <BookOpen size={20} />, label: 'My Learning' },
+    { to: '/learning', icon: <BookOpen size={20} />, label: 'Courses' },
     { to: '/events', icon: <Calendar size={20} />, label: 'Events' },
-    { to: '/projects', icon: <FolderKanban size={20} />, label: 'Projects' },
-    { to: '/workspaces', icon: <Layers size={20} />, label: 'Workspaces' },
+    { to: '/community', icon: <MessageSquare size={20} />, label: 'Community' },
+    { to: '/course-creator', icon: <PenSquare size={20} />, label: 'Create Course' },
   ];
 
   return (

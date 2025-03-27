@@ -3,11 +3,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Bell, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Logo from '../../assets/Logo';
 
 const Navbar = () => {
   return (
     <nav className="h-16 border-b border-gray-200 bg-white flex items-center px-6">
       <div className="flex-1 flex items-center">
+        <Logo className="mr-8" />
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <input
@@ -19,6 +21,9 @@ const Navbar = () => {
       </div>
       
       <div className="flex items-center gap-6">
+        <Link to="/" className="text-gray-600 hover:text-gray-900 font-medium text-sm">Dashboard</Link>
+        <Link to="/events" className="text-gray-600 hover:text-gray-900 font-medium text-sm">Events</Link>
+        <Link to="/learning" className="text-gray-600 hover:text-gray-900 font-medium text-sm">Courses</Link>
         <Link to="/community" className="text-gray-600 hover:text-gray-900 font-medium text-sm">Community</Link>
         <Link to="/course-creator" className="text-gray-600 hover:text-gray-900 font-medium text-sm">Create Course</Link>
         

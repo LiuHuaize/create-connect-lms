@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { FilePlus, Upload, Trash2, Plus, Pencil, Edit, Save, BookOpen, Video, FileText, Image } from 'lucide-react';
+import { FilePlus, Upload, Trash2, Plus, Pencil, Edit, Save, BookOpen, Video, FileText, Image, Clock } from 'lucide-react';
 
 const CourseCreator = () => {
   return (

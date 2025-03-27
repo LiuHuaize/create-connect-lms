@@ -12,8 +12,6 @@ import Navbar from "./components/layout/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Learning from "./pages/Learning";
 import Events from "./pages/Events";
-import Projects from "./pages/Projects";
-import Workspaces from "./pages/Workspaces";
 import Community from "./pages/Community";
 import CourseCreator from "./pages/CourseCreator";
 
@@ -34,8 +32,6 @@ const App = () => (
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/learning" element={<Learning />} />
                 <Route path="/events" element={<Events />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/workspaces" element={<Workspaces />} />
                 <Route path="/community" element={<Community />} />
                 <Route path="/course-creator" element={<CourseCreator />} />
                 <Route path="*" element={<NotFound />} />
