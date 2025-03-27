@@ -1,27 +1,33 @@
 
 import React, { useState, useEffect } from 'react';
 import Editor from '@yoopta/editor';
-import Headings from '@yoopta/headings';
-import Paragraph from '@yoopta/paragraph';
-import Blockquote from '@yoopta/blockquote';
-import Lists from '@yoopta/lists';
-import Link from '@yoopta/link';
-import Code from '@yoopta/code';
-import Image from '@yoopta/image';
-import Divider from '@yoopta/divider';
-import Marks from '@yoopta/marks';
+import * as Headings from '@yoopta/headings';
+import * as Paragraph from '@yoopta/paragraph';
+import * as Blockquote from '@yoopta/blockquote';
+import * as Lists from '@yoopta/lists';
+import * as Link from '@yoopta/link';
+import * as Code from '@yoopta/code';
+import * as Image from '@yoopta/image';
+import * as Divider from '@yoopta/divider';
+import * as Marks from '@yoopta/marks';
 import type { JSONContent } from '@yoopta/editor';
 
 const extensions = [
-  Headings(),
-  Paragraph(),
-  Blockquote(),
-  Lists(),
-  Link(),
-  Code(),
-  Image(),
-  Divider(),
-  Marks(),
+  Headings.HeadingOne(),
+  Headings.HeadingTwo(),
+  Headings.HeadingThree(),
+  Paragraph.Paragraph(),
+  Blockquote.Blockquote(),
+  Lists.BulletedList(),
+  Lists.NumberedList(),
+  Link.Link(),
+  Code.Code(),
+  Image.Image(),
+  Divider.Divider(),
+  Marks.Bold(),
+  Marks.Italic(),
+  Marks.Underline(),
+  Marks.Code(),
 ];
 
 // Convert markdown to Yoopta JSON format (same as in YooptaEditor)
@@ -119,9 +125,9 @@ const YooptaViewer: React.FC<YooptaViewerProps> = ({ content }) => {
   return (
     <div className="bg-white rounded-lg">
       <Editor
-        content={editorContent}
+        initialValue={editorContent}
         extensions={extensions}
-        readOnly={true}
+        editable={false}
         className="prose max-w-none"
       />
     </div>
