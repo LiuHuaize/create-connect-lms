@@ -1,39 +1,40 @@
-
 import React, { useState, useEffect } from 'react';
 import Editor from '@yoopta/editor';
-import { createHeadingExtension } from '@yoopta/headings';
-import { createParagraphExtension } from '@yoopta/paragraph';
-import { createBlockquoteExtension } from '@yoopta/blockquote';
-import { createBulletedListExtension, createNumberedListExtension } from '@yoopta/lists';
-import { createLinkExtension } from '@yoopta/link';
-import { createCodeExtension } from '@yoopta/code';
-import { createImageExtension } from '@yoopta/image';
-import { createDividerExtension } from '@yoopta/divider';
-import { createBoldExtension, createItalicExtension, createUnderlineExtension, createCodeMarkExtension } from '@yoopta/marks';
-import type { JSONContent } from '@yoopta/editor';
+import { HeadingOne, HeadingTwo, HeadingThree } from '@yoopta/headings';
+import { Paragraph } from '@yoopta/paragraph';
+import { Blockquote } from '@yoopta/blockquote';
+import { BulletedList, NumberedList } from '@yoopta/lists';
+import { Link } from '@yoopta/link';
+import { Code } from '@yoopta/code';
+import { Image } from '@yoopta/image';
+import { Divider } from '@yoopta/divider';
+import { Bold, Italic, Underline, CodeMark } from '@yoopta/marks';
+import type { YooptaValue } from '@yoopta/editor';
 
 const extensions = [
-  createHeadingExtension(),
-  createParagraphExtension(),
-  createBlockquoteExtension(),
-  createBulletedListExtension(),
-  createNumberedListExtension(),
-  createLinkExtension(),
-  createCodeExtension(),
-  createImageExtension(),
-  createDividerExtension(),
-  createBoldExtension(),
-  createItalicExtension(),
-  createUnderlineExtension(),
-  createCodeMarkExtension(),
+  HeadingOne,
+  HeadingTwo,
+  HeadingThree,
+  Paragraph,
+  Blockquote,
+  BulletedList,
+  NumberedList,
+  Link,
+  Code,
+  Image,
+  Divider,
+  Bold,
+  Italic,
+  Underline,
+  CodeMark
 ];
 
-// Convert markdown to Yoopta JSON format (same as in YooptaEditor)
-const convertMarkdownToYoopta = (markdown: string): JSONContent => {
+// Convert markdown to Yoopta JSON format
+const convertMarkdownToYoopta = (markdown: string): YooptaValue => {
   if (!markdown) return [];
   
   const lines = markdown.split('\n');
-  const content: JSONContent = [];
+  const content: YooptaValue = [];
   
   lines.forEach((line, index) => {
     if (line.startsWith('# ')) {
@@ -114,7 +115,7 @@ interface YooptaViewerProps {
 }
 
 const YooptaViewer: React.FC<YooptaViewerProps> = ({ content }) => {
-  const [editorContent, setEditorContent] = useState<JSONContent>([]);
+  const [editorContent, setEditorContent] = useState<YooptaValue>([]);
   
   useEffect(() => {
     setEditorContent(convertMarkdownToYoopta(content));
