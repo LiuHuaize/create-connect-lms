@@ -18,6 +18,102 @@ const zhDictionary = {
     default: "输入文本或键入 '/' 使用命令",
     emptyDocument: "在此输入内容...",
   },
+  // 覆盖斜线菜单项
+  slash_menu: {
+    ...locales.en.slash_menu,
+    // 修改标题类项目
+    heading: {
+      ...locales.en.slash_menu.heading,
+      title: "一级标题",
+      subtext: "大型章节标题", 
+      group: "标题", // 分组名称
+    },
+    heading_2: {
+      ...locales.en.slash_menu.heading_2,
+      title: "二级标题",
+      subtext: "中型章节标题",
+      group: "标题", // 分组名称
+    },
+    heading_3: {
+      ...locales.en.slash_menu.heading_3,
+      title: "三级标题",
+      subtext: "小型章节标题",
+      group: "标题", // 分组名称
+    },
+    paragraph: {
+      ...locales.en.slash_menu.paragraph,
+      title: "段落",
+      subtext: "文档主体",
+      group: "基本块", // 分组名称
+    },
+    bullet_list: {
+      ...locales.en.slash_menu.bullet_list,
+      title: "无序列表",
+      subtext: "无编号的列表项",
+      group: "基本块",
+    },
+    numbered_list: {
+      ...locales.en.slash_menu.numbered_list,
+      title: "有序列表",
+      subtext: "带编号的列表项",
+      group: "基本块",
+    },
+    check_list: {
+      ...locales.en.slash_menu.check_list,
+      title: "任务列表",
+      subtext: "带复选框的列表",
+      group: "基本块",
+    },
+    table: {
+      ...locales.en.slash_menu.table,
+      title: "表格",
+      subtext: "带可编辑单元格的表格",
+      group: "高级", // 分组名称
+    },
+    code_block: {
+      ...locales.en.slash_menu.code_block,
+      title: "代码块",
+      subtext: "带语法高亮的代码块",
+      group: "基本块",
+    },
+    image: {
+      ...locales.en.slash_menu.image,
+      title: "图片",
+      subtext: "上传图片",
+      group: "媒体", // 改为媒体分组
+    },
+    // 添加媒体相关菜单项
+    video: {
+      ...locales.en.slash_menu.video,
+      title: "视频",
+      subtext: "可调整大小的带字幕视频",
+      group: "媒体",
+    },
+    audio: {
+      ...locales.en.slash_menu.audio,
+      title: "音频",
+      subtext: "嵌入式带字幕音频",
+      group: "媒体",
+    },
+    file: {
+      ...locales.en.slash_menu.file,
+      title: "文件",
+      subtext: "嵌入式文件",
+      group: "媒体",
+    },
+    emoji: {
+      ...locales.en.slash_menu.emoji,
+      title: "表情符号",
+      subtext: "搜索并插入表情符号",
+      group: "其他",
+    }
+  },
+  // 添加分组名称翻译
+  slash_menu_section_labels: {
+    ...locales.en.slash_menu_section_labels,
+    media: "媒体",
+    others: "其他",
+  },
 };
 
 interface BlockNoteEditorProps {
