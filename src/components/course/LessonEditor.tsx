@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,8 +27,6 @@ import {
   AssignmentLessonContent,
   LessonContent
 } from '@/types/course';
-import YooptaEditor from '@/components/editor/YooptaEditor';
-import YooptaViewer from '@/components/editor/YooptaViewer';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
@@ -222,12 +221,6 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
     setQuestions(updatedQuestions);
     setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
   };
-
-  // Handle text content change through Yoopta Editor
-  const handleTextContentChange = (value: string) => {
-    form.setValue('text', value);
-    setCurrentContent({ ...currentContent, text: value } as TextLessonContent);
-  };
   
   return (
     <Form {...form}>
@@ -279,13 +272,15 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                 <FormItem>
                   <FormLabel>Video Description</FormLabel>
                   <FormControl>
-                    <YooptaEditor
-                      initialValue={field.value || ''}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        setCurrentContent({...currentContent, description: value} as VideoLessonContent);
+                    <Textarea 
+                      placeholder="Enter a description for this video" 
+                      className="min-h-32"
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setCurrentContent({...currentContent, description: e.target.value} as VideoLessonContent);
                       }}
-                      placeholder="Enter a description for this video"
                     />
                   </FormControl>
                 </FormItem>
@@ -299,18 +294,8 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
               </div>
               
               <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center">
-                {(currentContent as VideoLessonContent).videoUrl ? (
-                  <iframe 
-                    src={(currentContent as VideoLessonContent).videoUrl.replace('watch?v=', 'embed/')} 
-                    className="w-full h-full rounded-lg" 
-                    allowFullScreen
-                  ></iframe>
-                ) : (
-                  <div className="flex items-center justify-center text-gray-400">
-                    <AlertCircle size={24} className="mr-2" />
-                    <span>Enter a video URL to see preview</span>
-                  </div>
-                )}
+                <AlertCircle size={24} className="text-gray-400 mr-2" />
+                <span className="text-gray-400">Video preview will appear here</span>
               </div>
             </div>
           </div>
@@ -325,14 +310,19 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                 <FormItem>
                   <FormLabel>Content</FormLabel>
                   <FormControl>
-                    <YooptaEditor
-                      initialValue={field.value || ''}
-                      onChange={handleTextContentChange}
-                      placeholder="Enter your lesson content here"
+                    <Textarea 
+                      placeholder="Enter your lesson content here. Markdown is supported." 
+                      className="min-h-[300px]"
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setCurrentContent({...currentContent, text: e.target.value} as TextLessonContent);
+                      }}
                     />
                   </FormControl>
                   <FormDescription>
-                    Use the toolbar above to format your content with headings, lists, images, and more
+                    Use Markdown for formatting. # Heading, *italic*, **bold**, [link](url), etc.
                   </FormDescription>
                 </FormItem>
               )}
@@ -346,7 +336,9 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
               
               <div className="prose max-w-none p-4 bg-white rounded-lg border border-gray-100">
                 {lesson.type === 'text' && (currentContent as TextLessonContent).text ? (
-                  <YooptaViewer content={(currentContent as TextLessonContent).text} />
+                  <div className="whitespace-pre-line">
+                    {(currentContent as TextLessonContent).text}
+                  </div>
                 ) : (
                   <div className="text-gray-400 italic">
                     Preview will appear here as you type content
@@ -517,13 +509,15 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                 <FormItem>
                   <FormLabel>Assignment Instructions</FormLabel>
                   <FormControl>
-                    <YooptaEditor
-                      initialValue={field.value || ''}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        setCurrentContent({...currentContent, instructions: value} as AssignmentLessonContent);
+                    <Textarea 
+                      placeholder="Enter detailed instructions for the assignment" 
+                      className="min-h-32"
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setCurrentContent({...currentContent, instructions: e.target.value});
                       }}
-                      placeholder="Enter detailed instructions for the assignment"
                     />
                   </FormControl>
                 </FormItem>
@@ -537,13 +531,15 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                 <FormItem>
                   <FormLabel>Evaluation Criteria</FormLabel>
                   <FormControl>
-                    <YooptaEditor
-                      initialValue={field.value || ''}
-                      onChange={(value) => {
-                        field.onChange(value);
-                        setCurrentContent({...currentContent, criteria: value} as AssignmentLessonContent);
+                    <Textarea 
+                      placeholder="Enter the criteria that will be used to evaluate this assignment" 
+                      className="min-h-24"
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setCurrentContent({...currentContent, criteria: e.target.value});
                       }}
-                      placeholder="Enter the criteria that will be used to evaluate this assignment"
                     />
                   </FormControl>
                   <FormDescription>
