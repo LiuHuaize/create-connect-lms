@@ -38,9 +38,10 @@ const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
 interface LessonEditorProps {
   lesson: Lesson;
   onSave: (updatedLesson: Lesson | null) => void;
+  onEditorFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
+const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditorProps) => {
   // Initialize content with the correct structure based on lesson type
   const initializeContent = (): LessonContent => {
     const baseContent = lesson.content;
@@ -237,6 +238,13 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
     setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
   };
   
+  // 处理编辑器全屏状态变化
+  const handleEditorFullscreenToggle = (isFullscreen: boolean) => {
+    if (onEditorFullscreenChange) {
+      onEditorFullscreenChange(isFullscreen);
+    }
+  };
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
@@ -309,14 +317,11 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                   <FormLabel>内容</FormLabel>
                   <FormControl>
                     <BlockNoteEditor
-                      initialContent={
-                        typeof (currentContent as TextLessonContent).text === 'string'
-                          ? (currentContent as TextLessonContent).text
-                          : JSON.stringify([{ type: "paragraph", content: "" }])
-                      }
+                      initialContent={(currentContent as TextLessonContent).text || ''}
                       onChange={handleLexicalEditorChange}
                       placeholder="在此输入课程内容..."
                       className="min-h-[300px] border-0 shadow-none"
+                      onFullscreenToggle={handleEditorFullscreenToggle}
                     />
                   </FormControl>
                   <FormDescription>

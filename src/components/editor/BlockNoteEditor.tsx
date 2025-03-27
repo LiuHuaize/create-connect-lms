@@ -125,6 +125,7 @@ interface BlockNoteEditorProps {
   className?: string;
   onSave?: () => void;
   readOnly?: boolean;
+  onFullscreenToggle?: (isFullscreen: boolean) => void;
 }
 
 const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
@@ -134,6 +135,7 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
   className = '',
   onSave,
   readOnly = false,
+  onFullscreenToggle,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const { theme } = useTheme();
@@ -220,8 +222,14 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
 
   // 切换全屏模式
   const toggleFullscreen = useCallback(() => {
-    setIsFullscreen((prev) => !prev);
-  }, []);
+    const newFullscreenState = !isFullscreen;
+    setIsFullscreen(newFullscreenState);
+    
+    // 调用父组件的回调函数
+    if (onFullscreenToggle) {
+      onFullscreenToggle(newFullscreenState);
+    }
+  }, [isFullscreen, onFullscreenToggle]);
 
   // 监听ESC键，用于退出全屏模式
   useEffect(() => {

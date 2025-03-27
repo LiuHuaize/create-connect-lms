@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { BlockNoteEditor } from './index';
 import { Button } from '@/components/ui/button';
 
-const BlockNoteEditorTest: React.FC = () => {
+interface BlockNoteEditorTestProps {
+  onEditorFullscreenChange?: (isFullscreen: boolean) => void;
+}
+
+const BlockNoteEditorTest: React.FC<BlockNoteEditorTestProps> = ({ onEditorFullscreenChange }) => {
   const [content, setContent] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -18,6 +22,13 @@ const BlockNoteEditorTest: React.FC = () => {
 
   const togglePreview = () => {
     setIsPreviewOpen(prev => !prev);
+  };
+  
+  // 处理编辑器全屏状态变化
+  const handleFullscreenToggle = (isFullscreen: boolean) => {
+    if (onEditorFullscreenChange) {
+      onEditorFullscreenChange(isFullscreen);
+    }
   };
 
   return (
@@ -38,6 +49,7 @@ const BlockNoteEditorTest: React.FC = () => {
           onChange={handleContentChange}
           placeholder="请在这里输入内容进行测试..."
           onSave={handleSave}
+          onFullscreenToggle={handleFullscreenToggle}
         />
       </div>
       

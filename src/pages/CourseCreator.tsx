@@ -55,7 +55,11 @@ const initialModules: CourseModule[] = [
   }
 ];
 
-const CourseCreator = () => {
+interface CourseCreatorProps {
+  onEditorFullscreenChange?: (isFullscreen: boolean) => void;
+}
+
+const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange }) => {
   const [modules, setModules] = useState<CourseModule[]>(initialModules);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [expandedModule, setExpandedModule] = useState('m1');
@@ -130,6 +134,13 @@ const CourseCreator = () => {
   
   const toggleModuleExpand = (moduleId: string) => {
     setExpandedModule(expandedModule === moduleId ? null : moduleId);
+  };
+
+  // 当编辑器全屏状态改变时的处理函数
+  const handleEditorFullscreenToggle = (isFullscreen: boolean) => {
+    if (onEditorFullscreenChange) {
+      onEditorFullscreenChange(isFullscreen);
+    }
   };
 
   return (
@@ -260,6 +271,7 @@ const CourseCreator = () => {
                         updateLesson(moduleId, currentLesson.id, updatedLesson);
                       }
                     }}
+                    onEditorFullscreenChange={handleEditorFullscreenToggle}
                   />
                 </div>
               ) : (

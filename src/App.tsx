@@ -24,6 +24,7 @@ const queryClient = new QueryClient();
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [editorFullscreen, setEditorFullscreen] = useState(false);
 
   // 检测屏幕尺寸
   useEffect(() => {
@@ -40,6 +41,11 @@ const App = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  // 处理编辑器全屏状态变化
+  const handleEditorFullscreenChange = (isFullscreen: boolean) => {
+    setEditorFullscreen(isFullscreen);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -47,12 +53,18 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <div className="flex h-screen overflow-hidden">
-            {/* 侧边栏，在移动设备上可以滑动显示 */}
-            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} isMobile={isMobile} />
+            {/* 侧边栏，在移动设备上可以滑动显示，编辑器全屏时隐藏 */}
+            {!editorFullscreen && (
+              <Sidebar 
+                isOpen={sidebarOpen} 
+                onClose={() => setSidebarOpen(false)} 
+                isMobile={isMobile} 
+              />
+            )}
             
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* 移动设备上的顶部栏 */}
-              {isMobile && (
+              {isMobile && !editorFullscreen && (
                 <div className="bg-white border-b border-gray-200 p-4 flex items-center">
                   <button
                     onClick={() => setSidebarOpen(true)}
@@ -74,8 +86,12 @@ const App = () => {
                   <Route path="/events" element={<Events />} />
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/workspaces" element={<Workspaces />} />
-                  <Route path="/course-creator" element={<CourseCreator />} />
-                  <Route path="/editor-test" element={<BlockNoteEditorTest />} />
+                  <Route path="/course-creator" element={
+                    <CourseCreator onEditorFullscreenChange={handleEditorFullscreenChange} />
+                  } />
+                  <Route path="/editor-test" element={
+                    <BlockNoteEditorTest onEditorFullscreenChange={handleEditorFullscreenChange} />
+                  } />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </div>
