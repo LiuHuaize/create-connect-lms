@@ -9,15 +9,22 @@ import {
   FileQuestion, ChevronDown, ChevronRight
 } from 'lucide-react';
 import LessonEditor from '@/components/course/LessonEditor';
+import { CourseModule, Lesson, LessonType, LessonContent } from '@/types/course';
 
-const LESSON_TYPES = [
+type LessonTypeInfo = {
+  id: LessonType;
+  name: string;
+  icon: React.ReactNode;
+};
+
+const LESSON_TYPES: LessonTypeInfo[] = [
   { id: 'video', name: 'Video', icon: <Video size={16} className="text-blue-600" /> },
   { id: 'text', name: 'Text Content', icon: <FileText size={16} className="text-green-600" /> },
   { id: 'quiz', name: 'Quiz', icon: <FileQuestion size={16} className="text-amber-600" /> },
   { id: 'assignment', name: 'Assignment', icon: <CheckSquare size={16} className="text-purple-600" /> }
 ];
 
-const getInitialContentByType = (type) => {
+const getInitialContentByType = (type: LessonType): LessonContent => {
   switch(type) {
     case 'video':
       return { videoUrl: '' };
@@ -32,7 +39,7 @@ const getInitialContentByType = (type) => {
   }
 };
 
-const initialModules = [
+const initialModules: CourseModule[] = [
   {
     id: 'm1',
     title: 'Introduction to Business Planning',
@@ -49,8 +56,8 @@ const initialModules = [
 ];
 
 const CourseCreator = () => {
-  const [modules, setModules] = useState(initialModules);
-  const [currentLesson, setCurrentLesson] = useState(null);
+  const [modules, setModules] = useState<CourseModule[]>(initialModules);
+  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [expandedModule, setExpandedModule] = useState('m1');
   
   const addModule = () => {
@@ -63,18 +70,18 @@ const CourseCreator = () => {
     setExpandedModule(newModule.id);
   };
   
-  const updateModuleTitle = (moduleId, newTitle) => {
+  const updateModuleTitle = (moduleId: string, newTitle: string) => {
     setModules(modules.map(module => 
       module.id === moduleId ? { ...module, title: newTitle } : module
     ));
   };
   
-  const deleteModule = (moduleId) => {
+  const deleteModule = (moduleId: string) => {
     setModules(modules.filter(module => module.id !== moduleId));
   };
   
-  const addLesson = (moduleId, lessonType) => {
-    const newLesson = {
+  const addLesson = (moduleId: string, lessonType: LessonType) => {
+    const newLesson: Lesson = {
       id: `l${Date.now()}`,
       type: lessonType,
       title: `New ${LESSON_TYPES.find(type => type.id === lessonType)?.name} Lesson`,
@@ -90,13 +97,18 @@ const CourseCreator = () => {
     setCurrentLesson(newLesson);
   };
   
-  const updateLesson = (moduleId, lessonId, updatedLesson) => {
+  const updateLesson = (moduleId: string, lessonId: string, updatedLesson: Lesson | null) => {
+    if (!updatedLesson) {
+      setCurrentLesson(null);
+      return;
+    }
+    
     setModules(modules.map(module => 
       module.id === moduleId 
         ? { 
             ...module, 
             lessons: module.lessons.map(lesson => 
-              lesson.id === lessonId ? { ...lesson, ...updatedLesson } : lesson
+              lesson.id === lessonId ? updatedLesson : lesson
             ) 
           } 
         : module
@@ -104,7 +116,7 @@ const CourseCreator = () => {
     setCurrentLesson(null);
   };
   
-  const deleteLesson = (moduleId, lessonId) => {
+  const deleteLesson = (moduleId: string, lessonId: string) => {
     setModules(modules.map(module => 
       module.id === moduleId 
         ? { ...module, lessons: module.lessons.filter(lesson => lesson.id !== lessonId) } 
@@ -116,7 +128,7 @@ const CourseCreator = () => {
     }
   };
   
-  const toggleModuleExpand = (moduleId) => {
+  const toggleModuleExpand = (moduleId: string) => {
     setExpandedModule(expandedModule === moduleId ? null : moduleId);
   };
 

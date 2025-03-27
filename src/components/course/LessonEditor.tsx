@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,28 +17,52 @@ import {
   FileText, Video, FileQuestion, 
   Plus, Trash2, AlertCircle
 } from 'lucide-react';
+import { 
+  Lesson, 
+  QuizQuestion, 
+  QuizQuestionType,
+  VideoLessonContent,
+  TextLessonContent,
+  QuizLessonContent,
+  AssignmentLessonContent
+} from '@/types/course';
 
 // Quiz question types
-const QUESTION_TYPES = [
+const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
   { id: 'multiple_choice', name: 'Multiple Choice' },
   { id: 'true_false', name: 'True/False' },
   { id: 'short_answer', name: 'Short Answer' }
 ];
 
-const LessonEditor = ({ lesson, onSave }) => {
+interface LessonEditorProps {
+  lesson: Lesson;
+  onSave: (updatedLesson: Lesson | null) => void;
+}
+
+const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
   // Initialize content with the correct structure based on lesson type
   const initializeContent = () => {
-    const baseContent = lesson.content || {};
+    const baseContent = lesson.content;
     
     switch (lesson.type) {
       case 'video':
-        return { videoUrl: baseContent.videoUrl || '', description: baseContent.description || '' };
+        return { 
+          videoUrl: (baseContent as VideoLessonContent).videoUrl || '', 
+          description: (baseContent as VideoLessonContent).description || '' 
+        } as VideoLessonContent;
       case 'text':
-        return { text: baseContent.text || '' };
+        return { 
+          text: (baseContent as TextLessonContent).text || '' 
+        } as TextLessonContent;
       case 'quiz':
-        return { questions: baseContent.questions || [] };
+        return { 
+          questions: (baseContent as QuizLessonContent).questions || [] 
+        } as QuizLessonContent;
       case 'assignment':
-        return { instructions: baseContent.instructions || '', criteria: baseContent.criteria || '' };
+        return { 
+          instructions: (baseContent as AssignmentLessonContent).instructions || '', 
+          criteria: (baseContent as AssignmentLessonContent).criteria || '' 
+        } as AssignmentLessonContent;
       default:
         return baseContent;
     }
@@ -54,7 +79,7 @@ const LessonEditor = ({ lesson, onSave }) => {
   });
   
   const handleSubmit = (data) => {
-    const updatedLesson = {
+    const updatedLesson: Lesson = {
       ...lesson,
       title: data.title,
       content: { ...currentContent }
@@ -62,35 +87,46 @@ const LessonEditor = ({ lesson, onSave }) => {
     
     // Depending on the lesson type, extract the relevant content fields
     if (lesson.type === 'video') {
-      updatedLesson.content.videoUrl = data.videoUrl;
-      updatedLesson.content.description = data.description;
+      updatedLesson.content = { 
+        videoUrl: data.videoUrl,
+        description: data.description
+      } as VideoLessonContent;
     } else if (lesson.type === 'text') {
-      updatedLesson.content.text = data.text;
+      updatedLesson.content = { 
+        text: data.text 
+      } as TextLessonContent;
     } else if (lesson.type === 'quiz') {
       // Quiz questions are handled separately through the questions state
+      updatedLesson.content = { 
+        questions: questions 
+      } as QuizLessonContent;
     } else if (lesson.type === 'assignment') {
-      updatedLesson.content.instructions = data.instructions;
-      updatedLesson.content.criteria = data.criteria;
+      updatedLesson.content = { 
+        instructions: data.instructions,
+        criteria: data.criteria 
+      } as AssignmentLessonContent;
     }
     
     onSave(updatedLesson);
   };
   
   // Quiz specific state and handlers
-  const [questions, setQuestions] = useState(
-    currentContent.questions || [
-      {
-        id: 'q1',
-        type: 'multiple_choice',
-        text: 'What is the primary purpose of a business plan?',
-        options: [
-          { id: 'o1', text: 'To secure funding' },
-          { id: 'o2', text: 'To guide business operations' },
-          { id: 'o3', text: 'To analyze the market' }
-        ],
-        correctOption: 'o2'
-      }
-    ]
+  const [questions, setQuestions] = useState<QuizQuestion[]>(
+    lesson.type === 'quiz' 
+      ? (currentContent as QuizLessonContent).questions || [
+          {
+            id: 'q1',
+            type: 'multiple_choice',
+            text: 'What is the primary purpose of a business plan?',
+            options: [
+              { id: 'o1', text: 'To secure funding' },
+              { id: 'o2', text: 'To guide business operations' },
+              { id: 'o3', text: 'To analyze the market' }
+            ],
+            correctOption: 'o2'
+          }
+        ]
+      : []
   );
   
   const addQuestion = () => {
