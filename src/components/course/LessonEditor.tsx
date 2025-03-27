@@ -66,7 +66,8 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
       case 'assignment':
         return { 
           instructions: (baseContent as AssignmentLessonContent).instructions || '', 
-          criteria: (baseContent as AssignmentLessonContent).criteria || '' 
+          criteria: (baseContent as AssignmentLessonContent).criteria || '',
+          aiGradingPrompt: (baseContent as AssignmentLessonContent).aiGradingPrompt || ''
         } as AssignmentLessonContent;
       default:
         return baseContent;
@@ -108,7 +109,8 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
     } else if (lesson.type === 'assignment') {
       updatedLesson.content = { 
         instructions: data.instructions,
-        criteria: data.criteria 
+        criteria: data.criteria,
+        aiGradingPrompt: data.aiGradingPrompt
       } as AssignmentLessonContent;
     }
     
@@ -453,7 +455,17 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
                           <Textarea
                             placeholder="输入可能的正确答案示例"
                             rows={3}
+                            value={question.sampleAnswer || ''}
+                            onChange={(e) => updateQuestion(question.id, 'sampleAnswer', e.target.value)}
                           />
+                          
+                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                            <p className="text-xs text-yellow-700 font-medium mb-1">AI评分说明</p>
+                            <p className="text-xs text-yellow-600">
+                              简答题将使用AI进行自动评分。系统会根据问题和示例答案来评判学生的回答。
+                              您可以在作业的"AI评分提示"部分提供更详细的评分标准和要求。
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -488,6 +500,29 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
                   <FormControl>
                     <Textarea className="min-h-32" placeholder="描述作业的评分标准和要求" {...field} />
                   </FormControl>
+                  <FormDescription>
+                    这些评分标准将展示给学生，帮助他们了解作业要求和评分方式
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="aiGradingPrompt"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>AI评分提示</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      className="min-h-32" 
+                      placeholder="指导AI如何评分，例如：'这是一篇关于商业计划的作业，请评估以下几点：1. 内容完整性(30%)，2. 逻辑性(30%)，3. 创新性(20%)，4. 表达清晰度(20%)'" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    输入提示词指导AI如何评分学生作业。这些提示词不会展示给学生，仅用于AI评分。
+                  </FormDescription>
                 </FormItem>
               )}
             />

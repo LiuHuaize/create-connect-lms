@@ -1,4 +1,3 @@
-
 // Define all possible lesson content types
 export type VideoLessonContent = {
   videoUrl: string;
@@ -16,6 +15,42 @@ export type QuizLessonContent = {
 export type AssignmentLessonContent = {
   instructions: string;
   criteria: string;
+  aiGradingPrompt?: string; // AI评分提示
+};
+
+// AI评分结果类型
+export type AIGradingResult = {
+  score: number; // AI给出的分数
+  feedback: string; // AI的评语
+  timestamp: string; // 评分时间
+};
+
+// 学生作业提交类型
+export type AssignmentSubmission = {
+  id: string;
+  studentId: string;
+  lessonId: string;
+  content: string; // 学生提交的内容
+  submittedAt: string;
+  aiGrading?: AIGradingResult; // AI评分结果
+  teacherGrading?: {
+    score: number;
+    feedback: string;
+    timestamp: string;
+  }; // 教师评分结果
+};
+
+// 学生作业状态
+export type StudentAssignmentStatus = 'not_started' | 'in_progress' | 'submitted' | 'ai_graded' | 'teacher_graded';
+
+// 学生课程进度
+export type StudentProgress = {
+  studentId: string;
+  courseId: string;
+  completedLessons: string[]; // 已完成课时的ID
+  assignmentStatus: Record<string, StudentAssignmentStatus>; // 每个作业的状态
+  quizScores: Record<string, number>; // 每个测验的得分
+  lastActivity: string; // 最后活动时间
 };
 
 // Union type for all possible lesson content
