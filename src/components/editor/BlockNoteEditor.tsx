@@ -55,9 +55,23 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
     }
   }
   
+  // 处理本地图片上传
+  const handleFileUpload = async (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // 将文件转换为base64字符串
+        const base64String = reader.result as string;
+        resolve(base64String);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+  
   // 创建BlockNote编辑器实例
   const editor = useCreateBlockNote({
     initialContent: initialContent ? safelyParseContent(initialContent) : undefined,
+    uploadFile: handleFileUpload, // 添加图片上传处理函数
   });
 
   // 处理编辑器内容变化
