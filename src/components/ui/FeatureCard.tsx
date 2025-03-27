@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 
@@ -20,7 +19,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, cla
           <h3 className="font-semibold text-lg mb-2">{title}</h3>
           <p className="text-gray-600 text-sm mb-4">{description}</p>
           <button className="inline-flex items-center text-connect-blue text-sm font-medium">
-            Learn more
+            了解更多
             <ChevronRight size={16} className="ml-1" />
           </button>
         </div>

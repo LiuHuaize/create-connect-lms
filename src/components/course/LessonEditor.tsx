@@ -30,9 +30,9 @@ import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
-  { id: 'multiple_choice', name: 'Multiple Choice' },
-  { id: 'true_false', name: 'True/False' },
-  { id: 'short_answer', name: 'Short Answer' }
+  { id: 'multiple_choice', name: '多选题' },
+  { id: 'true_false', name: '判断题' },
+  { id: 'short_answer', name: '简答题' }
 ];
 
 interface LessonEditorProps {
@@ -149,10 +149,10 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
     const newQuestion: QuizQuestion = {
       id: `q${Date.now()}`,
       type: 'multiple_choice',
-      text: 'New Question',
+      text: '新问题',
       options: [
-        { id: `o${Date.now()}-1`, text: 'Option 1' },
-        { id: `o${Date.now()}-2`, text: 'Option 2' }
+        { id: `o${Date.now()}-1`, text: '选项1' },
+        { id: `o${Date.now()}-2`, text: '选项2' }
       ],
       correctOption: ''
     };
@@ -193,7 +193,7 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
     if (question && question.options) {
       const newOption = {
         id: `o${Date.now()}`,
-        text: `Option ${question.options.length + 1}`
+        text: `选项${question.options.length + 1}`
       };
       
       const updatedQuestions = questions.map(q => 
@@ -245,9 +245,9 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Lesson Title</FormLabel>
+              <FormLabel>课程标题</FormLabel>
               <FormControl>
-                <Input placeholder="Enter a title for this lesson" {...field} />
+                <Input placeholder="输入课程标题" {...field} />
               </FormControl>
             </FormItem>
           )}
@@ -261,20 +261,12 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
               name="videoUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Video URL</FormLabel>
+                  <FormLabel>视频URL</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Enter the URL of the video (YouTube, Vimeo, etc.)" 
-                      {...field} 
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setCurrentContent({...currentContent, videoUrl: e.target.value} as VideoLessonContent);
-                      }}
-                    />
+                    <Input placeholder="输入YouTube或其他视频平台的URL" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Paste a YouTube, Vimeo, or other video platform URL
+                    支持YouTube、Vimeo和其他视频平台链接
                   </FormDescription>
                 </FormItem>
               )}
@@ -285,18 +277,9 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Video Description</FormLabel>
+                  <FormLabel>视频描述</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Enter a description for this video" 
-                      className="min-h-32"
-                      {...field}
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setCurrentContent({...currentContent, description: e.target.value} as VideoLessonContent);
-                      }}
-                    />
+                    <Textarea placeholder="为视频添加描述文本" className="min-h-20" {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -323,13 +306,17 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
               name="text"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Content</FormLabel>
+                  <FormLabel>内容</FormLabel>
                   <FormControl>
-                    <BlockNoteEditor 
-                      initialContent={(currentContent as TextLessonContent)?.text || ''}
+                    <BlockNoteEditor
+                      initialContent={
+                        typeof (currentContent as TextLessonContent).text === 'string'
+                          ? (currentContent as TextLessonContent).text
+                          : JSON.stringify([{ type: "paragraph", content: "" }])
+                      }
                       onChange={handleLexicalEditorChange}
                       placeholder="在此输入课程内容..."
-                      onSave={() => form.handleSubmit(handleSubmit)()}
+                      className="min-h-[300px] border-0 shadow-none"
                     />
                   </FormControl>
                   <FormDescription>
@@ -342,153 +329,133 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
         )}
         
         {lesson.type === 'quiz' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">Quiz Questions</h3>
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm" 
-                onClick={addQuestion}
-              >
-                <Plus size={14} className="mr-2" /> Add Question
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">测验问题</h3>
+              <Button type="button" onClick={addQuestion} size="sm" variant="outline">
+                <Plus size={16} className="mr-2" /> 添加问题
               </Button>
             </div>
             
-            {questions.map((question, index) => (
-              <div 
-                key={question.id} 
-                className="p-4 bg-gray-50 rounded-lg border border-gray-200"
-              >
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="font-medium">Question {index + 1}</h4>
-                  <button
-                    type="button"
-                    className="text-gray-500 hover:text-red-500"
-                    onClick={() => deleteQuestion(question.id)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Question Type
-                    </label>
-                    <select 
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300"
-                      value={question.type}
-                      onChange={(e) => updateQuestion(question.id, 'type', e.target.value)}
-                    >
-                      {QUESTION_TYPES.map(type => (
-                        <option key={type.id} value={type.id}>
-                          {type.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Question Text
-                    </label>
-                    <Input 
-                      value={question.text}
-                      onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
-                    />
-                  </div>
-                  
-                  {question.type === 'multiple_choice' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Answer Options
-                      </label>
-                      <div className="space-y-2">
-                        {question.options.map(option => (
-                          <div key={option.id} className="flex items-center">
-                            <input
-                              type="radio"
-                              className="mr-2"
-                              checked={question.correctOption === option.id}
-                              onChange={() => setCorrectOption(question.id, option.id)}
-                            />
-                            <Input
-                              className="flex-1"
-                              value={option.text}
-                              onChange={(e) => updateOption(question.id, option.id, e.target.value)}
-                            />
-                            <button
-                              type="button"
-                              className="ml-2 text-gray-500 hover:text-red-500"
-                              onClick={() => deleteOption(question.id, option.id)}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => addOption(question.id)}
-                        >
-                          <Plus size={14} className="mr-2" /> Add Option
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Select the radio button next to the correct answer
-                      </p>
-                    </div>
-                  )}
-                  
-                  {question.type === 'true_false' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Correct Answer
-                      </label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`tf-${question.id}`}
-                            className="mr-2"
-                            checked={question.correctOption === 'true'}
-                            onChange={() => setCorrectOption(question.id, 'true')}
-                          />
-                          <span>True</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name={`tf-${question.id}`}
-                            className="mr-2"
-                            checked={question.correctOption === 'false'}
-                            onChange={() => setCorrectOption(question.id, 'false')}
-                          />
-                          <span>False</span>
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {question.type === 'short_answer' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Sample Answer (for reference)
-                      </label>
-                      <Textarea
-                        className="min-h-24"
-                        value={question.sampleAnswer || ''}
-                        onChange={(e) => updateQuestion(question.id, 'sampleAnswer', e.target.value)}
-                        placeholder="Enter a sample answer for reference"
-                      />
-                    </div>
-                  )}
-                </div>
+            {questions.length === 0 ? (
+              <div className="text-center p-8 border border-dashed border-gray-300 rounded-md">
+                <FileQuestion className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">还没有问题。点击上方"添加问题"按钮开始创建测验。</p>
               </div>
-            ))}
+            ) : (
+              <div className="space-y-6">
+                {questions.map((question, index) => (
+                  <div key={question.id} className="border border-gray-200 rounded-md p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium">问题 {index + 1}</h4>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => deleteQuestion(question.id)}
+                        className="h-8 w-8 p-0 text-red-500"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          问题类型
+                        </label>
+                        <select
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-connect-blue/20 focus:border-connect-blue"
+                          value={question.type}
+                          onChange={(e) => updateQuestion(question.id, 'type', e.target.value)}
+                        >
+                          {QUESTION_TYPES.map((type) => (
+                            <option key={type.id} value={type.id}>
+                              {type.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          问题文本
+                        </label>
+                        <Input
+                          value={question.text}
+                          onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
+                          placeholder="输入问题内容"
+                        />
+                      </div>
+                      
+                      {(question.type === 'multiple_choice' || question.type === 'true_false') && (
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <label className="block text-sm font-medium text-gray-700">
+                              选项
+                            </label>
+                            {question.type === 'multiple_choice' && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => addOption(question.id)}
+                                className="h-6"
+                              >
+                                <Plus size={14} className="mr-1" /> 添加选项
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <div className="space-y-2">
+                            {question.options?.map((option) => (
+                              <div key={option.id} className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name={`correct-${question.id}`}
+                                  checked={question.correctOption === option.id}
+                                  onChange={() => setCorrectOption(question.id, option.id)}
+                                  className="h-4 w-4 text-connect-blue"
+                                />
+                                <Input
+                                  value={option.text}
+                                  onChange={(e) => updateOption(question.id, option.id, e.target.value)}
+                                  className="flex-1"
+                                />
+                                {question.type === 'multiple_choice' && question.options && question.options.length > 2 && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => deleteOption(question.id, option.id)}
+                                    className="h-8 w-8 p-0 text-red-500"
+                                  >
+                                    <Trash2 size={14} />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">选择正确答案</p>
+                        </div>
+                      )}
+                      
+                      {question.type === 'short_answer' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            答案示例（仅供参考）
+                          </label>
+                          <Textarea
+                            placeholder="输入可能的正确答案示例"
+                            rows={3}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
         
@@ -499,18 +466,9 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
               name="instructions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Assignment Instructions</FormLabel>
+                  <FormLabel>作业说明</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Enter detailed instructions for the assignment" 
-                      className="min-h-32"
-                      {...field}
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setCurrentContent({...currentContent, instructions: e.target.value});
-                      }}
-                    />
+                    <Textarea className="min-h-40" placeholder="为学生提供详细的作业说明和要求" {...field} />
                   </FormControl>
                 </FormItem>
               )}
@@ -521,33 +479,23 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
               name="criteria"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Evaluation Criteria</FormLabel>
+                  <FormLabel>评分标准</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Enter the criteria that will be used to evaluate this assignment" 
-                      className="min-h-24"
-                      {...field}
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setCurrentContent({...currentContent, criteria: e.target.value});
-                      }}
-                    />
+                    <Textarea className="min-h-32" placeholder="描述作业的评分标准和要求" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Describe how this assignment will be evaluated
-                  </FormDescription>
                 </FormItem>
               )}
             />
           </div>
         )}
         
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex justify-end gap-3 pt-4">
           <Button type="button" variant="outline" onClick={() => onSave(null)}>
-            Cancel
+            取消
           </Button>
-          <Button type="submit">Save Lesson</Button>
+          <Button type="submit" className="bg-connect-blue hover:bg-blue-600">
+            保存课程
+          </Button>
         </div>
       </form>
     </Form>

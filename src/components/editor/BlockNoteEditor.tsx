@@ -1,12 +1,24 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { locales } from "@blocknote/core";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from 'next-themes';
+
+// 创建中文本地化配置，基于英文字典
+const zhDictionary = {
+  ...locales.en,
+  // 覆盖占位符
+  placeholders: {
+    ...locales.en.placeholders,
+    default: "输入文本或键入 '/' 使用命令",
+    emptyDocument: "在此输入内容...",
+  },
+};
 
 interface BlockNoteEditorProps {
   initialContent?: string;
@@ -72,6 +84,7 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
   const editor = useCreateBlockNote({
     initialContent: initialContent ? safelyParseContent(initialContent) : undefined,
     uploadFile: handleFileUpload, // 添加图片上传处理函数
+    dictionary: zhDictionary, // 添加中文本地化支持
   });
 
   // 处理编辑器内容变化

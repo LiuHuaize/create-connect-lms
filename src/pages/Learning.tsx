@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
@@ -7,13 +6,13 @@ import { BookOpen, Play, Clock, Award } from 'lucide-react';
 const Learning = () => {
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">My Learning</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">我的学习</h1>
       
       <Tabs defaultValue="inProgress" className="w-full">
         <TabsList className="mb-6">
-          <TabsTrigger value="inProgress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="saved">Saved</TabsTrigger>
+          <TabsTrigger value="inProgress">进行中</TabsTrigger>
+          <TabsTrigger value="completed">已完成</TabsTrigger>
+          <TabsTrigger value="saved">已保存</TabsTrigger>
         </TabsList>
         
         <TabsContent value="inProgress" className="space-y-6">
@@ -23,19 +22,19 @@ const Learning = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <div className="bg-connect-lightBlue text-connect-blue inline-block px-3 py-1 rounded-full text-xs font-medium mb-3">
-                    Business Planning
+                    商业规划
                   </div>
-                  <h3 className="font-bold text-xl mb-2">Creating a Successful Business Plan</h3>
-                  <p className="text-gray-600 mb-4">Complete your business plan with industry-specific insights and financial projections.</p>
+                  <h3 className="font-bold text-xl mb-2">创建成功的商业计划</h3>
+                  <p className="text-gray-600 mb-4">利用行业特定的见解和财务预测完成您的商业计划。</p>
                   
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center text-gray-500">
                       <BookOpen size={16} className="mr-1" />
-                      <span className="text-sm">7 modules</span>
+                      <span className="text-sm">7个模块</span>
                     </div>
                     <div className="flex items-center text-gray-500">
                       <Clock size={16} className="mr-1" />
-                      <span className="text-sm">15 hours total</span>
+                      <span className="text-sm">总计15小时</span>
                     </div>
                   </div>
                 </div>
@@ -47,7 +46,7 @@ const Learning = () => {
               
               <div className="mt-2">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Progress</span>
+                  <span className="text-sm font-medium">进度</span>
                   <span className="text-sm text-gray-500">65%</span>
                 </div>
                 <Progress value={65} className="h-2" />
@@ -57,11 +56,11 @@ const Learning = () => {
             <div className="border-t border-gray-200 bg-gray-50 p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">Next: Financial Projections</h4>
-                  <p className="text-sm text-gray-500">Create detailed financial forecasts for your business plan</p>
+                  <h4 className="font-medium">下一步：财务预测</h4>
+                  <p className="text-sm text-gray-500">为您的商业计划创建详细的财务预测</p>
                 </div>
                 <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                  Continue
+                  继续
                 </button>
               </div>
             </div>
@@ -73,19 +72,19 @@ const Learning = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <div className="bg-amber-100 text-amber-700 inline-block px-3 py-1 rounded-full text-xs font-medium mb-3">
-                    Game Design
+                    游戏设计
                   </div>
-                  <h3 className="font-bold text-xl mb-2">Card Game Design Workshop</h3>
-                  <p className="text-gray-600 mb-4">Learn the principles of engaging card game design and prototyping.</p>
+                  <h3 className="font-bold text-xl mb-2">卡牌游戏设计工作坊</h3>
+                  <p className="text-gray-600 mb-4">学习引人入胜的卡牌游戏设计和原型制作原则。</p>
                   
                   <div className="flex items-center gap-4 mb-4">
                     <div className="flex items-center text-gray-500">
                       <BookOpen size={16} className="mr-1" />
-                      <span className="text-sm">5 modules</span>
+                      <span className="text-sm">5个模块</span>
                     </div>
                     <div className="flex items-center text-gray-500">
                       <Clock size={16} className="mr-1" />
-                      <span className="text-sm">10 hours total</span>
+                      <span className="text-sm">总计10小时</span>
                     </div>
                   </div>
                 </div>
@@ -97,7 +96,7 @@ const Learning = () => {
               
               <div className="mt-2">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Progress</span>
+                  <span className="text-sm font-medium">进度</span>
                   <span className="text-sm text-gray-500">30%</span>
                 </div>
                 <Progress value={30} className="h-2" />
@@ -107,11 +106,11 @@ const Learning = () => {
             <div className="border-t border-gray-200 bg-gray-50 p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">Next: Game Mechanics</h4>
-                  <p className="text-sm text-gray-500">Explore core mechanics and player engagement strategies</p>
+                  <h4 className="font-medium">下一步：游戏机制</h4>
+                  <p className="text-sm text-gray-500">探索核心机制和玩家参与策略</p>
                 </div>
                 <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                  Continue
+                  继续
                 </button>
               </div>
             </div>
@@ -124,23 +123,23 @@ const Learning = () => {
               <div>
                 <div className="flex items-center mb-3">
                   <div className="bg-green-100 text-green-700 inline-block px-3 py-1 rounded-full text-xs font-medium mr-3">
-                    Product Design
+                    产品设计
                   </div>
                   <div className="flex items-center text-amber-500">
                     <Award size={16} className="mr-1" />
-                    <span className="text-xs font-medium">Certificate Earned</span>
+                    <span className="text-xs font-medium">已获得证书</span>
                   </div>
                 </div>
-                <h3 className="font-bold text-xl mb-2">Product Development Fundamentals</h3>
-                <p className="text-gray-600">A comprehensive guide to creating successful physical and digital products.</p>
+                <h3 className="font-bold text-xl mb-2">产品开发基础</h3>
+                <p className="text-gray-600">创建成功的实体和数字产品的综合指南。</p>
               </div>
               
               <div className="flex items-center gap-3">
                 <button className="py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                  Review
+                  回顾
                 </button>
                 <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                  Certificate
+                  证书
                 </button>
               </div>
             </div>
@@ -149,9 +148,9 @@ const Learning = () => {
         
         <TabsContent value="saved">
           <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">You haven't saved any courses yet</p>
+            <p className="text-gray-500 mb-4">您尚未保存任何课程</p>
             <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors">
-              Browse Courses
+              浏览课程
             </button>
           </div>
         </TabsContent>

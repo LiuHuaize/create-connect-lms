@@ -253,7 +253,7 @@ const EditorToolbar: React.FC = () => {
         variant="outline"
         onClick={() => formatAlignment('center')}
         className="h-8 w-8 p-0"
-        title="居中"
+        title="居中对齐"
       >
         <AlignCenter size={16} />
       </Button>

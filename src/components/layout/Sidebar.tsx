@@ -7,11 +7,11 @@ const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   const sidebarItems = [
-    { to: '/', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-    { to: '/learning', icon: <BookOpen size={20} />, label: 'Courses' },
-    { to: '/events', icon: <Calendar size={20} />, label: 'Events' },
-    { to: '/community', icon: <MessageSquare size={20} />, label: 'Community' },
-    { to: '/course-creator', icon: <PenSquare size={20} />, label: 'Create Course' },
+    { to: '/', icon: <LayoutDashboard size={20} />, label: '仪表板' },
+    { to: '/learning', icon: <BookOpen size={20} />, label: '课程' },
+    { to: '/events', icon: <Calendar size={20} />, label: '活动' },
+    { to: '/community', icon: <MessageSquare size={20} />, label: '社区' },
+    { to: '/course-creator', icon: <PenSquare size={20} />, label: '创建课程' },
   ];
 
   return (

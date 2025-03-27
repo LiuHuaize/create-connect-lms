@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Clock } from 'lucide-react';
 
@@ -39,13 +38,13 @@ const CourseCard: React.FC<CourseCardProps> = ({
   const getTypeLabel = () => {
     switch (type) {
       case 'skill':
-        return 'Skill path';
+        return '技能路径';
       case 'free':
-        return 'Free course';
+        return '免费课程';
       case 'career':
-        return 'Career path';
+        return '职业路径';
       default:
-        return 'Course';
+        return '课程';
     }
   };
 
@@ -63,7 +62,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
         <div className="border-t border-gray-200 p-4 bg-gray-50">
           {coursesCount && (
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-500">Includes {coursesCount} Courses</span>
+              <span className="text-xs text-gray-500">包含 {coursesCount} 个课程</span>
             </div>
           )}
           
@@ -73,7 +72,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 <path fillRule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
                 <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3.586l2.707 2.707a1 1 0 01-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 01-1.414-1.414L9 9.586V6a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
-              <span className="text-xs text-gray-700">With Certificate</span>
+              <span className="text-xs text-gray-700">含证书</span>
             </div>
           )}
           
@@ -83,7 +82,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
             {hours && (
               <div className="flex items-center">
                 <Clock size={14} className="mr-1 text-gray-500" />
-                <span className="text-xs text-gray-700">{hours} hours</span>
+                <span className="text-xs text-gray-700">{hours} 小时</span>
               </div>
             )}
           </div>
