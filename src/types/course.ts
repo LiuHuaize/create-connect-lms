@@ -58,3 +58,28 @@ export type CourseModule = {
   title: string;
   lessons: Lesson[];
 };
+
+// Yoopta Editor types (optional for better type safety)
+export type YooptaBlockType = 
+  | 'paragraph'
+  | 'heading-1'
+  | 'heading-2'
+  | 'heading-3'
+  | 'blockquote'
+  | 'code'
+  | 'image'
+  | 'divider'
+  | 'ordered-list'
+  | 'unordered-list'
+  | 'list-item';
+
+export type YooptaBlock = {
+  id: string;
+  type: YooptaBlockType;
+  children?: any[];
+  content?: string;
+  url?: string;
+  alt?: string;
+};
+
+export type YooptaContent = YooptaBlock[];
