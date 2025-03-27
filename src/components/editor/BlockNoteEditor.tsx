@@ -18,6 +18,115 @@ const zhDictionary = {
     default: "输入文本或键入 '/' 使用命令",
     emptyDocument: "在此输入内容...",
   },
+  // 颜色选择器翻译
+  color_picker: {
+    text_title: "文本",
+    background_title: "背景色",
+    colors: {
+      default: "默认",
+      gray: "灰色",
+      brown: "棕色",
+      red: "红色",
+      orange: "橙色",
+      yellow: "黄色",
+      green: "绿色",
+      blue: "蓝色",
+      purple: "紫色",
+      pink: "粉色",
+    },
+  },
+  // 工具栏颜色按钮翻译
+  formatting_toolbar: {
+    ...locales.en.formatting_toolbar,
+    bold: {
+      tooltip: "加粗",
+      secondary_tooltip: "Mod+B",
+    },
+    italic: {
+      tooltip: "斜体",
+      secondary_tooltip: "Mod+I",
+    },
+    underline: {
+      tooltip: "下划线",
+      secondary_tooltip: "Mod+U",
+    },
+    strike: {
+      tooltip: "删除线",
+      secondary_tooltip: "Mod+Shift+S",
+    },
+    code: {
+      tooltip: "代码标记",
+      secondary_tooltip: "",
+    },
+    colors: {
+      tooltip: "颜色",
+    },
+    // 添加文本对齐按钮翻译
+    align_left: {
+      tooltip: "左对齐文本",
+    },
+    align_center: {
+      tooltip: "居中对齐文本",
+    },
+    align_right: {
+      tooltip: "右对齐文本",
+    },
+    align_justify: {
+      tooltip: "两端对齐文本",
+    },
+    link: {
+      tooltip: "添加链接",
+      secondary_tooltip: "Mod+K",
+    },
+    file_caption: {
+      tooltip: "编辑标题",
+      input_placeholder: "编辑标题",
+    },
+    file_replace: {
+      tooltip: {
+        image: "替换图片",
+        video: "替换视频",
+        audio: "替换音频",
+        file: "替换文件",
+      },
+    },
+    // 添加文件删除按钮翻译
+    file_delete: {
+      tooltip: {
+        image: "删除图片",
+        video: "删除视频",
+        audio: "删除音频",
+        file: "删除文件",
+      },
+    },
+    // 添加链接删除按钮翻译
+    delete: {
+      tooltip: "移除链接",
+    },
+  },
+  // 添加侧边菜单和拖动手柄翻译
+  side_menu: {
+    add_block_label: "添加块",
+    drag_handle_label: "打开块菜单",
+  },
+  drag_handle: {
+    delete_menuitem: "删除",
+    colors_menuitem: "颜色",
+    header_row_menuitem: "表头行",
+    header_column_menuitem: "表头列",
+  },
+  // 表格操作翻译
+  table_handle: {
+    delete_column_menuitem: "删除列",
+    delete_row_menuitem: "删除行",
+    add_left_menuitem: "左侧添加列",
+    add_right_menuitem: "右侧添加列",
+    add_above_menuitem: "上方添加行",
+    add_below_menuitem: "下方添加行",
+    split_cell_menuitem: "拆分单元格",
+    merge_cells_menuitem: "合并单元格",
+    background_color_menuitem: "背景色",
+  },
   // 覆盖斜线菜单项
   slash_menu: {
     ...locales.en.slash_menu,
