@@ -26,7 +26,7 @@ import {
   AssignmentLessonContent,
   LessonContent
 } from '@/types/course';
-import { LexicalEditor } from '@/components/editor';
+import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
@@ -53,7 +53,10 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
         } as VideoLessonContent;
       case 'text':
         return { 
-          text: (baseContent as TextLessonContent).text || '' 
+          text: (baseContent as TextLessonContent).text || JSON.stringify([{
+            type: "paragraph",
+            content: ""
+          }])
         } as TextLessonContent;
       case 'quiz':
         return { 
@@ -114,7 +117,11 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
   // 处理Lexical编辑器内容变化
   const handleLexicalEditorChange = (content: string) => {
     if (lesson.type === 'text') {
-      setCurrentContent({ ...currentContent, text: content } as TextLessonContent);
+      setCurrentContent({
+        ...(currentContent as TextLessonContent),
+        text: content
+      });
+      
       form.setValue('text', content);
     }
   };
@@ -318,14 +325,15 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                 <FormItem>
                   <FormLabel>Content</FormLabel>
                   <FormControl>
-                    <LexicalEditor 
-                      initialContent={(currentContent as TextLessonContent).text}
+                    <BlockNoteEditor 
+                      initialContent={(currentContent as TextLessonContent)?.text || ''}
                       onChange={handleLexicalEditorChange}
                       placeholder="在此输入课程内容..."
+                      onSave={() => form.handleSubmit(handleSubmit)()}
                     />
                   </FormControl>
                   <FormDescription>
-                    使用编辑器工具栏来格式化内容并添加链接、列表等元素。
+                    使用编辑器工具栏来格式化内容并添加链接、列表等元素。点击右上角可以全屏编辑。
                   </FormDescription>
                 </FormItem>
               )}
