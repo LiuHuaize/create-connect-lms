@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
-import { User } from "lucide-react";
+import { Menu } from "lucide-react";
+import { useState, useEffect } from "react";
 
 // Import all pages
 import Dashboard from "./pages/Dashboard";
@@ -20,39 +21,70 @@ import { BlockNoteEditorTest } from "./components/editor";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="h-16 border-b border-gray-200 bg-white flex items-center justify-end px-6">
-              <div className="h-9 w-9 rounded-full bg-connect-purple/20 flex items-center justify-center text-connect-purple font-medium cursor-pointer hover:bg-connect-purple/30 transition-all">
-                <User size={18} />
+const App = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 检测屏幕尺寸
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(false);
+      }
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <div className="flex h-screen overflow-hidden">
+            {/* 侧边栏，在移动设备上可以滑动显示 */}
+            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} isMobile={isMobile} />
+            
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* 移动设备上的顶部栏 */}
+              {isMobile && (
+                <div className="bg-white border-b border-gray-200 p-4 flex items-center">
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="p-1 rounded-md hover:bg-gray-100"
+                    aria-label="打开菜单"
+                  >
+                    <Menu size={24} />
+                  </button>
+                  <div className="ml-4 text-lg font-semibold">Connect LMS</div>
+                </div>
+              )}
+              
+              <div className="flex-1 overflow-y-auto bg-gray-50">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/learning" element={<Learning />} />
+                  <Route path="/community" element={<Community />} />
+                  <Route path="/events" element={<Events />} />
+                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/workspaces" element={<Workspaces />} />
+                  <Route path="/course-creator" element={<CourseCreator />} />
+                  <Route path="/editor-test" element={<BlockNoteEditorTest />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto bg-gray-50">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/learning" element={<Learning />} />
-                <Route path="/community" element={<Community />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/workspaces" element={<Workspaces />} />
-                <Route path="/course-creator" element={<CourseCreator />} />
-                <Route path="/editor-test" element={<BlockNoteEditorTest />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </div>
           </div>
-        </div>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

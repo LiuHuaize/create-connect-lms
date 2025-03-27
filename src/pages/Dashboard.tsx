@@ -9,16 +9,16 @@ import { Badge } from '@/components/ui/badge';
 
 const Dashboard = () => {
   return (
-    <div className="animate-fade-in p-6 max-w-7xl mx-auto">
+    <div className="animate-fade-in p-4 sm:p-6 max-w-7xl mx-auto">
       {/* 学习进度部分 */}
-      <section className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">我的学习进度</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="mb-6 sm:mb-8">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">我的学习进度</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* 总体完成度 */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-medium">总体完成度</CardTitle>
+                <CardTitle className="text-base sm:text-lg font-medium">总体完成度</CardTitle>
                 <Activity className="h-5 w-5 text-connect-blue" />
               </div>
               <CardDescription>本月学习情况</CardDescription>
@@ -44,7 +44,7 @@ const Dashboard = () => {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-medium">进行中的课程</CardTitle>
+                <CardTitle className="text-base sm:text-lg font-medium">进行中的课程</CardTitle>
                 <BookOpen className="h-5 w-5 text-connect-blue" />
               </div>
               <CardDescription>继续你的学习</CardDescription>
@@ -70,10 +70,10 @@ const Dashboard = () => {
           </Card>
 
           {/* 获得的技能 */}
-          <Card>
+          <Card className="sm:col-span-2 lg:col-span-1">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-medium">获得的技能</CardTitle>
+                <CardTitle className="text-base sm:text-lg font-medium">获得的技能</CardTitle>
                 <Cpu className="h-5 w-5 text-connect-blue" />
               </div>
               <CardDescription>最近掌握的能力</CardDescription>
@@ -92,24 +92,24 @@ const Dashboard = () => {
       </section>
 
       {/* 即将到来的活动 */}
-      <section className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">已报名的活动</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section className="mb-6 sm:mb-8">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">已报名的活动</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <Card>
             <CardContent className="p-0">
-              <div className="flex">
-                <div className="w-24 bg-connect-blue/10 flex items-center justify-center p-4">
+              <div className="flex flex-col sm:flex-row">
+                <div className="w-full sm:w-24 h-16 sm:h-auto bg-connect-blue/10 flex items-center justify-center p-4">
                   <Calendar className="h-8 w-8 text-connect-blue" />
                 </div>
                 <div className="p-4">
-                  <div className="flex items-center">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium">产品设计工作坊</h3>
-                    <Badge className="ml-2">线上</Badge>
+                    <Badge className="ml-0 sm:ml-2">线上</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">4月15日，下午2:00 - 4:00</p>
-                  <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center mt-2 text-sm text-muted-foreground">
                     <span>已报名人数: 42</span>
-                    <span className="mx-2">•</span>
+                    <span className="hidden sm:inline mx-2">•</span>
                     <span>主讲人: 张明</span>
                   </div>
                 </div>
@@ -119,19 +119,19 @@ const Dashboard = () => {
 
           <Card>
             <CardContent className="p-0">
-              <div className="flex">
-                <div className="w-24 bg-amber-500/10 flex items-center justify-center p-4">
+              <div className="flex flex-col sm:flex-row">
+                <div className="w-full sm:w-24 h-16 sm:h-auto bg-amber-500/10 flex items-center justify-center p-4">
                   <Calendar className="h-8 w-8 text-amber-600" />
                 </div>
                 <div className="p-4">
-                  <div className="flex items-center">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium">行业专家问答会</h3>
-                    <Badge className="ml-2" variant="outline">线下</Badge>
+                    <Badge className="ml-0 sm:ml-2" variant="outline">线下</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">4月20日，晚上7:00 - 9:00</p>
-                  <div className="flex items-center mt-2 text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center mt-2 text-sm text-muted-foreground">
                     <span>已报名人数: 28</span>
-                    <span className="mx-2">•</span>
+                    <span className="hidden sm:inline mx-2">•</span>
                     <span>地点: 创新中心</span>
                   </div>
                 </div>
@@ -141,23 +141,21 @@ const Dashboard = () => {
         </div>
       </section>
 
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">为你推荐</h1>
-            <div className="flex items-center gap-1 text-sm text-gray-500 ml-2">
-              <span>相关主题:</span>
-              <button className="text-connect-blue hover:underline">商业规划</button>
-              <span>|</span>
-              <button className="text-connect-blue hover:underline">游戏设计</button>
-              <span>|</span>
-              <button className="text-connect-blue hover:underline">产品开发</button>
-            </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-0">为你推荐</h1>
+          <div className="flex flex-wrap items-center gap-1 text-sm text-gray-500 mt-2">
+            <span>相关主题:</span>
+            <button className="text-connect-blue hover:underline">商业规划</button>
+            <span>|</span>
+            <button className="text-connect-blue hover:underline">游戏设计</button>
+            <span>|</span>
+            <button className="text-connect-blue hover:underline">产品开发</button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
         <CourseCard
           type="skill"
           title="商业计划开发"
@@ -187,16 +185,16 @@ const Dashboard = () => {
         />
       </div>
       
-      <div className="flex justify-center mb-12">
+      <div className="flex justify-center mb-8 sm:mb-12">
         <button className="flex items-center gap-2 py-2 px-4 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
           查看更多 <ChevronDown size={16} />
         </button>
       </div>
       
-      <section className="mb-12">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">发现更多功能</h2>
+      <section className="mb-8 sm:mb-12">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">发现更多功能</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <FeatureCard
             icon={<MessageSquare size={24} className="text-connect-blue" />}
             title="互动工作坊"

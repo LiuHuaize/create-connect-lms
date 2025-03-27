@@ -109,10 +109,12 @@ const zhDictionary = {
     }
   },
   // 添加分组名称翻译
-  slash_menu_section_labels: {
-    ...locales.en.slash_menu_section_labels,
+  menu_section_labels: {
     media: "媒体",
     others: "其他",
+    basic_blocks: "基本块",
+    headings: "标题",
+    advanced: "高级",
   },
 };
 
@@ -200,6 +202,22 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
     }
   }, [editor, onChange]);
 
+  // 检测是否是移动设备
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
   // 切换全屏模式
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);
@@ -237,37 +255,40 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
         className
       )}
     >
-      <div className="absolute top-2 right-2 z-10 flex gap-2">
-        {!readOnly && onSave && (
-          <Button
-            type="button"
-            variant="ghost"
+      {/* 移动设备将工具栏放在底部 */}
+      {!isMobile && (
+        <div className="absolute top-2 right-2 z-10 flex gap-2">
+          {!readOnly && onSave && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleSave}
+              aria-label="保存"
+              className="hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <Save size={18} className="text-gray-700 dark:text-gray-300" />
+            </Button>
+          )}
+          <Button 
+            type="button" 
+            variant="ghost" 
             size="sm"
-            onClick={handleSave}
-            aria-label="保存"
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "退出全屏" : "全屏编辑"}
             className="hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            <Save size={18} className="text-gray-700 dark:text-gray-300" />
+            {isFullscreen ? 
+              <Minimize2 size={18} className="text-gray-700 dark:text-gray-300" /> : 
+              <Maximize2 size={18} className="text-gray-700 dark:text-gray-300" />
+            }
           </Button>
-        )}
-        <Button 
-          type="button" 
-          variant="ghost" 
-          size="sm"
-          onClick={toggleFullscreen}
-          aria-label={isFullscreen ? "退出全屏" : "全屏编辑"}
-          className="hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          {isFullscreen ? 
-            <Minimize2 size={18} className="text-gray-700 dark:text-gray-300" /> : 
-            <Maximize2 size={18} className="text-gray-700 dark:text-gray-300" />
-          }
-        </Button>
-      </div>
+        </div>
+      )}
       
       <div className={cn(
         "w-full h-full overflow-auto",
-        isFullscreen ? "p-8 pt-14" : "min-h-[300px]"
+        isFullscreen ? "p-8 pt-14" : isMobile ? "min-h-[250px] pb-12" : "min-h-[300px]"
       )}>
         <BlockNoteView
           editor={editor}
@@ -275,6 +296,39 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
           editable={!readOnly}
         />
       </div>
+
+      {/* 移动设备底部工具栏 */}
+      {isMobile && (
+        <div className="absolute bottom-0 left-0 right-0 z-10 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-2 flex justify-end gap-2">
+          {!readOnly && onSave && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleSave}
+              aria-label="保存"
+              className="hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <Save size={18} className="text-gray-700 dark:text-gray-300" />
+              <span className="ml-1 text-xs">保存</span>
+            </Button>
+          )}
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="sm"
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "退出全屏" : "全屏编辑"}
+            className="hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            {isFullscreen ? 
+              <Minimize2 size={18} className="text-gray-700 dark:text-gray-300" /> : 
+              <Maximize2 size={18} className="text-gray-700 dark:text-gray-300" />
+            }
+            <span className="ml-1 text-xs">{isFullscreen ? "退出全屏" : "全屏"}</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 
 const Events = () => {
   return (
-    <div className="animate-fade-in p-6 max-w-7xl mx-auto">
+    <div className="animate-fade-in p-6 pt-8 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">活动</h1>
         
