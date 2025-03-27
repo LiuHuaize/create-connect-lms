@@ -50,25 +50,6 @@ const Sidebar = () => {
           ))}
         </nav>
       </div>
-
-      <div className="p-4 mt-auto">
-        {!collapsed && (
-          <div className="rounded-xl bg-connect-cream p-4 shadow-sm">
-            <h3 className="font-medium text-sm">Try Pro with a 7-day free trial</h3>
-            <p className="text-xs text-gray-600 mt-1 mb-3">Go deeper and learn through real-world projects</p>
-            <button className="w-full py-2 px-3 rounded bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors">
-              Try for free
-            </button>
-          </div>
-        )}
-        {collapsed && (
-          <div className="flex justify-center">
-            <div className="h-8 w-8 rounded-full bg-connect-cream flex items-center justify-center">
-              <span className="text-xs font-bold">PRO</span>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

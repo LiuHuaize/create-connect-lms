@@ -77,19 +77,6 @@ const Dashboard = () => {
           />
         </div>
       </section>
-      
-      <section>
-        <div className="bg-connect-cream rounded-2xl p-8">
-          <div className="max-w-xl">
-            <h2 className="text-2xl font-bold mb-4">Try Plus or Pro with a 7-day free trial</h2>
-            <p className="text-gray-700 mb-6">Go deeper and learn practical skills. Work on real-world projects, receive feedback, and earn certificates.</p>
-            
-            <button className="bg-black hover:bg-gray-800 text-white py-3 px-6 rounded-lg font-medium transition-colors">
-              Try for free
-            </button>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };
