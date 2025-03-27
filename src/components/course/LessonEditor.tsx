@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +26,7 @@ import {
   AssignmentLessonContent,
   LessonContent
 } from '@/types/course';
+import { LexicalEditor } from '@/components/editor';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
@@ -109,6 +109,14 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
     }
     
     onSave(updatedLesson);
+  };
+  
+  // 处理Lexical编辑器内容变化
+  const handleLexicalEditorChange = (content: string) => {
+    if (lesson.type === 'text') {
+      setCurrentContent({ ...currentContent, text: content } as TextLessonContent);
+      form.setValue('text', content);
+    }
   };
   
   // Quiz specific state and handlers
@@ -310,42 +318,18 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                 <FormItem>
                   <FormLabel>Content</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Enter your lesson content here. Markdown is supported." 
-                      className="min-h-[300px]"
-                      {...field}
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setCurrentContent({...currentContent, text: e.target.value} as TextLessonContent);
-                      }}
+                    <LexicalEditor 
+                      initialContent={(currentContent as TextLessonContent).text}
+                      onChange={handleLexicalEditorChange}
+                      placeholder="在此输入课程内容..."
                     />
                   </FormControl>
                   <FormDescription>
-                    Use Markdown for formatting. # Heading, *italic*, **bold**, [link](url), etc.
+                    使用编辑器工具栏来格式化内容并添加链接、列表等元素。
                   </FormDescription>
                 </FormItem>
               )}
             />
-            
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-center mb-4 text-gray-700">
-                <FileText size={18} className="mr-2 text-green-600" />
-                <span className="font-medium">Content Preview</span>
-              </div>
-              
-              <div className="prose max-w-none p-4 bg-white rounded-lg border border-gray-100">
-                {lesson.type === 'text' && (currentContent as TextLessonContent).text ? (
-                  <div className="whitespace-pre-line">
-                    {(currentContent as TextLessonContent).text}
-                  </div>
-                ) : (
-                  <div className="text-gray-400 italic">
-                    Preview will appear here as you type content
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         )}
         
