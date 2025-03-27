@@ -24,7 +24,8 @@ import {
   VideoLessonContent,
   TextLessonContent,
   QuizLessonContent,
-  AssignmentLessonContent
+  AssignmentLessonContent,
+  LessonContent
 } from '@/types/course';
 
 // Quiz question types
@@ -41,7 +42,7 @@ interface LessonEditorProps {
 
 const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
   // Initialize content with the correct structure based on lesson type
-  const initializeContent = () => {
+  const initializeContent = (): LessonContent => {
     const baseContent = lesson.content;
     
     switch (lesson.type) {
@@ -68,7 +69,7 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
     }
   };
   
-  const [currentContent, setCurrentContent] = useState(initializeContent());
+  const [currentContent, setCurrentContent] = useState<LessonContent>(initializeContent());
   
   // Form setup for lesson details
   const form = useForm({
@@ -130,7 +131,7 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
   );
   
   const addQuestion = () => {
-    const newQuestion = {
+    const newQuestion: QuizQuestion = {
       id: `q${Date.now()}`,
       type: 'multiple_choice',
       text: 'New Question',
@@ -143,24 +144,24 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
     
     const updatedQuestions = [...questions, newQuestion];
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions });
+    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
   };
   
-  const updateQuestion = (questionId, field, value) => {
+  const updateQuestion = (questionId: string, field: string, value: any) => {
     const updatedQuestions = questions.map(q => 
       q.id === questionId ? { ...q, [field]: value } : q
     );
     
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions });
+    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
   };
   
-  const updateOption = (questionId, optionId, value) => {
+  const updateOption = (questionId: string, optionId: string, value: string) => {
     const updatedQuestions = questions.map(q => 
       q.id === questionId 
         ? { 
             ...q, 
-            options: q.options.map(opt => 
+            options: q.options?.map(opt => 
               opt.id === optionId ? { ...opt, text: value } : opt
             ) 
           } 
@@ -168,13 +169,13 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
     );
     
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions });
+    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
   };
   
-  const addOption = (questionId) => {
+  const addOption = (questionId: string) => {
     const question = questions.find(q => q.id === questionId);
     
-    if (question) {
+    if (question && question.options) {
       const newOption = {
         id: `o${Date.now()}`,
         text: `Option ${question.options.length + 1}`
@@ -182,43 +183,43 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
       
       const updatedQuestions = questions.map(q => 
         q.id === questionId 
-          ? { ...q, options: [...q.options, newOption] } 
+          ? { ...q, options: [...(q.options || []), newOption] } 
           : q
       );
       
       setQuestions(updatedQuestions);
-      setCurrentContent({ ...currentContent, questions: updatedQuestions });
+      setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
     }
   };
   
-  const deleteOption = (questionId, optionId) => {
+  const deleteOption = (questionId: string, optionId: string) => {
     const updatedQuestions = questions.map(q => 
       q.id === questionId 
         ? { 
             ...q, 
-            options: q.options.filter(opt => opt.id !== optionId),
+            options: q.options?.filter(opt => opt.id !== optionId),
             correctOption: q.correctOption === optionId ? '' : q.correctOption
           } 
         : q
     );
     
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions });
+    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
   };
   
-  const deleteQuestion = (questionId) => {
+  const deleteQuestion = (questionId: string) => {
     const updatedQuestions = questions.filter(q => q.id !== questionId);
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions });
+    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
   };
   
-  const setCorrectOption = (questionId, optionId) => {
+  const setCorrectOption = (questionId: string, optionId: string) => {
     const updatedQuestions = questions.map(q => 
       q.id === questionId ? { ...q, correctOption: optionId } : q
     );
     
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions });
+    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
   };
   
   return (
@@ -253,7 +254,7 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                       value={field.value || ''}
                       onChange={(e) => {
                         field.onChange(e);
-                        setCurrentContent({...currentContent, videoUrl: e.target.value});
+                        setCurrentContent({...currentContent, videoUrl: e.target.value} as VideoLessonContent);
                       }}
                     />
                   </FormControl>
@@ -278,7 +279,7 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                       value={field.value || ''}
                       onChange={(e) => {
                         field.onChange(e);
-                        setCurrentContent({...currentContent, description: e.target.value});
+                        setCurrentContent({...currentContent, description: e.target.value} as VideoLessonContent);
                       }}
                     />
                   </FormControl>
@@ -316,7 +317,7 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
                       value={field.value || ''}
                       onChange={(e) => {
                         field.onChange(e);
-                        setCurrentContent({...currentContent, text: e.target.value});
+                        setCurrentContent({...currentContent, text: e.target.value} as TextLessonContent);
                       }}
                     />
                   </FormControl>
@@ -334,9 +335,9 @@ const LessonEditor = ({ lesson, onSave }: LessonEditorProps) => {
               </div>
               
               <div className="prose max-w-none p-4 bg-white rounded-lg border border-gray-100">
-                {currentContent.text ? (
+                {lesson.type === 'text' && (currentContent as TextLessonContent).text ? (
                   <div className="whitespace-pre-line">
-                    {currentContent.text}
+                    {(currentContent as TextLessonContent).text}
                   </div>
                 ) : (
                   <div className="text-gray-400 italic">
