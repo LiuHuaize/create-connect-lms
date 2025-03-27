@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
-import { Editor } from '@yoopta/editor';
-import { Headings } from '@yoopta/headings';
-import { Paragraph } from '@yoopta/paragraph';
-import { Blockquote } from '@yoopta/blockquote';
-import { Lists } from '@yoopta/lists';
-import { Link } from '@yoopta/link';
-import { Code } from '@yoopta/code';
-import { Image } from '@yoopta/image';
-import { Divider } from '@yoopta/divider';
-import { Marks } from '@yoopta/marks';
-import { JSONContent } from '@yoopta/editor';
+import Editor from '@yoopta/editor';
+import Headings from '@yoopta/headings';
+import Paragraph from '@yoopta/paragraph';
+import Blockquote from '@yoopta/blockquote';
+import Lists from '@yoopta/lists';
+import Link from '@yoopta/link';
+import Code from '@yoopta/code';
+import Image from '@yoopta/image';
+import Divider from '@yoopta/divider';
+import Marks from '@yoopta/marks';
+import type { JSONContent } from '@yoopta/editor';
 
 // Define available extensions
 const extensions = [
