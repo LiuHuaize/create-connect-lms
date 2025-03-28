@@ -2,6 +2,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
 import { BookOpen, Play, Clock, Award } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Learning = () => {
   return (
@@ -39,9 +40,11 @@ const Learning = () => {
                   </div>
                 </div>
                 
-                <button className="bg-connect-blue text-white p-3 rounded-full hover:bg-blue-600 transition-colors">
-                  <Play size={20} fill="white" />
-                </button>
+                <Link to="/course/math-adventure">
+                  <button className="bg-connect-blue text-white p-3 rounded-full hover:bg-blue-600 transition-colors">
+                    <Play size={20} fill="white" />
+                  </button>
+                </Link>
               </div>
               
               <div className="mt-2">
@@ -59,9 +62,11 @@ const Learning = () => {
                   <h4 className="font-medium">下一步：财务预测</h4>
                   <p className="text-sm text-gray-500">为您的商业计划创建详细的财务预测</p>
                 </div>
-                <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                  继续
-                </button>
+                <Link to="/course/math-adventure">
+                  <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                    继续
+                  </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -89,9 +94,11 @@ const Learning = () => {
                   </div>
                 </div>
                 
-                <button className="bg-connect-blue text-white p-3 rounded-full hover:bg-blue-600 transition-colors">
-                  <Play size={20} fill="white" />
-                </button>
+                <Link to="/course/science-discovery">
+                  <button className="bg-connect-blue text-white p-3 rounded-full hover:bg-blue-600 transition-colors">
+                    <Play size={20} fill="white" />
+                  </button>
+                </Link>
               </div>
               
               <div className="mt-2">
@@ -109,9 +116,11 @@ const Learning = () => {
                   <h4 className="font-medium">下一步：游戏机制</h4>
                   <p className="text-sm text-gray-500">探索核心机制和玩家参与策略</p>
                 </div>
-                <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                  继续
-                </button>
+                <Link to="/course/science-discovery">
+                  <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                    继续
+                  </button>
+                </Link>
               </div>
             </div>
           </div>

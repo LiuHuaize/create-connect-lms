@@ -18,6 +18,7 @@ import Projects from "./pages/Projects";
 import Workspaces from "./pages/Workspaces";
 import Index from "./pages/Index";
 import { BlockNoteEditorTest } from "./components/editor";
+import CoursePage from "./pages/course/CoursePage";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,8 @@ const App = () => {
                   <Route path="/events" element={<Events />} />
                   <Route path="/projects" element={<Projects />} />
                   <Route path="/workspaces" element={<Workspaces />} />
+                  <Route path="/course/:courseId" element={<CoursePage />} />
+                  <Route path="/course/:courseId/lesson/:lessonId" element={<CoursePage />} />
                   <Route path="/course-creator" element={
                     <CourseCreator onEditorFullscreenChange={handleEditorFullscreenChange} />
                   } />

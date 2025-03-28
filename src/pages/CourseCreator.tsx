@@ -160,7 +160,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <Tabs defaultValue="content" className="w-full">
+          <Tabs defaultValue="details" className="w-full">
             <TabsList className="mb-6 w-full justify-start">
               <TabsTrigger value="details">课程详情</TabsTrigger>
               <TabsTrigger value="content">内容</TabsTrigger>
@@ -369,6 +369,13 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
               )}
             </TabsContent>
             
+            <TabsContent value="settings">
+              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                <h2 className="text-lg font-bold mb-4">课程设置</h2>
+                <p className="text-gray-500">课程设置选项将在后续版本中提供。</p>
+              </div>
+            </TabsContent>
+            
             <TabsContent value="students">
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                 <h2 className="text-lg font-bold mb-6">学生统计</h2>
@@ -550,13 +557,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
                     </table>
                   </div>
                 </div>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="settings">
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h2 className="text-lg font-bold mb-4">课程设置</h2>
-                <p className="text-gray-500">课程设置选项将在后续版本中提供。</p>
               </div>
             </TabsContent>
           </Tabs>
