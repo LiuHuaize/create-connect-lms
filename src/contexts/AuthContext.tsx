@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 // Define role type
 type UserRole = 'student' | 'teacher' | 'admin';
@@ -25,8 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole | null>(null);
-  const { toast } = useToast();
-
+  
   // Function to fetch user's role
   const fetchUserRole = async (userId: string) => {
     try {
@@ -129,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);  // Remove toast from dependencies to avoid re-subscription
+  }, []); 
 
   const signIn = async (username: string, password: string) => {
     // For username-password auth, we use the email field but with a standard domain

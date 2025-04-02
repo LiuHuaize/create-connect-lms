@@ -1,6 +1,5 @@
 
 import { createRoot } from 'react-dom/client'
-import { AuthProvider } from './contexts/AuthContext';
 import App from './App.tsx'
 import './index.css'
 
@@ -8,8 +7,4 @@ import './index.css'
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
-createRoot(document.getElementById("root")!).render(
-  <AuthProvider>
-    <App />
-  </AuthProvider>
-);
+createRoot(document.getElementById("root")!).render(<App />);
