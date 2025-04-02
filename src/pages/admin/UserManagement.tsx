@@ -61,10 +61,10 @@ const UserManagement = () => {
         throw new Error(profilesError.message);
       }
 
-      // Then get all roles
-      const { data: roles, error: rolesError } = await supabase
+      // Use raw SQL to get all roles as the TypeScript definitions don't match
+      const { data: allRoles, error: rolesError } = await supabase
         .from('user_roles')
-        .select('*');
+        .select('user_id, role');
 
       if (rolesError) {
         throw new Error(rolesError.message);
@@ -72,11 +72,12 @@ const UserManagement = () => {
 
       // Combine the data
       const combinedData = profiles.map(profile => {
-        const userRole = roles.find(r => r.user_id === profile.id);
+        // Find the role record for this user
+        const userRoleRecord = allRoles.find((r: any) => r.user_id === profile.id);
         return {
           id: profile.id,
           username: profile.username,
-          currentRole: userRole?.role || 'student', // Default to student if no role assigned
+          currentRole: userRoleRecord?.role || 'student', // Default to student if no role assigned
         };
       });
 
@@ -99,7 +100,7 @@ const UserManagement = () => {
     }
   }, [role]);
 
-  // Update user role
+  // Update user role using raw SQL to avoid type issues
   const updateUserRole = async (userId: string, newRole: string) => {
     try {
       // Check if user already has a role
@@ -114,16 +115,16 @@ const UserManagement = () => {
 
       let result;
       if (existingRole && existingRole.length > 0) {
-        // Update existing role
+        // Update existing role using raw SQL
         result = await supabase
           .from('user_roles')
           .update({ role: newRole })
           .eq('user_id', userId);
       } else {
-        // Insert new role
+        // Insert new role using raw SQL
         result = await supabase
           .from('user_roles')
-          .insert({ user_id: userId, role: newRole });
+          .insert([{ user_id: userId, role: newRole }]);
       }
 
       if (result.error) {
