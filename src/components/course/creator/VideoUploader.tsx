@@ -56,21 +56,31 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       const fileName = `${user.id}_${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
+      // 使用手动进度跟踪代替onUploadProgress
+      const intervalId = setInterval(() => {
+        setProgress(prev => {
+          // 模拟上传进度，直到真正完成
+          if (prev < 90) return prev + 5;
+          return prev;
+        });
+      }, 300);
+
       // 上传文件到Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('course_videos')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
-          onUploadProgress: (progress) => {
-            const percent = progress.percent ? Math.round(progress.percent) : 0;
-            setProgress(percent);
-          },
         });
+
+      clearInterval(intervalId);
 
       if (uploadError) {
         throw uploadError;
       }
+
+      // 上传成功，设置进度为100%
+      setProgress(100);
 
       const { data: { publicUrl } } = supabase.storage
         .from('course_videos')
