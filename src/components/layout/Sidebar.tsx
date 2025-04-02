@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, LogOut, X, Users } from 'lucide-react';
 import Logo from '../../assets/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,9 +9,10 @@ interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
   isMobile?: boolean;
+  userRole?: 'student' | 'teacher' | 'admin' | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = false }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = false, userRole = null }) => {
   const [collapsed, setCollapsed] = useState(false);
   const { signOut } = useAuth();
 
@@ -30,12 +31,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
     await signOut();
   };
 
+  // Base sidebar items available to all users
+  const baseSidebarItems = [
+    { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: '仪表板', roles: ['student', 'teacher', 'admin'] },
+    { to: '/learning', icon: <BookOpen size={20} />, label: '课程', roles: ['student', 'teacher', 'admin'] },
+    { to: '/events', icon: <Calendar size={20} />, label: '活动', roles: ['student', 'teacher', 'admin'] },
+    { to: '/community', icon: <MessageSquare size={20} />, label: '社区', roles: ['student', 'teacher', 'admin'] },
+  ];
+
+  // Role-specific items
+  const teacherItems = [
+    { to: '/course-creator', icon: <PenSquare size={20} />, label: '创建课程', roles: ['teacher', 'admin'] },
+  ];
+
+  // Admin-specific items
+  const adminItems = [
+    { to: '/user-management', icon: <Users size={20} />, label: '用户管理', roles: ['admin'] },
+  ];
+
+  // Combine all items based on user role
   const sidebarItems = [
-    { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: '仪表板' },
-    { to: '/learning', icon: <BookOpen size={20} />, label: '课程' },
-    { to: '/events', icon: <Calendar size={20} />, label: '活动' },
-    { to: '/community', icon: <MessageSquare size={20} />, label: '社区' },
-    { to: '/course-creator', icon: <PenSquare size={20} />, label: '创建课程' },
+    ...baseSidebarItems,
+    ...(userRole && ['teacher', 'admin'].includes(userRole) ? teacherItems : []),
+    ...(userRole === 'admin' ? adminItems : []),
   ];
 
   if (!isVisible) {
@@ -86,7 +104,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
         
         <div className="mt-6 flex-1 px-3">
           <nav className="space-y-1">
-            {sidebarItems.map((item) => (
+            {sidebarItems
+              .filter(item => !item.roles || (userRole && item.roles.includes(userRole)))
+              .map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
