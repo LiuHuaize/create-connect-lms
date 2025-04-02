@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, X, Users } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, X, Users, User } from 'lucide-react';
 import Logo from '../../assets/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import UserProfile from './UserProfile';
