@@ -1,3 +1,4 @@
+
 // 导入必要的类型
 import { Json } from "@/integrations/supabase/types";
 
@@ -118,6 +119,7 @@ export type Lesson = {
   title: string;
   content: LessonContent;
   module_id?: string;
+  order_index: number; // Add the missing order_index property
   created_at?: string;
   updated_at?: string;
 };

@@ -130,7 +130,7 @@ export const courseService = {
         title: lesson.title,
         type: lesson.type,
         content: lesson.content as unknown as Json,
-        order_index: lesson.order_index || 0, // 提供默认值
+        order_index: lesson.order_index, // This is now valid since we updated the Lesson type
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
