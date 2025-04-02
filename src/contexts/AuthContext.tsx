@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, []);  // Remove toast from dependencies to avoid re-subscription
 
   const signIn = async (username: string, password: string) => {
     // For username-password auth, we use the email field but with a standard domain
