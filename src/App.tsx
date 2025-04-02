@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -147,7 +146,7 @@ const AppRoutes = () => {
             } />
             <Route path="/course-creator" element={
               <ProtectedRoute allowedRoles={['teacher', 'admin']}>
-                <CourseCreator onEditorFullscreenChange={handleEditorFullscreenChange} />
+                <CourseCreator />
               </ProtectedRoute>
             } />
             <Route path="/admin/users" element={

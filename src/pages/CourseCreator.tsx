@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { courseService } from '@/services/courseService';
+import { useAuth } from '@/contexts/AuthContext';
+import { Course, CourseModule, Lesson } from '@/types/course';
+import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { 
@@ -9,7 +13,7 @@ import {
   FileQuestion, ChevronDown, ChevronRight
 } from 'lucide-react';
 import LessonEditor from '@/components/course/LessonEditor';
-import { CourseModule, Lesson, LessonType, LessonContent } from '@/types/course';
+import { LessonType, LessonContent } from '@/types/course';
 
 type LessonTypeInfo = {
   id: LessonType;
@@ -60,9 +64,80 @@ interface CourseCreatorProps {
 }
 
 const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange }) => {
-  const [modules, setModules] = useState<CourseModule[]>(initialModules);
+  const { user } = useAuth();
+  const [course, setCourse] = useState<Course>({
+    title: '',
+    description: '',
+    short_description: '',
+    author_id: user?.id || '',
+    status: 'draft',
+    price: null,
+    tags: []
+  });
+
+  const [modules, setModules] = useState<CourseModule[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [expandedModule, setExpandedModule] = useState('m1');
+
+  useEffect(() => {
+    if (user?.id) {
+      setCourse(prev => ({ ...prev, author_id: user.id }));
+    }
+  }, [user]);
+
+  const handleSaveCourse = async () => {
+    try {
+      // 保存课程
+      const savedCourse = await courseService.saveCourse(course);
+      
+      // 保存模块和课时（这里可以添加更复杂的逻辑）
+      const savedModules = await Promise.all(
+        modules.map(async (module) => {
+          const savedModule = await courseService.addCourseModule({
+            ...module,
+            course_id: savedCourse.id!
+          });
+
+          // 保存课时
+          if (module.lessons) {
+            await Promise.all(
+              module.lessons.map(lesson => 
+                courseService.addLesson({
+                  ...lesson,
+                  module_id: savedModule.id!
+                })
+              )
+            );
+          }
+
+          return savedModule;
+        })
+      );
+
+      toast.success('课程保存成功');
+      
+      // 可以添加更多后续操作，如跳转到课程详情页
+    } catch (error) {
+      console.error('保存课程失败:', error);
+      toast.error('保存课程失败');
+    }
+  };
+
+  const handlePublishCourse = async () => {
+    try {
+      if (!course.id) {
+        // 如果课程还没保存，先保存
+        await handleSaveCourse();
+      }
+
+      // 发布课程
+      await courseService.updateCourseStatus(course.id!, 'published');
+      toast.success('课程已发布');
+    } catch (error) {
+      console.error('发布课程失败:', error);
+      toast.error('发布课程失败');
+    }
+  };
   
   const addModule = () => {
     const newModule = {
@@ -153,8 +228,8 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
         
         <div className="flex items-center gap-3">
           <Button variant="outline">预览</Button>
-          <Button variant="outline">保存草稿</Button>
-          <Button className="bg-connect-blue hover:bg-blue-600">发布</Button>
+          <Button variant="outline" onClick={handleSaveCourse}>保存草稿</Button>
+          <Button onClick={handlePublishCourse} className="bg-connect-blue hover:bg-blue-600">发布</Button>
         </div>
       </div>
       
@@ -175,17 +250,30 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">课程标题</label>
-                    <Input placeholder="例如：全面的商业计划创建" />
+                    <Input 
+                      placeholder="例如：全面的商业计划创建" 
+                      value={course.title}
+                      onChange={(e) => setCourse(prev => ({ ...prev, title: e.target.value }))}
+                    />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">简短描述</label>
-                    <Input placeholder="简短描述（1-2句话）" />
+                    <Input 
+                      placeholder="简短描述（1-2句话）" 
+                      value={course.short_description || ''}
+                      onChange={(e) => setCourse(prev => ({ ...prev, short_description: e.target.value }))}
+                    />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">详细描述</label>
-                    <Textarea placeholder="关于课程内容和目标的详细描述" className="min-h-32" />
+                    <Textarea 
+                      placeholder="关于课程内容和目标的详细描述" 
+                      className="min-h-32" 
+                      value={course.description || ''}
+                      onChange={(e) => setCourse(prev => ({ ...prev, description: e.target.value }))}
+                    />
                   </div>
                   
                   <div>

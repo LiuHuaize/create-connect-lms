@@ -1,3 +1,35 @@
+// 导入必要的类型
+import { Json } from "@/integrations/supabase/types";
+
+// 课程状态类型
+export type CourseStatus = 'draft' | 'published' | 'archived';
+
+// 课程类型定义
+export type Course = {
+  id?: string;
+  title: string;
+  description?: string | null;
+  short_description?: string | null;
+  author_id: string;
+  cover_image?: string | null;
+  status: CourseStatus;
+  price?: number | null;
+  tags?: string[] | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+// 课程模块类型定义
+export type CourseModule = {
+  id?: string;
+  course_id: string;
+  title: string;
+  order_index: number;
+  created_at?: string;
+  updated_at?: string;
+  lessons?: Lesson[];
+};
+
 // Define all possible lesson content types
 export type VideoLessonContent = {
   videoUrl: string;
@@ -85,11 +117,7 @@ export type Lesson = {
   type: LessonType;
   title: string;
   content: LessonContent;
-};
-
-// Module type
-export type CourseModule = {
-  id: string;
-  title: string;
-  lessons: Lesson[];
+  module_id?: string;
+  created_at?: string;
+  updated_at?: string;
 };
