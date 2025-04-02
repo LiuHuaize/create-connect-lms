@@ -46,7 +46,9 @@ const getInitialContentByType = (type: LessonType): LessonContent => {
 const initialModules: CourseModule[] = [
   {
     id: 'm1',
+    course_id: 'temp-course-id',
     title: '商业规划简介',
+    order_index: 0,
     lessons: [
       { id: 'l1', type: 'video', title: '介绍视频', content: { videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } },
       { id: 'l2', type: 'text', title: '商业计划概述', content: { text: "# 商业计划概述\n\n商业计划是一份详细描述业务（通常是初创企业）如何定义其目标以及如何实现这些目标的书面文档。商业计划从营销、财务和运营角度为公司提供书面路线图。" } }
@@ -54,7 +56,9 @@ const initialModules: CourseModule[] = [
   },
   {
     id: 'm2',
+    course_id: 'temp-course-id',
     title: '市场研究与分析',
+    order_index: 1,
     lessons: []
   }
 ];
@@ -87,10 +91,8 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
 
   const handleSaveCourse = async () => {
     try {
-      // 保存课程
       const savedCourse = await courseService.saveCourse(course);
       
-      // 保存模块和课时（这里可以添加更复杂的逻辑）
       const savedModules = await Promise.all(
         modules.map(async (module) => {
           const savedModule = await courseService.addCourseModule({
@@ -98,7 +100,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
             course_id: savedCourse.id!
           });
 
-          // 保存课时
           if (module.lessons) {
             await Promise.all(
               module.lessons.map(lesson => 
@@ -115,8 +116,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
       );
 
       toast.success('课程保存成功');
-      
-      // 可以添加更多后续操作，如跳转到课程详情页
     } catch (error) {
       console.error('保存课程失败:', error);
       toast.error('保存课程失败');
@@ -126,11 +125,9 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   const handlePublishCourse = async () => {
     try {
       if (!course.id) {
-        // 如果课程还没保存，先保存
         await handleSaveCourse();
       }
 
-      // 发布课程
       await courseService.updateCourseStatus(course.id!, 'published');
       toast.success('课程已发布');
     } catch (error) {
@@ -140,9 +137,11 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   };
   
   const addModule = () => {
-    const newModule = {
+    const newModule: CourseModule = {
       id: `m${modules.length + 1}`,
+      course_id: course.id || 'temp-course-id',
       title: `新模块 ${modules.length + 1}`,
+      order_index: modules.length,
       lessons: []
     };
     setModules([...modules, newModule]);
@@ -211,7 +210,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     setExpandedModule(expandedModule === moduleId ? null : moduleId);
   };
 
-  // 当编辑器全屏状态改变时的处理函数
   const handleEditorFullscreenToggle = (isFullscreen: boolean) => {
     if (onEditorFullscreenChange) {
       onEditorFullscreenChange(isFullscreen);
