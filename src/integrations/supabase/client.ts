@@ -18,7 +18,7 @@ declare module '@supabase/supabase-js' {
     // Override the "from" method to add our custom tables
     from<TableName extends string>(
       relation: TableName
-    ): TableName extends 'courses' | 'course_modules' | 'lessons' | 'enrollments' | 'student_progress' | 'submissions'
+    ): TableName extends 'courses' | 'course_modules' | 'lessons' | 'enrollments' | 'student_progress' | 'submissions' | 'profiles' | 'user_roles'
       ? {
           select: (columns?: string) => { 
             eq: (column: string, value: any) => { 
