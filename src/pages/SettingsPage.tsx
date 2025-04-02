@@ -25,6 +25,14 @@ const settingsSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
+// Define a type for our settings structure
+interface UserSettings {
+  timezone?: string;
+  language?: string;
+  emailNotifications?: boolean;
+  [key: string]: any; // Allow for other properties
+}
+
 const timezones = [
   { value: "Asia/Shanghai", label: "中国标准时间 (UTC+8)" },
   { value: "Asia/Hong_Kong", label: "香港时间 (UTC+8)" },
@@ -43,7 +51,7 @@ const languages = [
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [userSettings, setUserSettings] = useState<any>(null);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const { toast } = useToast();
 
   const form = useForm<SettingsFormValues>({
@@ -72,11 +80,14 @@ const SettingsPage: React.FC = () => {
         }
         
         if (data && data.settings) {
-          setUserSettings(data.settings);
+          // Make sure settings is an object before accessing properties
+          const settings = typeof data.settings === 'object' ? data.settings as UserSettings : {};
+          setUserSettings(settings);
+          
           form.reset({
-            timezone: data.settings.timezone || "Asia/Shanghai",
-            language: data.settings.language || "zh-CN",
-            emailNotifications: data.settings.emailNotifications || false,
+            timezone: settings.timezone || "Asia/Shanghai",
+            language: settings.language || "zh-CN",
+            emailNotifications: settings.emailNotifications || false,
           });
         }
       } catch (error) {
@@ -108,8 +119,8 @@ const SettingsPage: React.FC = () => {
         throw fetchError;
       }
       
-      const existingSettings = existingProfile?.settings || {};
-      const updatedSettings = {
+      const existingSettings = existingProfile?.settings as UserSettings || {};
+      const updatedSettings: UserSettings = {
         ...existingSettings,
         timezone: values.timezone,
         language: values.language,
