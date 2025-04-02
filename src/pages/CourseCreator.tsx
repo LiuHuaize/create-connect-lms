@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { courseService } from '@/services/courseService';
@@ -109,38 +108,30 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     }
   }, [user]);
 
-  // Calculate completion percentage based on course data
   useEffect(() => {
     calculateCompletionPercentage();
   }, [course, modules]);
 
-  // Calculate course completion percentage
   const calculateCompletionPercentage = () => {
     let totalPoints = 0;
     let earnedPoints = 0;
     
-    // Check title (required)
     totalPoints += 1;
     if (course.title?.trim()) earnedPoints += 1;
     
-    // Check cover image (required)
     totalPoints += 1;
     if (coverImageURL || course.cover_image) earnedPoints += 1;
     
-    // Check if there's at least one module
     totalPoints += 1;
     if (modules.length > 0) earnedPoints += 1;
     
-    // Check if there's at least one lesson in any module
     totalPoints += 1;
     const hasLessons = modules.some(module => module.lessons && module.lessons.length > 0);
     if (hasLessons) earnedPoints += 1;
     
-    // Optional items that improve completion but aren't required
     if (course.description?.trim()) earnedPoints += 0.5;
     if (course.short_description?.trim()) earnedPoints += 0.5;
     
-    // Calculate percentage
     const percentage = Math.min(100, Math.round((earnedPoints / totalPoints) * 100));
     setCompletionPercentage(percentage);
   };
@@ -279,7 +270,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     }
   };
 
-  // Handle file upload for course cover
   const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -287,12 +277,10 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     try {
       setIsUploading(true);
       
-      // Create a unique file name to prevent collisions
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `course-covers/${fileName}`;
       
-      // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('course-assets')
         .upload(filePath, file);
@@ -301,12 +289,10 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
         throw error;
       }
       
-      // Get the public URL
       const { data: publicURL } = supabase.storage
         .from('course-assets')
         .getPublicUrl(filePath);
         
-      // Update course state with the new cover image URL
       setCoverImageURL(publicURL.publicUrl);
       setCourse(prev => ({ ...prev, cover_image: publicURL.publicUrl }));
       
@@ -319,7 +305,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     }
   };
 
-  // Check if required fields for publish are complete
   const getPublishRequirements = () => {
     const requirements = [
       { name: '课程标题', complete: Boolean(course.title?.trim()) },
@@ -633,7 +618,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                 <h2 className="text-lg font-bold mb-6">学生统计</h2>
                 
-                {/* 学生进度概览 */}
                 <div className="mb-8">
                   <h3 className="text-md font-semibold mb-4">进度概览</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -652,7 +636,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
                   </div>
                 </div>
                 
-                {/* 作业与评分统计 */}
                 <div className="mb-8">
                   <h3 className="text-md font-semibold mb-4">作业与评分</h3>
                   <div className="overflow-x-auto">
@@ -716,7 +699,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
                   </div>
                 </div>
                 
-                {/* 学生个人进度 */}
                 <div>
                   <h3 className="text-md font-semibold mb-4">学生个人进度</h3>
                   <div className="overflow-x-auto">
