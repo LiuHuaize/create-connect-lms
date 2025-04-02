@@ -20,7 +20,7 @@ import Projects from "./pages/Projects";
 import Workspaces from "./pages/Workspaces";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import UserManagement from "./pages/UserManagement"; // New import
+import UserManagement from "./pages/UserManagement"; 
 import { BlockNoteEditorTest } from "./components/editor";
 import CoursePage from "./pages/course/CoursePage";
 
