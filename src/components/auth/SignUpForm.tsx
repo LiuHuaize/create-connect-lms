@@ -21,8 +21,8 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
     e.preventDefault();
     if (!username || !password) {
       toast({
-        title: "Error",
-        description: "Please enter both username and password",
+        title: "错误",
+        description: "请输入用户名和密码",
         variant: "destructive",
       });
       return;
@@ -33,21 +33,21 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
       const { error } = await signUp(username, password);
       if (error) {
         toast({
-          title: "Registration failed",
+          title: "注册失败",
           description: error.message,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Registration successful",
-          description: "Your account has been created successfully",
+          title: "注册成功",
+          description: "您的账户已成功创建",
         });
         navigate('/dashboard');
       }
     } catch (err) {
       toast({
-        title: "Registration failed",
-        description: "An unexpected error occurred",
+        title: "注册失败",
+        description: "发生了意外错误",
         variant: "destructive",
       });
     } finally {
@@ -58,20 +58,20 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+        <CardTitle className="text-2xl font-bold">创建账户</CardTitle>
         <CardDescription>
-          Enter your desired username and password to sign up
+          输入您想要的用户名和密码进行注册
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">用户名</Label>
             <div className="relative">
               <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="username"
-                placeholder="username"
+                placeholder="用户名"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="pl-10"
@@ -80,7 +80,7 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">密码</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -94,19 +94,19 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
             </div>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating account..." : "Sign up"}
+            {isLoading ? "创建账户中..." : "注册"}
           </Button>
         </form>
       </CardContent>
       <CardFooter>
         <div className="text-center w-full text-sm">
-          Already have an account?{" "}
+          已有账户?{" "}
           <button 
             onClick={onToggle} 
             className="underline text-primary font-medium" 
             disabled={isLoading}
           >
-            Sign in
+            登录
           </button>
         </div>
       </CardFooter>

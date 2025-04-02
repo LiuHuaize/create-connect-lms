@@ -21,8 +21,8 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
     e.preventDefault();
     if (!username || !password) {
       toast({
-        title: "Error",
-        description: "Please enter both username and password",
+        title: "错误",
+        description: "请输入用户名和密码",
         variant: "destructive",
       });
       return;
@@ -33,7 +33,7 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
       const { error } = await signIn(username, password);
       if (error) {
         toast({
-          title: "Login failed",
+          title: "登录失败",
           description: error.message,
           variant: "destructive",
         });
@@ -42,8 +42,8 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
       }
     } catch (err) {
       toast({
-        title: "Login failed",
-        description: "An unexpected error occurred",
+        title: "登录失败",
+        description: "发生了意外错误",
         variant: "destructive",
       });
     } finally {
@@ -54,20 +54,20 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+        <CardTitle className="text-2xl font-bold">登录</CardTitle>
         <CardDescription>
-          Enter your username and password to sign in to your account
+          输入您的用户名和密码登录您的账户
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">用户名</Label>
             <div className="relative">
               <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="username"
-                placeholder="username"
+                placeholder="用户名"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="pl-10"
@@ -76,7 +76,7 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">密码</Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -90,19 +90,19 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
             </div>
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign in"}
+            {isLoading ? "登录中..." : "登录"}
           </Button>
         </form>
       </CardContent>
       <CardFooter>
         <div className="text-center w-full text-sm">
-          Don't have an account?{" "}
+          没有账户?{" "}
           <button 
             onClick={onToggle} 
             className="underline text-primary font-medium" 
             disabled={isLoading}
           >
-            Sign up
+            注册
           </button>
         </div>
       </CardFooter>

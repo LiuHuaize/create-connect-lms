@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, LogOut, X } from 'lucide-react';
 import Logo from '../../assets/Logo';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -11,6 +13,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = false }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const { signOut } = useAuth();
 
   // 如果在桌面模式下，使用本地state，如果在移动模式下，使用传入的isOpen
   const isVisible = isMobile ? isOpen : true;
@@ -23,8 +26,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
     }
   };
 
+  const handleLogout = async () => {
+    await signOut();
+  };
+
   const sidebarItems = [
-    { to: '/', icon: <LayoutDashboard size={20} />, label: '仪表板' },
+    { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: '仪表板' },
     { to: '/learning', icon: <BookOpen size={20} />, label: '课程' },
     { to: '/events', icon: <Calendar size={20} />, label: '活动' },
     { to: '/community', icon: <MessageSquare size={20} />, label: '社区' },
@@ -54,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
       >
         <div className="p-4 flex justify-between items-center">
           {!actuallyCollapsed && <Logo />}
-          {actuallyCollapsed && <div className="h-8 w-8 mx-auto rounded-md bg-gradient-to-br from-connect-blue to-connect-purple flex items-center justify-center text-white font-bold">C</div>}
+          {actuallyCollapsed && <div className="h-8 w-8 mx-auto rounded-md bg-gradient-to-br from-connect-blue to-connect-purple flex items-center justify-center text-white font-bold">亿</div>}
           
           {isMobile ? (
             // 移动设备上显示关闭按钮
@@ -104,9 +111,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
             className={`flex items-center gap-3 py-2 px-4 rounded-md text-gray-700 hover:bg-gray-100 hover:text-red-600 transition-colors w-full ${
               actuallyCollapsed ? 'justify-center px-2' : ''
             }`}
+            onClick={handleLogout}
           >
             <LogOut size={20} />
-            {!actuallyCollapsed && <span>登出</span>}
+            {!actuallyCollapsed && <span>退出登录</span>}
           </button>
         </div>
       </div>

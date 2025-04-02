@@ -30,7 +30,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return <div className="flex h-screen items-center justify-center">加载中...</div>;
   }
   
   if (!user) {
@@ -84,11 +84,11 @@ const AppContent = () => {
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-1 rounded-md hover:bg-gray-100"
-              aria-label="Open menu"
+              aria-label="打开菜单"
             >
               <Menu size={24} />
             </button>
-            <div className="ml-4 text-lg font-semibold">Connect LMS</div>
+            <div className="ml-4 text-lg font-semibold">亿小步</div>
           </div>
         )}
         

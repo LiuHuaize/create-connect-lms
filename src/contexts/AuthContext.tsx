@@ -31,13 +31,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (event === 'SIGNED_OUT') {
           toast({
-            title: "Logged out",
-            description: "You have been logged out successfully."
+            title: "已退出登录",
+            description: "您已成功退出登录。"
           });
         } else if (event === 'SIGNED_IN') {
           toast({
-            title: "Logged in",
-            description: "Welcome back!"
+            title: "已登录",
+            description: "欢迎回来！"
           });
         }
       }
