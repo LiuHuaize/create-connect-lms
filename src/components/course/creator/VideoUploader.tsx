@@ -35,13 +35,6 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       return;
     }
 
-    // 检查文件大小（限制为100MB）
-    const maxSize = 100 * 1024 * 1024; // 100MB
-    if (file.size > maxSize) {
-      setError('文件大小超过限制（最大100MB）');
-      return;
-    }
-
     setUploading(true);
     setError(null);
     setProgress(0);
@@ -166,7 +159,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               <p className="text-sm font-medium">
                 {error ? error : '点击上传视频文件'}
               </p>
-              <p className="text-xs text-gray-500">支持MP4, WebM, MOV等格式，最大100MB</p>
+              <p className="text-xs text-gray-500">支持MP4, WebM, MOV等格式</p>
             </div>
           </label>
         </div>
