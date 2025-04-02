@@ -20,21 +20,14 @@ import Projects from "./pages/Projects";
 import Workspaces from "./pages/Workspaces";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import UserManagement from "./pages/UserManagement"; 
 import { BlockNoteEditorTest } from "./components/editor";
 import CoursePage from "./pages/course/CoursePage";
 
 const queryClient = new QueryClient();
 
-// Protected route component with role check
-const ProtectedRoute = ({ 
-  children, 
-  allowedRoles = ['student', 'teacher', 'admin'] 
-}: { 
-  children: React.ReactNode,
-  allowedRoles?: Array<'student' | 'teacher' | 'admin'>
-}) => {
-  const { user, userRole, loading } = useAuth();
+// Protected route component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
   
   if (loading) {
     return <div className="flex h-screen items-center justify-center">加载中...</div>;
@@ -44,10 +37,6 @@ const ProtectedRoute = ({
     return <Navigate to="/auth" />;
   }
   
-  if (userRole && !allowedRoles.includes(userRole)) {
-    return <Navigate to="/dashboard" />;
-  }
-  
   return <>{children}</>;
 };
 
@@ -55,7 +44,7 @@ const AppContent = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [editorFullscreen, setEditorFullscreen] = useState(false);
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
 
   // Check screen size
   useEffect(() => {
@@ -84,8 +73,7 @@ const AppContent = () => {
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={() => setSidebarOpen(false)} 
-          isMobile={isMobile}
-          userRole={userRole}
+          isMobile={isMobile} 
         />
       )}
       
@@ -149,13 +137,8 @@ const AppContent = () => {
               </ProtectedRoute>
             } />
             <Route path="/course-creator" element={
-              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+              <ProtectedRoute>
                 <CourseCreator onEditorFullscreenChange={handleEditorFullscreenChange} />
-              </ProtectedRoute>
-            } />
-            <Route path="/user-management" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <UserManagement />
               </ProtectedRoute>
             } />
             <Route path="/editor-test" element={
