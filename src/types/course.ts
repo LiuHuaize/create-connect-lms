@@ -113,13 +113,14 @@ export type QuizQuestion = {
 // Lesson type
 export type LessonType = 'video' | 'text' | 'quiz' | 'assignment';
 
+// Make sure order_index is included in the Lesson type
 export type Lesson = {
   id: string;
   type: LessonType;
   title: string;
   content: LessonContent;
   module_id?: string;
-  order_index: number; // Add the missing order_index property
+  order_index: number; // This field is required
   created_at?: string;
   updated_at?: string;
 };
