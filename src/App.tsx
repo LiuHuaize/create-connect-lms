@@ -46,7 +46,7 @@ const AppContent = () => {
   const [editorFullscreen, setEditorFullscreen] = useState(false);
   const { user } = useAuth();
 
-  // 检测屏幕尺寸
+  // Check screen size
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -61,14 +61,14 @@ const AppContent = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // 处理编辑器全屏状态变化
+  // Handle editor fullscreen state change
   const handleEditorFullscreenChange = (isFullscreen: boolean) => {
     setEditorFullscreen(isFullscreen);
   };
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* 侧边栏，在移动设备上可以滑动显示，编辑器全屏时隐藏 */}
+      {/* Sidebar, on mobile devices can slide in, hide when editor is fullscreen */}
       {!editorFullscreen && user && (
         <Sidebar 
           isOpen={sidebarOpen} 
@@ -78,13 +78,13 @@ const AppContent = () => {
       )}
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* 移动设备上的顶部栏 */}
+        {/* Mobile top bar */}
         {isMobile && !editorFullscreen && user && (
           <div className="bg-white border-b border-gray-200 p-4 flex items-center">
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-1 rounded-md hover:bg-gray-100"
-              aria-label="打开菜单"
+              aria-label="Open menu"
             >
               <Menu size={24} />
             </button>
@@ -157,15 +157,15 @@ const AppContent = () => {
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
             <AppContent />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
+          </TooltipProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 };
