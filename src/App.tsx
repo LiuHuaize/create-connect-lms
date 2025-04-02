@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +7,7 @@ import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import { Menu } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/AuthContext";
 
 // Import all pages
 import Dashboard from "./pages/Dashboard";
@@ -43,7 +42,6 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/auth" />;
   }
   
-  // If allowedRoles is specified, check if user has the required role
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     return <Navigate to="/dashboard" />;
   }
@@ -57,7 +55,6 @@ const AppContent = () => {
   const [editorFullscreen, setEditorFullscreen] = useState(false);
   const { user } = useAuth();
 
-  // Check screen size
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -72,14 +69,12 @@ const AppContent = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Handle editor fullscreen state change
   const handleEditorFullscreenChange = (isFullscreen: boolean) => {
     setEditorFullscreen(isFullscreen);
   };
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar, on mobile devices can slide in, hide when editor is fullscreen */}
       {!editorFullscreen && user && (
         <Sidebar 
           isOpen={sidebarOpen} 
@@ -89,7 +84,6 @@ const AppContent = () => {
       )}
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile top bar */}
         {isMobile && !editorFullscreen && user && (
           <div className="bg-white border-b border-gray-200 p-4 flex items-center">
             <button
@@ -147,13 +141,11 @@ const AppContent = () => {
                 <CoursePage />
               </ProtectedRoute>
             } />
-            {/* 教师和管理员可访问的路由 */}
             <Route path="/course-creator" element={
               <ProtectedRoute allowedRoles={['teacher', 'admin']}>
                 <CourseCreator onEditorFullscreenChange={handleEditorFullscreenChange} />
               </ProtectedRoute>
             } />
-            {/* 仅管理员可访问的路由 */}
             <Route path="/admin/users" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <UserManagement />
@@ -176,13 +168,11 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <AppContent />
-          </TooltipProvider>
-        </AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <AppContent />
+        </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );
