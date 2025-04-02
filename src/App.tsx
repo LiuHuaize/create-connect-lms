@@ -24,6 +24,8 @@ import Auth from "./pages/Auth";
 import { BlockNoteEditorTest } from "./components/editor";
 import CoursePage from "./pages/course/CoursePage";
 import UserManagement from "./pages/admin/UserManagement";
+import ProfilePage from "./pages/ProfilePage";
+import SettingsPage from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -151,6 +153,16 @@ const AppRoutes = () => {
             <Route path="/admin/users" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <UserManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             } />
             <Route path="/editor-test" element={

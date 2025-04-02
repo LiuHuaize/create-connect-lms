@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Settings, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,13 @@ const UserProfile: React.FC = () => {
     await signOut();
   };
 
+  // 角色的中文标签
+  const roleLabel = {
+    'admin': '管理员',
+    'teacher': '教师',
+    'student': '学生'
+  }[role || 'student'];
+
   return (
     <div className="p-4 border-t border-gray-200">
       <DropdownMenu>
@@ -38,20 +46,24 @@ const UserProfile: React.FC = () => {
             </Avatar>
             <div className="flex flex-col items-start text-sm">
               <span className="font-medium">{username}</span>
-              <span className="text-gray-500 text-xs">{role === 'admin' ? '管理员' : role === 'teacher' ? '教师' : '学生'}</span>
+              <span className="text-gray-500 text-xs">{roleLabel}</span>
             </div>
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>我的账户</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="cursor-pointer">
-            <User className="mr-2 h-4 w-4" />
-            <span>个人资料</span>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to="/profile">
+              <User className="mr-2 h-4 w-4" />
+              <span>个人资料</span>
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>设置</span>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to="/settings">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>设置</span>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-pointer text-red-500" onClick={handleLogout}>
