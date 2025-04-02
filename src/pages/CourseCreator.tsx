@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { courseService } from '@/services/courseService';
@@ -7,6 +8,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import { 
   FilePlus, Upload, Trash2, Plus, Pencil, Edit, Save, 
   BookOpen, Video, FileText, Image, Clock, CheckSquare, 
@@ -14,6 +16,7 @@ import {
 } from 'lucide-react';
 import LessonEditor from '@/components/course/LessonEditor';
 import { LessonType, LessonContent } from '@/types/course';
+import { supabase } from '@/integrations/supabase/client';
 
 type LessonTypeInfo = {
   id: LessonType;
@@ -96,12 +99,51 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   const [modules, setModules] = useState<CourseModule[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [expandedModule, setExpandedModule] = useState('m1');
+  const [isUploading, setIsUploading] = useState(false);
+  const [coverImageURL, setCoverImageURL] = useState<string | null>(null);
+  const [completionPercentage, setCompletionPercentage] = useState(0);
 
   useEffect(() => {
     if (user?.id) {
       setCourse(prev => ({ ...prev, author_id: user.id }));
     }
   }, [user]);
+
+  // Calculate completion percentage based on course data
+  useEffect(() => {
+    calculateCompletionPercentage();
+  }, [course, modules]);
+
+  // Calculate course completion percentage
+  const calculateCompletionPercentage = () => {
+    let totalPoints = 0;
+    let earnedPoints = 0;
+    
+    // Check title (required)
+    totalPoints += 1;
+    if (course.title?.trim()) earnedPoints += 1;
+    
+    // Check cover image (required)
+    totalPoints += 1;
+    if (coverImageURL || course.cover_image) earnedPoints += 1;
+    
+    // Check if there's at least one module
+    totalPoints += 1;
+    if (modules.length > 0) earnedPoints += 1;
+    
+    // Check if there's at least one lesson in any module
+    totalPoints += 1;
+    const hasLessons = modules.some(module => module.lessons && module.lessons.length > 0);
+    if (hasLessons) earnedPoints += 1;
+    
+    // Optional items that improve completion but aren't required
+    if (course.description?.trim()) earnedPoints += 0.5;
+    if (course.short_description?.trim()) earnedPoints += 0.5;
+    
+    // Calculate percentage
+    const percentage = Math.min(100, Math.round((earnedPoints / totalPoints) * 100));
+    setCompletionPercentage(percentage);
+  };
 
   const handleSaveCourse = async () => {
     try {
@@ -237,6 +279,61 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     }
   };
 
+  // Handle file upload for course cover
+  const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      setIsUploading(true);
+      
+      // Create a unique file name to prevent collisions
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `course-covers/${fileName}`;
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('course-assets')
+        .upload(filePath, file);
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Get the public URL
+      const { data: publicURL } = supabase.storage
+        .from('course-assets')
+        .getPublicUrl(filePath);
+        
+      // Update course state with the new cover image URL
+      setCoverImageURL(publicURL.publicUrl);
+      setCourse(prev => ({ ...prev, cover_image: publicURL.publicUrl }));
+      
+      toast.success('封面图片上传成功');
+    } catch (error) {
+      console.error('上传图片失败:', error);
+      toast.error('上传图片失败，请重试');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Check if required fields for publish are complete
+  const getPublishRequirements = () => {
+    const requirements = [
+      { name: '课程标题', complete: Boolean(course.title?.trim()) },
+      { name: '课程封面', complete: Boolean(coverImageURL || course.cover_image) },
+      { 
+        name: '至少一个完成的模块', 
+        complete: modules.length > 0 && modules.some(module => 
+          module.lessons && module.lessons.length > 0
+        ) 
+      }
+    ];
+    return requirements;
+  };
+
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
@@ -348,12 +445,61 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
                 <h2 className="text-lg font-bold mb-4">课程封面</h2>
                 
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <Upload className="mx-auto h-10 w-10 text-gray-400 mb-3" />
-                  <p className="text-sm text-gray-500 mb-2">拖放图片至此，或点击浏览</p>
-                  <p className="text-xs text-gray-400 mb-4">推荐尺寸：1280x720像素（16:9比例）</p>
-                  <Button variant="outline" size="sm">
-                    <Upload size={16} className="mr-2" /> 上传图片
-                  </Button>
+                  {(coverImageURL || course.cover_image) ? (
+                    <div className="mb-4">
+                      <div className="relative aspect-video mb-4 overflow-hidden rounded-md">
+                        <img 
+                          src={coverImageURL || course.cover_image} 
+                          alt="课程封面" 
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setCoverImageURL(null);
+                          setCourse(prev => ({ ...prev, cover_image: null }));
+                        }}
+                      >
+                        <Trash2 size={16} className="mr-2" /> 移除图片
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="mx-auto h-10 w-10 text-gray-400 mb-3" />
+                      <p className="text-sm text-gray-500 mb-2">拖放图片至此，或点击浏览</p>
+                      <p className="text-xs text-gray-400 mb-4">推荐尺寸：1280x720像素（16:9比例）</p>
+                      <label>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={isUploading}
+                          className="relative"
+                        >
+                          {isUploading ? (
+                            <span className="flex items-center">
+                              <span className="animate-spin mr-2">
+                                <Clock size={16} />
+                              </span>
+                              上传中...
+                            </span>
+                          ) : (
+                            <>
+                              <Upload size={16} className="mr-2" /> 上传图片
+                            </>
+                          )}
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                            onChange={handleCoverImageUpload}
+                            disabled={isUploading}
+                          />
+                        </Button>
+                      </label>
+                    </>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -426,7 +572,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
                         {expandedModule === module.id && (
                           <div className="p-4 pt-0 border-t border-gray-200">
                             <div className="space-y-2 mb-4">
-                              {module.lessons.map((lesson) => (
+                              {module.lessons && module.lessons.map((lesson) => (
                                 <div 
                                   key={lesson.id} 
                                   className="flex items-center justify-between p-3 border border-gray-100 rounded-md hover:bg-gray-50"
@@ -674,16 +820,24 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
             <h3 className="font-bold mb-4">课程概览</h3>
             <p className="text-sm text-gray-600 mb-4">预览您的课程卡片</p>
             
-            <div className="bg-gray-100 border border-gray-200 rounded-lg aspect-video flex items-center justify-center mb-4">
-              <Image size={32} className="text-gray-400" />
+            <div className="bg-gray-100 border border-gray-200 rounded-lg aspect-video flex items-center justify-center mb-4 overflow-hidden">
+              {(coverImageURL || course.cover_image) ? (
+                <img 
+                  src={coverImageURL || course.cover_image} 
+                  alt="课程封面" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Image size={32} className="text-gray-400" />
+              )}
             </div>
             
-            <h4 className="font-semibold mb-2">您的课程标题</h4>
-            <p className="text-sm text-gray-500 mb-4">您的课程描述将显示在这里。请确保描述具有吸引力，能够吸引学生。</p>
+            <h4 className="font-semibold mb-2">{course.title || "您的课程标题"}</h4>
+            <p className="text-sm text-gray-500 mb-4">{course.short_description || "您的课程描述将显示在这里。请确保描述具有吸引力，能够吸引学生。"}</p>
             
             <div className="flex items-center gap-2 mb-1">
               <BookOpen size={14} className="text-gray-400" />
-              <span className="text-xs text-gray-500">{modules.reduce((acc, m) => acc + m.lessons.length, 0)} 课时</span>
+              <span className="text-xs text-gray-500">{modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)} 课时</span>
             </div>
             
             <div className="flex items-center gap-2 mb-4">
@@ -693,35 +847,27 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
             
             <div className="mb-4">
               <h5 className="text-sm font-medium mb-2">完成状态</h5>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-connect-blue h-2.5 rounded-full" style={{ width: '40%' }}></div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">40% 完成 - 添加更多内容以完成发布</p>
+              <Progress value={completionPercentage} className="h-2.5" />
+              <p className="text-xs text-gray-500 mt-1">{completionPercentage}% 完成 - 添加更多内容以完成发布</p>
             </div>
             
             <div className="space-y-2">
               <h5 className="text-sm font-medium">发布所需</h5>
               
-              <div className="flex items-center gap-2 text-sm">
-                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                <span>课程标题</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-sm">
-                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                <span>课程封面</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-sm">
-                <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                <span>至少一个完成的模块</span>
-              </div>
+              {getPublishRequirements().map((requirement, index) => (
+                <div key={index} className="flex items-center gap-2 text-sm">
+                  {requirement.complete ? (
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  ) : (
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  )}
+                  <span>{requirement.name}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
