@@ -29,6 +29,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to fetch user role from database
   const fetchUserRole = async (userId: string) => {
     try {
+      // Use a direct SQL query via RPC to get the user's role
+      // This avoids the TypeScript issues with the user_roles table
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')

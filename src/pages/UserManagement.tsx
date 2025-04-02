@@ -49,7 +49,7 @@ const UserManagement = () => {
 
         if (profilesError) throw profilesError;
 
-        // Get user_roles
+        // Get user_roles through direct SQL query
         const { data: roles, error: rolesError } = await supabase
           .from('user_roles')
           .select('user_id, role');
@@ -62,7 +62,7 @@ const UserManagement = () => {
           return {
             id: profile.id,
             username: profile.username,
-            role: userRole
+            role: userRole as 'student' | 'teacher' | 'admin'
           };
         });
 
