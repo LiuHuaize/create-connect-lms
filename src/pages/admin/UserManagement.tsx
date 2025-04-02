@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 type User = {
   id: string;
@@ -32,11 +34,12 @@ type User = {
 type UserRole = 'student' | 'teacher' | 'admin';
 
 const UserManagement = () => {
-  const { role, user } = useAuth();
+  const { role, user, refreshUserRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Redirect non-admin users
   useEffect(() => {
@@ -103,6 +106,17 @@ const UserManagement = () => {
     }
   }, [role]);
 
+  // Refresh the role of the current user
+  const handleRefreshRole = async () => {
+    setRefreshing(true);
+    await refreshUserRole();
+    toast({
+      title: "角色已刷新",
+      description: "您的角色权限已更新"
+    });
+    setRefreshing(false);
+  };
+
   // Update user role using raw SQL to avoid type issues
   const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
@@ -134,6 +148,11 @@ const UserManagement = () => {
         throw new Error(result.error.message);
       }
 
+      // If updating the current user's role, refresh the role in context
+      if (userId === user?.id) {
+        await refreshUserRole();
+      }
+
       toast({
         title: "角色更新成功",
         description: "用户角色已成功更新",
@@ -154,9 +173,20 @@ const UserManagement = () => {
   return (
     <div className="container mx-auto py-8">
       <Card>
-        <CardHeader>
-          <CardTitle>用户管理</CardTitle>
-          <CardDescription>管理用户角色和权限</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>用户管理</CardTitle>
+            <CardDescription>管理用户角色和权限</CardDescription>
+          </div>
+          <Button 
+            onClick={handleRefreshRole} 
+            variant="outline" 
+            size="sm"
+            disabled={refreshing}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            刷新我的角色
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (

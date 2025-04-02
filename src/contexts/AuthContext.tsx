@@ -30,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to fetch user's role
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log('Fetching role for user:', userId);
       // Check for admin role
       const { data: isAdmin, error: adminError } = await supabase
         .rpc('has_role', { user_id: userId, role: 'admin' });
@@ -40,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (isAdmin === true) {
+        console.log('User has admin role');
         setRole('admin');
         return;
       }
@@ -54,11 +56,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (isTeacher === true) {
+        console.log('User has teacher role');
         setRole('teacher');
         return;
       }
 
       // Default to student
+      console.log('User has student role');
       setRole('student');
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
@@ -68,19 +72,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to refresh user role - useful for when roles change
   const refreshUserRole = async () => {
     if (user) {
+      console.log('Refreshing user role for user:', user.id);
       await fetchUserRole(user.id);
     }
   };
 
   useEffect(() => {
     // Set up the auth state listener
+    console.log('Setting up auth state listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log('Auth state changed:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         // If user is logged in, fetch their role
         if (currentSession?.user) {
+          console.log('User logged in, fetching role');
           fetchUserRole(currentSession.user.id);
         } else {
           setRole(null);
@@ -103,12 +111,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
     
     // Check for existing session
+    console.log('Checking for existing session');
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log('Existing session check result:', currentSession ? 'Session found' : 'No session');
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       // If user is logged in, fetch their role
       if (currentSession?.user) {
+        console.log('User session found, fetching role');
         fetchUserRole(currentSession.user.id);
       }
       
@@ -123,13 +134,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (username: string, password: string) => {
     // For username-password auth, we use the email field but with a standard domain
     const email = `${username}@user.internal`;
+    console.log('Signing in with email:', email);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      console.log('Sign-in successful');
+    } else {
+      console.error('Sign-in error:', error);
+    }
     return { error };
   };
 
   const signUp = async (username: string, password: string) => {
     // For username-password auth, we use the email field but with a standard domain
     const email = `${username}@user.internal`;
+    console.log('Signing up with email:', email);
     const { error } = await supabase.auth.signUp({ 
       email, 
       password,
@@ -139,10 +157,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     });
+    if (!error) {
+      console.log('Sign-up successful');
+    } else {
+      console.error('Sign-up error:', error);
+    }
     return { error };
   };
 
   const signOut = async () => {
+    console.log('Signing out');
     await supabase.auth.signOut();
   };
 
