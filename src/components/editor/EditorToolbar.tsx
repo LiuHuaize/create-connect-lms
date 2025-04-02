@@ -12,6 +12,7 @@ import {
   TextFormatType,
   ElementFormatType,
   LexicalNode,
+  ElementNode,
 } from 'lexical';
 import { $wrapNodes } from '@lexical/selection';
 import { $isListNode, ListNode } from '@lexical/list';
@@ -117,14 +118,19 @@ const EditorToolbar: React.FC = () => {
             const children = root.getChildren();
             children.forEach(node => {
               if ($isListNode(node)) {
+                // Ensure we're only getting children from nodes that support it
+                // ListNode extends ElementNode which has getChildren method
                 const listItemNodes = node.getChildren();
                 listItemNodes.forEach(listItemNode => {
-                  const paragraphNode = $createParagraphNode();
-                  const listItemChildren = listItemNode.getChildren();
-                  listItemChildren.forEach(child => {
-                    paragraphNode.append(child);
-                  });
-                  node.replace(paragraphNode);
+                  // ListItemNode also extends ElementNode
+                  if (listItemNode instanceof ElementNode) {
+                    const paragraphNode = $createParagraphNode();
+                    const listItemChildren = listItemNode.getChildren();
+                    listItemChildren.forEach(child => {
+                      paragraphNode.append(child);
+                    });
+                    node.replace(paragraphNode);
+                  }
                 });
               }
             });
