@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -42,7 +43,7 @@ const languages = [
 const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
+  const [userSettings, setUserSettings] = useState<any>(null);
   const { toast } = useToast();
 
   const form = useForm<SettingsFormValues>({
@@ -60,7 +61,6 @@ const SettingsPage: React.FC = () => {
       if (!user) return;
       
       try {
-        // 假设我们有一个设置表来存储用户设置
         const { data, error } = await supabase
           .from('profiles')
           .select('settings')
@@ -72,7 +72,7 @@ const SettingsPage: React.FC = () => {
         }
         
         if (data && data.settings) {
-          setSettings(data.settings);
+          setUserSettings(data.settings);
           form.reset({
             timezone: data.settings.timezone || "Asia/Shanghai",
             language: data.settings.language || "zh-CN",
@@ -133,7 +133,7 @@ const SettingsPage: React.FC = () => {
         description: "您的设置已成功保存",
       });
       
-      setSettings(updatedSettings);
+      setUserSettings(updatedSettings);
       
     } catch (error) {
       console.error('更新设置错误:', error);
