@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Course } from '@/types/course';
+import { Label } from '@/components/ui/label';
 
 interface CourseDetailsFormProps {
   course: Course;
@@ -18,6 +19,12 @@ const COURSE_CATEGORIES = [
   { value: 'project_management', label: '项目管理' }
 ];
 
+const DIFFICULTY_LEVELS = [
+  { value: 'initial', label: '初级' },
+  { value: 'intermediate', label: '中级' },
+  { value: 'advanced', label: '高级' }
+];
+
 const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse }) => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
@@ -25,8 +32,9 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
       
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">课程标题</label>
+          <Label htmlFor="course-title" className="text-sm font-medium text-gray-700 mb-2">课程标题</Label>
           <Input 
+            id="course-title"
             placeholder="例如：全面的商业计划创建" 
             value={course.title}
             onChange={(e) => setCourse(prev => ({ ...prev, title: e.target.value }))}
@@ -35,8 +43,9 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">简短描述</label>
+          <Label htmlFor="short-desc" className="text-sm font-medium text-gray-700 mb-2">简短描述</Label>
           <Input 
+            id="short-desc"
             placeholder="简短描述（1-2句话）" 
             value={course.short_description || ''}
             onChange={(e) => setCourse(prev => ({ ...prev, short_description: e.target.value }))}
@@ -45,8 +54,9 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">详细描述</label>
+          <Label htmlFor="description" className="text-sm font-medium text-gray-700 mb-2">详细描述</Label>
           <Textarea 
+            id="description"
             placeholder="关于课程内容和目标的详细描述" 
             className="min-h-32 placeholder:text-gray-400 focus:ring-2 focus:ring-connect-blue/20" 
             value={course.description || ''}
@@ -55,12 +65,12 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">分类</label>
+          <Label htmlFor="category" className="text-sm font-medium text-gray-700 mb-2">分类</Label>
           <Select
             value={course.category || 'business_planning'}
             onValueChange={(value) => setCourse(prev => ({ ...prev, category: value }))}
           >
-            <SelectTrigger>
+            <SelectTrigger id="category" className="focus:ring-2 focus:ring-connect-blue/20">
               <SelectValue placeholder="选择课程分类" />
             </SelectTrigger>
             <SelectContent>
@@ -74,21 +84,19 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">难度</label>
-          <div className="flex gap-4">
-            {['initial', 'intermediate', 'advanced'].map((level) => (
-              <label key={level} className="flex items-center">
+          <Label className="text-sm font-medium text-gray-700 mb-2">难度</Label>
+          <div className="flex flex-wrap gap-4">
+            {DIFFICULTY_LEVELS.map((level) => (
+              <label key={level.value} className="flex items-center cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors">
                 <input 
                   type="radio" 
                   name="level" 
-                  value={level}
-                  checked={course.difficulty === level}
-                  onChange={() => setCourse(prev => ({ ...prev, difficulty: level }))}
-                  className="mr-2 text-connect-blue focus:ring-connect-blue"
+                  value={level.value}
+                  checked={course.difficulty === level.value}
+                  onChange={() => setCourse(prev => ({ ...prev, difficulty: level.value as 'initial' | 'intermediate' | 'advanced' }))}
+                  className="mr-2 text-connect-blue focus:ring-connect-blue h-4 w-4"
                 />
-                <span className="text-gray-700">
-                  {level === 'initial' ? '初级' : level === 'intermediate' ? '中级' : '高级'}
-                </span>
+                <span className="text-gray-700">{level.label}</span>
               </label>
             ))}
           </div>

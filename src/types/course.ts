@@ -1,4 +1,3 @@
-
 // 导入必要的类型
 import { Json } from "@/integrations/supabase/types";
 
@@ -18,6 +17,8 @@ export type Course = {
   tags?: string[] | null;
   created_at?: string;
   updated_at?: string;
+  category?: string;
+  difficulty?: 'initial' | 'intermediate' | 'advanced';
 };
 
 // 课程模块类型定义
