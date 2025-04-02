@@ -22,12 +22,18 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import { BlockNoteEditorTest } from "./components/editor";
 import CoursePage from "./pages/course/CoursePage";
+import UserManagement from "./pages/admin/UserManagement";
 
 const queryClient = new QueryClient();
 
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+// Protected route component with role check
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: string[];
+}
+
+const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+  const { user, loading, role } = useAuth();
   
   if (loading) {
     return <div className="flex h-screen items-center justify-center">加载中...</div>;
@@ -35,6 +41,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!user) {
     return <Navigate to="/auth" />;
+  }
+  
+  // If allowedRoles is specified, check if user has the required role
+  if (allowedRoles && role && !allowedRoles.includes(role)) {
+    return <Navigate to="/dashboard" />;
   }
   
   return <>{children}</>;
@@ -136,9 +147,16 @@ const AppContent = () => {
                 <CoursePage />
               </ProtectedRoute>
             } />
+            {/* 教师和管理员可访问的路由 */}
             <Route path="/course-creator" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
                 <CourseCreator onEditorFullscreenChange={handleEditorFullscreenChange} />
+              </ProtectedRoute>
+            } />
+            {/* 仅管理员可访问的路由 */}
+            <Route path="/admin/users" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <UserManagement />
               </ProtectedRoute>
             } />
             <Route path="/editor-test" element={

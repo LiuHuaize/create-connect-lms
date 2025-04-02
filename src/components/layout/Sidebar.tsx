@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, LogOut, X, Users } from 'lucide-react';
 import Logo from '../../assets/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,7 +13,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = false }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
 
   // 如果在桌面模式下，使用本地state，如果在移动模式下，使用传入的isOpen
   const isVisible = isMobile ? isOpen : true;
@@ -30,12 +30,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
     await signOut();
   };
 
-  const sidebarItems = [
+  // 基于用户角色的导航项
+  const commonSidebarItems = [
     { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: '仪表板' },
     { to: '/learning', icon: <BookOpen size={20} />, label: '课程' },
     { to: '/events', icon: <Calendar size={20} />, label: '活动' },
     { to: '/community', icon: <MessageSquare size={20} />, label: '社区' },
+  ];
+
+  // 仅对教师和管理员显示的项目
+  const teacherItems = [
     { to: '/course-creator', icon: <PenSquare size={20} />, label: '创建课程' },
+  ];
+
+  // 仅对管理员显示的项目
+  const adminItems = [
+    { to: '/admin/users', icon: <Users size={20} />, label: '用户管理' },
+  ];
+
+  // 根据用户角色确定要显示哪些项目
+  const sidebarItems = [
+    ...commonSidebarItems,
+    ...(role === 'teacher' || role === 'admin' ? teacherItems : []),
+    ...(role === 'admin' ? adminItems : []),
   ];
 
   if (!isVisible) {
