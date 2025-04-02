@@ -2,8 +2,13 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, BookOpen, Play, Check, MessageSquare, Award, Video, FileText, HelpCircle } from 'lucide-react';
+import { ChevronLeft, BookOpen, Play, Check, MessageSquare, Award, Video, FileText, HelpCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 // 模拟课程数据
 const COURSES = {
@@ -107,17 +112,17 @@ const COURSES = {
 const ContentTypeIcon = ({ type }: { type: string }) => {
   switch (type) {
     case 'video':
-      return <Video size={16} className="mr-2" />;
+      return <Video size={18} className="mr-2 text-blue-500" />;
     case 'quiz':
-      return <HelpCircle size={16} className="mr-2" />;
+      return <HelpCircle size={18} className="mr-2 text-purple-500" />;
     case 'interactive':
-      return <Play size={16} className="mr-2" />;
+      return <Play size={18} className="mr-2 text-green-500" />;
     case 'game':
-      return <Play size={16} className="mr-2" />;
+      return <Play size={18} className="mr-2 text-orange-500" />;
     case 'activity':
-      return <FileText size={16} className="mr-2" />;
+      return <FileText size={18} className="mr-2 text-indigo-500" />;
     default:
-      return <BookOpen size={16} className="mr-2" />;
+      return <BookOpen size={18} className="mr-2 text-gray-500" />;
   }
 };
 
@@ -129,7 +134,23 @@ const CoursePage = () => {
   const course = courseId ? COURSES[courseId as keyof typeof COURSES] : null;
   
   if (!course) {
-    return <div className="p-8 text-center">课程未找到</div>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <Card className="w-96 text-center">
+          <CardHeader>
+            <CardTitle>课程未找到</CardTitle>
+            <CardDescription>
+              请返回课程列表选择有效课程
+            </CardDescription>
+          </CardHeader>
+          <CardFooter className="flex justify-center">
+            <Link to="/learning">
+              <Button>返回课程列表</Button>
+            </Link>
+          </CardFooter>
+        </Card>
+      </div>
+    );
   }
   
   // 查找选中的课程单元和课时
@@ -168,16 +189,19 @@ const CoursePage = () => {
   return (
     <div className="flex flex-col h-full min-h-screen bg-gray-50">
       {/* 课程头部 */}
-      <header className="bg-white shadow">
-        <div className="container mx-auto px-4 py-4 flex items-center">
-          <Link to="/learning" className="mr-3 text-gray-500 hover:text-gray-700">
-            <ChevronLeft size={20} />
+      <header className="bg-white shadow-sm border-b border-gray-100">
+        <div className="container mx-auto px-4 py-6 flex items-center">
+          <Link to="/learning" className="mr-4 text-gray-500 hover:text-blue-600 transition-colors">
+            <div className="flex items-center">
+              <ChevronLeft size={20} />
+              <span className="ml-1 font-medium text-sm hidden sm:inline">返回课程</span>
+            </div>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
-            <div className="flex items-center text-sm text-gray-500 mt-1">
-              <span className="mr-3">适合: {course.ageRange}</span>
-              <span>级别: {course.level}</span>
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">{course.title}</h1>
+            <div className="flex items-center text-sm text-gray-500">
+              <span className="mr-4 flex items-center"><Award size={16} className="mr-1" /> 适合: {course.ageRange}</span>
+              <span className="flex items-center"><BookOpen size={16} className="mr-1" /> 级别: {course.level}</span>
             </div>
           </div>
         </div>
@@ -186,52 +210,54 @@ const CoursePage = () => {
       {/* 课程内容区域 */}
       <div className="flex flex-1 overflow-hidden">
         {/* 课程大纲侧边栏 */}
-        <div className="w-80 bg-white border-r border-gray-200 overflow-y-auto hidden md:block">
+        <div className="w-80 bg-white border-r border-gray-100 overflow-y-auto hidden md:block">
           <div className="p-4">
-            <div className="mb-4">
+            <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">课程进度</span>
-                <span className="text-sm text-gray-500">{course.progress}%</span>
+                <span className="text-sm font-semibold text-gray-700">课程进度</span>
+                <span className="text-sm font-medium text-blue-600">{course.progress}%</span>
               </div>
               <Progress value={course.progress} className="h-2" />
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-5">
               {course.units.map((unit) => (
-                <div key={unit.id} className="border border-gray-200 rounded-lg">
-                  <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                    <h3 className="font-medium">{unit.title}</h3>
-                  </div>
+                <Card key={unit.id} className="border border-gray-100 shadow-sm">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-3 px-4">
+                    <CardTitle className="text-base font-medium text-gray-800">{unit.title}</CardTitle>
+                  </CardHeader>
                   
-                  <ul className="divide-y divide-gray-100">
-                    {unit.lessons.map((lesson) => (
-                      <li key={lesson.id}>
-                        <Link
-                          to={`/course/${course.id}/lesson/${lesson.id}`}
-                          className={`flex items-center px-4 py-3 hover:bg-gray-50 ${
-                            selectedLesson && selectedLesson.id === lesson.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                          }`}
-                        >
-                          <div className="flex-shrink-0 mr-3">
-                            {lesson.completed ? (
-                              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                                <Check size={14} className="text-green-600" />
-                              </div>
-                            ) : (
-                              <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center">
-                              <ContentTypeIcon type={lesson.type} />
-                              <span className="text-sm">{lesson.title}</span>
+                  <CardContent className="p-0">
+                    <ul className="divide-y divide-gray-100">
+                      {unit.lessons.map((lesson) => (
+                        <li key={lesson.id}>
+                          <Link
+                            to={`/course/${course.id}/lesson/${lesson.id}`}
+                            className={`flex items-center px-4 py-3 hover:bg-blue-50 transition-colors ${
+                              selectedLesson && selectedLesson.id === lesson.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                            }`}
+                          >
+                            <div className="flex-shrink-0 mr-3">
+                              {lesson.completed ? (
+                                <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
+                                  <Check size={14} className="text-green-600" />
+                                </div>
+                              ) : (
+                                <div className="w-7 h-7 rounded-full border-2 border-gray-200" />
+                              )}
                             </div>
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center">
+                                <ContentTypeIcon type={lesson.type} />
+                                <span className="text-sm font-medium">{lesson.title}</span>
+                              </div>
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
@@ -241,147 +267,252 @@ const CoursePage = () => {
         <div className="flex-1 overflow-auto">
           {selectedLesson && selectedUnit && (
             <div className="container mx-auto px-4 py-6">
-              <div className="md:hidden mb-4">
+              <div className="md:hidden mb-6">
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">课程进度</span>
-                    <span className="text-sm text-gray-500">{course.progress}%</span>
+                    <span className="text-sm font-semibold text-gray-700">课程进度</span>
+                    <span className="text-sm font-medium text-blue-600">{course.progress}%</span>
                   </div>
                   <Progress value={course.progress} className="h-2" />
                 </div>
+                
+                <Drawer>
+                  <DrawerTrigger asChild>
+                    <Button variant="outline" className="w-full">
+                      <BookOpen size={18} className="mr-2" /> 查看课程大纲
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent>
+                    <DrawerHeader>
+                      <DrawerTitle>课程大纲</DrawerTitle>
+                      <DrawerDescription>{course.title}</DrawerDescription>
+                    </DrawerHeader>
+                    <div className="px-4 py-2 max-h-[60vh] overflow-y-auto">
+                      {course.units.map((unit) => (
+                        <Accordion type="single" collapsible key={unit.id} className="mb-3">
+                          <AccordionItem value={unit.id}>
+                            <AccordionTrigger className="font-medium py-3">{unit.title}</AccordionTrigger>
+                            <AccordionContent>
+                              <ul className="space-y-1">
+                                {unit.lessons.map((lesson) => (
+                                  <li key={lesson.id}>
+                                    <Link
+                                      to={`/course/${course.id}/lesson/${lesson.id}`}
+                                      className="flex items-center p-2 rounded-md hover:bg-blue-50"
+                                    >
+                                      <div className="mr-2">
+                                        {lesson.completed ? (
+                                          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                                            <Check size={12} className="text-green-600" />
+                                          </div>
+                                        ) : (
+                                          <div className="w-5 h-5 rounded-full border-2 border-gray-200" />
+                                        )}
+                                      </div>
+                                      <div className="flex items-center text-sm">
+                                        <ContentTypeIcon type={lesson.type} />
+                                        <span>{lesson.title}</span>
+                                      </div>
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      ))}
+                    </div>
+                    <DrawerFooter>
+                      <DrawerClose asChild>
+                        <Button variant="outline">关闭</Button>
+                      </DrawerClose>
+                    </DrawerFooter>
+                  </DrawerContent>
+                </Drawer>
               </div>
               
-              <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <div className="flex items-center text-sm text-gray-500 mb-2">
+              <Card className="border-none shadow-md overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
+                  <div className="flex items-center text-sm text-gray-600 mb-2">
                     <ContentTypeIcon type={selectedLesson.type} />
                     <span>{selectedUnit.title} / {selectedLesson.title}</span>
                   </div>
-                  <h2 className="text-xl font-bold">{selectedLesson.title}</h2>
-                </div>
+                  <CardTitle className="text-2xl">{selectedLesson.title}</CardTitle>
+                </CardHeader>
                 
-                <div className="p-6">
+                <CardContent className="p-6">
                   {/* 基于课时类型渲染不同内容 */}
                   {selectedLesson.type === 'video' && (
-                    <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center mb-6">
-                      <Play size={48} className="text-white opacity-80" />
+                    <div className="aspect-video bg-gradient-to-br from-gray-900 to-blue-900 rounded-xl flex items-center justify-center mb-6 shadow-lg overflow-hidden">
+                      <div className="text-center">
+                        <div className="p-4 rounded-full bg-white/20 backdrop-blur-md inline-block mb-4 cursor-pointer hover:bg-white/30 transition-all">
+                          <Play size={48} className="text-white" />
+                        </div>
+                        <p className="text-white font-medium">点击播放视频</p>
+                      </div>
                     </div>
                   )}
                   
                   {selectedLesson.type === 'quiz' && (
                     <div className="space-y-6">
-                      <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                        <h3 className="font-medium text-blue-800 mb-2">测验说明</h3>
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
+                        <h3 className="font-medium text-blue-800 mb-2 flex items-center">
+                          <HelpCircle size={18} className="mr-2" /> 测验说明
+                        </h3>
                         <p className="text-blue-700 text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
                       </div>
                       
-                      <div className="space-y-4">
-                        <div className="border border-gray-200 rounded-lg p-4">
-                          <h4 className="font-medium mb-3">问题 1: 在数学中，5 + 3 = ?</h4>
-                          <div className="space-y-2">
-                            <div className="flex items-center">
-                              <input type="radio" id="q1a" name="q1" className="mr-2" />
-                              <label htmlFor="q1a">7</label>
-                            </div>
-                            <div className="flex items-center">
-                              <input type="radio" id="q1b" name="q1" className="mr-2" />
-                              <label htmlFor="q1b">8</label>
-                            </div>
-                            <div className="flex items-center">
-                              <input type="radio" id="q1c" name="q1" className="mr-2" />
-                              <label htmlFor="q1c">9</label>
-                            </div>
+                      <div className="space-y-6">
+                        <div className="quiz-container">
+                          <h4 className="font-medium text-lg mb-4">问题 1: 在数学中，5 + 3 = ?</h4>
+                          <div className="space-y-3">
+                            {['7', '8', '9'].map((option, index) => (
+                              <label key={index} className="quiz-option">
+                                <input type="radio" name="q1" className="mr-3 h-4 w-4 accent-blue-500" />
+                                <span>{option}</span>
+                              </label>
+                            ))}
                           </div>
                         </div>
                         
-                        <div className="border border-gray-200 rounded-lg p-4">
-                          <h4 className="font-medium mb-3">问题 2: 哪个形状有四个相等的边？</h4>
-                          <div className="space-y-2">
-                            <div className="flex items-center">
-                              <input type="radio" id="q2a" name="q2" className="mr-2" />
-                              <label htmlFor="q2a">三角形</label>
-                            </div>
-                            <div className="flex items-center">
-                              <input type="radio" id="q2b" name="q2" className="mr-2" />
-                              <label htmlFor="q2b">圆形</label>
-                            </div>
-                            <div className="flex items-center">
-                              <input type="radio" id="q2c" name="q2" className="mr-2" />
-                              <label htmlFor="q2c">正方形</label>
-                            </div>
+                        <div className="quiz-container">
+                          <h4 className="font-medium text-lg mb-4">问题 2: 哪个形状有四个相等的边？</h4>
+                          <div className="space-y-3">
+                            {['三角形', '圆形', '正方形'].map((option, index) => (
+                              <label key={index} className="quiz-option">
+                                <input type="radio" name="q2" className="mr-3 h-4 w-4 accent-blue-500" />
+                                <span>{option}</span>
+                              </label>
+                            ))}
                           </div>
                         </div>
                       </div>
                       
                       <div className="flex justify-end">
-                        <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <Button className="bg-blue-600 hover:bg-blue-700">
                           提交答案
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}
                   
                   {selectedLesson.type === 'interactive' && (
-                    <div className="space-y-6">
-                      <div className="aspect-video bg-gray-100 border border-gray-200 rounded-lg flex items-center justify-center mb-6">
+                    <div className="space-y-8">
+                      <div className="interactive-container">
                         <div className="text-center">
-                          <div className="text-gray-400 mb-2">互动内容区域</div>
-                          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                          <h3 className="text-xl font-bold text-blue-700 mb-4">互动内容区域</h3>
+                          <Button className="bg-blue-600 hover:bg-blue-700">
                             开始互动
-                          </button>
+                          </Button>
                         </div>
                       </div>
                       
-                      <div className="prose max-w-none">
-                        <h3>学习目标</h3>
-                        <ul>
-                          <li>理解基本概念</li>
-                          <li>应用所学知识解决简单问题</li>
-                          <li>通过互动加深理解</li>
-                        </ul>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">学习目���</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <ul className="space-y-2">
+                              <li className="flex items-start">
+                                <div className="mr-2 mt-0.5 text-blue-500">
+                                  <Check size={16} />
+                                </div>
+                                <span>理解基本概念</span>
+                              </li>
+                              <li className="flex items-start">
+                                <div className="mr-2 mt-0.5 text-blue-500">
+                                  <Check size={16} />
+                                </div>
+                                <span>应用所学知识解决简单问题</span>
+                              </li>
+                              <li className="flex items-start">
+                                <div className="mr-2 mt-0.5 text-blue-500">
+                                  <Check size={16} />
+                                </div>
+                                <span>通过互动加深理解</span>
+                              </li>
+                            </ul>
+                          </CardContent>
+                        </Card>
                         
-                        <h3>说明</h3>
-                        <p>
-                          跟随指示完成互动练习。你可以随时暂停并返回。
-                          如果遇到困难，可以点击右下角的帮助按钮获取提示。
-                        </p>
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="text-lg">说明</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-gray-700">
+                              跟随指示完成互动练习。你可以随时暂停并返回。
+                              如果遇到困难，可以点击右下角的帮助按钮获取提示。
+                            </p>
+                          </CardContent>
+                        </Card>
                       </div>
                     </div>
                   )}
                   
                   {selectedLesson.type === 'activity' && (
                     <div className="space-y-6">
-                      <div className="prose max-w-none">
-                        <h3>活动说明</h3>
-                        <p>
-                          这个活动将帮助你巩固所学知识，并发挥创造力。
-                          按照以下步骤完成活动，完成后可以上传你的作品。
-                        </p>
-                        
-                        <h4>你需要准备</h4>
-                        <ul>
-                          <li>纸和彩笔</li>
-                          <li>剪刀（在家长帮助下使用）</li>
-                          <li>胶水或胶带</li>
-                        </ul>
-                        
-                        <h4>步骤</h4>
-                        <ol>
-                          <li>在纸上画出你最喜欢的动物</li>
-                          <li>为你的动物添加颜色和细节</li>
-                          <li>写下三个关于这种动物的有趣事实</li>
-                          <li>完成后，拍照上传</li>
-                        </ol>
-                      </div>
+                      <Card className="border-blue-100">
+                        <CardHeader className="bg-blue-50">
+                          <CardTitle className="text-lg text-blue-800">活动说明</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-4">
+                          <p className="mb-4">
+                            这个活动将帮助你巩固所学知识，并发挥创造力。
+                            按照以下步骤完成活动，完成后可以上传你的作品。
+                          </p>
+                          
+                          <div className="mb-4">
+                            <h4 className="font-semibold mb-2 text-gray-800">你需要准备</h4>
+                            <ul className="space-y-1 text-gray-700">
+                              <li className="flex items-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></div>
+                                纸和彩笔
+                              </li>
+                              <li className="flex items-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></div>
+                                剪刀（在家长帮助下使用）
+                              </li>
+                              <li className="flex items-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></div>
+                                胶水或胶带
+                              </li>
+                            </ul>
+                          </div>
+                          
+                          <div>
+                            <h4 className="font-semibold mb-2 text-gray-800">步骤</h4>
+                            <ol className="space-y-2 text-gray-700">
+                              <li className="flex">
+                                <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0">1</span>
+                                <span>在纸上画出你最喜欢的动物</span>
+                              </li>
+                              <li className="flex">
+                                <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0">2</span>
+                                <span>为你的动物添加颜色和细节</span>
+                              </li>
+                              <li className="flex">
+                                <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0">3</span>
+                                <span>写下三个关于这种动物的有趣事实</span>
+                              </li>
+                              <li className="flex">
+                                <span className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0">4</span>
+                                <span>完成后，拍照上传</span>
+                              </li>
+                            </ol>
+                          </div>
+                        </CardContent>
+                      </Card>
                       
-                      <div className="border border-gray-200 rounded-lg p-4">
-                        <h4 className="font-medium mb-3">上传你的作品</h4>
-                        <div className="flex items-center justify-center border-2 border-dashed border-gray-300 p-6 rounded-lg">
+                      <div className="border border-dashed border-gray-300 rounded-xl p-6">
+                        <h4 className="font-semibold mb-4 text-gray-800">上传你的作品</h4>
+                        <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg">
                           <div className="text-center">
-                            <div className="text-gray-500 mb-2">点击或拖放文件到这里上传</div>
-                            <button className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600">
+                            <div className="text-gray-500 mb-3">点击或拖放文件到这里上传</div>
+                            <Button variant="outline" className="border-blue-300">
                               选择文件
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -390,67 +521,100 @@ const CoursePage = () => {
                   
                   {selectedLesson.type === 'game' && (
                     <div className="space-y-6">
-                      <div className="aspect-video bg-indigo-900 rounded-lg flex items-center justify-center mb-6">
+                      <div className="aspect-video bg-gradient-to-br from-indigo-900 to-purple-900 rounded-xl flex items-center justify-center mb-6 shadow-lg overflow-hidden">
                         <div className="text-center">
-                          <div className="text-indigo-300 mb-2">教育游戏</div>
-                          <button className="bg-indigo-500 text-white px-6 py-3 rounded-lg text-lg font-medium hover:bg-indigo-600">
-                            开始游戏
-                          </button>
+                          <h3 className="text-xl font-bold text-indigo-200 mb-4">教育游戏</h3>
+                          <Button className="bg-indigo-600 hover:bg-indigo-700 text-lg px-8 py-6 h-auto">
+                            ��始游戏
+                          </Button>
                         </div>
                       </div>
                       
-                      <div className="prose max-w-none">
-                        <h3>游戏说明</h3>
-                        <p>
-                          这个有趣的游戏将帮助你练习数学技能！在游戏中，你需要解决各种数学题目来获得分数。
-                          尽可能获得高分并挑战自己！
-                        </p>
-                        
-                        <h4>游戏控制</h4>
-                        <ul>
-                          <li>使用鼠标点击选择答案</li>
-                          <li>计时模式：在限定时间内回答尽可能多的问题</li>
-                          <li>挑战模式：难度会逐渐增加</li>
-                        </ul>
-                      </div>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>游戏说明</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="mb-4">
+                            这个有趣的游戏将帮助你练习数学技能！在游戏中，你需要解决各种数学题目来获得分数。
+                            尽可能获得高分并挑战自己！
+                          </p>
+                          
+                          <h4 className="font-semibold mb-2">游戏控制</h4>
+                          <ul className="space-y-2">
+                            <li className="flex items-start">
+                              <div className="mr-2 mt-0.5 text-purple-500">
+                                <Check size={16} />
+                              </div>
+                              <span>使用鼠标点击选择答案</span>
+                            </li>
+                            <li className="flex items-start">
+                              <div className="mr-2 mt-0.5 text-purple-500">
+                                <Check size={16} />
+                              </div>
+                              <span>计时模式：在限定时间内回答尽可能多的问题</span>
+                            </li>
+                            <li className="flex items-start">
+                              <div className="mr-2 mt-0.5 text-purple-500">
+                                <Check size={16} />
+                              </div>
+                              <span>挑战模式：难度会逐渐增加</span>
+                            </li>
+                          </ul>
+                        </CardContent>
+                      </Card>
                     </div>
                   )}
                   
-                  <div className="flex justify-between mt-8">
-                    <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50">
-                      上一课
-                    </button>
-                    <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                      标记为已完成
-                    </button>
-                    <button className="border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50">
-                      下一课
-                    </button>
+                  <div className="flex justify-between items-center mt-10 pt-6 border-t border-gray-100">
+                    <Button variant="outline" size="lg" className="flex items-center">
+                      <ArrowLeft size={18} className="mr-2" /> 上一课
+                    </Button>
+                    
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <Button className="bg-green-600 hover:bg-green-700">
+                          标记为已完成 <Check size={18} className="ml-2" />
+                        </Button>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-80">
+                        <div className="text-sm">
+                          <h4 className="font-medium mb-2">完成课程</h4>
+                          <p>标记此课程为已完成后，会更新您的学习进度，并解锁下一节课程。</p>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                    
+                    <Button variant="outline" size="lg" className="flex items-center">
+                      下一课 <ArrowRight size={18} className="ml-2" />
+                    </Button>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
         
         {/* 聊天机器人 */}
-        <div className={`fixed bottom-6 right-6 transition-all duration-300 ${isChatOpen ? 'w-80 h-96' : 'w-auto h-auto'}`}>
+        <div className={`fixed bottom-6 right-6 transition-all duration-300 z-40 ${isChatOpen ? 'w-80 h-96' : 'w-auto h-auto'}`}>
           {isChatOpen ? (
-            <div className="flex flex-col h-full bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-              <div className="bg-purple-600 text-white px-4 py-3 flex justify-between items-center">
-                <div className="flex items-center">
-                  <MessageSquare size={18} className="mr-2" />
-                  <h3 className="font-medium">课程助手</h3>
+            <Card className="flex flex-col h-full shadow-xl border border-gray-200 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white py-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <MessageSquare size={18} className="mr-2" />
+                    <CardTitle className="text-base font-medium">课程助手</CardTitle>
+                  </div>
+                  <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-gray-200 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
                 </div>
-                <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-gray-200">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </div>
+              </CardHeader>
               
-              <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
+              <CardContent className="flex-1 p-4 overflow-y-auto bg-gray-50">
                 <div className="space-y-4">
                   <div className="flex">
                     <div className="bg-purple-100 rounded-lg p-3 max-w-[80%]">
@@ -476,34 +640,36 @@ const CoursePage = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </CardContent>
               
-              <div className="border-t border-gray-200 p-3 bg-white">
-                <div className="flex">
-                  <input 
-                    type="text" 
-                    placeholder="输入你的问题..." 
-                    className="flex-1 border border-gray-300 rounded-l-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
-                  />
-                  <button className="bg-purple-600 text-white rounded-r-lg px-3 py-2 text-sm hover:bg-purple-700">
-                    发送
-                  </button>
+              <CardFooter className="border-t border-gray-200 p-3 bg-white">
+                <div className="w-full">
+                  <div className="flex">
+                    <input 
+                      type="text" 
+                      placeholder="输入你的问题..." 
+                      className="flex-1 border border-gray-300 rounded-l-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                    <button className="bg-purple-600 text-white rounded-r-lg px-3 py-2 text-sm hover:bg-purple-700 transition-colors">
+                      发送
+                    </button>
+                  </div>
+                  
+                  <div className="mt-2 flex justify-center">
+                    <button className="bg-gray-100 text-gray-700 rounded-lg px-3 py-1 text-xs hover:bg-gray-200 transition-colors mr-2">
+                      解释这个概念
+                    </button>
+                    <button className="bg-gray-100 text-gray-700 rounded-lg px-3 py-1 text-xs hover:bg-gray-200 transition-colors">
+                      我需要帮助
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="mt-2 flex justify-center">
-                  <button className="bg-gray-100 text-gray-700 rounded-lg px-3 py-1 text-xs hover:bg-gray-200 mr-2">
-                    解释这个概念
-                  </button>
-                  <button className="bg-gray-100 text-gray-700 rounded-lg px-3 py-1 text-xs hover:bg-gray-200">
-                    我需要帮助
-                  </button>
-                </div>
-              </div>
-            </div>
+              </CardFooter>
+            </Card>
           ) : (
             <button 
               onClick={() => setIsChatOpen(true)}
-              className="bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700"
+              className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all"
               aria-label="打开聊天助手"
             >
               <MessageSquare size={24} />
@@ -515,4 +681,4 @@ const CoursePage = () => {
   );
 };
 
-export default CoursePage; 
+export default CoursePage;

@@ -126,4 +126,33 @@
   .sidebar-link:not(.active) {
     @apply text-gray-600 hover:bg-gray-100;
   }
+  
+  /* 新增课程页面样式 */
+  .course-card {
+    @apply bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300;
+  }
+  
+  .course-section-header {
+    @apply bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-4 rounded-t-lg;
+  }
+  
+  .lesson-item {
+    @apply transition-all duration-200 hover:bg-blue-50;
+  }
+  
+  .lesson-item.active {
+    @apply bg-blue-50 border-l-4 border-blue-500;
+  }
+  
+  .quiz-container {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6;
+  }
+  
+  .quiz-option {
+    @apply flex items-center p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 cursor-pointer mb-3;
+  }
+  
+  .interactive-container {
+    @apply bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8 mb-6 flex items-center justify-center;
+  }
 }
