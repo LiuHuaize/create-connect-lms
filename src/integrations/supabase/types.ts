@@ -11,20 +11,32 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          age: number | null
+          bio: string | null
           created_at: string
           id: string
+          location: string | null
+          settings: Json | null
           updated_at: string
           username: string
         }
         Insert: {
+          age?: number | null
+          bio?: string | null
           created_at?: string
           id: string
+          location?: string | null
+          settings?: Json | null
           updated_at?: string
           username: string
         }
         Update: {
+          age?: number | null
+          bio?: string | null
           created_at?: string
           id?: string
+          location?: string | null
+          settings?: Json | null
           updated_at?: string
           username?: string
         }

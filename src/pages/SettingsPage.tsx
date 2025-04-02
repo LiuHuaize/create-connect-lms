@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Select,
@@ -44,6 +43,7 @@ const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [settings, setSettings] = useState<any>(null);
+  const { toast } = useToast();
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -90,7 +90,7 @@ const SettingsPage: React.FC = () => {
     };
     
     fetchSettings();
-  }, [user, form]);
+  }, [user, form, toast]);
 
   const onSubmit = async (values: SettingsFormValues) => {
     if (!user) return;

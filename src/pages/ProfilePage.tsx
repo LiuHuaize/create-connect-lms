@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 const profileSchema = z.object({
@@ -25,6 +25,7 @@ const ProfilePage: React.FC = () => {
   const { user, refreshUserRole } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const { toast } = useToast();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -72,7 +73,7 @@ const ProfilePage: React.FC = () => {
     };
     
     fetchProfile();
-  }, [user, form]);
+  }, [user, form, toast]);
 
   const onSubmit = async (values: ProfileFormValues) => {
     if (!user) return;
