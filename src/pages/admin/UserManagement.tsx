@@ -28,6 +28,9 @@ type User = {
   currentRole: string;
 };
 
+// Define role type to match the database enum
+type UserRole = 'student' | 'teacher' | 'admin';
+
 const UserManagement = () => {
   const { role, user } = useAuth();
   const navigate = useNavigate();
@@ -101,7 +104,7 @@ const UserManagement = () => {
   }, [role]);
 
   // Update user role using raw SQL to avoid type issues
-  const updateUserRole = async (userId: string, newRole: string) => {
+  const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
       // Check if user already has a role
       const { data: existingRole, error: checkError } = await supabase
@@ -121,10 +124,10 @@ const UserManagement = () => {
           .update({ role: newRole })
           .eq('user_id', userId);
       } else {
-        // Insert new role using raw SQL
+        // Insert new role
         result = await supabase
           .from('user_roles')
-          .insert([{ user_id: userId, role: newRole }]);
+          .insert({ user_id: userId, role: newRole });
       }
 
       if (result.error) {
@@ -175,7 +178,7 @@ const UserManagement = () => {
                     <TableCell>
                       <Select
                         defaultValue={user.currentRole}
-                        onValueChange={(value) => updateUserRole(user.id, value)}
+                        onValueChange={(value) => updateUserRole(user.id, value as UserRole)}
                       >
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="选择角色" />

@@ -30,31 +30,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to fetch user's role
   const fetchUserRole = async (userId: string) => {
     try {
-      // Use raw SQL query instead of typesafe query builder
-      const { data, error } = await supabase
-        .rpc('has_role', { user_id: userId, role: 'admin' })
-        .select();
+      // Check for admin role
+      const { data: isAdmin, error: adminError } = await supabase
+        .rpc('has_role', { user_id: userId, role: 'admin' });
 
-      if (error) {
-        console.error('Error checking admin role:', error);
+      if (adminError) {
+        console.error('Error checking admin role:', adminError);
         return;
       }
 
-      if (data && data === true) {
+      if (isAdmin === true) {
         setRole('admin');
         return;
       }
 
-      const { data: teacherCheck, error: teacherError } = await supabase
-        .rpc('has_role', { user_id: userId, role: 'teacher' })
-        .select();
+      // Check for teacher role
+      const { data: isTeacher, error: teacherError } = await supabase
+        .rpc('has_role', { user_id: userId, role: 'teacher' });
 
       if (teacherError) {
         console.error('Error checking teacher role:', teacherError);
         return;
       }
 
-      if (teacherCheck && teacherCheck === true) {
+      if (isTeacher === true) {
         setRole('teacher');
         return;
       }
