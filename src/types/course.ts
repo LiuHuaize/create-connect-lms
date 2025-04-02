@@ -1,3 +1,4 @@
+
 // 导入必要的类型
 import { Json } from "@/integrations/supabase/types";
 
@@ -34,8 +35,9 @@ export type CourseModule = {
 
 // Define all possible lesson content types
 export type VideoLessonContent = {
-  videoUrl: string;
+  videoUrl?: string;
   description?: string;
+  videoFilePath?: string;
 };
 
 export type TextLessonContent = {
@@ -124,4 +126,5 @@ export type Lesson = {
   order_index: number; // This field is required
   created_at?: string;
   updated_at?: string;
+  video_file_path?: string | null; // 添加视频文件路径
 };

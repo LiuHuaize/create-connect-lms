@@ -96,6 +96,7 @@ export type Database = {
           title: string
           type: string
           updated_at: string
+          video_file_path: string | null
         }
         Insert: {
           content?: Json
@@ -106,6 +107,7 @@ export type Database = {
           title: string
           type: string
           updated_at?: string
+          video_file_path?: string | null
         }
         Update: {
           content?: Json
@@ -116,6 +118,7 @@ export type Database = {
           title?: string
           type?: string
           updated_at?: string
+          video_file_path?: string | null
         }
         Relationships: [
           {

@@ -130,7 +130,9 @@ export const courseService = {
         title: lesson.title,
         type: lesson.type,
         content: lesson.content as unknown as Json,
-        order_index: lesson.order_index, // Make sure this property is used
+        order_index: lesson.order_index,
+        video_file_path: lesson.type === 'video' ? 
+          (lesson.video_file_path || (lesson.content as any).videoFilePath || null) : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })

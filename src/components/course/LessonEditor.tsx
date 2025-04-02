@@ -27,6 +27,8 @@ import {
   LessonContent
 } from '@/types/course';
 import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
+import VideoUploader from './creator/VideoUploader';
+import { supabase } from '@/integrations/supabase/client';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
@@ -50,7 +52,8 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
       case 'video':
         return { 
           videoUrl: (baseContent as VideoLessonContent).videoUrl || '', 
-          description: (baseContent as VideoLessonContent).description || '' 
+          description: (baseContent as VideoLessonContent).description || '',
+          videoFilePath: (baseContent as VideoLessonContent).videoFilePath || lesson.video_file_path || ''
         } as VideoLessonContent;
       case 'text':
         return { 
@@ -84,6 +87,15 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
     }
   });
   
+  const handleVideoUploaded = (filePath: string) => {
+    if (lesson.type === 'video') {
+      setCurrentContent({
+        ...(currentContent as VideoLessonContent),
+        videoFilePath: filePath
+      });
+    }
+  };
+  
   const handleSubmit = (data) => {
     const updatedLesson: Lesson = {
       ...lesson,
@@ -94,9 +106,10 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
     // Depending on the lesson type, extract the relevant content fields
     if (lesson.type === 'video') {
       updatedLesson.content = { 
-        videoUrl: data.videoUrl,
-        description: data.description
+        description: data.description,
+        videoFilePath: (currentContent as VideoLessonContent).videoFilePath || ''
       } as VideoLessonContent;
+      updatedLesson.video_file_path = (currentContent as VideoLessonContent).videoFilePath || null;
     } else if (lesson.type === 'text') {
       updatedLesson.content = { 
         text: data.text 
@@ -266,21 +279,20 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
         {/* Render different content fields based on lesson type */}
         {lesson.type === 'video' && (
           <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="videoUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>视频URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="输入YouTube或其他视频平台的URL" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    支持YouTube、Vimeo和其他视频平台链接
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+            <div>
+              <FormLabel className="block text-sm font-medium text-gray-700 mb-2">上传视频</FormLabel>
+              <VideoUploader 
+                onVideoUploaded={handleVideoUploaded} 
+                initialVideoPath={
+                  lesson.video_file_path 
+                    ? supabase.storage.from('course_videos').getPublicUrl(lesson.video_file_path).data.publicUrl
+                    : null
+                }
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                上传视频文件或使用URL。视频文件将存储在我们的服务器上。
+              </p>
+            </div>
             
             <FormField
               control={form.control}
@@ -294,18 +306,6 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
                 </FormItem>
               )}
             />
-            
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex items-center mb-4 text-gray-700">
-                <Video size={18} className="mr-2 text-blue-600" />
-                <span className="font-medium">Video Preview</span>
-              </div>
-              
-              <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center">
-                <AlertCircle size={24} className="text-gray-400 mr-2" />
-                <span className="text-gray-400">Video preview will appear here</span>
-              </div>
-            </div>
           </div>
         )}
         
