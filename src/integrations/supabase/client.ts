@@ -19,16 +19,33 @@ declare module '@supabase/supabase-js' {
     from<TableName extends string>(
       relation: TableName
     ): TableName extends 'courses' | 'course_modules' | 'lessons' | 'enrollments' | 'student_progress' | 'submissions'
-      ? any  // Return any for our custom tables
+      ? {
+          select: (columns?: string) => { 
+            eq: (column: string, value: any) => { 
+              single: () => Promise<{ data: any; error: any }>;
+              maybeSingle: () => Promise<{ data: any; error: any }>;
+            };
+            order: (column: string, options?: { ascending?: boolean }) => {
+              limit: (count: number) => Promise<{ data: any[]; error: any }>;
+            };
+            limit: (count: number) => Promise<{ data: any[]; error: any }>;
+          };
+          insert: (values: any) => Promise<{ data: any; error: any }>;
+          update: (values: any) => { 
+            eq: (column: string, value: any) => Promise<{ data: any; error: any }>;
+          };
+          delete: () => { 
+            eq: (column: string, value: any) => Promise<{ data: any; error: any }>;
+          };
+        }
       : SupabaseClient<Database>['from']; // Return original type for existing tables
     
     // Override the rpc method for our custom function
     rpc<FunctionName extends string>(
       fn: FunctionName,
       ...args: any[]
-    ): FunctionName extends 'save_course_content'
-      ? any  // Return any for our custom function
+    ): FunctionName extends 'save_course_content' | 'has_role'
+      ? Promise<{ data: any; error: any }>  // Return correct type for our custom functions
       : SupabaseClient<Database>['rpc']; // Return original type for existing functions
   }
 }
-
