@@ -42,12 +42,12 @@ export const uploadCourseMedia = async (file: File, path: string = ''): Promise<
 // Create a new course
 export const createCourse = async (course: NewCourse): Promise<string | null> => {
   try {
-    const { data, error } = await supabase
-      .from('courses')
+    const { data, error } = await (supabase
+      .from('courses') as any)
       .insert({
         ...course,
         status: 'draft'
-      } as any) // Use type assertion to bypass type checking for now
+      })
       .select('id')
       .single();
       
@@ -66,8 +66,8 @@ export const createCourse = async (course: NewCourse): Promise<string | null> =>
 // Get a course by ID
 export const getCourseById = async (courseId: string): Promise<DbCourse | null> => {
   try {
-    const { data, error } = await supabase
-      .from('courses')
+    const { data, error } = await (supabase
+      .from('courses') as any)
       .select('*')
       .eq('id', courseId)
       .single();
@@ -77,7 +77,7 @@ export const getCourseById = async (courseId: string): Promise<DbCourse | null> 
       return null;
     }
     
-    return data as unknown as DbCourse;
+    return data as DbCourse;
   } catch (error) {
     console.error('Error fetching course:', error);
     return null;
@@ -87,12 +87,12 @@ export const getCourseById = async (courseId: string): Promise<DbCourse | null> 
 // Update a course
 export const updateCourse = async (courseId: string, updates: UpdateCourse): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('courses')
+    const { error } = await (supabase
+      .from('courses') as any)
       .update({
         ...updates,
         updated_at: new Date().toISOString()
-      } as any)
+      })
       .eq('id', courseId);
       
     if (error) {
@@ -110,13 +110,13 @@ export const updateCourse = async (courseId: string, updates: UpdateCourse): Pro
 // Publish a course
 export const publishCourse = async (courseId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('courses')
+    const { error } = await (supabase
+      .from('courses') as any)
       .update({
         status: 'published',
         published_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
-      } as any)
+      })
       .eq('id', courseId);
       
     if (error) {
@@ -135,8 +135,8 @@ export const publishCourse = async (courseId: string): Promise<boolean> => {
 export const getCourseModules = async (courseId: string): Promise<CourseModule[] | null> => {
   try {
     // Fetch modules
-    const { data: modules, error: modulesError } = await supabase
-      .from('course_modules')
+    const { data: modules, error: modulesError } = await (supabase
+      .from('course_modules') as any)
       .select('*')
       .eq('course_id', courseId)
       .order('order_index');
@@ -147,13 +147,13 @@ export const getCourseModules = async (courseId: string): Promise<CourseModule[]
     }
     
     // Fetch lessons for all modules
-    const moduleIds = modules.map(module => module.id);
+    const moduleIds = modules.map((module: any) => module.id);
     if (moduleIds.length === 0) {
       return [];
     }
     
-    const { data: lessons, error: lessonsError } = await supabase
-      .from('lessons')
+    const { data: lessons, error: lessonsError } = await (supabase
+      .from('lessons') as any)
       .select('*')
       .in('module_id', moduleIds)
       .order('order_index');
@@ -163,7 +163,10 @@ export const getCourseModules = async (courseId: string): Promise<CourseModule[]
       return null;
     }
     
-    return mapDbModulesToAppModules(modules as unknown as DbCourseModule[], lessons as unknown as DbLesson[]);
+    return mapDbModulesToAppModules(
+      modules as DbCourseModule[], 
+      lessons as DbLesson[]
+    );
   } catch (error) {
     console.error('Error fetching course modules:', error);
     return null;
@@ -177,10 +180,10 @@ export const saveCourseContent = async (
 ): Promise<boolean> => {
   try {
     // Call the save_course_content RPC
-    const { data, error } = await supabase.rpc('save_course_content', {
+    const { data, error } = await (supabase.rpc as any)('save_course_content', {
       p_course_id: courseId,
       p_modules: modules
-    } as any);
+    });
     
     if (error) {
       console.error('Error saving course content:', error.message);
@@ -204,8 +207,8 @@ const saveCourseContentManually = async (
   modules: CourseModule[]
 ): Promise<boolean> => {
   // First, delete all existing modules and lessons (cascades to lessons)
-  const { error: deleteError } = await supabase
-    .from('course_modules')
+  const { error: deleteError } = await (supabase
+    .from('course_modules') as any)
     .delete()
     .eq('course_id', courseId);
     
@@ -219,13 +222,13 @@ const saveCourseContentManually = async (
     const module = modules[i];
     
     // Insert module
-    const { data: moduleData, error: moduleError } = await supabase
-      .from('course_modules')
+    const { data: moduleData, error: moduleError } = await (supabase
+      .from('course_modules') as any)
       .insert({
         course_id: courseId,
         title: module.title,
         order_index: i
-      } as any)
+      })
       .select('id')
       .single();
       
@@ -244,9 +247,9 @@ const saveCourseContentManually = async (
     }));
     
     if (lessonInserts.length > 0) {
-      const { error: lessonError } = await supabase
-        .from('lessons')
-        .insert(lessonInserts as any);
+      const { error: lessonError } = await (supabase
+        .from('lessons') as any)
+        .insert(lessonInserts);
         
       if (lessonError) {
         console.error('Error creating lessons:', lessonError.message);
@@ -261,8 +264,8 @@ const saveCourseContentManually = async (
 // Get all courses created by the current user
 export const getUserCourses = async (): Promise<DbCourse[] | null> => {
   try {
-    const { data, error } = await supabase
-      .from('courses')
+    const { data, error } = await (supabase
+      .from('courses') as any)
       .select('*')
       .order('created_at', { ascending: false });
       
@@ -271,7 +274,7 @@ export const getUserCourses = async (): Promise<DbCourse[] | null> => {
       return null;
     }
     
-    return data as unknown as DbCourse[];
+    return data as DbCourse[];
   } catch (error) {
     console.error('Error fetching user courses:', error);
     return null;
@@ -281,8 +284,8 @@ export const getUserCourses = async (): Promise<DbCourse[] | null> => {
 // Get public courses
 export const getPublicCourses = async (): Promise<DbCourse[] | null> => {
   try {
-    const { data, error } = await supabase
-      .from('courses')
+    const { data, error } = await (supabase
+      .from('courses') as any)
       .select('*')
       .eq('status', 'published')
       .order('created_at', { ascending: false });
@@ -292,7 +295,7 @@ export const getPublicCourses = async (): Promise<DbCourse[] | null> => {
       return null;
     }
     
-    return data as unknown as DbCourse[];
+    return data as DbCourse[];
   } catch (error) {
     console.error('Error fetching public courses:', error);
     return null;
@@ -302,8 +305,8 @@ export const getPublicCourses = async (): Promise<DbCourse[] | null> => {
 // Delete a course
 export const deleteCourse = async (courseId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('courses')
+    const { error } = await (supabase
+      .from('courses') as any)
       .delete()
       .eq('id', courseId);
       
@@ -318,4 +321,3 @@ export const deleteCourse = async (courseId: string): Promise<boolean> => {
     return false;
   }
 };
-
