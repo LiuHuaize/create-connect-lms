@@ -56,57 +56,65 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">创建账户</CardTitle>
-        <CardDescription>
-          输入您想要的用户名和密码进行注册
+    <Card className="w-full max-w-md shadow-2xl border-none bg-white/80 backdrop-blur-lg">
+      <CardHeader className="space-y-2 text-center">
+        <CardTitle className="text-3xl font-bold text-gray-800">创建账户</CardTitle>
+        <CardDescription className="text-gray-500">
+          输入您的用户名和密码注册新账户
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">用户名</Label>
-            <div className="relative">
-              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="username"
-                placeholder="用户名"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="pl-10"
-                disabled={isLoading}
-              />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-gray-700">用户名</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Input
+                  id="username"
+                  placeholder="选择一个用户名"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10 border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition-all"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-gray-700">密码</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="设置一个安全的密码"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition-all"
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">密码</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-300" 
+            disabled={isLoading}
+          >
             {isLoading ? "创建账户中..." : "注册"}
+            <UserPlus className="ml-2 h-4 w-4" />
           </Button>
         </form>
       </CardContent>
-      <CardFooter>
-        <div className="text-center w-full text-sm">
-          已有账户?{" "}
+      <CardFooter className="flex justify-center">
+        <div className="text-center text-sm text-gray-600">
+          已有账户？{" "}
           <button 
             onClick={onToggle} 
-            className="underline text-primary font-medium" 
+            className="text-blue-600 hover:underline font-medium" 
             disabled={isLoading}
           >
-            登录
+            立即登录
           </button>
         </div>
       </CardFooter>
