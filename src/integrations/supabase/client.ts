@@ -11,16 +11,16 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Add typesafe extension methods for the tables not yet in the generated types
+// Add custom table types for tables not yet in the generated types
 // These will be used until the types are regenerated to include our new tables
 declare module '@supabase/supabase-js' {
   interface SupabaseClient<Database> {
-    // Override the "from" method to add our tables
+    // Override the "from" method to add our custom tables
     from<TableName extends string>(
       relation: TableName
     ): TableName extends 'courses' | 'course_modules' | 'lessons' | 'enrollments' | 'student_progress' | 'submissions'
       ? any  // Return any for our custom tables
-      : ReturnType<SupabaseClient<Database>['from']>;
+      : SupabaseClient<Database>['from']; // Return original type for existing tables
     
     // Override the rpc method for our custom function
     rpc<FunctionName extends string>(
@@ -28,6 +28,7 @@ declare module '@supabase/supabase-js' {
       ...args: any[]
     ): FunctionName extends 'save_course_content'
       ? any  // Return any for our custom function
-      : ReturnType<SupabaseClient<Database>['rpc']>;
+      : SupabaseClient<Database>['rpc']; // Return original type for existing functions
   }
 }
+
