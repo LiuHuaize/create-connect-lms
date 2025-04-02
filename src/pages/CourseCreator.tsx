@@ -50,8 +50,22 @@ const initialModules: CourseModule[] = [
     title: '商业规划简介',
     order_index: 0,
     lessons: [
-      { id: 'l1', type: 'video', title: '介绍视频', content: { videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' } },
-      { id: 'l2', type: 'text', title: '商业计划概述', content: { text: "# 商业计划概述\n\n商业计划是一份详细描述业务（通常是初创企业）如何定义其目标以及如何实现这些目标的书面文档。商业计划从营销、财务和运营角度为公司提供书面路线图。" } }
+      { 
+        id: 'l1', 
+        type: 'video', 
+        title: '介绍视频', 
+        content: { videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+        module_id: 'm1', 
+        order_index: 0 
+      },
+      { 
+        id: 'l2', 
+        type: 'text', 
+        title: '商业计划概述', 
+        content: { text: "# 商业计划概述\n\n商业计划是一份详细描述业务（通常是初创企业）如何定义其目标以及如何实现这些目标的书面文档。商业计划从营销、财务和运营角度为公司提供书面路线图。" },
+        module_id: 'm1',
+        order_index: 1
+      }
     ]
   },
   {
@@ -159,16 +173,23 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   };
   
   const addLesson = (moduleId: string, lessonType: LessonType) => {
+    const targetModule = modules.find(module => module.id === moduleId);
+    if (!targetModule) return;
+    
+    const orderIndex = targetModule.lessons ? targetModule.lessons.length : 0;
+    
     const newLesson: Lesson = {
       id: `l${Date.now()}`,
+      module_id: moduleId,
       type: lessonType,
       title: `新${LESSON_TYPES.find(type => type.id === lessonType)?.name}课程`,
-      content: getInitialContentByType(lessonType)
+      content: getInitialContentByType(lessonType),
+      order_index: orderIndex
     };
     
     setModules(modules.map(module => 
       module.id === moduleId 
-        ? { ...module, lessons: [...module.lessons, newLesson] } 
+        ? { ...module, lessons: [...(module.lessons || []), newLesson] } 
         : module
     ));
     

@@ -1,7 +1,22 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
-import { Lesson } from "@/types/course";
+import { Lesson, LessonContent, LessonType } from "@/types/course";
+import { Json } from "@/integrations/supabase/types";
+
+// 辅助函数：将Json转换为LessonContent
+const convertJsonToLessonContent = (content: Json): LessonContent => {
+  // 由于我们知道Json是从LessonContent序列化而来，可以安全地转换回来
+  return content as unknown as LessonContent;
+};
+
+// 辅助函数：将数据库中的课时转换为前端所需的Lesson类型
+const convertDbLessonToLesson = (dbLesson: any): Lesson => {
+  return {
+    ...dbLesson,
+    content: convertJsonToLessonContent(dbLesson.content)
+  } as Lesson;
+};
 
 export const courseService = {
   // 创建或更新课程
@@ -53,9 +68,17 @@ export const courseService = {
 
     if (modulesError) throw modulesError;
 
+    // 转换课时内容
+    const modulesWithConvertedLessons = (modulesData || []).map((module: any) => {
+      return {
+        ...module,
+        lessons: module.lessons ? module.lessons.map(convertDbLessonToLesson) : []
+      };
+    });
+
     return {
       ...(courseData as Course),
-      modules: modulesData as CourseModule[] || []
+      modules: modulesWithConvertedLessons as CourseModule[]
     };
   },
 
@@ -80,7 +103,9 @@ export const courseService = {
     const { data, error } = await supabase
       .from("course_modules")
       .insert({
-        ...module,
+        course_id: module.course_id,
+        title: module.title,
+        order_index: module.order_index,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -88,15 +113,24 @@ export const courseService = {
       .single();
 
     if (error) throw error;
-    return data as CourseModule;
+    return data as unknown as CourseModule;
   },
 
   // 添加课时
   async addLesson(lesson: Omit<Lesson, "id" | "created_at" | "updated_at">): Promise<Lesson> {
+    // 确保提供了必要的属性
+    if (!lesson.module_id) {
+      throw new Error("Lesson must have a module_id");
+    }
+
     const { data, error } = await supabase
       .from("lessons")
       .insert({
-        ...lesson,
+        module_id: lesson.module_id,
+        title: lesson.title,
+        type: lesson.type,
+        content: lesson.content as unknown as Json,
+        order_index: lesson.order_index || 0, // 提供默认值
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -104,6 +138,6 @@ export const courseService = {
       .single();
 
     if (error) throw error;
-    return data as Lesson;
+    return convertDbLessonToLesson(data);
   }
 };
