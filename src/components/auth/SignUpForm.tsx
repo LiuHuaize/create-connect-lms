@@ -28,16 +28,6 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
       return;
     }
 
-    // Ensure username is numeric (for phone auth workaround)
-    if (!/^\d+$/.test(username)) {
-      toast({
-        title: "Invalid username",
-        description: "Username must contain only numbers (e.g., 1234567890)",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
       const { error } = await signUp(username, password);
@@ -70,18 +60,18 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
         <CardDescription>
-          Enter your desired username (numeric only) and password to sign up
+          Enter your desired username and password to sign up
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">Username (numeric only)</Label>
+            <Label htmlFor="username">Username</Label>
             <div className="relative">
               <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="username"
-                placeholder="1234567890"
+                placeholder="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="pl-10"
