@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, LogOut, X, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { LayoutDashboard, BookOpen, Calendar, MessageSquare, PenSquare, ChevronLeft, ChevronRight, X, Users } from 'lucide-react';
 import Logo from '../../assets/Logo';
 import { useAuth } from '@/contexts/AuthContext';
+import UserProfile from './UserProfile';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -13,7 +14,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = false }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const { signOut, role } = useAuth();
+  const { role } = useAuth();
+  const location = useLocation();
 
   // 如果在桌面模式下，使用本地state，如果在移动模式下，使用传入的isOpen
   const isVisible = isMobile ? isOpen : true;
@@ -24,10 +26,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
     if (isMobile && onClose) {
       onClose();
     }
-  };
-
-  const handleLogout = async () => {
-    await signOut();
   };
 
   // 基于用户角色的导航项
@@ -70,10 +68,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
       )}
       
       <div 
-        className={`h-screen bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${
+        className={`h-screen bg-white flex flex-col transition-all duration-300 ease-in-out ${
           actuallyCollapsed ? 'w-20' : 'w-64'
         } ${
-          isMobile ? 'fixed left-0 top-0 z-40 shadow-xl' : ''
+          isMobile ? 'fixed left-0 top-0 z-40 shadow-xl' : 'border-r border-gray-200'
         }`}
       >
         <div className="p-4 flex justify-between items-center">
@@ -101,8 +99,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
           )}
         </div>
         
-        <div className="mt-6 flex-1 px-3">
-          <nav className="space-y-1">
+        <div className="flex-1 px-3 overflow-y-auto">
+          <nav className="space-y-1 mt-6">
             {sidebarItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -116,24 +114,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose, isMobile = f
                   }`
                 }
               >
-                {item.icon}
+                <div className={`${location.pathname === item.to ? 'text-blue-600' : 'text-gray-500'}`}>
+                  {item.icon}
+                </div>
                 {!actuallyCollapsed && <span>{item.label}</span>}
               </NavLink>
             ))}
           </nav>
         </div>
         
-        <div className="p-4 border-t border-gray-200">
-          <button 
-            className={`flex items-center gap-3 py-2 px-4 rounded-md text-gray-700 hover:bg-gray-100 hover:text-red-600 transition-colors w-full ${
-              actuallyCollapsed ? 'justify-center px-2' : ''
-            }`}
-            onClick={handleLogout}
-          >
-            <LogOut size={20} />
-            {!actuallyCollapsed && <span>退出登录</span>}
-          </button>
-        </div>
+        {/* 用户资料信息 - 替换之前的退出登录按钮 */}
+        {!actuallyCollapsed ? (
+          <UserProfile />
+        ) : (
+          <div className="p-4 border-t border-gray-200 flex justify-center">
+            <button 
+              className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-blue-600"
+              onClick={() => setCollapsed(false)}
+              aria-label="查看用户资料"
+            >
+              <User size={20} />
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
