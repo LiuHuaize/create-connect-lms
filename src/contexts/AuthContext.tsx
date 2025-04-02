@@ -56,17 +56,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [toast]);
 
   const signIn = async (username: string, password: string) => {
-    // For username-password auth, we use the email field but with a standard domain
-    const email = `${username}@user.internal`;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // For username-password auth, we use phone auth with a formatted phone number
+    const phone = `+${username.replace(/\D/g, '')}`;
+    const { error } = await supabase.auth.signInWithPassword({ phone, password });
     return { error };
   };
 
   const signUp = async (username: string, password: string) => {
-    // For username-password auth, we use the email field but with a standard domain
-    const email = `${username}@user.internal`;
+    // For username-password auth, we use phone auth with a formatted phone number
+    const phone = `+${username.replace(/\D/g, '')}`;
     const { error } = await supabase.auth.signUp({ 
-      email, 
+      phone, 
       password,
       options: {
         data: {
