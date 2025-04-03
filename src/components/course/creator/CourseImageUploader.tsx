@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, Trash2, Crop, Clock, Image as ImageIcon, Move, Check } from 'lucide-react';
@@ -7,7 +6,7 @@ import { toast } from 'sonner';
 import { Course } from '@/types/course';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Canvas, Point, Image as FabricImage, loadSVGFromURL, fabric } from 'fabric';
+import { Canvas, Point, Image as FabricImage, loadSVGFromURL } from 'fabric';
 
 interface CourseImageUploaderProps {
   course: Course;
@@ -26,10 +25,10 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const [showImageEditor, setShowImageEditor] = useState(false);
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
+  const fabricCanvasRef = useRef<Canvas | null>(null);
   const [editorMode, setEditorMode] = useState<'crop' | 'move'>('move');
-  const [cropRect, setCropRect] = useState<fabric.Rect | null>(null);
-  const imageRef = useRef<fabric.Image | null>(null);
+  const [cropRect, setCropRect] = useState<any | null>(null);
+  const imageRef = useRef<FabricImage | null>(null);
 
   const initializeEditor = async (imageUrl: string) => {
     if (!canvasRef.current) return;
@@ -40,7 +39,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     }
 
     // Create a new fabric canvas
-    const canvas = new fabric.Canvas(canvasRef.current, {
+    const canvas = new Canvas(canvasRef.current, {
       width: 800,
       height: 450, // 16:9 aspect ratio
       backgroundColor: '#f9f9f9',
@@ -50,7 +49,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
 
     try {
       // Create and add the image
-      fabric.Image.fromURL(imageUrl, (img) => {
+      FabricImage.fromURL(imageUrl, (img) => {
         // Set image options
         img.set({
           originX: 'center',
@@ -274,7 +273,6 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     }
   };
 
-  // Initialize the editor when it's shown
   useEffect(() => {
     if (showImageEditor && editingImage) {
       initializeEditor(editingImage);
@@ -361,7 +359,6 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
         )}
       </div>
       
-      {/* Image Editor Dialog */}
       <Dialog open={showImageEditor} onOpenChange={(open) => {
         if (!open) {
           URL.revokeObjectURL(editingImage || '');
