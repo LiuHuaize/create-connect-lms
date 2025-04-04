@@ -12,6 +12,7 @@ import {
   X,
   LogOut,
   UserCog,
+  Search,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -46,9 +47,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
       href: "/dashboard",
     },
     {
-      label: "课程",
+      label: "我的课程",
       icon: <BookOpen className="h-5 w-5" />,
       href: "/learning",
+    },
+    {
+      label: "探索课程",
+      icon: <Search className="h-5 w-5" />,
+      href: "/explore-courses",
     },
     {
       label: "活动",

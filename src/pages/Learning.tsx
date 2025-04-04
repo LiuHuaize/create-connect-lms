@@ -1,13 +1,22 @@
+
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Play, Clock, Award } from 'lucide-react';
+import { BookOpen, Play, Clock, Award, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const Learning = () => {
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">我的学习</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">我的学习</h1>
+        <Button asChild className="bg-connect-blue hover:bg-blue-600">
+          <Link to="/explore-courses">
+            <Search className="mr-2 h-4 w-4" /> 探索更多课程
+          </Link>
+        </Button>
+      </div>
       
       <Tabs defaultValue="inProgress" className="w-full">
         <TabsList className="mb-6">
@@ -158,9 +167,9 @@ const Learning = () => {
         <TabsContent value="saved">
           <div className="text-center py-12">
             <p className="text-gray-500 mb-4">您尚未保存任何课程</p>
-            <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors">
-              浏览课程
-            </button>
+            <Button asChild className="bg-connect-blue hover:bg-blue-600">
+              <Link to="/explore-courses">浏览课程</Link>
+            </Button>
           </div>
         </TabsContent>
       </Tabs>

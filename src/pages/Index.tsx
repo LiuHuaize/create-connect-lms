@@ -1,4 +1,3 @@
-// Update this page (the content is just a fallback if you fail to update the page)
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
@@ -39,9 +38,12 @@ const Index = () => {
           为6-12岁儿童打造的互动学习平台，
           通过有趣的课程、游戏和活动激发孩子的学习兴趣
         </p>
-        <div className="mt-8 flex justify-center gap-4">
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Button asChild size="lg" className="bg-connect-blue hover:bg-blue-600">
-            <Link to="/learning">开始探索</Link>
+            <Link to="/explore-courses">探索课程</Link>
+          </Button>
+          <Button asChild size="lg" className="bg-connect-blue hover:bg-blue-600">
+            <Link to="/learning">我的学习</Link>
           </Button>
           <Button variant="outline" size="lg">
             <Link to="/dashboard">家长控制台</Link>
@@ -132,7 +134,7 @@ const Index = () => {
         <h2 className="text-2xl font-bold text-gray-900 mb-3">准备好开始学习冒险了吗？</h2>
         <p className="text-gray-600 mb-6">加入我们，让孩子在快乐中成长</p>
         <Button asChild size="lg" className="bg-connect-blue hover:bg-blue-600">
-          <Link to="/learning">立即开始</Link>
+          <Link to="/explore-courses">探索课程</Link>
         </Button>
       </section>
     </div>

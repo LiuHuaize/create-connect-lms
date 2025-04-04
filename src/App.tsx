@@ -25,6 +25,7 @@ import CoursePage from "./pages/course/CoursePage";
 import UserManagement from "./pages/admin/UserManagement";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
+import ExploreCourses from "./pages/ExploreCourses";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,11 @@ const AppRoutes = () => {
             <Route path="/learning" element={
               <ProtectedRoute>
                 <Learning />
+              </ProtectedRoute>
+            } />
+            <Route path="/explore-courses" element={
+              <ProtectedRoute>
+                <ExploreCourses />
               </ProtectedRoute>
             } />
             <Route path="/community" element={
