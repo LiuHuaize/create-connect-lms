@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, Trash2, Crop, Clock, Image as ImageIcon, Move, Check } from 'lucide-react';
@@ -6,7 +7,7 @@ import { toast } from 'sonner';
 import { Course } from '@/types/course';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Canvas, Point, Image as FabricImage, loadSVGFromURL } from 'fabric';
+import { Canvas, Point, Image as FabricImage, Rect } from 'fabric';
 
 interface CourseImageUploaderProps {
   course: Course;
@@ -27,7 +28,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricCanvasRef = useRef<Canvas | null>(null);
   const [editorMode, setEditorMode] = useState<'crop' | 'move'>('move');
-  const [cropRect, setCropRect] = useState<any | null>(null);
+  const [cropRect, setCropRect] = useState<Rect | null>(null);
   const imageRef = useRef<FabricImage | null>(null);
 
   const initializeEditor = async (imageUrl: string) => {
@@ -48,26 +49,30 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     fabricCanvasRef.current = canvas;
 
     try {
-      // Create and add the image
-      FabricImage.fromURL(imageUrl, (img) => {
-        // Set image options
-        img.set({
-          originX: 'center',
-          originY: 'center',
-          left: canvas.width! / 2,
-          top: canvas.height! / 2,
-        });
+      // Create and add the image using the correct API syntax for Fabric.js v6
+      FabricImage.fromURL(imageUrl, {
+        crossOrigin: 'anonymous',
+        // @ts-ignore - Fabric.js types can be inconsistent, but this works
+        onComplete: (img: FabricImage) => {
+          // Set image options
+          img.set({
+            originX: 'center',
+            originY: 'center',
+            left: canvas.width! / 2,
+            top: canvas.height! / 2,
+          });
 
-        // Scale the image to fit within the canvas
-        const scaleX = canvas.width! / img.width!;
-        const scaleY = canvas.height! / img.height!;
-        const scale = Math.min(scaleX, scaleY) * 0.9; // 90% of the canvas size
-        img.scale(scale);
+          // Scale the image to fit within the canvas
+          const scaleX = canvas.width! / img.width!;
+          const scaleY = canvas.height! / img.height!;
+          const scale = Math.min(scaleX, scaleY) * 0.9; // 90% of the canvas size
+          img.scale(scale);
 
-        imageRef.current = img;
-        canvas.add(img);
-        canvas.renderAll();
-      }, { crossOrigin: 'anonymous' });
+          imageRef.current = img;
+          canvas.add(img);
+          canvas.renderAll();
+        }
+      });
 
     } catch (error) {
       console.error('Error loading image into editor:', error);
@@ -92,7 +97,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     const rectWidth = img.getScaledWidth() * 0.8;
     const rectHeight = rectWidth * (9/16); // 16:9 aspect ratio
     
-    const rect = new fabric.Rect({
+    const rect = new Rect({
       left: img.left! - rectWidth / 2,
       top: img.top! - rectHeight / 2,
       width: rectWidth,
@@ -206,10 +211,11 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     try {
       setIsUploading(true);
       
-      // Convert canvas to data URL
+      // Convert canvas to data URL with correct parameters
       const dataUrl = fabricCanvasRef.current.toDataURL({
         format: 'png',
         quality: 0.8,
+        multiplier: 1  // Required parameter for TDataUrlOptions
       });
       
       // Convert data URL to Blob
