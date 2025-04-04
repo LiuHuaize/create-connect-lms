@@ -10,12 +10,17 @@ export const useCoursesData = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingEnrolled, setLoadingEnrolled] = useState(true);
   const [loadingEnrollment, setLoadingEnrollment] = useState(false);
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+    if (user) {
+      fetchEnrolledCourses();
+    }
+  }, [user]);
 
   // 提取获取课程的逻辑到单独的函数中
   const fetchCourses = async () => {
@@ -52,6 +57,65 @@ export const useCoursesData = () => {
       toast.error('获取课程失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 获取用户已加入的课程
+  const fetchEnrolledCourses = async () => {
+    if (!user) {
+      console.log('用户未登录，无法获取已加入课程');
+      setEnrolledCourses([]);
+      setLoadingEnrolled(false);
+      return;
+    }
+
+    try {
+      setLoadingEnrolled(true);
+      console.log('正在获取用户已加入的课程...');
+      
+      // 联合查询课程和注册信息
+      const { data, error } = await supabase
+        .from('course_enrollments')
+        .select(`
+          id,
+          status,
+          progress,
+          enrolled_at,
+          courses:course_id(*)
+        `)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('获取已加入课程失败:', error);
+        toast.error('获取已加入课程失败');
+        setLoadingEnrolled(false);
+        return;
+      }
+      
+      console.log('从数据库获取的已加入课程:', data);
+      
+      if (!data || data.length === 0) {
+        console.log('没有找到已加入课程');
+        setEnrolledCourses([]);
+        setLoadingEnrolled(false);
+        return;
+      }
+      
+      // 提取课程数据并转换为Course类型数组
+      const coursesWithProgress = data.map(enrollment => ({
+        ...(enrollment.courses as Course),
+        progress: enrollment.progress,
+        enrollmentId: enrollment.id,
+        enrollmentStatus: enrollment.status,
+        enrolledAt: enrollment.enrolled_at
+      }));
+      
+      setEnrolledCourses(coursesWithProgress);
+    } catch (error) {
+      console.error('获取已加入课程失败:', error);
+      toast.error('获取已加入课程失败');
+    } finally {
+      setLoadingEnrolled(false);
     }
   };
 
@@ -126,6 +190,8 @@ export const useCoursesData = () => {
       }
       
       toast.success('成功加入课程！');
+      // 刷新已加入的课程列表
+      fetchEnrolledCourses();
       navigate(`/course/${courseId}`);
     } catch (error) {
       console.error('加入课程过程中发生错误:', error);
@@ -137,9 +203,12 @@ export const useCoursesData = () => {
 
   return {
     courses,
+    enrolledCourses,
     loading,
+    loadingEnrolled,
     loadingEnrollment,
     fetchCourses,
+    fetchEnrolledCourses,
     handleEnrollCourse
   };
 };

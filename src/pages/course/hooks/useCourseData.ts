@@ -36,8 +36,7 @@ export const useCourseData = (courseId: string | undefined) => {
         
         const courseDetails = await courseService.getCourseDetails(courseId);
         console.log('获取到的课程详情:', courseDetails);
-        // 确保我们使用正确的类型
-        setCourseData(courseDetails as (Course & { modules?: CourseModule[] }));
+        setCourseData(courseDetails);
       } catch (error) {
         console.error('获取课程失败:', error);
         toast.error('获取课程数据失败');

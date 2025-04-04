@@ -1,72 +1,41 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { ChevronDown, Activity, Calendar, BookOpen, Star, Cpu } from 'lucide-react';
 import CourseCard from '@/components/ui/CourseCard';
 import FeatureCard from '@/components/ui/FeatureCard';
-import { MessageSquare, CheckCircle, Play } from 'lucide-react';
+import { MessageSquare, CheckCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useCoursesData } from '@/hooks/useCoursesData';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [totalProgress, setTotalProgress] = useState(0);
+  const { enrolledCourses, loadingEnrolled, fetchEnrolledCourses } = useCoursesData();
 
   useEffect(() => {
-    const fetchEnrolledCourses = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setIsLoading(true);
-        
-        // 获取用户的课程注册信息
-        const { data: enrollments, error: enrollmentsError } = await supabase
-          .from('course_enrollments')
-          .select(`
-            id, progress, status,
-            courses:course_id(id, title, short_description, cover_image, status, category)
-          `)
-          .eq('user_id', user.id)
-          .eq('status', 'active')
-          .is('completed_at', null);
-        
-        if (enrollmentsError) {
-          console.error('获取课程注册信息失败:', enrollmentsError);
-          toast.error('获取课程失败');
-          return;
-        }
-        
-        // 处理注册的课程
-        const courses = enrollments?.map(enrollment => ({
-          ...enrollment.courses,
-          enrollmentId: enrollment.id,
-          progress: enrollment.progress,
-          status: enrollment.status
-        })) || [];
-        
-        setEnrolledCourses(courses);
-        
-        // 计算总体进度
-        if (courses.length > 0) {
-          const avgProgress = courses.reduce((sum, course) => sum + course.progress, 0) / courses.length;
-          setTotalProgress(Math.round(avgProgress));
-        }
-      } catch (error) {
-        console.error('获取课程失败:', error);
-        toast.error('获取课程失败');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEnrolledCourses();
+    if (user) {
+      fetchEnrolledCourses();
+    }
   }, [user]);
+
+  // 获取用户总体学习进度
+  const calculateOverallProgress = () => {
+    if (enrolledCourses.length === 0) return 0;
+    
+    const totalProgress = enrolledCourses.reduce((sum, course) => sum + (course.progress || 0), 0);
+    return Math.round(totalProgress / enrolledCourses.length);
+  };
+
+  const overallProgress = calculateOverallProgress();
+  
+  // 获取进行中的课程（按进度排序）
+  const inProgressCourses = enrolledCourses
+    .filter(course => (course.progress || 0) < 100)
+    .sort((a, b) => (b.progress || 0) - (a.progress || 0))
+    .slice(0, 2); // 获取前2个课程
 
   return (
     <div className="animate-fade-in p-4 sm:p-6 max-w-7xl mx-auto">
@@ -81,21 +50,23 @@ const Dashboard = () => {
                 <CardTitle className="text-base sm:text-lg font-medium">总体完成度</CardTitle>
                 <Activity className="h-5 w-5 text-connect-blue" />
               </div>
-              <CardDescription>本月学习情况</CardDescription>
+              <CardDescription>学习情况</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{totalProgress}%</span>
+                  <span className="text-sm font-medium">{overallProgress}%</span>
                   <span className="text-sm text-muted-foreground">目标: 100%</span>
                 </div>
-                <Progress value={totalProgress} className="h-2" />
+                <Progress value={overallProgress} className="h-2" />
               </div>
               <div className="mt-4 flex items-center justify-between text-sm">
-                <span>本周学习活跃</span>
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  继续努力
-                </Badge>
+                <span>已加入课程: {enrolledCourses.length}个</span>
+                <Link to="/learning">
+                  <Badge variant="outline" className="bg-connect-blue/10 text-connect-blue border-connect-blue/20 cursor-pointer">
+                    查看全部
+                  </Badge>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -110,27 +81,29 @@ const Dashboard = () => {
               <CardDescription>继续你的学习</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <p className="text-sm text-gray-500">加载中...</p>
-              ) : enrolledCourses.length > 0 ? (
+              {loadingEnrolled ? (
+                <div className="text-center py-2">
+                  <p className="text-sm text-gray-500">加载中...</p>
+                </div>
+              ) : inProgressCourses.length > 0 ? (
                 <div className="space-y-3">
-                  {enrolledCourses.slice(0, 2).map(course => (
+                  {inProgressCourses.map(course => (
                     <div key={course.id}>
                       <div className="flex justify-between items-center">
-                        <Link to={`/course/${course.id}`} className="text-sm font-medium hover:text-connect-blue">
+                        <Link to={`/course/${course.id}`} className="text-sm font-medium hover:text-connect-blue transition-colors">
                           {course.title}
                         </Link>
-                        <span className="text-sm text-muted-foreground">{course.progress}%</span>
+                        <span className="text-sm text-muted-foreground">{course.progress || 0}%</span>
                       </div>
-                      <Progress value={course.progress} className="h-2 mt-1" />
+                      <Progress value={course.progress || 0} className="h-2 mt-1" />
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-sm text-gray-500">
-                  <p>您还没有进行中的课程</p>
-                  <Link to="/explore-courses" className="mt-2 inline-block text-connect-blue hover:underline">
-                    开始学习
+                <div className="text-center py-2">
+                  <p className="text-sm text-gray-500">您还没有加入任何课程</p>
+                  <Link to="/explore-courses" className="text-sm text-connect-blue hover:underline mt-1 inline-block">
+                    浏览课程
                   </Link>
                 </div>
               )}
@@ -158,52 +131,6 @@ const Dashboard = () => {
           </Card>
         </div>
       </section>
-
-      {/* 我的课程 */}
-      {enrolledCourses.length > 0 && (
-        <section className="mb-6 sm:mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">我的课程</h2>
-            <Link to="/learning" className="text-connect-blue hover:underline text-sm">
-              查看全部
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {enrolledCourses.slice(0, 3).map(course => (
-              <Card key={course.id} className="overflow-hidden">
-                <div 
-                  className="h-36 bg-cover bg-center" 
-                  style={{ 
-                    backgroundImage: course.cover_image 
-                      ? `url(${course.cover_image})` 
-                      : 'url(/placeholder.svg)' 
-                  }}
-                />
-                <CardContent className="p-4">
-                  <h3 className="font-bold text-lg mb-2 line-clamp-1">{course.title}</h3>
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{course.short_description}</p>
-                  
-                  <div className="mb-3">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium">学习进度</span>
-                      <span className="text-xs text-gray-500">{course.progress}%</span>
-                    </div>
-                    <Progress value={course.progress} className="h-1.5" />
-                  </div>
-                  
-                  <Link to={`/course/${course.id}`}>
-                    <button className="w-full py-2 flex items-center justify-center gap-2 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                      <Play size={16} />
-                      继续学习
-                    </button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* 即将到来的活动 */}
       <section className="mb-6 sm:mb-8">
@@ -269,6 +196,7 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* 为你推荐部分 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
         <CourseCard
           type="skill"

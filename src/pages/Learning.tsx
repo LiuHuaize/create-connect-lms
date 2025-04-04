@@ -1,75 +1,22 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
 import { BookOpen, Play, Clock, Award, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { useCoursesData } from '@/hooks/useCoursesData';
 import { useAuth } from '@/contexts/AuthContext';
-import { Course } from '@/types/course';
-import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 const Learning = () => {
   const { user } = useAuth();
-  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
-  const [completedCourses, setCompletedCourses] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { enrolledCourses, loadingEnrolled, fetchEnrolledCourses } = useCoursesData();
 
   useEffect(() => {
-    const fetchEnrolledCourses = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setIsLoading(true);
-        
-        // 获取用户的课程注册信息
-        const { data: enrollments, error: enrollmentsError } = await supabase
-          .from('course_enrollments')
-          .select(`
-            id, progress, status, completed_at,
-            courses:course_id(id, title, short_description, cover_image, status, category)
-          `)
-          .eq('user_id', user.id);
-        
-        if (enrollmentsError) {
-          console.error('获取课程注册信息失败:', enrollmentsError);
-          toast.error('获取课程失败');
-          return;
-        }
-        
-        // 分离正在进行的课程和已完成的课程
-        const inProgress = [];
-        const completed = [];
-        
-        for (const enrollment of enrollments || []) {
-          if (enrollment.courses) {
-            const courseWithProgress = {
-              ...enrollment.courses,
-              enrollmentId: enrollment.id,
-              progress: enrollment.progress,
-              status: enrollment.status
-            };
-            
-            if (enrollment.completed_at) {
-              completed.push(courseWithProgress);
-            } else {
-              inProgress.push(courseWithProgress);
-            }
-          }
-        }
-        
-        setEnrolledCourses(inProgress);
-        setCompletedCourses(completed);
-      } catch (error) {
-        console.error('获取课程失败:', error);
-        toast.error('获取课程失败');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEnrolledCourses();
+    if (user) {
+      fetchEnrolledCourses();
+    }
   }, [user]);
 
   return (
@@ -91,12 +38,13 @@ const Learning = () => {
         </TabsList>
         
         <TabsContent value="inProgress" className="space-y-6">
-          {isLoading ? (
+          {loadingEnrolled ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">加载中...</p>
+              <p className="text-gray-500 mb-4">正在加载课程...</p>
             </div>
           ) : enrolledCourses.length > 0 ? (
-            enrolledCourses.map((course) => (
+            // 显示用户已加入的课程
+            enrolledCourses.filter(course => course.progress < 100).map((course) => (
               <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="p-6">
                   <div className="flex justify-between items-start">
@@ -110,11 +58,13 @@ const Learning = () => {
                       <div className="flex items-center gap-4 mb-4">
                         <div className="flex items-center text-gray-500">
                           <BookOpen size={16} className="mr-1" />
-                          <span className="text-sm">课程学习</span>
+                          <span className="text-sm">进行中</span>
                         </div>
                         <div className="flex items-center text-gray-500">
                           <Clock size={16} className="mr-1" />
-                          <span className="text-sm">进行中</span>
+                          <span className="text-sm">
+                            加入于 {course.enrolledAt ? format(new Date(course.enrolledAt), 'yyyy-MM-dd') : '未知'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -139,7 +89,7 @@ const Learning = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">继续学习</h4>
-                      <p className="text-sm text-gray-500">接着上次的地方继续学习</p>
+                      <p className="text-sm text-gray-500">{course.title}</p>
                     </div>
                     <Link to={`/course/${course.id}`}>
                       <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
@@ -152,21 +102,22 @@ const Learning = () => {
             ))
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-500">您还没有进行中的课程</p>
-              <Button asChild className="mt-4 bg-connect-blue hover:bg-blue-600">
-                <Link to="/explore-courses">开始学习</Link>
+              <p className="text-gray-500 mb-4">您还没有加入任何课程</p>
+              <Button asChild className="bg-connect-blue hover:bg-blue-600">
+                <Link to="/explore-courses">浏览课程</Link>
               </Button>
             </div>
           )}
         </TabsContent>
         
         <TabsContent value="completed">
-          {isLoading ? (
+          {loadingEnrolled ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">加载中...</p>
+              <p className="text-gray-500 mb-4">正在加载课程...</p>
             </div>
-          ) : completedCourses.length > 0 ? (
-            completedCourses.map(course => (
+          ) : enrolledCourses.filter(course => course.progress >= 100).length > 0 ? (
+            // 显示已完成的课程
+            enrolledCourses.filter(course => course.progress >= 100).map((course) => (
               <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-6">
                 <div className="flex justify-between items-center">
                   <div>
@@ -185,9 +136,9 @@ const Learning = () => {
                   
                   <div className="flex items-center gap-3">
                     <Link to={`/course/${course.id}`}>
-                      <Button variant="outline" size="sm" className="py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                      <button className="py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                         回顾
-                      </Button>
+                      </button>
                     </Link>
                   </div>
                 </div>
@@ -195,7 +146,10 @@ const Learning = () => {
             ))
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-500">您还没有完成的课程</p>
+              <p className="text-gray-500 mb-4">您还没有完成任何课程</p>
+              <Button asChild className="bg-connect-blue hover:bg-blue-600">
+                <Link to="/explore-courses">浏览课程</Link>
+              </Button>
             </div>
           )}
         </TabsContent>

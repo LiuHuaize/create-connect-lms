@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Course } from '@/types/course';
 import { toast } from 'sonner';
+import { useCoursesData } from '@/hooks/useCoursesData';
 
 const CourseSelection = () => {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ const CourseSelection = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
+  const { fetchEnrolledCourses } = useCoursesData();
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -45,6 +47,8 @@ const CourseSelection = () => {
   };
 
   const handleViewCourse = (courseId: string) => {
+    // 刷新已加入课程列表，以防有新发布的课程
+    fetchEnrolledCourses();
     navigate(`/course/${courseId}`);
   };
 
