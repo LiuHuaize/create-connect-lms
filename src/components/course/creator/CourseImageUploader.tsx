@@ -37,8 +37,8 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const [imageLoadError, setImageLoadError] = useState(false);
   const [currentStep, setCurrentStep] = useState<'upload' | 'edit' | 'crop' | 'preview'>('upload');
   const [cropPreviewURL, setCropPreviewURL] = useState<string | null>(null);
-  const [previewCanvasRef] = useState(document.createElement('canvas'));
-  const [previewImageRef] = useState(new Image());
+  const previewCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'));
+  const previewImageRef = useRef<HTMLImageElement>(new Image());
 
   const loadingTimerRef = useRef<number | null>(null);
 
@@ -80,7 +80,9 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
         console.error('预加载图片失败:', error);
         setImageLoadError(true);
         setShowLoader(false);
-        clearTimeout(loadingTimerRef.current!);
+        if (loadingTimerRef.current) {
+          clearTimeout(loadingTimerRef.current);
+        }
         toast.error('无法加载图片，请重试');
         return;
       }
@@ -138,20 +140,26 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
         
         setCanvasInitialized(true);
         setShowLoader(false);
-        clearTimeout(loadingTimerRef.current!);
+        if (loadingTimerRef.current) {
+          clearTimeout(loadingTimerRef.current);
+        }
         setImageLoadError(false);
       }).catch(err => {
         console.error('加载图片到编辑器失败:', err);
         setImageLoadError(true);
         setShowLoader(false);
-        clearTimeout(loadingTimerRef.current!);
+        if (loadingTimerRef.current) {
+          clearTimeout(loadingTimerRef.current);
+        }
         toast.error('无法加载图片进行编辑');
       });
     } catch (error) {
       console.error('初始化编辑器错误:', error);
       setImageLoadError(true);
       setShowLoader(false);
-      clearTimeout(loadingTimerRef.current!);
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
       toast.error('初始化编辑器失败');
     }
   };
@@ -278,16 +286,16 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       const rectHeight = cropRect.getScaledHeight();
       
       // 设置预览canvas大小为裁剪尺寸
-      previewCanvasRef.width = 1280; // 输出16:9标准尺寸
-      previewCanvasRef.height = 720;
+      previewCanvasRef.current.width = 1280; // 输出16:9标准尺寸
+      previewCanvasRef.current.height = 720;
       
-      const ctx = previewCanvasRef.getContext('2d');
+      const ctx = previewCanvasRef.current.getContext('2d');
       if (!ctx) {
         throw new Error('无法获取预览画布的上下文');
       }
       
       // 清空预览画布
-      ctx.clearRect(0, 0, previewCanvasRef.width, previewCanvasRef.height);
+      ctx.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
       
       // 计算相对裁剪坐标
       const offsetX = rectLeft - (imgLeft - imgWidth/2);
@@ -311,18 +319,18 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
         sourceHeight,
         0, 
         0, 
-        previewCanvasRef.width, 
-        previewCanvasRef.height
+        previewCanvasRef.current.width, 
+        previewCanvasRef.current.height
       );
       
       // 转换为数据URL并应用
-      const croppedImageUrl = previewCanvasRef.toDataURL('image/png', 0.95);
+      const croppedImageUrl = previewCanvasRef.current.toDataURL('image/png', 0.95);
       setCropPreviewURL(croppedImageUrl);
       setCurrentStep('preview');
       
       // 预加载裁剪后的图片确保显示正常
-      previewImageRef.src = croppedImageUrl;
-      previewImageRef.onload = () => {
+      previewImageRef.current.src = croppedImageUrl;
+      previewImageRef.current.onload = () => {
         setShowLoader(false);
         toast.success('图片裁剪成功，请检查预览效果');
       };
