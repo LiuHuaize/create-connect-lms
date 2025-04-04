@@ -47,16 +47,21 @@ const ExploreCourses = () => {
           return;
         }
         
-        // 确保数据符合Course类型
+        // 确保数据符合Course类型，添加可能缺失的属性
         const typedCourses: Course[] = data.map(course => ({
-          ...course,
-          status: course.status as Course['status'],
-          tags: course.tags || [],
-          price: course.price || null,
+          id: course.id || '',
+          title: course.title,
           description: course.description || null,
           short_description: course.short_description || null,
+          author_id: course.author_id,
           cover_image: course.cover_image || null,
-          difficulty: course.difficulty || 'initial',
+          status: course.status as Course['status'],
+          price: course.price || null,
+          tags: course.tags || [],
+          created_at: course.created_at,
+          updated_at: course.updated_at,
+          // 添加可能在数据库中不存在的字段，使用默认值
+          difficulty: (course.difficulty as Course['difficulty']) || 'initial',
           category: course.category || null
         }));
         
@@ -76,6 +81,12 @@ const ExploreCourses = () => {
     try {
       setLoadingEnrollment(true);
       
+      if (!user) {
+        toast.error('请先登录');
+        navigate('/auth');
+        return;
+      }
+      
       // 检查课程ID是否存在
       if (!courseId) {
         toast.error('课程ID无效');
@@ -94,9 +105,6 @@ const ExploreCourses = () => {
         toast.error('课程不存在或已被移除');
         return;
       }
-      
-      // 可以添加课程注册逻辑，例如将用户添加到课程用户列表中
-      // 这里可以实现如 user_enrollments 表的插入操作
       
       // 成功后导航到课程页面
       toast.success('成功加入课程！');
