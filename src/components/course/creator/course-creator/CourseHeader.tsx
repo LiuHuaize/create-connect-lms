@@ -1,8 +1,6 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { Course, CourseModule } from '@/types/course';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
