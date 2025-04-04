@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { TabsContent } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 const LessonEditor = React.lazy(() => import('@/components/course/LessonEditor'));
 const CourseDetailsForm = React.lazy(() => import('@/components/course/creator/CourseDetailsForm'));
 const CourseImageUploader = React.lazy(() => import('@/components/course/creator/CourseImageUploader'));
-const ModuleList = React.lazy(() => import('@/components/course/creator/ModuleList'));
+const ModuleList = React.lazy(() => import('@/components/course/creator/module-list/ModuleList'));
 const StudentStatistics = React.lazy(() => import('@/components/course/creator/StudentStatistics'));
 
 interface CourseTabContentProps {
