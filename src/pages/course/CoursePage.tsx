@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
-import { BookOpen } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import components
