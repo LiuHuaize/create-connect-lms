@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, BookOpen, Play, Check, MessageSquare, Award, Video, FileText, HelpCircle, ArrowLeft, ArrowRight } from 'lucide-react';
@@ -9,106 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { supabase } from '@/integrations/supabase/client';
+import { courseService } from '@/services/courseService';
+import { Course, CourseModule } from '@/types/course';
+import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// 模拟课程数据
-const COURSES = {
-  "math-adventure": {
-    id: "math-adventure",
-    title: "数学冒险",
-    description: "通过有趣的游戏和活动学习基础数学概念",
-    progress: 40,
-    level: "初级",
-    ageRange: "6-8岁",
-    units: [
-      {
-        id: "unit-1",
-        title: "数字与计数",
-        lessons: [
-          { id: "lesson-1", title: "认识数字1-10", type: "video", completed: true },
-          { id: "lesson-2", title: "数字排序", type: "interactive", completed: true },
-          { id: "lesson-3", title: "计数游戏", type: "game", completed: false }
-        ]
-      },
-      {
-        id: "unit-2",
-        title: "形状与颜色",
-        lessons: [
-          { id: "lesson-4", title: "认识基本形状", type: "video", completed: false },
-          { id: "lesson-5", title: "形状匹配", type: "quiz", completed: false },
-          { id: "lesson-6", title: "创建形状艺术", type: "activity", completed: false }
-        ]
-      },
-      {
-        id: "unit-3",
-        title: "简单加法",
-        lessons: [
-          { id: "lesson-7", title: "加法基础", type: "video", completed: false },
-          { id: "lesson-8", title: "加法练习", type: "interactive", completed: false },
-          { id: "lesson-9", title: "加法游戏", type: "game", completed: false },
-          { id: "lesson-10", title: "加法测验", type: "quiz", completed: false }
-        ]
-      }
-    ]
-  },
-  "science-discovery": {
-    id: "science-discovery",
-    title: "科学发现之旅",
-    description: "探索自然世界的奇妙现象和基本科学概念",
-    progress: 20,
-    level: "初级",
-    ageRange: "8-10岁",
-    units: [
-      {
-        id: "unit-1",
-        title: "动植物世界",
-        lessons: [
-          { id: "lesson-1", title: "认识常见动物", type: "video", completed: true },
-          { id: "lesson-2", title: "植物的生长", type: "interactive", completed: false },
-          { id: "lesson-3", title: "动物分类游戏", type: "game", completed: false }
-        ]
-      },
-      {
-        id: "unit-2",
-        title: "天气与季节",
-        lessons: [
-          { id: "lesson-4", title: "认识四季", type: "video", completed: false },
-          { id: "lesson-5", title: "天气现象", type: "interactive", completed: false },
-          { id: "lesson-6", title: "季节变化", type: "quiz", completed: false }
-        ]
-      }
-    ]
-  },
-  "creative-writing": {
-    id: "creative-writing",
-    title: "创意写作启蒙",
-    description: "培养孩子的写作兴趣和表达能力",
-    progress: 10,
-    level: "中级",
-    ageRange: "9-12岁",
-    units: [
-      {
-        id: "unit-1",
-        title: "故事构思",
-        lessons: [
-          { id: "lesson-1", title: "故事元素", type: "video", completed: true },
-          { id: "lesson-2", title: "角色设计", type: "interactive", completed: false },
-          { id: "lesson-3", title: "故事构思练习", type: "activity", completed: false }
-        ]
-      },
-      {
-        id: "unit-2",
-        title: "创意表达",
-        lessons: [
-          { id: "lesson-4", title: "描写技巧", type: "video", completed: false },
-          { id: "lesson-5", title: "对话写作", type: "interactive", completed: false },
-          { id: "lesson-6", title: "小故事创作", type: "activity", completed: false }
-        ]
-      }
-    ]
-  }
-};
-
-// 内容类型图标映射
 const ContentTypeIcon = ({ type }: { type: string }) => {
   switch (type) {
     case 'video':
@@ -121,6 +27,8 @@ const ContentTypeIcon = ({ type }: { type: string }) => {
       return <Play size={18} className="mr-2 text-orange-500" />;
     case 'activity':
       return <FileText size={18} className="mr-2 text-indigo-500" />;
+    case 'text':
+      return <BookOpen size={18} className="mr-2 text-gray-500" />;
     default:
       return <BookOpen size={18} className="mr-2 text-gray-500" />;
   }
@@ -128,12 +36,94 @@ const ContentTypeIcon = ({ type }: { type: string }) => {
 
 const CoursePage = () => {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId?: string }>();
+  const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [courseData, setCourseData] = useState<(Course & { modules?: CourseModule[] }) | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
   
-  // 获取课程数据
-  const course = courseId ? COURSES[courseId as keyof typeof COURSES] : null;
+  useEffect(() => {
+    const fetchCourseData = async () => {
+      if (!courseId) return;
+      
+      try {
+        setLoading(true);
+        console.log('正在获取课程详情:', courseId);
+        
+        const { data: user } = await supabase.auth.getUser();
+        if (user && user.user) {
+          const { data: enrollments } = await supabase
+            .from('course_enrollments')
+            .select('id, progress')
+            .eq('user_id', user.user.id)
+            .eq('course_id', courseId)
+            .maybeSingle();
+            
+          if (enrollments) {
+            setEnrollmentId(enrollments.id);
+            setProgress(enrollments.progress || 0);
+          }
+        }
+        
+        const courseDetails = await courseService.getCourseDetails(courseId);
+        console.log('获取到的课程详情:', courseDetails);
+        setCourseData(courseDetails);
+      } catch (error) {
+        console.error('获取课程失败:', error);
+        toast.error('获取课程数据失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCourseData();
+  }, [courseId]);
   
-  if (!course) {
+  let selectedLesson = null;
+  let selectedUnit = null;
+  
+  if (courseData?.modules && courseData.modules.length > 0) {
+    if (lessonId) {
+      for (const module of courseData.modules) {
+        if (!module.lessons) continue;
+        const lesson = module.lessons.find(l => l.id === lessonId);
+        if (lesson) {
+          selectedLesson = lesson;
+          selectedUnit = module;
+          break;
+        }
+      }
+    }
+    
+    if (!selectedLesson) {
+      for (const module of courseData.modules) {
+        if (module.lessons && module.lessons.length > 0) {
+          selectedLesson = module.lessons[0];
+          selectedUnit = module;
+          break;
+        }
+      }
+    }
+  }
+  
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center">
+            <div className="w-full max-w-4xl">
+              <Skeleton className="h-12 w-3/4 mb-4" />
+              <Skeleton className="h-6 w-1/2 mb-8" />
+              <Skeleton className="h-96 w-full rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!courseData) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <Card className="w-96 text-center">
@@ -153,42 +143,8 @@ const CoursePage = () => {
     );
   }
   
-  // 查找选中的课程单元和课时
-  let selectedLesson = null;
-  let selectedUnit = null;
-  
-  if (lessonId) {
-    for (const unit of course.units) {
-      const lesson = unit.lessons.find(l => l.id === lessonId);
-      if (lesson) {
-        selectedLesson = lesson;
-        selectedUnit = unit;
-        break;
-      }
-    }
-  }
-  
-  // 如果没有特定课时选择，使用第一个未完成的课时
-  if (!selectedLesson) {
-    for (const unit of course.units) {
-      const lesson = unit.lessons.find(l => !l.completed);
-      if (lesson) {
-        selectedLesson = lesson;
-        selectedUnit = unit;
-        break;
-      }
-    }
-  }
-  
-  // 如果所有课时都已完成，使用第一个课时
-  if (!selectedLesson && course.units.length > 0 && course.units[0].lessons.length > 0) {
-    selectedUnit = course.units[0];
-    selectedLesson = selectedUnit.lessons[0];
-  }
-  
   return (
     <div className="flex flex-col h-full min-h-screen bg-gray-50">
-      {/* 课程头部 */}
       <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="container mx-auto px-4 py-6 flex items-center">
           <Link to="/learning" className="mr-4 text-gray-500 hover:text-blue-600 transition-colors">
@@ -198,82 +154,87 @@ const CoursePage = () => {
             </div>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">{course.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">{courseData.title}</h1>
             <div className="flex items-center text-sm text-gray-500">
-              <span className="mr-4 flex items-center"><Award size={16} className="mr-1" /> 适合: {course.ageRange}</span>
-              <span className="flex items-center"><BookOpen size={16} className="mr-1" /> 级别: {course.level}</span>
+              <span className="mr-4 flex items-center">
+                <BookOpen size={16} className="mr-1" /> 
+                {courseData.short_description || ""}
+              </span>
             </div>
           </div>
         </div>
       </header>
       
-      {/* 课程内容区域 */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 课程大纲侧边栏 */}
         <div className="w-80 bg-white border-r border-gray-100 overflow-y-auto hidden md:block">
           <div className="p-4">
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-sm font-semibold text-gray-700">课程进度</span>
-                <span className="text-sm font-medium text-blue-600">{course.progress}%</span>
+                <span className="text-sm font-medium text-blue-600">{progress}%</span>
               </div>
-              <Progress value={course.progress} className="h-2" />
+              <Progress value={progress} className="h-2" />
             </div>
             
             <div className="space-y-5">
-              {course.units.map((unit) => (
-                <Card key={unit.id} className="border border-gray-100 shadow-sm">
+              {courseData.modules && courseData.modules.map((module) => (
+                <Card key={module.id} className="border border-gray-100 shadow-sm">
                   <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-3 px-4">
-                    <CardTitle className="text-base font-medium text-gray-800">{unit.title}</CardTitle>
+                    <CardTitle className="text-base font-medium text-gray-800">{module.title}</CardTitle>
                   </CardHeader>
                   
                   <CardContent className="p-0">
-                    <ul className="divide-y divide-gray-100">
-                      {unit.lessons.map((lesson) => (
-                        <li key={lesson.id}>
-                          <Link
-                            to={`/course/${course.id}/lesson/${lesson.id}`}
-                            className={`flex items-center px-4 py-3 hover:bg-blue-50 transition-colors ${
-                              selectedLesson && selectedLesson.id === lesson.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
-                            }`}
-                          >
-                            <div className="flex-shrink-0 mr-3">
-                              {lesson.completed ? (
-                                <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
-                                  <Check size={14} className="text-green-600" />
-                                </div>
-                              ) : (
+                    {module.lessons && module.lessons.length > 0 ? (
+                      <ul className="divide-y divide-gray-100">
+                        {module.lessons.map((lesson) => (
+                          <li key={lesson.id}>
+                            <Link
+                              to={`/course/${courseData.id}/lesson/${lesson.id}`}
+                              className={`flex items-center px-4 py-3 hover:bg-blue-50 transition-colors ${
+                                selectedLesson && selectedLesson.id === lesson.id ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                              }`}
+                            >
+                              <div className="flex-shrink-0 mr-3">
                                 <div className="w-7 h-7 rounded-full border-2 border-gray-200" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center">
-                                <ContentTypeIcon type={lesson.type} />
-                                <span className="text-sm font-medium">{lesson.title}</span>
                               </div>
-                            </div>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center">
+                                  <ContentTypeIcon type={lesson.type} />
+                                  <span className="text-sm font-medium">{lesson.title}</span>
+                                </div>
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="p-4 text-center text-gray-500">
+                        此模块暂无课时内容
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
+              
+              {(!courseData.modules || courseData.modules.length === 0) && (
+                <div className="p-4 text-center text-gray-500 bg-gray-50 rounded-lg">
+                  此课程暂无模块内容
+                </div>
+              )}
             </div>
           </div>
         </div>
         
-        {/* 主内容区域 */}
         <div className="flex-1 overflow-auto">
-          {selectedLesson && selectedUnit && (
+          {selectedLesson && selectedUnit ? (
             <div className="container mx-auto px-4 py-6">
               <div className="md:hidden mb-6">
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-semibold text-gray-700">课程进度</span>
-                    <span className="text-sm font-medium text-blue-600">{course.progress}%</span>
+                    <span className="text-sm font-medium text-blue-600">{progress}%</span>
                   </div>
-                  <Progress value={course.progress} className="h-2" />
+                  <Progress value={progress} className="h-2" />
                 </div>
                 
                 <Drawer>
@@ -285,38 +246,36 @@ const CoursePage = () => {
                   <DrawerContent>
                     <DrawerHeader>
                       <DrawerTitle>课程大纲</DrawerTitle>
-                      <DrawerDescription>{course.title}</DrawerDescription>
+                      <DrawerDescription>{courseData.title}</DrawerDescription>
                     </DrawerHeader>
                     <div className="px-4 py-2 max-h-[60vh] overflow-y-auto">
-                      {course.units.map((unit) => (
-                        <Accordion type="single" collapsible key={unit.id} className="mb-3">
-                          <AccordionItem value={unit.id}>
-                            <AccordionTrigger className="font-medium py-3">{unit.title}</AccordionTrigger>
+                      {courseData.modules && courseData.modules.map((module) => (
+                        <Accordion type="single" collapsible key={module.id} className="mb-3">
+                          <AccordionItem value={module.id}>
+                            <AccordionTrigger className="font-medium py-3">{module.title}</AccordionTrigger>
                             <AccordionContent>
-                              <ul className="space-y-1">
-                                {unit.lessons.map((lesson) => (
-                                  <li key={lesson.id}>
-                                    <Link
-                                      to={`/course/${course.id}/lesson/${lesson.id}`}
-                                      className="flex items-center p-2 rounded-md hover:bg-blue-50"
-                                    >
-                                      <div className="mr-2">
-                                        {lesson.completed ? (
-                                          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
-                                            <Check size={12} className="text-green-600" />
-                                          </div>
-                                        ) : (
+                              {module.lessons && module.lessons.length > 0 ? (
+                                <ul className="space-y-1">
+                                  {module.lessons.map((lesson) => (
+                                    <li key={lesson.id}>
+                                      <Link
+                                        to={`/course/${courseData.id}/lesson/${lesson.id}`}
+                                        className="flex items-center p-2 rounded-md hover:bg-blue-50"
+                                      >
+                                        <div className="mr-2">
                                           <div className="w-5 h-5 rounded-full border-2 border-gray-200" />
-                                        )}
-                                      </div>
-                                      <div className="flex items-center text-sm">
-                                        <ContentTypeIcon type={lesson.type} />
-                                        <span>{lesson.title}</span>
-                                      </div>
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
+                                        </div>
+                                        <div className="flex items-center text-sm">
+                                          <ContentTypeIcon type={lesson.type} />
+                                          <span>{lesson.title}</span>
+                                        </div>
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div className="p-2 text-gray-500">此模块暂无课时内容</div>
+                              )}
                             </AccordionContent>
                           </AccordionItem>
                         </Accordion>
@@ -341,15 +300,41 @@ const CoursePage = () => {
                 </CardHeader>
                 
                 <CardContent className="p-6">
-                  {/* 基于课时类型渲染不同内容 */}
+                  {selectedLesson.type === 'text' && (
+                    <div className="prose max-w-none">
+                      {selectedLesson.content?.text ? (
+                        <div dangerouslySetInnerHTML={{ 
+                          __html: JSON.parse(selectedLesson.content.text).map((block: any) => {
+                            if (block.type === 'paragraph') {
+                              return `<p>${block.content.map((item: any) => item.text).join('')}</p>`;
+                            }
+                            return '';
+                          }).join('') 
+                        }} />
+                      ) : (
+                        <p>此课时暂无内容</p>
+                      )}
+                    </div>
+                  )}
+                  
                   {selectedLesson.type === 'video' && (
                     <div className="aspect-video bg-gradient-to-br from-gray-900 to-blue-900 rounded-xl flex items-center justify-center mb-6 shadow-lg overflow-hidden">
-                      <div className="text-center">
-                        <div className="p-4 rounded-full bg-white/20 backdrop-blur-md inline-block mb-4 cursor-pointer hover:bg-white/30 transition-all">
-                          <Play size={48} className="text-white" />
+                      {selectedLesson.video_file_path ? (
+                        <video 
+                          controls 
+                          className="w-full h-full"
+                          src={selectedLesson.video_file_path}
+                        >
+                          您的浏览器不支持视频播放
+                        </video>
+                      ) : (
+                        <div className="text-center">
+                          <div className="p-4 rounded-full bg-white/20 backdrop-blur-md inline-block mb-4 cursor-pointer hover:bg-white/30 transition-all">
+                            <Play size={48} className="text-white" />
+                          </div>
+                          <p className="text-white font-medium">暂无视频内容</p>
                         </div>
-                        <p className="text-white font-medium">点击播放视频</p>
-                      </div>
+                      )}
                     </div>
                   )}
                   
@@ -567,26 +552,147 @@ const CoursePage = () => {
                   )}
                   
                   <div className="flex justify-between items-center mt-10 pt-6 border-t border-gray-100">
-                    <Button variant="outline" size="lg" className="flex items-center">
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="flex items-center"
+                      onClick={() => {
+                        const modules = courseData.modules || [];
+                        let prevLesson = null;
+                        let prevLessonModuleIndex = -1;
+                        let prevLessonIndex = -1;
+                        
+                        for (let i = 0; i < modules.length; i++) {
+                          const module = modules[i];
+                          const lessons = module.lessons || [];
+                          
+                          for (let j = 0; j < lessons.length; j++) {
+                            if (lessons[j].id === selectedLesson.id) {
+                              if (j === 0) {
+                                if (i > 0) {
+                                  const prevModule = modules[i - 1];
+                                  const prevLessons = prevModule.lessons || [];
+                                  
+                                  if (prevLessons.length > 0) {
+                                    prevLesson = prevLessons[prevLessons.length - 1];
+                                    prevLessonModuleIndex = i - 1;
+                                    prevLessonIndex = prevLessons.length - 1;
+                                  }
+                                }
+                              } else {
+                                prevLesson = lessons[j - 1];
+                                prevLessonModuleIndex = i;
+                                prevLessonIndex = j - 1;
+                              }
+                              break;
+                            }
+                          }
+                          
+                          if (prevLesson) break;
+                        }
+                        
+                        if (prevLesson) {
+                          navigate(`/course/${courseData.id}/lesson/${prevLesson.id}`);
+                        }
+                      }}
+                    >
                       <ArrowLeft size={18} className="mr-2" /> 上一课
                     </Button>
                     
                     <HoverCard>
                       <HoverCardTrigger asChild>
-                        <Button className="bg-green-600 hover:bg-green-700">
+                        <Button 
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={async () => {
+                            try {
+                              if (!enrollmentId) {
+                                toast.error('您尚未加入此课程');
+                                return;
+                              }
+                              
+                              toast.success('课时已完成');
+                              
+                            } catch (error) {
+                              console.error('更新进度失败:', error);
+                              toast.error('标记完成失败');
+                            }
+                          }}
+                        >
                           标记为已完成 <Check size={18} className="ml-2" />
                         </Button>
                       </HoverCardTrigger>
                       <HoverCardContent className="w-80">
                         <div className="text-sm">
-                          <h4 className="font-medium mb-2">完成课程</h4>
-                          <p>标记此课程为已完成后，会更新您的学习进度，并解锁下一节课程。</p>
+                          <h4 className="font-medium mb-2">完成课时</h4>
+                          <p>标记此课时为已完成后，会更新您的学习进度，并解锁下一节课程。</p>
                         </div>
                       </HoverCardContent>
                     </HoverCard>
                     
-                    <Button variant="outline" size="lg" className="flex items-center">
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="flex items-center"
+                      onClick={() => {
+                        const modules = courseData.modules || [];
+                        let nextLesson = null;
+                        let nextLessonModuleIndex = -1;
+                        let nextLessonIndex = -1;
+                        
+                        for (let i = 0; i < modules.length; i++) {
+                          const module = modules[i];
+                          const lessons = module.lessons || [];
+                          
+                          for (let j = 0; j < lessons.length; j++) {
+                            if (lessons[j].id === selectedLesson.id) {
+                              if (j === lessons.length - 1) {
+                                if (i < modules.length - 1) {
+                                  const nextModule = modules[i + 1];
+                                  const nextLessons = nextModule.lessons || [];
+                                  
+                                  if (nextLessons.length > 0) {
+                                    nextLesson = nextLessons[0];
+                                    nextLessonModuleIndex = i + 1;
+                                    nextLessonIndex = 0;
+                                  }
+                                }
+                              } else {
+                                nextLesson = lessons[j + 1];
+                                nextLessonModuleIndex = i;
+                                nextLessonIndex = j + 1;
+                              }
+                              break;
+                            }
+                          }
+                          
+                          if (nextLesson) break;
+                        }
+                        
+                        if (nextLesson) {
+                          navigate(`/course/${courseData.id}/lesson/${nextLesson.id}`);
+                        }
+                      }}
+                    >
                       下一课 <ArrowRight size={18} className="ml-2" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="container mx-auto px-4 py-6 text-center">
+              <Card>
+                <CardContent className="p-8">
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <div className="bg-blue-50 p-4 rounded-full mb-4">
+                      <BookOpen className="h-12 w-12 text-blue-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">暂无课时内容</h3>
+                    <p className="text-gray-500 mb-4">此课程暂未添加课时内容，请稍后再查看</p>
+                    <Button
+                      onClick={() => navigate('/learning')}
+                    >
+                      返回课程列表
                     </Button>
                   </div>
                 </CardContent>
@@ -595,7 +701,6 @@ const CoursePage = () => {
           )}
         </div>
         
-        {/* 聊天机器人 */}
         <div className={`fixed bottom-6 right-6 transition-all duration-300 z-40 ${isChatOpen ? 'w-80 h-96' : 'w-auto h-auto'}`}>
           {isChatOpen ? (
             <Card className="flex flex-col h-full shadow-xl border border-gray-200 overflow-hidden">
@@ -620,22 +725,6 @@ const CoursePage = () => {
                     <div className="bg-purple-100 rounded-lg p-3 max-w-[80%]">
                       <p className="text-sm text-purple-800">
                         你好！我是你的学习助手。有什么问题我可以帮忙解答吗？
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end">
-                    <div className="bg-blue-100 rounded-lg p-3 max-w-[80%]">
-                      <p className="text-sm text-blue-800">
-                        这节课的主要内容是什么？
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex">
-                    <div className="bg-purple-100 rounded-lg p-3 max-w-[80%]">
-                      <p className="text-sm text-purple-800">
-                        这节课我们学习的是基础数学中的数字与计数概念。你将学习如何识别1到10的数字，并练习数字排序和基础计数技能。
                       </p>
                     </div>
                   </div>
