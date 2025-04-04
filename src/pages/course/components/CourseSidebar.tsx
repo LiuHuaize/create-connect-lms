@@ -34,7 +34,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
         
         <div className="space-y-4">
           {courseData?.modules && courseData.modules.map((module) => (
-            <Card key={module.id} className="border border-gray-100 shadow-sm">
+            <Card key={module.id} className="border border-gray-100 shadow-sm hover:shadow transition-all">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-3 px-4">
                 <CardTitle className="text-base font-medium text-gray-800">{module.title}</CardTitle>
               </CardHeader>

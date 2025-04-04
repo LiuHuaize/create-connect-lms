@@ -73,7 +73,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
       <Button 
         variant="outline" 
         size={isMobile ? "sm" : "lg"} 
-        className="flex items-center"
+        className="flex items-center shadow-sm hover:shadow-md transition-all"
         onClick={() => prevLesson && navigate(`/course/${courseData?.id}/lesson/${prevLesson.id}`)}
         disabled={!prevLesson}
       >
@@ -84,7 +84,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
       <HoverCard>
         <HoverCardTrigger asChild>
           <Button 
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg transition-all"
             size={isMobile ? "sm" : "default"}
             onClick={async () => {
               try {
@@ -126,7 +126,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
       <Button 
         variant="outline" 
         size={isMobile ? "sm" : "lg"} 
-        className="flex items-center"
+        className="flex items-center shadow-sm hover:shadow-md transition-all"
         onClick={() => nextLesson && navigate(`/course/${courseData?.id}/lesson/${nextLesson.id}`)}
         disabled={!nextLesson}
       >
