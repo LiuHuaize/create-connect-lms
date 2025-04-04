@@ -3,7 +3,7 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search } from 'lucide-react';
-import { CourseCategory } from '@/pages/ExploreCourses';
+import { CourseCategory } from '@/types/course-enrollment';
 
 interface SearchAndFilterProps {
   searchQuery: string;
