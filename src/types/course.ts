@@ -1,3 +1,4 @@
+
 // 导入必要的类型
 import { Json } from "@/integrations/supabase/types";
 
@@ -111,7 +112,7 @@ export type QuizQuestion = {
   sampleAnswer?: string;
 };
 
-// Lesson type
+// Lesson type - use string union for better type safety
 export type LessonType = 'video' | 'text' | 'quiz' | 'assignment';
 
 // Make sure order_index is included in the Lesson type

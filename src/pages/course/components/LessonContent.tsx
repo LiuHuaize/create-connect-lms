@@ -3,32 +3,36 @@ import React from 'react';
 import { Play, Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lesson } from '@/types/course';
+import { Lesson, CourseModule, LessonType, TextLessonContent } from '@/types/course';
 import LessonNavigation from './LessonNavigation';
+import { NavigateFunction } from 'react-router-dom';
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
-  selectedUnit: any;
+  selectedUnit: CourseModule | null;
   courseData: any;
   enrollmentId: string | null;
+  navigate: NavigateFunction;
 }
 
 const LessonContent: React.FC<LessonContentProps> = ({
   selectedLesson,
   selectedUnit,
   courseData,
-  enrollmentId
+  enrollmentId,
+  navigate
 }) => {
   const renderLessonContent = () => {
     if (!selectedLesson) return null;
     
     switch (selectedLesson.type) {
       case 'text':
+        const textContent = selectedLesson.content as TextLessonContent;
         return (
           <div className="prose max-w-none">
-            {selectedLesson.content?.text ? (
+            {textContent?.text ? (
               <div dangerouslySetInnerHTML={{ 
-                __html: JSON.parse(selectedLesson.content.text).map((block: any) => {
+                __html: JSON.parse(textContent.text).map((block: any) => {
                   if (block.type === 'paragraph') {
                     return `<p>${block.content.map((item: any) => item.text).join('')}</p>`;
                   }
@@ -104,9 +108,8 @@ const LessonContent: React.FC<LessonContentProps> = ({
             </div>
           </div>
         );
-      case 'interactive':
-      case 'activity':
-      case 'game':
+      // Handle other types with a default case
+      default:
         return (
           <div className="space-y-6">
             <div className="interactive-container">
@@ -161,8 +164,6 @@ const LessonContent: React.FC<LessonContentProps> = ({
             </div>
           </div>
         );
-      default:
-        return <p>未知课程类型</p>;
     }
   };
 

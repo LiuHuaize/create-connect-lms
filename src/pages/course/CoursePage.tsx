@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, Progress } from '@/components/ui/progress';
+import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
+import { BookOpen } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 // Import components
@@ -89,6 +90,7 @@ const CoursePage = () => {
             selectedUnit={selectedUnit}
             courseData={courseData}
             enrollmentId={enrollmentId}
+            navigate={navigate}
           />
         </div>
       </div>
