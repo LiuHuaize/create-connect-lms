@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Trash2, Crop, Clock, Image as ImageIcon, Move, Check } from 'lucide-react';
+import { Upload, Trash2, Crop, Clock, Image as ImageIcon, Move, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Course } from '@/types/course';
