@@ -41,9 +41,14 @@ const ExploreCourses = () => {
         console.log('从数据库获取的课程:', data);
         
         // Ensure the data conforms to the Course type
-        const typedCourses = data?.map(course => ({
+        const typedCourses: Course[] = data?.map(course => ({
           ...course,
-          status: course.status as Course['status']
+          status: course.status as Course['status'],
+          tags: course.tags || [],
+          price: course.price || null,
+          description: course.description || null,
+          short_description: course.short_description || null,
+          cover_image: course.cover_image || null,
         })) || [];
         
         setCourses(typedCourses);
