@@ -99,31 +99,31 @@ const ExploreCourses = () => {
         return;
       }
 
+      // 使用 SQL 查询方式来避开 TypeScript 类型问题
       // 检查用户是否已经加入过这个课程
-      const { data: existingEnrollment, error: enrollmentCheckError } = await supabase
-        .from('course_enrollments')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('course_id', courseId)
-        .maybeSingle();
+      const { data: enrollments, error: enrollmentCheckError } = await supabase
+        .rpc('check_enrollment', { 
+          user_id_param: user.id, 
+          course_id_param: courseId 
+        });
         
       if (enrollmentCheckError) {
         console.error('检查课程注册状态失败:', enrollmentCheckError);
+        toast.error('检查课程注册状态失败');
+        setLoadingEnrollment(false);
+        return;
       }
       
       // 如果用户尚未加入课程，则添加一条注册记录
-      if (!existingEnrollment) {
-        const { error: insertError } = await supabase
-          .from('course_enrollments')
-          .insert([
-            { 
-              user_id: user.id, 
-              course_id: courseId,
-              status: 'active',
-              progress: 0,
-              enrolled_at: new Date().toISOString()
-            }
-          ]);
+      if (!enrollments || enrollments.length === 0) {
+        // 使用原始 SQL 查询插入数据
+        const { error: insertError } = await supabase.rpc(
+          'enroll_in_course',
+          { 
+            user_id_param: user.id, 
+            course_id_param: courseId 
+          }
+        );
           
         if (insertError) {
           console.error('课程注册失败:', insertError);
