@@ -1,7 +1,7 @@
 
 import { Course, CourseModule } from '@/types/course';
 
-export const useCoursePreviewCalculations = (course: Course, modules: CourseModule[]) => {
+const useCoursePreviewCalculations = (course: Course, modules: CourseModule[]) => {
   // 计算课程总课时数
   const totalLessons = modules.reduce((acc, module) => 
     acc + (module.lessons?.length || 0), 0
@@ -23,3 +23,5 @@ export const useCoursePreviewCalculations = (course: Course, modules: CourseModu
     formatDate
   };
 };
+
+export default useCoursePreviewCalculations;

@@ -7,7 +7,7 @@ import CourseTabNavigation from './CourseTabNavigation';
 import OverviewTab from './OverviewTab';
 import ContentTab from './ContentTab';
 import InfoTab from './InfoTab';
-import { useCoursePreviewCalculations } from './useCoursePreviewCalculations';
+import useCoursePreviewCalculations from './useCoursePreviewCalculations';
 
 interface CourseTabContentProps {
   course: Course;
