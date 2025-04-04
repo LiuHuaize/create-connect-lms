@@ -31,57 +31,135 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const [cropRect, setCropRect] = useState<Rect | null>(null);
   const imageRef = useRef<FabricImage | null>(null);
   const [canvasInitialized, setCanvasInitialized] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [imageSaved, setImageSaved] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  const loadingTimerRef = useRef<number | null>(null);
+
+  // 更优化的预加载图片函数
+  const preloadImage = async (src: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        setImageLoadError(true);
+        reject(new Error(`Failed to load image: ${src}`));
+      };
+      
+      img.src = src;
+    });
+  };
 
   const initializeEditor = async (imageUrl: string) => {
     if (!canvasRef.current) return;
     
     try {
-      // Clear any existing canvas
+      setShowLoader(true);
+      
+      // 设置加载超时保护
+      loadingTimerRef.current = window.setTimeout(() => {
+        if (!canvasInitialized) {
+          setImageLoadError(true);
+          setShowLoader(false);
+          toast.error('图片加载超时，请重试');
+        }
+      }, 15000); // 15秒超时
+      
+      // 预加载图片
+      try {
+        await preloadImage(imageUrl);
+      } catch (error) {
+        console.error('预加载图片失败:', error);
+        setImageLoadError(true);
+        setShowLoader(false);
+        clearTimeout(loadingTimerRef.current!);
+        toast.error('无法加载图片，请重试');
+        return;
+      }
+      
+      // 清理现有画布
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
+        fabricCanvasRef.current = null;
       }
 
-      // Create a new fabric canvas
+      // 创建新画布并设置尺寸
       const canvas = new Canvas(canvasRef.current, {
         width: 800,
-        height: 450, // 16:9 aspect ratio
-        backgroundColor: '#f9f9f9',
+        height: 450, // 16:9 比例
+        backgroundColor: '#f0f0f0',
         preserveObjectStacking: true,
       });
       fabricCanvasRef.current = canvas;
 
-      // Load the image
-      const img = await new Promise<FabricImage>((resolve, reject) => {
-        FabricImage.fromURL(imageUrl, {
-          crossOrigin: 'anonymous'
-        }).then(img => {
-          resolve(img);
-        }).catch(err => {
-          reject(err);
+      // 加载并添加图片
+      FabricImage.fromURL(imageUrl, {
+        crossOrigin: 'anonymous'
+      }).then(img => {
+        imageRef.current = img;
+        
+        // 计算图片适应画布的缩放比例
+        const scaleX = canvas.width! / img.width!;
+        const scaleY = canvas.height! / img.height!;
+        const scale = Math.min(scaleX, scaleY) * 0.95; // 使图片稍微小于画布
+        
+        // 设置图片属性
+        img.set({
+          originX: 'center',
+          originY: 'center',
+          left: canvas.width! / 2,
+          top: canvas.height! / 2,
+          scaleX: scale,
+          scaleY: scale,
+          selectable: editorMode === 'move',
+          evented: editorMode === 'move',
         });
+        
+        // 添加到画布
+        canvas.add(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+        
+        setCanvasInitialized(true);
+        setShowLoader(false);
+        clearTimeout(loadingTimerRef.current!);
+        setImageLoadError(false);
+      }).catch(err => {
+        console.error('加载图片到编辑器失败:', err);
+        setImageLoadError(true);
+        setShowLoader(false);
+        clearTimeout(loadingTimerRef.current!);
+        toast.error('无法加载图片进行编辑');
       });
-
-      // Set image options
-      img.set({
-        originX: 'center',
-        originY: 'center',
-        left: canvas.width! / 2,
-        top: canvas.height! / 2,
-      });
-
-      // Scale the image to fit within the canvas
-      const scaleX = canvas.width! / img.width!;
-      const scaleY = canvas.height! / img.height!;
-      const scale = Math.min(scaleX, scaleY) * 0.9; // 90% of the canvas size
-      img.scale(scale);
-
-      imageRef.current = img;
-      canvas.add(img);
-      canvas.renderAll();
-      setCanvasInitialized(true);
     } catch (error) {
-      console.error('Error loading image into editor:', error);
-      toast.error('无法加载图片进行编辑');
+      console.error('初始化编辑器错误:', error);
+      setImageLoadError(true);
+      setShowLoader(false);
+      clearTimeout(loadingTimerRef.current!);
+      toast.error('初始化编辑器失败');
+    }
+  };
+
+  const resetEditorState = () => {
+    setEditorMode('move');
+    setCropRect(null);
+    setCanvasInitialized(false);
+    setImageLoadError(false);
+    setShowLoader(false);
+    setImageSaved(false);
+    
+    if (loadingTimerRef.current) {
+      clearTimeout(loadingTimerRef.current);
+      loadingTimerRef.current = null;
+    }
+    
+    if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.dispose();
+      fabricCanvasRef.current = null;
     }
   };
 
@@ -90,7 +168,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     
     const canvas = fabricCanvasRef.current;
     
-    // Remove existing crop rectangle if any
+    // 移除已有的裁剪矩形
     if (cropRect) {
       canvas.remove(cropRect);
       setCropRect(null);
@@ -98,32 +176,62 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     
     const img = imageRef.current;
     
-    // Calculate rect dimensions based on 16:9 aspect ratio
-    const rectWidth = img.getScaledWidth() * 0.8;
-    const rectHeight = rectWidth * (9/16); // 16:9 aspect ratio
+    // 根据16:9比例计算裁剪矩形尺寸
+    const imgWidth = img.getScaledWidth();
+    const imgHeight = img.getScaledHeight();
     
+    let rectWidth, rectHeight;
+    
+    // 根据图片比例决定裁剪框大小
+    const imgRatio = imgWidth / imgHeight;
+    const targetRatio = 16 / 9;
+    
+    if (imgRatio >= targetRatio) {
+      // 图片更宽，以高度为基准
+      rectHeight = imgHeight * 0.9;
+      rectWidth = rectHeight * targetRatio;
+    } else {
+      // 图片更高，以宽度为基准
+      rectWidth = imgWidth * 0.9;
+      rectHeight = rectWidth / targetRatio;
+    }
+    
+    // 确保裁剪框不超出图片范围
+    rectWidth = Math.min(rectWidth, imgWidth);
+    rectHeight = Math.min(rectHeight, imgHeight);
+    
+    // 创建裁剪矩形
     const rect = new Rect({
-      left: img.left! - rectWidth / 2,
-      top: img.top! - rectHeight / 2,
+      left: img.left! - (rectWidth / 2) + (imgWidth / 2 - rectWidth / 2) / 2,
+      top: img.top! - (rectHeight / 2) + (imgHeight / 2 - rectHeight / 2) / 2,
       width: rectWidth,
       height: rectHeight,
       fill: 'rgba(0,0,0,0.2)',
-      stroke: '#2563EB', // border color
+      stroke: '#2563EB', // 边框颜色
       strokeWidth: 2,
       strokeUniform: true,
-      strokeDashArray: [5, 5], // dashed line
+      strokeDashArray: [5, 5], // 虚线
       cornerColor: '#2563EB',
       transparentCorners: false,
       borderColor: '#2563EB',
-      cornerSize: 10,
+      cornerSize: 12,
       hasRotatingPoint: false,
       lockRotation: true,
-      maxWidth: img.getScaledWidth() * 0.95,
-      maxHeight: img.getScaledHeight() * 0.95,
+      selectable: true,
+      evented: true,
     });
+    
+    // 锁定图片，使其不可选择
+    if (imageRef.current) {
+      imageRef.current.set({
+        selectable: false,
+        evented: false,
+      });
+    }
     
     canvas.add(rect);
     canvas.setActiveObject(rect);
+    canvas.renderAll();
     setCropRect(rect);
   };
 
@@ -131,14 +239,25 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     if (!fabricCanvasRef.current) return;
     
     if (editorMode === 'crop') {
-      // Switching from crop to move
+      // 从裁剪模式切换到移动模式
       setEditorMode('move');
       if (cropRect && fabricCanvasRef.current) {
         fabricCanvasRef.current.remove(cropRect);
         setCropRect(null);
       }
+      
+      // 解锁图片
+      if (imageRef.current) {
+        imageRef.current.set({
+          selectable: true,
+          evented: true,
+        });
+        fabricCanvasRef.current.setActiveObject(imageRef.current);
+      }
+      
+      fabricCanvasRef.current.renderAll();
     } else {
-      // Switching to crop mode
+      // 切换到裁剪模式
       setEditorMode('crop');
       addCropRect();
     }
@@ -151,67 +270,76 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     const img = imageRef.current;
     
     try {
-      // Calculate image and crop rectangle positions
+      setShowLoader(true);
+      
+      // 计算图片和裁剪矩形的位置和尺寸
       const imgLeft = img.left!;
       const imgTop = img.top!;
       const imgWidth = img.getScaledWidth();
       const imgHeight = img.getScaledHeight();
+      const imgScaleX = img.scaleX!;
+      const imgScaleY = img.scaleY!;
       
       const rectLeft = cropRect.left!;
       const rectTop = cropRect.top!;
       const rectWidth = cropRect.getScaledWidth();
       const rectHeight = cropRect.getScaledHeight();
       
-      // Calculate relative crop coordinates
-      const cropX = (rectLeft - (imgLeft - imgWidth/2)) / imgWidth;
-      const cropY = (rectTop - (imgTop - imgHeight/2)) / imgHeight;
-      const cropWidthRatio = rectWidth / imgWidth;
-      const cropHeightRatio = rectHeight / imgHeight;
+      // 计算相对裁剪坐标
+      const relX = (rectLeft - (imgLeft - imgWidth/2)) / imgWidth;
+      const relY = (rectTop - (imgTop - imgHeight/2)) / imgHeight;
+      const relWidth = rectWidth / imgWidth;
+      const relHeight = rectHeight / imgHeight;
       
-      // Create a temporary canvas to extract the cropped image
+      // 限制在0到1范围内
+      const cropX = Math.max(0, Math.min(1, relX));
+      const cropY = Math.max(0, Math.min(1, relY));
+      const cropWidthRatio = Math.max(0, Math.min(1, relWidth));
+      const cropHeightRatio = Math.max(0, Math.min(1, relHeight));
+      
+      // 创建临时画布进行裁剪
       const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = img.width! * cropWidthRatio;
-      tempCanvas.height = img.height! * cropHeightRatio;
+      tempCanvas.width = Math.round(img.width! * cropWidthRatio / imgScaleX);
+      tempCanvas.height = Math.round(img.height! * cropHeightRatio / imgScaleY);
       
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) throw new Error('无法创建临时画布上下文');
       
-      // Draw the cropped portion of the image
+      // 获取原始图片元素
       const imgElement = img.getElement() as HTMLImageElement;
+      
+      // 在临时画布上绘制裁剪部分
       tempCtx.drawImage(
         imgElement, 
-        img.width! * cropX, 
-        img.height! * cropY, 
-        img.width! * cropWidthRatio, 
-        img.height! * cropHeightRatio, 
+        Math.round(img.width! * cropX / imgScaleX), 
+        Math.round(img.height! * cropY / imgScaleY), 
+        Math.round(img.width! * cropWidthRatio / imgScaleX), 
+        Math.round(img.height! * cropHeightRatio / imgScaleY), 
         0, 
         0, 
         tempCanvas.width, 
         tempCanvas.height
       );
       
-      // Convert to data URL and update the editor
-      const croppedImageUrl = tempCanvas.toDataURL('image/png');
+      // 转换为数据URL
+      const croppedImageUrl = tempCanvas.toDataURL('image/png', 1.0);
+      
+      // 更新图片并重置编辑器
       setEditingImage(croppedImageUrl);
-      
-      // Reset the canvas and reload with the cropped image
       canvas.clear();
-      // Reset initialized flag to trigger a reinit
-      setCanvasInitialized(false);
       
-      // Reinitialize with the cropped image after a short delay
+      // 使用新裁剪的图片重新初始化编辑器
       setTimeout(() => {
         initializeEditor(croppedImageUrl);
-      }, 50);
-      
-      // Reset editor mode
-      setEditorMode('move');
-      setCropRect(null);
+        setEditorMode('move');
+        setCropRect(null);
+      }, 100);
       
       toast.success('图片裁剪成功');
       
     } catch (error) {
-      console.error('Error applying crop:', error);
+      console.error('应用裁剪时出错:', error);
+      setShowLoader(false);
       toast.error('裁剪图片时出错');
     }
   };
@@ -223,16 +351,23 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     }
     
     try {
-      setIsUploading(true);
+      setIsSaving(true);
       
-      // Convert canvas to data URL and then to blob
+      // 确保图片居中并适合16:9比例
+      if (imageRef.current) {
+        // 将图片置于画布中心
+        fabricCanvasRef.current.centerObject(imageRef.current);
+        fabricCanvasRef.current.renderAll();
+      }
+      
+      // 转换画布为数据URL
       const dataUrl = fabricCanvasRef.current.toDataURL({
         format: 'png',
-        quality: 0.8,
-        multiplier: 1, // Required for TypeScript
+        quality: 0.9,
+        multiplier: 1.5, // 增加导出图像分辨率
       });
       
-      // Convert data URL to Blob
+      // 将数据URL转换为Blob
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], `course-cover-${Date.now()}.png`, { type: 'image/png' });
@@ -241,6 +376,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `course-covers/${fileName}`;
       
+      // 上传到Supabase存储
       const { data, error } = await supabase.storage
         .from('course-assets')
         .upload(filePath, file);
@@ -249,21 +385,29 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
         throw error;
       }
       
+      // 获取公共URL
       const { data: publicURL } = supabase.storage
         .from('course-assets')
         .getPublicUrl(filePath);
         
+      // 更新课程封面URL
       setCoverImageURL(publicURL.publicUrl);
       setCourse(prev => ({ ...prev, cover_image: publicURL.publicUrl }));
       
-      setShowImageEditor(false);
+      setImageSaved(true);
+      
+      // 短暂延迟后关闭编辑器
+      setTimeout(() => {
+        setShowImageEditor(false);
+        setIsSaving(false);
+      }, 1000);
+      
       toast.success('封面图片已保存');
       
     } catch (error) {
       console.error('保存编辑后的图片失败:', error);
+      setIsSaving(false);
       toast.error('保存图片失败，请重试');
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -274,42 +418,70 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     try {
       setIsUploading(true);
       
-      // Create a temporary URL for the uploaded file
+      // 检查文件类型
+      if (!file.type.startsWith('image/')) {
+        toast.error('请上传图片文件');
+        setIsUploading(false);
+        return;
+      }
+      
+      // 检查文件大小
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        toast.error('图片大小不能超过5MB');
+        setIsUploading(false);
+        return;
+      }
+      
+      // 创建临时URL
       const localImageUrl = URL.createObjectURL(file);
       setEditingImage(localImageUrl);
+      
+      // 打开编辑器
       setShowImageEditor(true);
+      setIsUploading(false);
       
     } catch (error) {
       console.error('上传图片失败:', error);
-      toast.error('上传图片失败，请重试');
-    } finally {
       setIsUploading(false);
+      toast.error('上传图片失败，请重试');
     }
   };
 
   const handleEditExistingImage = () => {
     if (coverImageURL || course.cover_image) {
-      setEditingImage(coverImageURL || course.cover_image || '');
+      resetEditorState();
+      // 添加时间戳防止缓存
+      const imageUrl = `${coverImageURL || course.cover_image}?t=${Date.now()}`;
+      setEditingImage(imageUrl);
       setShowImageEditor(true);
     }
   };
 
   useEffect(() => {
-    // Clean-up function to properly dispose of canvas resources
+    // 清理函数
     return () => {
+      // 清理画布资源
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
       }
-      if (editingImage) {
+      
+      // 清理定时器
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+      
+      // 释放Blob URL
+      if (editingImage && editingImage.startsWith('blob:')) {
         URL.revokeObjectURL(editingImage);
       }
     };
   }, []);
 
+  // 当对话框打开且有编辑图片时初始化编辑器
   useEffect(() => {
     if (showImageEditor && editingImage && !canvasInitialized) {
-      // Use a slight delay to give the dialog time to render
+      // 设置短暂延迟让对话框有时间渲染
       const timerId = setTimeout(() => {
         initializeEditor(editingImage);
       }, 150);
@@ -328,9 +500,14 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
             <div className="relative mb-4 overflow-hidden rounded-md">
               <AspectRatio ratio={16 / 9}>
                 <img 
-                  src={coverImageURL || course.cover_image!} 
+                  src={`${coverImageURL || course.cover_image}?t=${Date.now()}`}
                   alt="课程封面" 
                   className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=800&h=450&fit=crop';
+                    toast.error('加载封面图片失败，已显示占位图');
+                  }}
                 />
               </AspectRatio>
             </div>
@@ -349,6 +526,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
                 onClick={() => {
                   setCoverImageURL(null);
                   setCourse(prev => ({ ...prev, cover_image: null }));
+                  toast.success('已移除封面图片');
                 }}
               >
                 <Trash2 size={16} className="mr-2" /> 移除图片
@@ -394,13 +572,16 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       
       <Dialog open={showImageEditor} onOpenChange={(open) => {
         if (!open) {
-          // Only revoke the URL if it's a blob URL
+          // 关闭对话框时清理
+          resetEditorState();
+          
+          // 仅当是blob URL时释放
           if (editingImage && editingImage.startsWith('blob:')) {
             URL.revokeObjectURL(editingImage);
           }
+          
           setEditingImage(null);
           setShowImageEditor(false);
-          setCanvasInitialized(false);
         }
       }}>
         <DialogContent className="max-w-4xl">
@@ -417,6 +598,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
                 variant={editorMode === 'move' ? 'default' : 'outline'}
                 size="sm" 
                 onClick={() => setEditorMode('move')}
+                disabled={!canvasInitialized || showLoader}
               >
                 <Move size={16} className="mr-2" /> 移动
               </Button>
@@ -424,6 +606,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
                 variant={editorMode === 'crop' ? 'default' : 'outline'}
                 size="sm" 
                 onClick={handleToggleCropMode}
+                disabled={!canvasInitialized || showLoader}
               >
                 <Crop size={16} className="mr-2" /> 裁剪
               </Button>
@@ -432,19 +615,43 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
                   variant="default"
                   size="sm" 
                   onClick={handleApplyCrop}
+                  disabled={!canvasInitialized || showLoader}
                 >
                   <Check size={16} className="mr-2" /> 应用裁剪
                 </Button>
               )}
             </div>
             
-            <div className="border rounded-md overflow-hidden shadow-sm">
+            <div className="border rounded-md overflow-hidden shadow-sm relative min-h-[450px]">
               <canvas ref={canvasRef} className="w-full h-auto" />
-              {!canvasInitialized && editingImage && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              
+              {/* 加载和错误状态 */}
+              {(showLoader || !canvasInitialized) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-sm">
                   <div className="bg-white p-4 rounded-md shadow flex items-center">
-                    <Clock size={16} className="mr-2 animate-spin" />
-                    <p>加载图片编辑器...</p>
+                    <Clock size={16} className="mr-2 animate-spin text-connect-blue" />
+                    <p>正在加载图片编辑器...</p>
+                  </div>
+                </div>
+              )}
+              
+              {imageLoadError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                  <div className="bg-white p-4 rounded-md shadow text-center max-w-md">
+                    <AlertCircle size={24} className="mx-auto mb-2 text-red-500" />
+                    <p className="font-medium text-red-600 mb-2">图片加载失败</p>
+                    <p className="text-sm text-gray-600 mb-3">无法加载图片进行编辑，可能是图片已损坏或网络问题导致</p>
+                    <Button 
+                      size="sm" 
+                      onClick={() => {
+                        resetEditorState();
+                        if (editingImage) {
+                          initializeEditor(editingImage);
+                        }
+                      }}
+                    >
+                      重试
+                    </Button>
                   </div>
                 </div>
               )}
@@ -455,20 +662,26 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
             <Button 
               variant="outline" 
               onClick={() => setShowImageEditor(false)}
+              disabled={isSaving}
             >
               取消
             </Button>
             <Button 
               onClick={handleSaveEditedImage} 
-              disabled={isUploading || !canvasInitialized}
-              className="bg-connect-blue hover:bg-blue-600"
+              disabled={isSaving || !canvasInitialized || showLoader}
+              className={`${imageSaved ? 'bg-green-600' : 'bg-connect-blue'} hover:opacity-90 transition-all text-white`}
             >
-              {isUploading ? (
+              {isSaving ? (
                 <span className="flex items-center">
                   <span className="animate-spin mr-2">
                     <Clock size={16} />
                   </span>
                   保存中...
+                </span>
+              ) : imageSaved ? (
+                <span className="flex items-center">
+                  <Check size={16} className="mr-2" />
+                  已保存
                 </span>
               ) : (
                 <>保存</>

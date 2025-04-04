@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
-// Lazy load components to improve initial loading time
+// 懒加载组件，改进初始加载时间
 const LessonEditor = lazy(() => import('@/components/course/LessonEditor'));
 const CourseDetailsForm = lazy(() => import('@/components/course/creator/CourseDetailsForm'));
 const CourseImageUploader = lazy(() => import('@/components/course/creator/CourseImageUploader'));
@@ -17,7 +17,7 @@ const ModuleList = lazy(() => import('@/components/course/creator/ModuleList'));
 const CourseOverview = lazy(() => import('@/components/course/creator/CourseOverview'));
 const StudentStatistics = lazy(() => import('@/components/course/creator/StudentStatistics'));
 
-// Loading fallback component
+// 加载占位组件
 const LoadingFallback = () => (
   <div className="flex items-center justify-center p-8">
     <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -52,31 +52,50 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   const [coverImageURL, setCoverImageURL] = useState<string | null>(null);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-
+  const [loadingDetails, setLoadingDetails] = useState(true);
+  
+  // 使用加载状态分别控制不同组件的加载
+  const [moduleDataLoaded, setModuleDataLoaded] = useState(false);
+  
+  // 分批加载课程数据，优先加载基本信息，延迟加载模块和课程
   useEffect(() => {
-    const loadCourse = async () => {
-      if (!courseId) return;
+    const loadCourseBasicInfo = async () => {
+      if (!courseId) {
+        setLoadingDetails(false);
+        return;
+      }
       
       try {
         setIsLoading(true);
+        setLoadingDetails(true);
+        
+        // 优先加载课程基本信息
         const courseDetails = await courseService.getCourseDetails(courseId);
         
         setCourse(courseDetails);
         setCoverImageURL(courseDetails.cover_image || null);
+        setLoadingDetails(false);
         
-        if (courseDetails.modules) {
-          setModules(courseDetails.modules);
-        }
+        // 延迟加载模块和课程内容
+        setTimeout(async () => {
+          if (courseDetails.modules) {
+            setModules(courseDetails.modules);
+          }
+          setModuleDataLoaded(true);
+          setIsLoading(false);
+        }, 100);
       } catch (error) {
         console.error('加载课程失败:', error);
         toast.error('加载课程失败，请重试');
-      } finally {
+        setLoadingDetails(false);
         setIsLoading(false);
       }
     };
 
     if (courseId) {
-      loadCourse();
+      loadCourseBasicInfo();
+    } else {
+      setLoadingDetails(false);
     }
   }, [courseId]);
 
@@ -196,7 +215,8 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     navigate('/course-selection');
   };
 
-  if (isLoading) {
+  // 完全加载中状态
+  if (isLoading && !loadingDetails) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-10 w-10 animate-spin mr-3 text-gray-400" />
@@ -240,17 +260,31 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
             
             <Suspense fallback={<LoadingFallback />}>
               <TabsContent value="details" className="space-y-6">
-                <CourseDetailsForm course={course} setCourse={setCourse} />
-                <CourseImageUploader 
-                  course={course}
-                  setCourse={setCourse}
-                  coverImageURL={coverImageURL}
-                  setCoverImageURL={setCoverImageURL}
-                />
+                {loadingDetails ? (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex items-center justify-center h-40">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-gray-400" />
+                    <span className="text-gray-500">正在加载课程详情...</span>
+                  </div>
+                ) : (
+                  <>
+                    <CourseDetailsForm course={course} setCourse={setCourse} />
+                    <CourseImageUploader 
+                      course={course}
+                      setCourse={setCourse}
+                      coverImageURL={coverImageURL}
+                      setCoverImageURL={setCoverImageURL}
+                    />
+                  </>
+                )}
               </TabsContent>
               
               <TabsContent value="content" className="space-y-6">
-                {currentLesson ? (
+                {!moduleDataLoaded ? (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex items-center justify-center h-40">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-gray-400" />
+                    <span className="text-gray-500">正在加载课程内容...</span>
+                  </div>
+                ) : currentLesson ? (
                   <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                       <h2 className="text-lg font-bold">编辑课程</h2>
