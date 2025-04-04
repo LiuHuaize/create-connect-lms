@@ -45,6 +45,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
       <CourseHeader 
         course={course}
+        modules={modules}
         handleBackToSelection={handleBackToSelection}
         handleSaveCourse={handleSaveCourse}
       />
