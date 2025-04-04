@@ -47,23 +47,34 @@ const ExploreCourses = () => {
           return;
         }
         
-        // 确保数据符合Course类型，添加可能缺失的属性
-        const typedCourses: Course[] = data.map(course => ({
-          id: course.id || '',
-          title: course.title,
-          description: course.description || null,
-          short_description: course.short_description || null,
-          author_id: course.author_id,
-          cover_image: course.cover_image || null,
-          status: course.status as Course['status'],
-          price: course.price || null,
-          tags: course.tags || [],
-          created_at: course.created_at,
-          updated_at: course.updated_at,
-          // 添加可能在数据库中不存在的字段，使用默认值
-          difficulty: (course.difficulty as Course['difficulty']) || 'initial',
-          category: course.category || null
-        }));
+        // 处理从数据库中获取的课程数据
+        // 注意：我们不使用课程对象的difficulty和category属性，因为数据库schema中可能没有这些字段
+        // 在处理之前，添加了适当的默认值来防止TypeScript错误
+        const typedCourses: Course[] = data.map(course => {
+          // 首先创建一个基本课程对象，包含数据库中存在的所有属性
+          const baseCourse = {
+            id: course.id || '',
+            title: course.title,
+            description: course.description || null,
+            short_description: course.short_description || null,
+            author_id: course.author_id,
+            cover_image: course.cover_image || null,
+            status: course.status as Course['status'],
+            price: course.price || null,
+            tags: course.tags || [],
+            created_at: course.created_at,
+            updated_at: course.updated_at,
+          };
+          
+          // 然后，添加TypeScript模型中需要但数据库可能没有的属性
+          // 明确转换为Course类型以确保类型安全
+          return {
+            ...baseCourse,
+            // 使用类型断言，如果不存在，则提供默认值
+            difficulty: (course as any).difficulty as Course['difficulty'] || 'initial',
+            category: (course as any).category as string || null
+          } as Course;
+        });
         
         setCourses(typedCourses);
       } catch (error) {
@@ -100,8 +111,13 @@ const ExploreCourses = () => {
         .eq('id', courseId)
         .single();
       
-      if (courseError || !courseData) {
+      if (courseError) {
         console.error('获取课程详情失败:', courseError);
+        toast.error('课程不存在或已被移除');
+        return;
+      }
+      
+      if (!courseData) {
         toast.error('课程不存在或已被移除');
         return;
       }
