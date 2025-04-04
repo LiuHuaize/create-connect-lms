@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { BookOpen, Video, FileText, HelpCircle, ArrowLeft } from 'lucide-react';
-import { CourseModule, Lesson } from '@/types/course';
+import { CourseModule, Lesson, TextLessonContent } from '@/types/course';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ContentTabProps {
@@ -39,9 +39,9 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
         </div>
 
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          {lesson.type === 'text' && (
+          {lesson.type === 'text' && lesson.content && 'text' in lesson.content && (
             <div className="prose max-w-none">
-              {lesson.content?.text ? (
+              {lesson.content.text ? (
                 <div dangerouslySetInnerHTML={{ 
                   __html: JSON.parse(lesson.content.text).map((block: any) => {
                     if (block.type === 'paragraph') {

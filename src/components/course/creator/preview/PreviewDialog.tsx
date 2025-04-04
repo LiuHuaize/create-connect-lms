@@ -32,7 +32,7 @@ const PreviewDialog: React.FC<PreviewDialogProps> = ({
           </button>
         </div>
         
-        <CourseHeader course={course} />
+        <CourseHeader course={course} onClose={onClose} />
         
         <ScrollArea className="flex-1 overflow-y-auto">
           <CourseTabContent course={course} modules={modules} />
