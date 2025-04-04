@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
@@ -210,12 +211,29 @@ export const courseService = {
         sum + (module.lessons ? module.lessons.length : 0), 0);
       
       if (totalLessons === 0) return; // 如果没有课时，直接返回
+
+      // 获取当前注册信息
+      const { data: enrollmentData, error: enrollmentError } = await supabase
+        .from('course_enrollments')
+        .select('progress')
+        .eq('id', enrollmentId)
+        .single();
+        
+      if (enrollmentError) {
+        console.error('获取注册信息失败:', enrollmentError);
+        throw enrollmentError;
+      }
       
-      // 更新当前注册进度
+      // 计算新的进度
+      const progressIncrement = totalLessons > 0 ? Math.round(1 / totalLessons * 100) : 0;
+      const currentProgress = enrollmentData ? enrollmentData.progress || 0 : 0;
+      const newProgress = Math.min(currentProgress + progressIncrement, 100);
+      
+      // 更新注册进度
       const { error: updateError } = await supabase
         .from('course_enrollments')
         .update({
-          progress: Math.min(Math.round(1 / totalLessons * 100) + (courseData ? courseData.progress || 0 : 0), 100),
+          progress: newProgress,
           last_accessed_at: new Date().toISOString()
         })
         .eq('id', enrollmentId);
