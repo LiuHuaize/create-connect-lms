@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
@@ -46,9 +47,14 @@ export const courseService = {
     const { data, error } = await supabase
       .from("courses")
       .select("*")
-      .eq("author_id", userId);
+      .eq("author_id", userId)
+      .order('updated_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('获取用户课程失败:', error);
+      throw error;
+    }
+    
     return data as Course[] || [];
   },
 
@@ -61,7 +67,10 @@ export const courseService = {
       .eq("id", courseId)
       .single();
 
-    if (courseError) throw courseError;
+    if (courseError) {
+      console.error('获取课程详情失败:', courseError);
+      throw courseError;
+    }
 
     // 获取课程模块和课时
     const { data: modulesData, error: modulesError } = await supabase
@@ -73,7 +82,10 @@ export const courseService = {
       .eq("course_id", courseId)
       .order("order_index");
 
-    if (modulesError) throw modulesError;
+    if (modulesError) {
+      console.error('获取课程模块失败:', modulesError);
+      throw modulesError;
+    }
 
     // 转换课时内容
     const modulesWithConvertedLessons = (modulesData || []).map((module: any) => {
@@ -105,34 +117,44 @@ export const courseService = {
     return data as Course;
   },
 
-  // 添加课程模块
-  async addCourseModule(module: Omit<CourseModule, "id" | "created_at" | "updated_at">): Promise<CourseModule> {
+  // 添加或更新课程模块
+  async addCourseModule(module: Omit<CourseModule, "created_at" | "updated_at">): Promise<CourseModule> {
+    const isUpdate = Boolean(module.id);
+    
     const { data, error } = await supabase
       .from("course_modules")
-      .insert({
+      .upsert({
+        id: module.id,
         course_id: module.course_id,
         title: module.title,
         order_index: module.order_index,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        ...(isUpdate ? {} : { created_at: new Date().toISOString() })
       })
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('保存课程模块失败:', error);
+      throw error;
+    }
+    
     return data as unknown as CourseModule;
   },
 
-  // 添加课时
-  async addLesson(lesson: Omit<Lesson, "id" | "created_at" | "updated_at">): Promise<Lesson> {
+  // 添加或更新课时
+  async addLesson(lesson: Omit<Lesson, "created_at" | "updated_at">): Promise<Lesson> {
     // 确保提供了必要的属性
     if (!lesson.module_id) {
       throw new Error("Lesson must have a module_id");
     }
 
+    const isUpdate = Boolean(lesson.id);
+    
     const { data, error } = await supabase
       .from("lessons")
-      .insert({
+      .upsert({
+        id: lesson.id,
         module_id: lesson.module_id,
         title: lesson.title,
         type: lesson.type,
@@ -140,13 +162,17 @@ export const courseService = {
         order_index: lesson.order_index,
         video_file_path: lesson.type === 'video' ? 
           (lesson.video_file_path || (lesson.content as any).videoFilePath || null) : null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        ...(isUpdate ? {} : { created_at: new Date().toISOString() })
       })
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('保存课时失败:', error);
+      throw error;
+    }
+    
     return convertDbLessonToLesson(data);
   }
 };

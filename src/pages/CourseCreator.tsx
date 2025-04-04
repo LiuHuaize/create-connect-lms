@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { courseService } from '@/services/courseService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +7,7 @@ import { Course, CourseModule, Lesson } from '@/types/course';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LessonEditor from '@/components/course/LessonEditor';
+import { ArrowLeft } from 'lucide-react';
 
 // Import refactored components
 import CourseDetailsForm from '@/components/course/creator/CourseDetailsForm';
@@ -21,6 +22,10 @@ interface CourseCreatorProps {
 
 const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const courseId = new URLSearchParams(location.search).get('id');
+  
   const [course, setCourse] = useState<Course>({
     title: '',
     description: '',
@@ -37,6 +42,34 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   const [isUploading, setIsUploading] = useState(false);
   const [coverImageURL, setCoverImageURL] = useState<string | null>(null);
   const [completionPercentage, setCompletionPercentage] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadCourse = async () => {
+      if (!courseId) return;
+      
+      try {
+        setIsLoading(true);
+        const courseDetails = await courseService.getCourseDetails(courseId);
+        
+        setCourse(courseDetails);
+        setCoverImageURL(courseDetails.cover_image || null);
+        
+        if (courseDetails.modules) {
+          setModules(courseDetails.modules);
+        }
+      } catch (error) {
+        console.error('加载课程失败:', error);
+        toast.error('加载课程失败，请重试');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (courseId) {
+      loadCourse();
+    }
+  }, [courseId]);
 
   useEffect(() => {
     if (user?.id) {
@@ -76,7 +109,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     try {
       console.log('Trying to save course:', course);
       
-      // Create a copy without the difficulty field if needed
       const savedCourse = await courseService.saveCourse(course);
       
       const savedModules = await Promise.all(
@@ -100,6 +132,10 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
           return savedModule;
         })
       );
+
+      if (!courseId && savedCourse.id) {
+        navigate(`/course-creator?id=${savedCourse.id}`, { replace: true });
+      }
 
       toast.success('课程保存成功');
     } catch (error) {
@@ -147,10 +183,30 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     setCurrentLesson(null);
   };
 
+  const handleBackToSelection = () => {
+    navigate('/course-selection');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500">正在加载课程...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-2" 
+            onClick={handleBackToSelection}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" /> 返回课程列表
+          </Button>
           <h1 className="text-2xl font-bold text-gray-900">课程创建器</h1>
           <p className="text-gray-500">设计并发布您自己的课程</p>
         </div>

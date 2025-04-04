@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +17,7 @@ import Learning from "./pages/Learning";
 import Events from "./pages/Events";
 import Community from "./pages/Community";
 import CourseCreator from "./pages/CourseCreator";
+import CourseSelection from "./pages/CourseSelection"; // 新增导入
 import Projects from "./pages/Projects";
 import Workspaces from "./pages/Workspaces";
 import Index from "./pages/Index";
@@ -142,6 +144,11 @@ const AppRoutes = () => {
             <Route path="/course/:courseId/lesson/:lessonId" element={
               <ProtectedRoute>
                 <CoursePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/course-selection" element={
+              <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+                <CourseSelection />
               </ProtectedRoute>
             } />
             <Route path="/course-creator" element={
