@@ -21,8 +21,8 @@ const convertDbLessonToLesson = (dbLesson: any): Lesson => {
 export const courseService = {
   // 创建或更新课程
   async saveCourse(course: Course): Promise<Course> {
-    // 1. 提取需要发送到数据库的数据，移除数据库不支持的字段
-    const { difficulty, ...courseData } = course;
+    // 1. 提取需要发送到数据库的数据
+    const courseData = course;
     
     // 2. 确保我们不将可能存在的模块数据尝试保存到courses表
     // 移除任何可能在course对象上但不在数据库表中的字段
@@ -36,6 +36,7 @@ export const courseService = {
       status: courseData.status,
       price: courseData.price,
       tags: courseData.tags,
+      category: courseData.category,
       updated_at: new Date().toISOString()
     };
     

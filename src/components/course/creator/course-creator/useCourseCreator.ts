@@ -19,7 +19,8 @@ export const useCourseCreator = () => {
     author_id: user?.id || '',
     status: 'draft',
     price: null,
-    tags: []
+    tags: [],
+    category: null
   });
 
   const [modules, setModules] = useState<CourseModule[]>([]);

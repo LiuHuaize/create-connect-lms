@@ -1,9 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -13,6 +10,7 @@ import CourseList from '@/components/explore/CourseList';
 import CommunityCard from '@/components/explore/CommunityCard';
 import LoadingCourses from '@/components/explore/LoadingCourses';
 import EmptyState from '@/components/explore/EmptyState';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // 简化后的分类类型，不再需要强制与课程的category匹配
 export type CourseCategory = '全部' | '商业规划' | '游戏设计' | '产品开发' | '编程' | '创意写作';
@@ -61,7 +59,7 @@ const ExploreCourses = () => {
         return;
       }
       
-      // 直接将数据转换为Course类型，不需要额外处理difficulty和category
+      // 直接将数据转换为Course类型
       setCourses(data as Course[]);
     } catch (error) {
       console.error('获取课程失败:', error);
@@ -97,6 +95,7 @@ const ExploreCourses = () => {
       if (courseError) {
         console.error('获取课程详情失败:', courseError);
         toast.error('课程不存在或已被移除');
+        setLoadingEnrollment(false);
         return;
       }
       
@@ -118,9 +117,12 @@ const ExploreCourses = () => {
       (course.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
       (course.short_description?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
     
-    // 由于我们已经去除了category字段，我们在此处简化过滤逻辑
     // 如果选择了"全部"分类，则显示所有课程
-    return selectedCategory === '全部' || matchesSearch;
+    // 否则，检查课程的类别是否与所选类别匹配
+    const matchesCategory = selectedCategory === '全部' || 
+      (course.category && course.category.includes(selectedCategory.toLowerCase()));
+    
+    return matchesSearch && matchesCategory;
   });
 
   return (

@@ -6,7 +6,7 @@ export type CourseStatus = 'draft' | 'published' | 'archived';
 
 // 课程类型定义 - 简化版本，与数据库保持一致
 export type Course = {
-  id: string;
+  id?: string;
   title: string;
   description?: string | null;
   short_description?: string | null;
@@ -17,6 +17,7 @@ export type Course = {
   tags?: string[] | null;
   created_at?: string;
   updated_at?: string;
+  category?: string | null;
 };
 
 // 课程模块类型定义
