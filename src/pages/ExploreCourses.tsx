@@ -15,6 +15,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // 简化后的分类类型，不再需要强制与课程的category匹配
 export type CourseCategory = '全部' | '商业规划' | '游戏设计' | '产品开发' | '编程' | '创意写作';
 
+// 添加检查注册和注册课程的返回类型定义
+interface CheckEnrollmentResult {
+  enrollment_id: string | null;
+}
+
+interface EnrollInCourseResult {
+  success: boolean;
+}
+
 const ExploreCourses = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -99,12 +108,7 @@ const ExploreCourses = () => {
         return;
       }
 
-      // 使用类型断言来解决TypeScript类型检查问题
-      interface CheckEnrollmentResult {
-        enrollment_id: string | null;
-      }
-      
-      // 检查用户是否已经加入过这个课程
+      // 检查用户是否已经加入过这个课程 - 使用正确的类型断言
       const { data: enrollmentData, error: enrollmentCheckError } = await supabase
         .rpc('check_enrollment', { 
           user_id_param: user.id, 
@@ -118,8 +122,8 @@ const ExploreCourses = () => {
         return;
       }
       
-      // 如果用户尚未加入课程，则添加一条注册记录
-      if (!enrollmentData || enrollmentData.length === 0) {
+      // 检查用户是否已经注册了课程
+      if (!enrollmentData || enrollmentData.length === 0 || !enrollmentData[0].enrollment_id) {
         // 使用类型断言来处理RPC调用
         const { error: insertError } = await supabase.rpc(
           'enroll_in_course',
@@ -127,7 +131,7 @@ const ExploreCourses = () => {
             user_id_param: user.id, 
             course_id_param: courseId 
           }
-        ) as { data: null, error: any };
+        ) as { data: EnrollInCourseResult | null, error: any };
           
         if (insertError) {
           console.error('课程注册失败:', insertError);
