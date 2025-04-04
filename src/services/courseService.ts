@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
@@ -21,16 +20,24 @@ const convertDbLessonToLesson = (dbLesson: any): Lesson => {
 export const courseService = {
   // 创建或更新课程
   async saveCourse(course: Course): Promise<Course> {
+    // 移除数据库中不存在的字段
+    const { difficulty, ...courseData } = course;
+    
+    console.log('Saving course data:', courseData);
+    
     const { data, error } = await supabase
       .from("courses")
       .upsert({
-        ...course,
+        ...courseData,
         updated_at: new Date().toISOString()
       })
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error saving course:', error);
+      throw error;
+    }
     return data as Course;
   },
 

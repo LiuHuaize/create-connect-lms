@@ -74,6 +74,9 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
 
   const handleSaveCourse = async () => {
     try {
+      console.log('Trying to save course:', course);
+      
+      // Create a copy without the difficulty field if needed
       const savedCourse = await courseService.saveCourse(course);
       
       const savedModules = await Promise.all(
