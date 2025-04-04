@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CourseModule, Lesson, LessonType } from '@/types/course';
 import { Plus, Trash2, Pencil, ChevronDown, ChevronRight, Video, FileText, FileQuestion, CheckSquare } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 type LessonTypeInfo = {
   id: LessonType;
@@ -49,7 +50,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
 }) => {
   const addModule = () => {
     const newModule: CourseModule = {
-      id: `m${modules.length + 1}`,
+      id: uuidv4(), // 使用UUID代替字符串ID
       course_id: modules[0]?.course_id || 'temp-course-id',
       title: `新模块 ${modules.length + 1}`,
       order_index: modules.length,
@@ -80,7 +81,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
     const orderIndex = targetModule.lessons ? targetModule.lessons.length : 0;
     
     const newLesson: Lesson = {
-      id: `l${Date.now()}`,
+      id: uuidv4(), // 使用UUID
       module_id: moduleId,
       type: lessonType,
       title: `新${LESSON_TYPES.find(type => type.id === lessonType)?.name}课程`,
