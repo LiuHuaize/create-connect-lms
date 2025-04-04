@@ -21,8 +21,9 @@ const convertDbLessonToLesson = (dbLesson: any): Lesson => {
 export const courseService = {
   // 创建或更新课程
   async saveCourse(course: Course): Promise<Course> {
-    // 移除数据库中不存在的字段
-    const { difficulty, modules, ...courseData } = course;
+    // 从课程对象中提取出模块数据，但不将其发送到数据库
+    // 课程表中不存在 difficulty 和 modules 字段
+    const { difficulty, ...courseData } = course;
     
     console.log('Saving course data:', courseData);
     
