@@ -19,12 +19,6 @@ const COURSE_CATEGORIES = [
   { value: 'project_management', label: '项目管理' }
 ];
 
-const DIFFICULTY_LEVELS = [
-  { value: 'initial', label: '初级' },
-  { value: 'intermediate', label: '中级' },
-  { value: 'advanced', label: '高级' }
-];
-
 const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse }) => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
@@ -81,25 +75,6 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
               ))}
             </SelectContent>
           </Select>
-        </div>
-        
-        <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2">难度</Label>
-          <div className="flex flex-wrap gap-4">
-            {DIFFICULTY_LEVELS.map((level) => (
-              <label key={level.value} className="flex items-center cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md transition-colors">
-                <input 
-                  type="radio" 
-                  name="level" 
-                  value={level.value}
-                  checked={course.difficulty === level.value}
-                  onChange={() => setCourse(prev => ({ ...prev, difficulty: level.value as 'initial' | 'intermediate' | 'advanced' }))}
-                  className="mr-2 text-connect-blue focus:ring-connect-blue h-4 w-4"
-                />
-                <span className="text-gray-700">{level.label}</span>
-              </label>
-            ))}
-          </div>
         </div>
       </div>
     </div>

@@ -6,8 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Course } from '@/types/course';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Canvas, Point, Image as FabricImage, Rect } from 'fabric';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Canvas, Image as FabricImage, Rect } from 'fabric';
 
 interface CourseImageUploaderProps {
   course: Course;
@@ -34,46 +34,49 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const initializeEditor = async (imageUrl: string) => {
     if (!canvasRef.current) return;
     
-    // Clear any existing canvas
-    if (fabricCanvasRef.current) {
-      fabricCanvasRef.current.dispose();
-    }
-
-    // Create a new fabric canvas
-    const canvas = new Canvas(canvasRef.current, {
-      width: 800,
-      height: 450, // 16:9 aspect ratio
-      backgroundColor: '#f9f9f9',
-      preserveObjectStacking: true,
-    });
-    fabricCanvasRef.current = canvas;
-
     try {
-      // Create and add the image using the correct API syntax for Fabric.js v6
-      FabricImage.fromURL(imageUrl, {
-        crossOrigin: 'anonymous',
-        // @ts-ignore - Fabric.js types can be inconsistent, but this works
-        onComplete: (img: FabricImage) => {
-          // Set image options
-          img.set({
-            originX: 'center',
-            originY: 'center',
-            left: canvas.width! / 2,
-            top: canvas.height! / 2,
-          });
+      // Clear any existing canvas
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.dispose();
+      }
 
-          // Scale the image to fit within the canvas
-          const scaleX = canvas.width! / img.width!;
-          const scaleY = canvas.height! / img.height!;
-          const scale = Math.min(scaleX, scaleY) * 0.9; // 90% of the canvas size
-          img.scale(scale);
+      // Create a new fabric canvas
+      const canvas = new Canvas(canvasRef.current, {
+        width: 800,
+        height: 450, // 16:9 aspect ratio
+        backgroundColor: '#f9f9f9',
+        preserveObjectStacking: true,
+      });
+      fabricCanvasRef.current = canvas;
 
-          imageRef.current = img;
-          canvas.add(img);
-          canvas.renderAll();
-        }
+      // Load the image
+      const img = await new Promise<FabricImage>((resolve, reject) => {
+        FabricImage.fromURL(imageUrl, {
+          crossOrigin: 'anonymous'
+        }).then(img => {
+          resolve(img);
+        }).catch(err => {
+          reject(err);
+        });
       });
 
+      // Set image options
+      img.set({
+        originX: 'center',
+        originY: 'center',
+        left: canvas.width! / 2,
+        top: canvas.height! / 2,
+      });
+
+      // Scale the image to fit within the canvas
+      const scaleX = canvas.width! / img.width!;
+      const scaleY = canvas.height! / img.height!;
+      const scale = Math.min(scaleX, scaleY) * 0.9; // 90% of the canvas size
+      img.scale(scale);
+
+      imageRef.current = img;
+      canvas.add(img);
+      canvas.renderAll();
     } catch (error) {
       console.error('Error loading image into editor:', error);
       toast.error('无法加载图片进行编辑');
@@ -211,11 +214,10 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     try {
       setIsUploading(true);
       
-      // Convert canvas to data URL with correct parameters
+      // Convert canvas to data URL and then to blob
       const dataUrl = fabricCanvasRef.current.toDataURL({
         format: 'png',
-        quality: 0.8,
-        multiplier: 1  // Required parameter for TDataUrlOptions
+        quality: 0.8
       });
       
       // Convert data URL to Blob
@@ -281,7 +283,9 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
 
   useEffect(() => {
     if (showImageEditor && editingImage) {
-      initializeEditor(editingImage);
+      setTimeout(() => {
+        initializeEditor(editingImage);
+      }, 100); // 给对话框一点时间来渲染
     }
     return () => {
       if (fabricCanvasRef.current) {
@@ -375,6 +379,9 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>编辑课程封面</DialogTitle>
+            <DialogDescription>
+              您可以通过拖动调整图片位置，使用裁剪工具确保16:9的完美比例
+            </DialogDescription>
           </DialogHeader>
           
           <div className="p-4">
@@ -407,10 +414,6 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
             <div className="border rounded-md overflow-hidden shadow-sm">
               <canvas ref={canvasRef} className="w-full h-auto" />
             </div>
-            
-            <p className="text-xs text-gray-500 mt-2">
-              提示：您可以通过拖动调整图片位置，使用裁剪工具确保16:9的完美比例
-            </p>
           </div>
           
           <DialogFooter>
