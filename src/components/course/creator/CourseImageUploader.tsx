@@ -37,10 +37,12 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const [imageLoadError, setImageLoadError] = useState(false);
   const [currentStep, setCurrentStep] = useState<'upload' | 'edit' | 'crop' | 'preview'>('upload');
   const [cropPreviewURL, setCropPreviewURL] = useState<string | null>(null);
+  const [previewCanvasRef] = useState(document.createElement('canvas'));
+  const [previewImageRef] = useState(new Image());
 
   const loadingTimerRef = useRef<number | null>(null);
 
-  // 更优化的预加载图片函数
+  // 预加载图片函数
   const preloadImage = async (src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -214,8 +216,8 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     
     // 创建裁剪矩形
     const rect = new Rect({
-      left: img.left! - (rectWidth / 2) + (imgWidth / 2 - rectWidth / 2) / 2,
-      top: img.top! - (rectHeight / 2) + (imgHeight / 2 - rectHeight / 2) / 2,
+      left: canvas.width! / 2 - rectWidth / 2,
+      top: canvas.height! / 2 - rectHeight / 2,
       width: rectWidth,
       height: rectHeight,
       fill: 'rgba(0,0,0,0.15)',
@@ -262,7 +264,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     try {
       setShowLoader(true);
       
-      // 计算图片和裁剪矩形的位置和尺寸
+      // 获取图片和裁剪矩形的位置和尺寸
       const imgLeft = img.left!;
       const imgTop = img.top!;
       const imgWidth = img.getScaledWidth();
@@ -275,51 +277,55 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       const rectWidth = cropRect.getScaledWidth();
       const rectHeight = cropRect.getScaledHeight();
       
+      // 设置预览canvas大小为裁剪尺寸
+      previewCanvasRef.width = 1280; // 输出16:9标准尺寸
+      previewCanvasRef.height = 720;
+      
+      const ctx = previewCanvasRef.getContext('2d');
+      if (!ctx) {
+        throw new Error('无法获取预览画布的上下文');
+      }
+      
+      // 清空预览画布
+      ctx.clearRect(0, 0, previewCanvasRef.width, previewCanvasRef.height);
+      
       // 计算相对裁剪坐标
-      const relX = (rectLeft - (imgLeft - imgWidth/2)) / imgWidth;
-      const relY = (rectTop - (imgTop - imgHeight/2)) / imgHeight;
-      const relWidth = rectWidth / imgWidth;
-      const relHeight = rectHeight / imgHeight;
+      const offsetX = rectLeft - (imgLeft - imgWidth/2);
+      const offsetY = rectTop - (imgTop - imgHeight/2);
       
-      // 限制在0到1范围内
-      const cropX = Math.max(0, Math.min(1, relX));
-      const cropY = Math.max(0, Math.min(1, relY));
-      const cropWidthRatio = Math.max(0, Math.min(1, relWidth));
-      const cropHeightRatio = Math.max(0, Math.min(1, relHeight));
+      // 计算源图像的坐标和尺寸
+      const sourceX = (offsetX / imgScaleX);
+      const sourceY = (offsetY / imgScaleY);
+      const sourceWidth = (rectWidth / imgScaleX);
+      const sourceHeight = (rectHeight / imgScaleY);
       
-      // 创建临时画布进行裁剪
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = Math.round(img.width! * cropWidthRatio / imgScaleX);
-      tempCanvas.height = Math.round(img.height! * cropHeightRatio / imgScaleY);
-      
-      const tempCtx = tempCanvas.getContext('2d');
-      if (!tempCtx) throw new Error('无法创建临时画布上下文');
-      
-      // 获取原始图片元素
+      // 获取原始图片
       const imgElement = img.getElement() as HTMLImageElement;
       
-      // 在临时画布上绘制裁剪部分
-      tempCtx.drawImage(
-        imgElement, 
-        Math.round(img.width! * cropX / imgScaleX), 
-        Math.round(img.height! * cropY / imgScaleY), 
-        Math.round(img.width! * cropWidthRatio / imgScaleX), 
-        Math.round(img.height! * cropHeightRatio / imgScaleY), 
+      // 在预览画布上绘制
+      ctx.drawImage(
+        imgElement,
+        sourceX, 
+        sourceY, 
+        sourceWidth, 
+        sourceHeight,
         0, 
         0, 
-        tempCanvas.width, 
-        tempCanvas.height
+        previewCanvasRef.width, 
+        previewCanvasRef.height
       );
       
-      // 转换为数据URL
-      const croppedImageUrl = tempCanvas.toDataURL('image/png', 1.0);
-      
-      // 设置预览URL并切换到预览步骤
+      // 转换为数据URL并应用
+      const croppedImageUrl = previewCanvasRef.toDataURL('image/png', 0.95);
       setCropPreviewURL(croppedImageUrl);
       setCurrentStep('preview');
-      setShowLoader(false);
       
-      toast.success('图片裁剪成功');
+      // 预加载裁剪后的图片确保显示正常
+      previewImageRef.src = croppedImageUrl;
+      previewImageRef.onload = () => {
+        setShowLoader(false);
+        toast.success('图片裁剪成功，请检查预览效果');
+      };
       
     } catch (error) {
       console.error('应用裁剪时出错:', error);
@@ -332,7 +338,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     try {
       setIsSaving(true);
       
-      // 转换画布为数据URL
+      // 使用裁剪后的图像或编辑后的图像
       let dataUrl;
       
       // 如果有裁剪预览，直接使用裁剪后的图像
@@ -356,6 +362,12 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       // 将数据URL转换为Blob
       const res = await fetch(dataUrl);
       const blob = await res.blob();
+      
+      // 检查blob是否有效
+      if (!blob || blob.size === 0) {
+        throw new Error('生成的图片数据无效');
+      }
+      
       const file = new File([blob], `course-cover-${Date.now()}.png`, { type: 'image/png' });
       
       const fileExt = 'png';
@@ -381,6 +393,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       setCourse(prev => ({ ...prev, cover_image: publicURL.publicUrl }));
       
       setImageSaved(true);
+      toast.success('封面图片已保存');
       
       // 短暂延迟后关闭编辑器
       setTimeout(() => {
@@ -388,8 +401,6 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
         setIsSaving(false);
         resetEditorState();
       }, 1000);
-      
-      toast.success('封面图片已保存');
       
     } catch (error) {
       console.error('保存编辑后的图片失败:', error);
@@ -449,31 +460,28 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const renderStepDescription = () => {
     switch(currentStep) {
       case 'edit':
-        return '您可以拖动图片调整位置。需要裁剪吗？点击"裁剪"按钮继续';
+        return '您可以拖动图片调整位置。需要裁剪吗？点击"进入裁剪模式"按钮继续';
       case 'crop':
         return '调整蓝色框的位置和大小，框内区域将作为封面图片。完成后点击"应用裁剪"';
       case 'preview':
-        return '预览您裁剪后的图片效果。如果满意，点击"保存"完成';
+        return '预览您裁剪后的图片效果。如果满意，点击"保存并使用"完成';
       default:
         return '您可以通过拖动调整图片位置，使用裁剪工具确保16:9的完美比例';
     }
   };
 
+  // 清理函数
   useEffect(() => {
-    // 清理函数
     return () => {
-      // 清理画布资源
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
       }
       
-      // 清理定时器
       if (loadingTimerRef.current) {
         clearTimeout(loadingTimerRef.current);
       }
       
-      // 释放Blob URL
       if (editingImage && editingImage.startsWith('blob:')) {
         URL.revokeObjectURL(editingImage);
       }
@@ -484,7 +492,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     };
   }, []);
 
-  // 当对话框打开且有编辑图片时初始化编辑器
+  // 初始化编辑器
   useEffect(() => {
     if (showImageEditor && editingImage && !canvasInitialized && currentStep === 'edit') {
       // 设置短暂延迟让对话框有时间渲染

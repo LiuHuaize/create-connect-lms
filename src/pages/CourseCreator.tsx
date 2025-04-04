@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,6 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
-// 懒加载组件，改进初始加载时间
 const LessonEditor = lazy(() => import('@/components/course/LessonEditor'));
 const CourseDetailsForm = lazy(() => import('@/components/course/creator/CourseDetailsForm'));
 const CourseImageUploader = lazy(() => import('@/components/course/creator/CourseImageUploader'));
@@ -17,7 +15,6 @@ const ModuleList = lazy(() => import('@/components/course/creator/ModuleList'));
 const CourseOverview = lazy(() => import('@/components/course/creator/CourseOverview'));
 const StudentStatistics = lazy(() => import('@/components/course/creator/StudentStatistics'));
 
-// 加载占位组件
 const LoadingFallback = () => (
   <div className="flex items-center justify-center p-8">
     <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -54,14 +51,11 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   
-  // 使用加载状态分别控制不同组件的加载
   const [moduleDataLoaded, setModuleDataLoaded] = useState(true);
   
-  // 分批加载课程数据，优先加载基本信息，延迟加载模块和课程
   useEffect(() => {
     const loadCourseBasicInfo = async () => {
       if (!courseId) {
-        // 如果没有课程ID，则将所有加载状态设置为false，表示不需要加载数据
         setLoadingDetails(false);
         setIsLoading(false);
         setModuleDataLoaded(true);
@@ -73,14 +67,12 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
         setLoadingDetails(true);
         setModuleDataLoaded(false);
         
-        // 优先加载课程基本信息
         const courseDetails = await courseService.getCourseDetails(courseId);
         
         setCourse(courseDetails);
         setCoverImageURL(courseDetails.cover_image || null);
         setLoadingDetails(false);
         
-        // 延迟加载模块和课程内容
         setTimeout(async () => {
           if (courseDetails.modules) {
             setModules(courseDetails.modules);
@@ -97,7 +89,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
       }
     };
 
-    // 立即执行加载函数
     loadCourseBasicInfo();
   }, [courseId]);
 
@@ -140,15 +131,24 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
       console.log('Trying to save course:', course);
       
       const savedCourse = await courseService.saveCourse(course);
+      console.log('Course saved successfully:', savedCourse);
+      
+      setCourse(prev => ({ 
+        ...prev, 
+        id: savedCourse.id 
+      }));
       
       const savedModules = await Promise.all(
         modules.map(async (module) => {
-          const savedModule = await courseService.addCourseModule({
-            ...module,
-            course_id: savedCourse.id!
-          });
+          const moduleToSave = { ...module };
+          
+          if (savedCourse.id) {
+            moduleToSave.course_id = savedCourse.id;
+          }
+          
+          const savedModule = await courseService.addCourseModule(moduleToSave);
 
-          if (module.lessons) {
+          if (module.lessons && module.lessons.length > 0) {
             await Promise.all(
               module.lessons.map(lesson => 
                 courseService.addLesson({
@@ -170,7 +170,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
       toast.success('课程保存成功');
     } catch (error) {
       console.error('保存课程失败:', error);
-      toast.error('保存课程失败');
+      toast.error(`保存课程失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   };
 
@@ -217,7 +217,6 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     navigate('/course-selection');
   };
 
-  // 完全加载中状态
   if (isLoading && !moduleDataLoaded) {
     return (
       <div className="flex items-center justify-center h-screen">

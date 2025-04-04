@@ -21,18 +21,29 @@ const convertDbLessonToLesson = (dbLesson: any): Lesson => {
 export const courseService = {
   // 创建或更新课程
   async saveCourse(course: Course): Promise<Course> {
-    // 从课程对象中提取出模块数据，但不将其发送到数据库
-    // 课程表中不存在 difficulty 和 modules 字段
+    // 1. 提取需要发送到数据库的数据，移除数据库不支持的字段
     const { difficulty, ...courseData } = course;
     
-    console.log('Saving course data:', courseData);
+    // 2. 确保我们不将可能存在的模块数据尝试保存到courses表
+    // 移除任何可能在course对象上但不在数据库表中的字段
+    const dataToSave = {
+      id: courseData.id,
+      title: courseData.title,
+      description: courseData.description,
+      short_description: courseData.short_description,
+      author_id: courseData.author_id,
+      cover_image: courseData.cover_image,
+      status: courseData.status,
+      price: courseData.price,
+      tags: courseData.tags,
+      updated_at: new Date().toISOString()
+    };
+    
+    console.log('Saving course data:', dataToSave);
     
     const { data, error } = await supabase
       .from("courses")
-      .upsert({
-        ...courseData,
-        updated_at: new Date().toISOString()
-      })
+      .upsert(dataToSave)
       .select("*")
       .single();
 
