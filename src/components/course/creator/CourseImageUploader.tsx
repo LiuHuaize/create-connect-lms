@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Upload, Trash2, Crop, Clock, Image as ImageIcon, Move, Check, AlertCircle } from 'lucide-react';
+import { Upload, Trash2, Crop, Clock, Image as ImageIcon, Move, Check, AlertCircle, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Course } from '@/types/course';
@@ -35,6 +35,8 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [imageSaved, setImageSaved] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [currentStep, setCurrentStep] = useState<'upload' | 'edit' | 'crop' | 'preview'>('upload');
+  const [cropPreviewURL, setCropPreviewURL] = useState<string | null>(null);
 
   const loadingTimerRef = useRef<number | null>(null);
 
@@ -124,6 +126,14 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
         canvas.setActiveObject(img);
         canvas.renderAll();
         
+        // 如果初始模式是裁剪，自动添加裁剪框
+        if (editorMode === 'crop') {
+          // 给一点时间让图片完全渲染
+          setTimeout(() => {
+            addCropRect();
+          }, 100);
+        }
+        
         setCanvasInitialized(true);
         setShowLoader(false);
         clearTimeout(loadingTimerRef.current!);
@@ -151,6 +161,8 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     setImageLoadError(false);
     setShowLoader(false);
     setImageSaved(false);
+    setCropPreviewURL(null);
+    setCurrentStep('upload');
     
     if (loadingTimerRef.current) {
       clearTimeout(loadingTimerRef.current);
@@ -206,7 +218,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       top: img.top! - (rectHeight / 2) + (imgHeight / 2 - rectHeight / 2) / 2,
       width: rectWidth,
       height: rectHeight,
-      fill: 'rgba(0,0,0,0.2)',
+      fill: 'rgba(0,0,0,0.15)',
       stroke: '#2563EB', // 边框颜色
       strokeWidth: 2,
       strokeUniform: true,
@@ -214,7 +226,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       cornerColor: '#2563EB',
       transparentCorners: false,
       borderColor: '#2563EB',
-      cornerSize: 12,
+      cornerSize: 10,
       hasRotatingPoint: false,
       lockRotation: true,
       selectable: true,
@@ -236,31 +248,9 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   };
 
   const handleToggleCropMode = () => {
-    if (!fabricCanvasRef.current) return;
-    
-    if (editorMode === 'crop') {
-      // 从裁剪模式切换到移动模式
-      setEditorMode('move');
-      if (cropRect && fabricCanvasRef.current) {
-        fabricCanvasRef.current.remove(cropRect);
-        setCropRect(null);
-      }
-      
-      // 解锁图片
-      if (imageRef.current) {
-        imageRef.current.set({
-          selectable: true,
-          evented: true,
-        });
-        fabricCanvasRef.current.setActiveObject(imageRef.current);
-      }
-      
-      fabricCanvasRef.current.renderAll();
-    } else {
-      // 切换到裁剪模式
-      setEditorMode('crop');
-      addCropRect();
-    }
+    setEditorMode('crop');
+    addCropRect();
+    setCurrentStep('crop');
   };
 
   const handleApplyCrop = () => {
@@ -324,16 +314,10 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       // 转换为数据URL
       const croppedImageUrl = tempCanvas.toDataURL('image/png', 1.0);
       
-      // 更新图片并重置编辑器
-      setEditingImage(croppedImageUrl);
-      canvas.clear();
-      
-      // 使用新裁剪的图片重新初始化编辑器
-      setTimeout(() => {
-        initializeEditor(croppedImageUrl);
-        setEditorMode('move');
-        setCropRect(null);
-      }, 100);
+      // 设置预览URL并切换到预览步骤
+      setCropPreviewURL(croppedImageUrl);
+      setCurrentStep('preview');
+      setShowLoader(false);
       
       toast.success('图片裁剪成功');
       
@@ -345,27 +329,29 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   };
 
   const handleSaveEditedImage = async () => {
-    if (!fabricCanvasRef.current || !imageRef.current) {
-      toast.error('编辑器未准备好，请重试');
-      return;
-    }
-    
     try {
       setIsSaving(true);
       
-      // 确保图片居中并适合16:9比例
-      if (imageRef.current) {
+      // 转换画布为数据URL
+      let dataUrl;
+      
+      // 如果有裁剪预览，直接使用裁剪后的图像
+      if (cropPreviewURL) {
+        dataUrl = cropPreviewURL;
+      } else if (fabricCanvasRef.current && imageRef.current) {
         // 将图片置于画布中心
         fabricCanvasRef.current.centerObject(imageRef.current);
         fabricCanvasRef.current.renderAll();
-      }
       
-      // 转换画布为数据URL
-      const dataUrl = fabricCanvasRef.current.toDataURL({
-        format: 'png',
-        quality: 0.9,
-        multiplier: 1.5, // 增加导出图像分辨率
-      });
+        // 转换画布为数据URL
+        dataUrl = fabricCanvasRef.current.toDataURL({
+          format: 'png',
+          quality: 0.9,
+          multiplier: 1.5, // 增加导出图像分辨率
+        });
+      } else {
+        throw new Error('编辑器未准备好');
+      }
       
       // 将数据URL转换为Blob
       const res = await fetch(dataUrl);
@@ -400,6 +386,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       setTimeout(() => {
         setShowImageEditor(false);
         setIsSaving(false);
+        resetEditorState();
       }, 1000);
       
       toast.success('封面图片已保存');
@@ -438,6 +425,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       
       // 打开编辑器
       setShowImageEditor(true);
+      setCurrentStep('edit');
       setIsUploading(false);
       
     } catch (error) {
@@ -454,6 +442,20 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       const imageUrl = `${coverImageURL || course.cover_image}?t=${Date.now()}`;
       setEditingImage(imageUrl);
       setShowImageEditor(true);
+      setCurrentStep('edit');
+    }
+  };
+
+  const renderStepDescription = () => {
+    switch(currentStep) {
+      case 'edit':
+        return '您可以拖动图片调整位置。需要裁剪吗？点击"裁剪"按钮继续';
+      case 'crop':
+        return '调整蓝色框的位置和大小，框内区域将作为封面图片。完成后点击"应用裁剪"';
+      case 'preview':
+        return '预览您裁剪后的图片效果。如果满意，点击"保存"完成';
+      default:
+        return '您可以通过拖动调整图片位置，使用裁剪工具确保16:9的完美比例';
     }
   };
 
@@ -475,12 +477,16 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       if (editingImage && editingImage.startsWith('blob:')) {
         URL.revokeObjectURL(editingImage);
       }
+      
+      if (cropPreviewURL && cropPreviewURL.startsWith('blob:')) {
+        URL.revokeObjectURL(cropPreviewURL);
+      }
     };
   }, []);
 
   // 当对话框打开且有编辑图片时初始化编辑器
   useEffect(() => {
-    if (showImageEditor && editingImage && !canvasInitialized) {
+    if (showImageEditor && editingImage && !canvasInitialized && currentStep === 'edit') {
       // 设置短暂延迟让对话框有时间渲染
       const timerId = setTimeout(() => {
         initializeEditor(editingImage);
@@ -488,7 +494,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       
       return () => clearTimeout(timerId);
     }
-  }, [showImageEditor, editingImage, canvasInitialized]);
+  }, [showImageEditor, editingImage, canvasInitialized, currentStep]);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -505,7 +511,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
                   className="absolute inset-0 w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = 'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=800&h=450&fit=crop';
+                    target.src = 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&h=450&fit=crop';
                     toast.error('加载封面图片失败，已显示占位图');
                   }}
                 />
@@ -580,6 +586,10 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
             URL.revokeObjectURL(editingImage);
           }
           
+          if (cropPreviewURL && cropPreviewURL.startsWith('blob:')) {
+            URL.revokeObjectURL(cropPreviewURL);
+          }
+          
           setEditingImage(null);
           setShowImageEditor(false);
         }
@@ -588,74 +598,172 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
           <DialogHeader>
             <DialogTitle>编辑课程封面</DialogTitle>
             <DialogDescription>
-              您可以通过拖动调整图片位置，使用裁剪工具确保16:9的完美比例
+              {renderStepDescription()}
             </DialogDescription>
           </DialogHeader>
           
+          {/* 步骤指示器 */}
+          <div className="w-full flex items-center justify-center mb-4">
+            <div className="w-full max-w-md flex items-center justify-between">
+              <div className={`flex flex-col items-center ${currentStep === 'edit' ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'edit' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                  1
+                </div>
+                <span className="text-xs mt-1">移动</span>
+              </div>
+              
+              <div className="w-16 h-0.5 bg-gray-200"></div>
+              
+              <div className={`flex flex-col items-center ${currentStep === 'crop' ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'crop' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                  2
+                </div>
+                <span className="text-xs mt-1">裁剪</span>
+              </div>
+              
+              <div className="w-16 h-0.5 bg-gray-200"></div>
+              
+              <div className={`flex flex-col items-center ${currentStep === 'preview' ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'preview' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                  3
+                </div>
+                <span className="text-xs mt-1">预览</span>
+              </div>
+            </div>
+          </div>
+          
           <div className="p-4">
-            <div className="flex justify-center gap-3 mb-4">
-              <Button 
-                variant={editorMode === 'move' ? 'default' : 'outline'}
-                size="sm" 
-                onClick={() => setEditorMode('move')}
-                disabled={!canvasInitialized || showLoader}
-              >
-                <Move size={16} className="mr-2" /> 移动
-              </Button>
-              <Button 
-                variant={editorMode === 'crop' ? 'default' : 'outline'}
-                size="sm" 
-                onClick={handleToggleCropMode}
-                disabled={!canvasInitialized || showLoader}
-              >
-                <Crop size={16} className="mr-2" /> 裁剪
-              </Button>
-              {editorMode === 'crop' && cropRect && (
+            {currentStep === 'edit' && (
+              <div className="flex justify-center mb-4">
                 <Button 
-                  variant="default"
-                  size="sm" 
-                  onClick={handleApplyCrop}
+                  onClick={handleToggleCropMode}
                   disabled={!canvasInitialized || showLoader}
+                  className="bg-connect-blue hover:bg-blue-600"
                 >
-                  <Check size={16} className="mr-2" /> 应用裁剪
+                  <Crop size={16} className="mr-2" /> 进入裁剪模式 <ArrowRight size={16} className="ml-2" />
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
             
-            <div className="border rounded-md overflow-hidden shadow-sm relative min-h-[450px]">
-              <canvas ref={canvasRef} className="w-full h-auto" />
-              
-              {/* 加载和错误状态 */}
-              {(showLoader || !canvasInitialized) && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-sm">
-                  <div className="bg-white p-4 rounded-md shadow flex items-center">
-                    <Clock size={16} className="mr-2 animate-spin text-connect-blue" />
-                    <p>正在加载图片编辑器...</p>
+            {currentStep === 'crop' && (
+              <div className="flex justify-center gap-3 mb-4">
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditorMode('move');
+                    setCurrentStep('edit');
+                    if (cropRect && fabricCanvasRef.current) {
+                      fabricCanvasRef.current.remove(cropRect);
+                      setCropRect(null);
+                      
+                      // 解锁图片
+                      if (imageRef.current) {
+                        imageRef.current.set({
+                          selectable: true,
+                          evented: true,
+                        });
+                        fabricCanvasRef.current.setActiveObject(imageRef.current);
+                        fabricCanvasRef.current.renderAll();
+                      }
+                    }
+                  }}
+                  disabled={showLoader}
+                >
+                  返回编辑
+                </Button>
+                
+                <Button 
+                  className="bg-connect-blue hover:bg-blue-600"
+                  onClick={handleApplyCrop}
+                  disabled={!cropRect || showLoader}
+                >
+                  <Check size={16} className="mr-2" /> 应用裁剪 <ArrowRight size={16} className="ml-2" />
+                </Button>
+              </div>
+            )}
+            
+            {(currentStep === 'edit' || currentStep === 'crop') && (
+              <div className="border rounded-md overflow-hidden shadow-sm relative min-h-[450px]">
+                <canvas ref={canvasRef} className="w-full h-auto" />
+                
+                {/* 加载和错误状态 */}
+                {(showLoader || !canvasInitialized) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-sm">
+                    <div className="bg-white p-4 rounded-md shadow flex items-center">
+                      <Clock size={16} className="mr-2 animate-spin text-connect-blue" />
+                      <p>正在加载图片编辑器...</p>
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              {imageLoadError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                  <div className="bg-white p-4 rounded-md shadow text-center max-w-md">
-                    <AlertCircle size={24} className="mx-auto mb-2 text-red-500" />
-                    <p className="font-medium text-red-600 mb-2">图片加载失败</p>
-                    <p className="text-sm text-gray-600 mb-3">无法加载图片进行编辑，可能是图片已损坏或网络问题导致</p>
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        resetEditorState();
-                        if (editingImage) {
-                          initializeEditor(editingImage);
-                        }
-                      }}
-                    >
-                      重试
-                    </Button>
+                )}
+                
+                {imageLoadError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                    <div className="bg-white p-4 rounded-md shadow text-center max-w-md">
+                      <AlertCircle size={24} className="mx-auto mb-2 text-red-500" />
+                      <p className="font-medium text-red-600 mb-2">图片加载失败</p>
+                      <p className="text-sm text-gray-600 mb-3">无法加载图片进行编辑，可能是图片已损坏或网络问题导致</p>
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          resetEditorState();
+                          if (editingImage) {
+                            initializeEditor(editingImage);
+                            setCurrentStep('edit');
+                          }
+                        }}
+                      >
+                        重试
+                      </Button>
+                    </div>
                   </div>
+                )}
+              </div>
+            )}
+            
+            {currentStep === 'preview' && cropPreviewURL && (
+              <div className="flex flex-col items-center">
+                <div className="border rounded-md overflow-hidden shadow-sm mb-4 max-w-2xl">
+                  <AspectRatio ratio={16 / 9}>
+                    <img 
+                      src={cropPreviewURL} 
+                      alt="裁剪预览" 
+                      className="w-full h-full object-cover"
+                    />
+                  </AspectRatio>
                 </div>
-              )}
-            </div>
+                
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setCropPreviewURL(null);
+                      setCurrentStep('crop');
+                    }}
+                    disabled={isSaving}
+                  >
+                    返回裁剪
+                  </Button>
+                  
+                  <Button 
+                    className="bg-connect-blue hover:bg-blue-600"
+                    onClick={handleSaveEditedImage}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <span className="flex items-center">
+                        <Clock size={16} className="mr-2 animate-spin" />
+                        保存中...
+                      </span>
+                    ) : (
+                      <>
+                        <Check size={16} className="mr-2" /> 保存并使用
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
@@ -665,27 +773,6 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
               disabled={isSaving}
             >
               取消
-            </Button>
-            <Button 
-              onClick={handleSaveEditedImage} 
-              disabled={isSaving || !canvasInitialized || showLoader}
-              className={`${imageSaved ? 'bg-green-600' : 'bg-connect-blue'} hover:opacity-90 transition-all text-white`}
-            >
-              {isSaving ? (
-                <span className="flex items-center">
-                  <span className="animate-spin mr-2">
-                    <Clock size={16} />
-                  </span>
-                  保存中...
-                </span>
-              ) : imageSaved ? (
-                <span className="flex items-center">
-                  <Check size={16} className="mr-2" />
-                  已保存
-                </span>
-              ) : (
-                <>保存</>
-              )}
             </Button>
           </DialogFooter>
         </DialogContent>

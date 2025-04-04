@@ -22,7 +22,7 @@ export const courseService = {
   // 创建或更新课程
   async saveCourse(course: Course): Promise<Course> {
     // 移除数据库中不存在的字段
-    const { difficulty, ...courseData } = course;
+    const { difficulty, modules, ...courseData } = course;
     
     console.log('Saving course data:', courseData);
     
