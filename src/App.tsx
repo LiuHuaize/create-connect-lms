@@ -17,9 +17,7 @@ import Learning from "./pages/Learning";
 import Events from "./pages/Events";
 import Community from "./pages/Community";
 import CourseCreator from "./pages/CourseCreator";
-import CourseSelection from "./pages/CourseSelection"; // 新增导入
-import Projects from "./pages/Projects";
-import Workspaces from "./pages/Workspaces";
+import CourseSelection from "./pages/CourseSelection"; 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import { BlockNoteEditorTest } from "./components/editor";
@@ -98,7 +96,7 @@ const AppRoutes = () => {
             >
               <Menu size={24} />
             </button>
-            <div className="ml-4 text-lg font-semibold">亿小步</div>
+            <div className="ml-4 text-lg font-semibold">小亿步</div>
           </div>
         )}
         
@@ -124,16 +122,6 @@ const AppRoutes = () => {
             <Route path="/events" element={
               <ProtectedRoute>
                 <Events />
-              </ProtectedRoute>
-            } />
-            <Route path="/projects" element={
-              <ProtectedRoute>
-                <Projects />
-              </ProtectedRoute>
-            } />
-            <Route path="/workspaces" element={
-              <ProtectedRoute>
-                <Workspaces />
               </ProtectedRoute>
             } />
             <Route path="/course/:courseId" element={

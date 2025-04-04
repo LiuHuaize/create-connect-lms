@@ -6,8 +6,6 @@ import {
   BookOpen,
   CalendarDays,
   Users,
-  FolderKanban,
-  Monitor,
   PenTool,
   User,
   Settings,
@@ -62,23 +60,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
       icon: <Users className="h-5 w-5" />,
       href: "/community",
     },
-    {
-      label: "项目",
-      icon: <FolderKanban className="h-5 w-5" />,
-      href: "/projects",
-    },
-    {
-      label: "工作空间",
-      icon: <Monitor className="h-5 w-5" />,
-      href: "/workspaces",
-    },
   ];
 
   const teacherLinks = [
     {
       label: "创建课程",
       icon: <PenTool className="h-5 w-5" />,
-      href: "/course-selection", // 更新为课程选择页面
+      href: "/course-selection",
     },
   ];
 
@@ -108,8 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
     <div className="h-full w-full flex flex-col bg-white">
       <div className="p-4 border-b">
         <div className="flex items-center">
-          <Logo className="h-8 w-8" />
-          <span className="ml-2 text-xl font-bold">亿小步</span>
+          <Logo variant="default" />
           {isMobile && (
             <Button
               variant="ghost"
