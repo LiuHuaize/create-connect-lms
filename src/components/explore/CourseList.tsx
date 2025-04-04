@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import CourseCard from '@/components/ui/CourseCard';
+import { Clock, Book } from 'lucide-react';
 import { Course } from '@/types/course';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 
 interface CourseListProps {
   courses: Course[];
@@ -13,28 +14,63 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {courses.map((course) => (
-        <div key={course.id} className="relative">
-          <CourseCard
-            type={course.category === '商业规划' ? 'skill' : 
-                  course.price === 0 || course.price === null ? 'free' : 'career'}
-            title={course.title}
-            description={course.short_description || course.description || ''}
-            certificate={Boolean(course.price)}
-            level={course.difficulty === 'initial' ? '初级' : 
-                  course.difficulty === 'intermediate' ? '中级' : 
-                  course.difficulty === 'advanced' ? '高级' : ''}
-            hours={10} // 默认值，实际应从数据库获取
-          />
-          <div className="mt-4 flex justify-end">
+        <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
+          <div className="h-48 overflow-hidden bg-gray-100 relative">
+            {course.cover_image ? (
+              <img 
+                src={course.cover_image} 
+                alt={course.title} 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50">
+                <Book size={48} className="text-blue-300" />
+              </div>
+            )}
+            <div className="absolute top-3 left-3">
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                course.category === '商业规划' ? 'bg-connect-lightBlue text-connect-blue' : 
+                course.price === 0 || course.price === null ? 'bg-green-100 text-green-700' : 
+                'bg-indigo-100 text-indigo-700'
+              }`}>
+                {course.category || '免费课程'}
+              </span>
+            </div>
+          </div>
+          
+          <CardContent className="p-5">
+            <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
+            <p className="text-sm text-gray-600 line-clamp-3 mb-4">
+              {course.short_description || course.description || '暂无课程描述'}
+            </p>
+            
+            <div className="flex items-center text-xs text-gray-500">
+              <Clock size={14} className="mr-1" />
+              <span>10 小时</span>
+              
+              {course.difficulty && (
+                <>
+                  <span className="mx-2">•</span>
+                  <span>{
+                    course.difficulty === 'initial' ? '初级' : 
+                    course.difficulty === 'intermediate' ? '中级' : 
+                    course.difficulty === 'advanced' ? '高级' : '所有级别'
+                  }</span>
+                </>
+              )}
+            </div>
+          </CardContent>
+          
+          <CardFooter className="bg-gray-50 p-4 border-t border-gray-100">
             <Button 
               onClick={() => onEnroll(course.id || '')}
               variant="default"
-              size="sm"
+              className="w-full bg-connect-blue hover:bg-blue-600"
             >
               加入课程
             </Button>
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       ))}
     </div>
   );

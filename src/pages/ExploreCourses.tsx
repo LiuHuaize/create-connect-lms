@@ -64,8 +64,27 @@ const ExploreCourses = () => {
   }, []);
 
   const handleEnrollCourse = (courseId: string) => {
-    toast.success('成功加入课程！');
-    navigate(`/course/${courseId}`);
+    try {
+      // 检查课程ID是否存在
+      if (!courseId) {
+        toast.error('课程ID无效');
+        return;
+      }
+      
+      // 检查课程是否存在于当前列表中
+      const courseExists = courses.some(course => course.id === courseId);
+      if (!courseExists) {
+        toast.error('课程不存在或已被移除');
+        return;
+      }
+      
+      // 成功加入课程并导航
+      toast.success('成功加入课程！');
+      navigate(`/course/${courseId}`);
+    } catch (error) {
+      console.error('加入课程失败:', error);
+      toast.error('加入课程失败，请稍后再试');
+    }
   };
 
   const filteredCourses = courses.filter(course => {
@@ -79,20 +98,24 @@ const ExploreCourses = () => {
 
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">探索课程</h1>
-      <p className="text-gray-600 mb-6">发现并加入符合您兴趣的课程</p>
+      <div className="text-center mb-12">
+        <h1 className="text-3xl font-bold text-gray-900 mb-3">探索课程</h1>
+        <p className="text-gray-600 max-w-2xl mx-auto">发现并加入符合您兴趣的课程，开始您的学习之旅</p>
+      </div>
       
       {/* 搜索和筛选 */}
-      <SearchAndFilter 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        categories={categories}
-      />
+      <div className="mb-8">
+        <SearchAndFilter 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          categories={categories}
+        />
+      </div>
       
-      <Tabs defaultValue="recommended" className="mb-8">
-        <TabsList>
+      <Tabs defaultValue="recommended" className="mb-12">
+        <TabsList className="mb-6">
           <TabsTrigger value="recommended">推荐</TabsTrigger>
           <TabsTrigger value="popular">热门</TabsTrigger>
           <TabsTrigger value="new">最新</TabsTrigger>
@@ -112,13 +135,13 @@ const ExploreCourses = () => {
         </TabsContent>
         
         <TabsContent value="popular" className="mt-6">
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
             <p className="text-gray-500">即将推出热门课程...</p>
           </div>
         </TabsContent>
         
         <TabsContent value="new" className="mt-6">
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
             <p className="text-gray-500">即将推出最新课程...</p>
           </div>
         </TabsContent>
