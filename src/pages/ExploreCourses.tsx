@@ -99,13 +99,17 @@ const ExploreCourses = () => {
         return;
       }
 
-      // 使用 SQL 查询方式来避开 TypeScript 类型问题
+      // 使用类型断言来解决TypeScript类型检查问题
+      interface CheckEnrollmentResult {
+        enrollment_id: string | null;
+      }
+      
       // 检查用户是否已经加入过这个课程
-      const { data: enrollments, error: enrollmentCheckError } = await supabase
+      const { data: enrollmentData, error: enrollmentCheckError } = await supabase
         .rpc('check_enrollment', { 
           user_id_param: user.id, 
           course_id_param: courseId 
-        });
+        }) as { data: CheckEnrollmentResult[] | null, error: any };
         
       if (enrollmentCheckError) {
         console.error('检查课程注册状态失败:', enrollmentCheckError);
@@ -115,15 +119,15 @@ const ExploreCourses = () => {
       }
       
       // 如果用户尚未加入课程，则添加一条注册记录
-      if (!enrollments || enrollments.length === 0) {
-        // 使用原始 SQL 查询插入数据
+      if (!enrollmentData || enrollmentData.length === 0) {
+        // 使用类型断言来处理RPC调用
         const { error: insertError } = await supabase.rpc(
           'enroll_in_course',
           { 
             user_id_param: user.id, 
             course_id_param: courseId 
           }
-        );
+        ) as { data: null, error: any };
           
         if (insertError) {
           console.error('课程注册失败:', insertError);
