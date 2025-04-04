@@ -1,173 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
-import { Course } from '@/types/course';
+
+import React, { useState } from 'react';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchAndFilter from '@/components/explore/SearchAndFilter';
-import CourseList from '@/components/explore/CourseList';
 import CommunityCard from '@/components/explore/CommunityCard';
-import LoadingCourses from '@/components/explore/LoadingCourses';
-import EmptyState from '@/components/explore/EmptyState';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// 简化后的分类类型，不再需要强制与课程的category匹配
-export type CourseCategory = '全部' | '商业规划' | '游戏设计' | '产品开发' | '编程' | '创意写作';
-
-// 添加检查注册和注册课程的返回类型定义
-interface CheckEnrollmentResult {
-  enrollment_id: string | null;
-}
-
-interface EnrollInCourseResult {
-  success: boolean;
-}
-
-// 扩展Supabase客户端类型以支持自定义RPC函数
-declare module '@supabase/supabase-js' {
-  interface SupabaseClient {
-    rpc<T = any>(
-      fn: string,
-      params?: object,
-      options?: object
-    ): { data: T; error: Error };
-  }
-}
+import ExploreTabsContent from '@/components/explore/TabsContent';
+import { useCoursesData } from '@/hooks/useCoursesData';
+import { filterCourses } from '@/utils/courseUtils';
+import { COURSE_CATEGORIES, CourseCategory } from '@/types/course-enrollment';
 
 const ExploreCourses = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CourseCategory>('全部');
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingEnrollment, setLoadingEnrollment] = useState(false);
   const [activeTab, setActiveTab] = useState("recommended");
+  
+  const {
+    courses,
+    loading,
+    loadingEnrollment,
+    handleEnrollCourse
+  } = useCoursesData();
 
-  // 定义课程分类
-  const categories: CourseCategory[] = ['全部', '商业规划', '游戏设计', '产品开发', '编程', '创意写作'];
-
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  // 提取获取课程的逻辑到单独的函数中
-  const fetchCourses = async () => {
-    try {
-      setLoading(true);
-      console.log('正在获取课程...');
-      
-      // 获取已发布的课程
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('status', 'published');
-      
-      if (error) {
-        console.error('获取课程失败:', error);
-        toast.error('获取课程失败');
-        setLoading(false);
-        return;
-      }
-      
-      console.log('从数据库获取的课程:', data);
-      
-      if (!data || data.length === 0) {
-        console.log('没有找到课程');
-        setCourses([]);
-        setLoading(false);
-        return;
-      }
-      
-      // 直接将数据转换为Course类型
-      setCourses(data as Course[]);
-    } catch (error) {
-      console.error('获取课程失败:', error);
-      toast.error('获取课程失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEnrollCourse = async (courseId: string) => {
-    try {
-      if (!courseId) {
-        toast.error('课程ID无效');
-        return;
-      }
-      
-      if (!user) {
-        toast.error('请先登录');
-        navigate('/auth');
-        return;
-      }
-      
-      setLoadingEnrollment(true);
-      console.log(`尝试加入课程: ${courseId}`);
-      
-      // Validate course existence and status in a single query
-      const { data: courseData, error: courseError } = await supabase
-        .from('courses')
-        .select('id, status')
-        .eq('id', courseId)
-        .eq('status', 'published')
-        .single();
-      
-      if (courseError || !courseData) {
-        toast.error('课程不存在或未发布');
-        return;
-      }
-      
-      // Check enrollment using the newly created RPC function
-      const { data: enrollmentData, error: enrollmentError } = await supabase
-        .rpc('check_enrollment', { 
-          user_id_param: user.id, 
-          course_id_param: courseId 
-        });
-      
-      if (enrollmentData && enrollmentData.length > 0) {
-        toast.info('您已经注册了这个课程');
-        navigate(`/course/${courseId}`);
-        return;
-      }
-      
-      // Enroll the user in the course
-      const { error: enrollError } = await supabase
-        .rpc('enroll_in_course', { 
-          user_id_param: user.id, 
-          course_id_param: courseId 
-        });
-      
-      if (enrollError) {
-        console.error('注册课程失败:', enrollError);
-        toast.error('注册课程失败，请稍后重试');
-        return;
-      }
-      
-      toast.success('成功加入课程！');
-      navigate(`/course/${courseId}`);
-    } catch (error) {
-      console.error('加入课程过程中发生错误:', error);
-      toast.error('加入课程失败，请稍后重试');
-    } finally {
-      setLoadingEnrollment(false);
-    }
-  };
-
-  // 过滤课程的逻辑
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = 
-      (course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
-      (course.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
-      (course.short_description?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
-    
-    // 如果选择了"全部"分类，则显示所有课程
-    // 否则，检查课程的类别是否与所选类别匹配
-    const matchesCategory = selectedCategory === '全部' || 
-      (course.category && course.category.includes(selectedCategory.toLowerCase()));
-    
-    return matchesSearch && matchesCategory;
-  });
+  // 过滤课程
+  const filteredCourses = filterCourses(courses, searchQuery, selectedCategory);
 
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
@@ -183,7 +37,7 @@ const ExploreCourses = () => {
           setSearchQuery={setSearchQuery}
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
-          categories={categories}
+          categories={COURSE_CATEGORIES}
         />
       </div>
       
@@ -194,39 +48,13 @@ const ExploreCourses = () => {
           <TabsTrigger value="new">最新</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="recommended" className="mt-6">
-          {loading ? (
-            <LoadingCourses />
-          ) : filteredCourses.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <CourseList 
-              courses={filteredCourses} 
-              onEnroll={handleEnrollCourse}
-              loadingEnrollment={loadingEnrollment}
-            />
-          )}
-        </TabsContent>
-        
-        <TabsContent value="popular" className="mt-6">
-          {loading ? (
-            <LoadingCourses />
-          ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="text-gray-500">即将推出热门课程...</p>
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="new" className="mt-6">
-          {loading ? (
-            <LoadingCourses />
-          ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="text-gray-500">即将推出最新课程...</p>
-            </div>
-          )}
-        </TabsContent>
+        <ExploreTabsContent
+          activeTab={activeTab}
+          loading={loading}
+          filteredCourses={filteredCourses}
+          onEnroll={handleEnrollCourse}
+          loadingEnrollment={loadingEnrollment}
+        />
       </Tabs>
       
       {/* 加入社区 */}
