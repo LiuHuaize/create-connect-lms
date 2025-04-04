@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { courseService } from '@/services/courseService';
@@ -6,15 +7,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LessonEditor from '@/components/course/LessonEditor';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
-// Import refactored components
-import CourseDetailsForm from '@/components/course/creator/CourseDetailsForm';
-import CourseImageUploader from '@/components/course/creator/CourseImageUploader';
-import ModuleList from '@/components/course/creator/ModuleList';
-import CourseOverview from '@/components/course/creator/CourseOverview';
-import StudentStatistics from '@/components/course/creator/StudentStatistics';
+// Lazy load components to improve initial loading time
+const LessonEditor = lazy(() => import('@/components/course/LessonEditor'));
+const CourseDetailsForm = lazy(() => import('@/components/course/creator/CourseDetailsForm'));
+const CourseImageUploader = lazy(() => import('@/components/course/creator/CourseImageUploader'));
+const ModuleList = lazy(() => import('@/components/course/creator/ModuleList'));
+const CourseOverview = lazy(() => import('@/components/course/creator/CourseOverview'));
+const StudentStatistics = lazy(() => import('@/components/course/creator/StudentStatistics'));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center p-8">
+    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+    <span className="ml-2 text-gray-500">正在加载...</span>
+  </div>
+);
 
 interface CourseCreatorProps {
   onEditorFullscreenChange?: (isFullscreen: boolean) => void;
@@ -190,6 +199,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-10 w-10 animate-spin mr-3 text-gray-400" />
         <p className="text-gray-500">正在加载课程...</p>
       </div>
     );
@@ -228,71 +238,75 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
               <TabsTrigger value="students">学生统计</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="details" className="space-y-6">
-              <CourseDetailsForm course={course} setCourse={setCourse} />
-              <CourseImageUploader 
-                course={course}
-                setCourse={setCourse}
-                coverImageURL={coverImageURL}
-                setCoverImageURL={setCoverImageURL}
-              />
-            </TabsContent>
-            
-            <TabsContent value="content" className="space-y-6">
-              {currentLesson ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-lg font-bold">编辑课程</h2>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentLesson(null)}>
-                      返回课程结构
-                    </Button>
-                  </div>
-                  
-                  <LessonEditor 
-                    lesson={currentLesson}
-                    onSave={(updatedLesson) => {
-                      const moduleId = modules.find(m => 
-                        m.lessons.some(l => l.id === currentLesson.id)
-                      )?.id;
-                      
-                      if (moduleId) {
-                        updateLesson(moduleId, currentLesson.id, updatedLesson);
-                      }
-                    }}
-                    onEditorFullscreenChange={handleEditorFullscreenToggle}
-                  />
-                </div>
-              ) : (
-                <ModuleList 
-                  modules={modules}
-                  setModules={setModules}
-                  setCurrentLesson={setCurrentLesson}
-                  expandedModule={expandedModule}
-                  setExpandedModule={setExpandedModule}
+            <Suspense fallback={<LoadingFallback />}>
+              <TabsContent value="details" className="space-y-6">
+                <CourseDetailsForm course={course} setCourse={setCourse} />
+                <CourseImageUploader 
+                  course={course}
+                  setCourse={setCourse}
+                  coverImageURL={coverImageURL}
+                  setCoverImageURL={setCoverImageURL}
                 />
-              )}
-            </TabsContent>
-            
-            <TabsContent value="settings">
-              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                <h2 className="text-lg font-bold mb-4">课程设置</h2>
-                <p className="text-gray-500">课程设置选项将在后续版本中提供。</p>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="students">
-              <StudentStatistics />
-            </TabsContent>
+              </TabsContent>
+              
+              <TabsContent value="content" className="space-y-6">
+                {currentLesson ? (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-lg font-bold">编辑课程</h2>
+                      <Button variant="outline" size="sm" onClick={() => setCurrentLesson(null)}>
+                        返回课程结构
+                      </Button>
+                    </div>
+                    
+                    <LessonEditor 
+                      lesson={currentLesson}
+                      onSave={(updatedLesson) => {
+                        const moduleId = modules.find(m => 
+                          m.lessons.some(l => l.id === currentLesson.id)
+                        )?.id;
+                        
+                        if (moduleId) {
+                          updateLesson(moduleId, currentLesson.id, updatedLesson);
+                        }
+                      }}
+                      onEditorFullscreenChange={handleEditorFullscreenToggle}
+                    />
+                  </div>
+                ) : (
+                  <ModuleList 
+                    modules={modules}
+                    setModules={setModules}
+                    setCurrentLesson={setCurrentLesson}
+                    expandedModule={expandedModule}
+                    setExpandedModule={setExpandedModule}
+                  />
+                )}
+              </TabsContent>
+              
+              <TabsContent value="settings">
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <h2 className="text-lg font-bold mb-4">课程设置</h2>
+                  <p className="text-gray-500">课程设置选项将在后续版本中提供。</p>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="students">
+                <StudentStatistics />
+              </TabsContent>
+            </Suspense>
           </Tabs>
         </div>
         
         <div className="lg:col-span-1">
-          <CourseOverview 
-            course={course}
-            modules={modules}
-            completionPercentage={completionPercentage}
-            coverImageURL={coverImageURL}
-          />
+          <Suspense fallback={<LoadingFallback />}>
+            <CourseOverview 
+              course={course}
+              modules={modules}
+              completionPercentage={completionPercentage}
+              coverImageURL={coverImageURL}
+            />
+          </Suspense>
         </div>
       </div>
     </div>

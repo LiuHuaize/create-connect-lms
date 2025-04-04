@@ -30,6 +30,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   const [editorMode, setEditorMode] = useState<'crop' | 'move'>('move');
   const [cropRect, setCropRect] = useState<Rect | null>(null);
   const imageRef = useRef<FabricImage | null>(null);
+  const [canvasInitialized, setCanvasInitialized] = useState(false);
 
   const initializeEditor = async (imageUrl: string) => {
     if (!canvasRef.current) return;
@@ -77,6 +78,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       imageRef.current = img;
       canvas.add(img);
       canvas.renderAll();
+      setCanvasInitialized(true);
     } catch (error) {
       console.error('Error loading image into editor:', error);
       toast.error('无法加载图片进行编辑');
@@ -194,7 +196,13 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       
       // Reset the canvas and reload with the cropped image
       canvas.clear();
-      initializeEditor(croppedImageUrl);
+      // Reset initialized flag to trigger a reinit
+      setCanvasInitialized(false);
+      
+      // Reinitialize with the cropped image after a short delay
+      setTimeout(() => {
+        initializeEditor(croppedImageUrl);
+      }, 50);
       
       // Reset editor mode
       setEditorMode('move');
@@ -209,7 +217,10 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   };
 
   const handleSaveEditedImage = async () => {
-    if (!fabricCanvasRef.current || !imageRef.current) return;
+    if (!fabricCanvasRef.current || !imageRef.current) {
+      toast.error('编辑器未准备好，请重试');
+      return;
+    }
     
     try {
       setIsUploading(true);
@@ -218,7 +229,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       const dataUrl = fabricCanvasRef.current.toDataURL({
         format: 'png',
         quality: 0.8,
-        multiplier: 1, // Add this line to fix the TypeScript error
+        multiplier: 1, // Required for TypeScript
       });
       
       // Convert data URL to Blob
@@ -271,6 +282,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
     } catch (error) {
       console.error('上传图片失败:', error);
       toast.error('上传图片失败，请重试');
+    } finally {
       setIsUploading(false);
     }
   };
@@ -283,18 +295,28 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   };
 
   useEffect(() => {
-    if (showImageEditor && editingImage) {
-      setTimeout(() => {
-        initializeEditor(editingImage);
-      }, 100); // 给对话框一点时间来渲染
-    }
+    // Clean-up function to properly dispose of canvas resources
     return () => {
       if (fabricCanvasRef.current) {
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
       }
+      if (editingImage) {
+        URL.revokeObjectURL(editingImage);
+      }
     };
-  }, [showImageEditor, editingImage]);
+  }, []);
+
+  useEffect(() => {
+    if (showImageEditor && editingImage && !canvasInitialized) {
+      // Use a slight delay to give the dialog time to render
+      const timerId = setTimeout(() => {
+        initializeEditor(editingImage);
+      }, 150);
+      
+      return () => clearTimeout(timerId);
+    }
+  }, [showImageEditor, editingImage, canvasInitialized]);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -372,9 +394,13 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       
       <Dialog open={showImageEditor} onOpenChange={(open) => {
         if (!open) {
-          URL.revokeObjectURL(editingImage || '');
+          // Only revoke the URL if it's a blob URL
+          if (editingImage && editingImage.startsWith('blob:')) {
+            URL.revokeObjectURL(editingImage);
+          }
           setEditingImage(null);
           setShowImageEditor(false);
+          setCanvasInitialized(false);
         }
       }}>
         <DialogContent className="max-w-4xl">
@@ -414,6 +440,14 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
             
             <div className="border rounded-md overflow-hidden shadow-sm">
               <canvas ref={canvasRef} className="w-full h-auto" />
+              {!canvasInitialized && editingImage && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <div className="bg-white p-4 rounded-md shadow flex items-center">
+                    <Clock size={16} className="mr-2 animate-spin" />
+                    <p>加载图片编辑器...</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
@@ -426,7 +460,7 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
             </Button>
             <Button 
               onClick={handleSaveEditedImage} 
-              disabled={isUploading}
+              disabled={isUploading || !canvasInitialized}
               className="bg-connect-blue hover:bg-blue-600"
             >
               {isUploading ? (
