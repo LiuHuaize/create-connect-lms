@@ -6,11 +6,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Course } from '@/types/course';
 
+// Define a type that extends Course with enrollment-related properties
+export type EnrolledCourse = Course & {
+  progress: number;
+  enrollmentId: string;
+  enrollmentStatus?: string;
+  enrolledAt?: string;
+};
+
 export const useCoursesData = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingEnrolled, setLoadingEnrolled] = useState(true);
   const [loadingEnrollment, setLoadingEnrollment] = useState(false);
@@ -101,7 +109,7 @@ export const useCoursesData = () => {
         return;
       }
       
-      // 提取课程数据并转换为Course类型数组
+      // 提取课程数据并转换为EnrolledCourse类型数组
       const coursesWithProgress = data.map(enrollment => ({
         ...(enrollment.courses as Course),
         progress: enrollment.progress,

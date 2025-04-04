@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { useCoursesData } from '@/hooks/useCoursesData';
+import { useCoursesData, EnrolledCourse } from '@/hooks/useCoursesData';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
@@ -25,7 +25,7 @@ const Dashboard = () => {
   const calculateOverallProgress = () => {
     if (enrolledCourses.length === 0) return 0;
     
-    const totalProgress = enrolledCourses.reduce((sum, course) => sum + (course.progress || 0), 0);
+    const totalProgress = enrolledCourses.reduce((sum, course) => sum + course.progress, 0);
     return Math.round(totalProgress / enrolledCourses.length);
   };
 
@@ -33,8 +33,8 @@ const Dashboard = () => {
   
   // 获取进行中的课程（按进度排序）
   const inProgressCourses = enrolledCourses
-    .filter(course => (course.progress || 0) < 100)
-    .sort((a, b) => (b.progress || 0) - (a.progress || 0))
+    .filter(course => course.progress < 100)
+    .sort((a, b) => b.progress - a.progress)
     .slice(0, 2); // 获取前2个课程
 
   return (

@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { BookOpen, Play, Clock, Award, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useCoursesData } from '@/hooks/useCoursesData';
+import { useCoursesData, EnrolledCourse } from '@/hooks/useCoursesData';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 

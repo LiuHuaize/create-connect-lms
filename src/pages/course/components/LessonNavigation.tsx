@@ -7,6 +7,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { toast } from 'sonner';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { courseService } from '@/services/courseService';
 
 interface LessonNavigationProps {
   courseData: Course & { modules?: CourseModule[] };
@@ -87,13 +88,23 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
             size={isMobile ? "sm" : "default"}
             onClick={async () => {
               try {
-                if (!enrollmentId) {
-                  toast.error('您尚未加入此课程');
+                if (!enrollmentId || !selectedLesson || !courseData.id) {
+                  toast.error('无法标记课时完成');
                   return;
                 }
                 
+                await courseService.markLessonComplete(
+                  selectedLesson.id,
+                  courseData.id,
+                  enrollmentId
+                );
+                
                 toast.success('课时已完成');
                 
+                // 如果有下一课时，自动导航到下一课时
+                if (nextLesson) {
+                  navigate(`/course/${courseData.id}/lesson/${nextLesson.id}`);
+                }
               } catch (error) {
                 console.error('更新进度失败:', error);
                 toast.error('标记完成失败');

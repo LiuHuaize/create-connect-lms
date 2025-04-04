@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
@@ -187,5 +186,47 @@ export const courseService = {
     }
     
     return convertDbLessonToLesson(data);
+  },
+
+  // 标记课时为已完成并更新进度
+  async markLessonComplete(lessonId: string, courseId: string, enrollmentId: string): Promise<void> {
+    try {
+      // 获取课程总课时数
+      const { data: courseData, error: courseError } = await supabase
+        .from('course_modules')
+        .select(`
+          id,
+          lessons(id)
+        `)
+        .eq('course_id', courseId);
+        
+      if (courseError) {
+        console.error('获取课程模块失败:', courseError);
+        throw courseError;
+      }
+
+      // 计算总课时数
+      const totalLessons = courseData.reduce((sum, module) => 
+        sum + (module.lessons ? module.lessons.length : 0), 0);
+      
+      if (totalLessons === 0) return; // 如果没有课时，直接返回
+      
+      // 更新当前注册进度
+      const { error: updateError } = await supabase
+        .from('course_enrollments')
+        .update({
+          progress: Math.min(Math.round(1 / totalLessons * 100) + (courseData ? courseData.progress || 0 : 0), 100),
+          last_accessed_at: new Date().toISOString()
+        })
+        .eq('id', enrollmentId);
+        
+      if (updateError) {
+        console.error('更新进度失败:', updateError);
+        throw updateError;
+      }
+    } catch (error) {
+      console.error('标记课时完成失败:', error);
+      throw error;
+    }
   }
 };
