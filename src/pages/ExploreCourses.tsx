@@ -24,6 +24,17 @@ interface EnrollInCourseResult {
   success: boolean;
 }
 
+// 扩展Supabase客户端类型以支持自定义RPC函数
+declare module '@supabase/supabase-js' {
+  interface SupabaseClient {
+    rpc<T = any>(
+      fn: string,
+      params?: object,
+      options?: object
+    ): { data: T; error: Error };
+  }
+}
+
 const ExploreCourses = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -113,7 +124,7 @@ const ExploreCourses = () => {
         .rpc('check_enrollment', { 
           user_id_param: user.id, 
           course_id_param: courseId 
-        }) as { data: CheckEnrollmentResult[] | null, error: any };
+        }) as unknown as { data: CheckEnrollmentResult[] | null, error: any };
         
       if (enrollmentCheckError) {
         console.error('检查课程注册状态失败:', enrollmentCheckError);
@@ -125,13 +136,11 @@ const ExploreCourses = () => {
       // 检查用户是否已经注册了课程
       if (!enrollmentData || enrollmentData.length === 0 || !enrollmentData[0].enrollment_id) {
         // 使用类型断言来处理RPC调用
-        const { error: insertError } = await supabase.rpc(
-          'enroll_in_course',
-          { 
+        const { error: insertError } = await supabase
+          .rpc('enroll_in_course', { 
             user_id_param: user.id, 
             course_id_param: courseId 
-          }
-        ) as { data: EnrollInCourseResult | null, error: any };
+          }) as unknown as { data: EnrollInCourseResult | null, error: any };
           
         if (insertError) {
           console.error('课程注册失败:', insertError);
