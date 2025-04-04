@@ -6,11 +6,12 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from '@/components/ui/badge';
-import { Search, Clock, BookOpen, Tag } from 'lucide-react';
+import { Search, Clock, BookOpen, Tag, Loader2 } from 'lucide-react';
 import CourseCard from '@/components/ui/CourseCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Course } from '@/types/course';
 
 type CourseCategory = '全部' | '商业规划' | '游戏设计' | '产品开发' | '编程' | '创意写作';
 
@@ -19,77 +20,25 @@ const ExploreCourses = () => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CourseCategory>('全部');
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 定义课程分类
   const categories: CourseCategory[] = ['全部', '商业规划', '游戏设计', '产品开发', '编程', '创意写作'];
 
-  // 模拟推荐课程
-  const featuredCourses = [
-    {
-      id: "business-101",
-      type: "skill",
-      title: "商业计划开发",
-      description: "学习如何创建全面的商业计划。了解市场研究、财务预测和战略规划。",
-      coursesCount: 7,
-      certificate: true,
-      level: "中级",
-      hours: 22,
-      category: '商业规划',
-    },
-    {
-      id: "game-design-101",
-      type: "free",
-      title: "卡牌游戏设计基础",
-      description: "探索卡牌游戏设计的基础知识。学习游戏机制、平衡策略和原型制作技术。",
-      level: "初级",
-      hours: 10,
-      category: '游戏设计',
-    },
-    {
-      id: "product-management",
-      type: "career",
-      title: "项目管理专业",
-      description: "构建端到端项目管理技能。掌握规划、执行、监控和团队领导能力。",
-      coursesCount: 7,
-      certificate: true,
-      level: "中级到高级",
-      hours: 50,
-      category: '产品开发',
-    },
-    {
-      id: "creative-writing",
-      type: "skill",
-      title: "创意写作入门",
-      description: "掌握创意写作的基本技巧，开发独特的写作风格和讲故事的能力。",
-      coursesCount: 5,
-      certificate: false,
-      level: "初级",
-      hours: 15,
-      category: '创意写作',
-    },
-  ];
-
   useEffect(() => {
-    // 真实应用中，这里应该从Supabase获取已发布的课程
     const fetchCourses = async () => {
       try {
         setLoading(true);
-        // 模拟从数据库获取数据的延迟
-        setTimeout(() => {
-          setCourses(featuredCourses);
-          setLoading(false);
-        }, 1000);
+        // 获取已发布的课程
+        const { data, error } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('status', 'published');
         
-        // 实际的Supabase查询应该类似这样:
-        // const { data, error } = await supabase
-        //   .from('courses')
-        //   .select('*')
-        //   .eq('status', 'published');
-        // 
-        // if (error) throw error;
-        // setCourses(data || []);
+        if (error) throw error;
+        console.log('从数据库获取的课程:', data);
+        setCourses(data || []);
       } catch (error) {
         console.error('获取课程失败:', error);
         toast.error('获取课程失败');
@@ -109,8 +58,10 @@ const ExploreCourses = () => {
   };
 
   const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         course.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          course.short_description?.toLowerCase().includes(searchQuery.toLowerCase());
+    
     const matchesCategory = selectedCategory === '全部' || course.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -172,23 +123,26 @@ const ExploreCourses = () => {
           ) : filteredCourses.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">没有找到符合条件的课程</p>
+              <p className="text-gray-400 text-sm">请尝试其他搜索条件或稍后再试</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCourses.map((course) => (
                 <div key={course.id} className="relative">
                   <CourseCard
-                    type={course.type}
+                    type={course.category === '商业规划' ? 'skill' : 
+                          course.price === 0 || course.price === null ? 'free' : 'career'}
                     title={course.title}
-                    description={course.description}
-                    coursesCount={course.coursesCount}
-                    certificate={course.certificate}
-                    level={course.level}
-                    hours={course.hours}
+                    description={course.short_description || course.description || ''}
+                    certificate={Boolean(course.price)}
+                    level={course.difficulty === 'initial' ? '初级' : 
+                           course.difficulty === 'intermediate' ? '中级' : 
+                           course.difficulty === 'advanced' ? '高级' : ''}
+                    hours={10} // 默认值，实际应从数据库获取
                   />
                   <div className="mt-4 flex justify-end">
                     <Button 
-                      onClick={() => handleEnrollCourse(course.id)}
+                      onClick={() => handleEnrollCourse(course.id || '')}
                       variant="default"
                       size="sm"
                     >

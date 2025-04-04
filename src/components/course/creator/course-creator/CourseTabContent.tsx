@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 import { TabsContent } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 import { Course, CourseModule, Lesson } from '@/types/course';
-import { Button } from '@/components/ui/button';  // 正确导入Button组件
+import { Button } from '@/components/ui/button';
 
 // Lazy loaded components
 const LessonEditor = React.lazy(() => import('@/components/course/LessonEditor'));
