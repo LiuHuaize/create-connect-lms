@@ -12,21 +12,27 @@ const EmptyState: React.FC = () => {
       <div className="mx-auto h-20 w-20 flex items-center justify-center bg-gray-50 rounded-full mb-6">
         <SearchX className="h-10 w-10 text-gray-400" />
       </div>
-      <h3 className="text-2xl font-semibold text-gray-800 mb-3">课程未找到</h3>
-      <p className="text-gray-500 max-w-md mx-auto mb-6">请尝试其他搜索条件或查看所有课程分类</p>
+      <h3 className="text-2xl font-semibold text-gray-800 mb-3">未找到课程</h3>
+      <p className="text-gray-500 max-w-md mx-auto mb-6">
+        当前没有可供选择的课程，或者您的搜索条件没有匹配的结果
+      </p>
       <div className="space-y-4">
         <div className="inline-flex gap-2 text-sm bg-blue-50 text-blue-600 px-4 py-2 rounded-full">
           <span>提示:</span>
-          <span>尝试使用更广泛的搜索词或选择"全部"分类</span>
+          <span>尝试清除搜索条件或选择"全部"分类</span>
         </div>
         <div>
           <Button 
             variant="outline" 
             className="mt-4 border-blue-200 hover:bg-blue-50 hover:text-blue-700" 
-            onClick={() => navigate('/explore-courses')}
+            onClick={() => {
+              // 重置搜索条件并刷新页面
+              navigate('/explore-courses');
+              window.location.reload();
+            }}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            返回课程列表
+            刷新课程列表
           </Button>
         </div>
       </div>

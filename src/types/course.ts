@@ -1,13 +1,12 @@
-
 // 导入必要的类型
 import { Json } from "@/integrations/supabase/types";
 
 // 课程状态类型
 export type CourseStatus = 'draft' | 'published' | 'archived';
 
-// 课程类型定义
+// 课程类型定义 - 简化版本，与数据库保持一致
 export type Course = {
-  id?: string;
+  id: string;
   title: string;
   description?: string | null;
   short_description?: string | null;
@@ -18,8 +17,6 @@ export type Course = {
   tags?: string[] | null;
   created_at?: string;
   updated_at?: string;
-  category?: string;
-  difficulty?: 'initial' | 'intermediate' | 'advanced';
 };
 
 // 课程模块类型定义

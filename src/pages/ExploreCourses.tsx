@@ -14,6 +14,7 @@ import CommunityCard from '@/components/explore/CommunityCard';
 import LoadingCourses from '@/components/explore/LoadingCourses';
 import EmptyState from '@/components/explore/EmptyState';
 
+// 简化后的分类类型，不再需要强制与课程的category匹配
 export type CourseCategory = '全部' | '商业规划' | '游戏设计' | '产品开发' | '编程' | '创意写作';
 
 const ExploreCourses = () => {
@@ -29,68 +30,53 @@ const ExploreCourses = () => {
   const categories: CourseCategory[] = ['全部', '商业规划', '游戏设计', '产品开发', '编程', '创意写作'];
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        // 获取已发布的课程
-        const { data, error } = await supabase
-          .from('courses')
-          .select('*')
-          .eq('status', 'published');
-        
-        if (error) throw error;
-        console.log('从数据库获取的课程:', data);
-        
-        if (!data || data.length === 0) {
-          setCourses([]);
-          setLoading(false);
-          return;
-        }
-        
-        // 处理从数据库中获取的课程数据
-        // 注意：我们不使用课程对象的difficulty和category属性，因为数据库schema中可能没有这些字段
-        // 在处理之前，添加了适当的默认值来防止TypeScript错误
-        const typedCourses: Course[] = data.map(course => {
-          // 首先创建一个基本课程对象，包含数据库中存在的所有属性
-          const baseCourse = {
-            id: course.id || '',
-            title: course.title,
-            description: course.description || null,
-            short_description: course.short_description || null,
-            author_id: course.author_id,
-            cover_image: course.cover_image || null,
-            status: course.status as Course['status'],
-            price: course.price || null,
-            tags: course.tags || [],
-            created_at: course.created_at,
-            updated_at: course.updated_at,
-          };
-          
-          // 然后，添加TypeScript模型中需要但数据库可能没有的属性
-          // 明确转换为Course类型以确保类型安全
-          return {
-            ...baseCourse,
-            // 使用类型断言，如果不存在，则提供默认值
-            difficulty: (course as any).difficulty as Course['difficulty'] || 'initial',
-            category: (course as any).category as string || null
-          } as Course;
-        });
-        
-        setCourses(typedCourses);
-      } catch (error) {
-        console.error('获取课程失败:', error);
-        toast.error('获取课程失败');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCourses();
   }, []);
 
+  // 提取获取课程的逻辑到单独的函数中
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      console.log('正在获取课程...');
+      
+      // 获取已发布的课程
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('status', 'published');
+      
+      if (error) {
+        console.error('获取课程失败:', error);
+        toast.error('获取课程失败');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('从数据库获取的课程:', data);
+      
+      if (!data || data.length === 0) {
+        console.log('没有找到课程');
+        setCourses([]);
+        setLoading(false);
+        return;
+      }
+      
+      // 直接将数据转换为Course类型，不需要额外处理difficulty和category
+      setCourses(data as Course[]);
+    } catch (error) {
+      console.error('获取课程失败:', error);
+      toast.error('获取课程失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEnrollCourse = async (courseId: string) => {
     try {
-      setLoadingEnrollment(true);
+      if (!courseId) {
+        toast.error('课程ID无效');
+        return;
+      }
       
       if (!user) {
         toast.error('请先登录');
@@ -98,13 +84,10 @@ const ExploreCourses = () => {
         return;
       }
       
-      // 检查课程ID是否存在
-      if (!courseId) {
-        toast.error('课程ID无效');
-        return;
-      }
+      setLoadingEnrollment(true);
+      console.log(`尝试加入课程: ${courseId}`);
       
-      // 确认课程在数据库中存在
+      // 验证课程是否存在
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .select('*')
@@ -117,12 +100,7 @@ const ExploreCourses = () => {
         return;
       }
       
-      if (!courseData) {
-        toast.error('课程不存在或已被移除');
-        return;
-      }
-      
-      // 成功后导航到课程页面
+      // 课程存在，直接导航到课程详情页
       toast.success('成功加入课程！');
       navigate(`/course/${courseId}`);
     } catch (error) {
@@ -133,14 +111,16 @@ const ExploreCourses = () => {
     }
   };
 
+  // 过滤课程的逻辑
   const filteredCourses = courses.filter(course => {
     const matchesSearch = 
       (course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
       (course.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
       (course.short_description?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
     
-    const matchesCategory = selectedCategory === '全部' || course.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    // 由于我们已经去除了category字段，我们在此处简化过滤逻辑
+    // 如果选择了"全部"分类，则显示所有课程
+    return selectedCategory === '全部' || matchesSearch;
   });
 
   return (

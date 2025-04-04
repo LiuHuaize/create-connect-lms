@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, Book, Users, Star, BookOpen } from 'lucide-react';
+import { Clock, Users, Star, BookOpen } from 'lucide-react';
 import { Course } from '@/types/course';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -29,17 +29,11 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrol
                 <BookOpen size={48} className="text-blue-300" />
               </div>
             )}
-            <div className="absolute top-4 left-4 flex flex-col gap-2">
-              <span className={`text-xs font-medium px-3 py-1.5 rounded-full ${
-                course.category === '商业规划' ? 'bg-blue-100 text-blue-700' : 
-                course.category === '游戏设计' ? 'bg-purple-100 text-purple-700' : 
-                course.category === '产品开发' ? 'bg-green-100 text-green-700' :
-                course.category === '编程' ? 'bg-amber-100 text-amber-700' :
-                course.category === '创意写作' ? 'bg-pink-100 text-pink-700' :
-                course.price === 0 || course.price === null ? 'bg-emerald-100 text-emerald-700' : 
-                'bg-indigo-100 text-indigo-700'
-              }`}>
-                {course.category || '免费课程'}
+            
+            {/* 免费标签 */}
+            <div className="absolute top-4 left-4">
+              <span className="text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700">
+                {course.price && course.price > 0 ? `¥${course.price}` : '免费课程'}
               </span>
             </div>
             
@@ -64,16 +58,6 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrol
                 <span>10 小时</span>
               </div>
               
-              {course.difficulty && (
-                <div className="flex items-center">
-                  <span>{
-                    course.difficulty === 'initial' ? '初级' : 
-                    course.difficulty === 'intermediate' ? '中级' : 
-                    course.difficulty === 'advanced' ? '高级' : '所有级别'
-                  }</span>
-                </div>
-              )}
-              
               <div className="flex items-center">
                 <Users size={14} className="mr-1.5" />
                 <span>已有 {Math.floor(Math.random() * 100) + 73} 人加入</span>
@@ -83,7 +67,7 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrol
           
           <CardFooter className="p-6 pt-2 border-t border-gray-100">
             <Button 
-              onClick={() => onEnroll(course.id || '')}
+              onClick={() => onEnroll(course.id)}
               variant="default"
               disabled={loadingEnrollment}
               className={cn(
