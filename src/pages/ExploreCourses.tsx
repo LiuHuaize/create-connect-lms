@@ -63,7 +63,7 @@ const ExploreCourses = () => {
     fetchCourses();
   }, []);
 
-  const handleEnrollCourse = (courseId: string) => {
+  const handleEnrollCourse = async (courseId: string) => {
     try {
       // 检查课程ID是否存在
       if (!courseId) {
@@ -77,6 +77,22 @@ const ExploreCourses = () => {
         toast.error('课程不存在或已被移除');
         return;
       }
+
+      // 获取课程详情以确保它真的存在于数据库中
+      const { data: courseData, error: courseError } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('id', courseId)
+        .single();
+      
+      if (courseError || !courseData) {
+        console.error('获取课程详情失败:', courseError);
+        toast.error('课程不存在或已被移除');
+        return;
+      }
+      
+      // 查找用户已加入的课程（这里可以添加课程注册逻辑）
+      // 例如：将用户ID和课程ID添加到user_courses表
       
       // 成功加入课程并导航
       toast.success('成功加入课程！');

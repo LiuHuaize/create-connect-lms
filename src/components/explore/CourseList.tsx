@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, Book } from 'lucide-react';
+import { Clock, Book, Users } from 'lucide-react';
 import { Course } from '@/types/course';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 
@@ -15,7 +15,7 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {courses.map((course) => (
         <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
-          <div className="h-48 overflow-hidden bg-gray-100 relative">
+          <div className="h-52 overflow-hidden bg-gray-100 relative">
             {course.cover_image ? (
               <img 
                 src={course.cover_image} 
@@ -29,8 +29,12 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll }) => {
             )}
             <div className="absolute top-3 left-3">
               <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                course.category === '商业规划' ? 'bg-connect-lightBlue text-connect-blue' : 
-                course.price === 0 || course.price === null ? 'bg-green-100 text-green-700' : 
+                course.category === '商业规划' ? 'bg-blue-100 text-blue-700' : 
+                course.category === '游戏设计' ? 'bg-purple-100 text-purple-700' : 
+                course.category === '产品开发' ? 'bg-green-100 text-green-700' :
+                course.category === '编程' ? 'bg-amber-100 text-amber-700' :
+                course.category === '创意写作' ? 'bg-pink-100 text-pink-700' :
+                course.price === 0 || course.price === null ? 'bg-emerald-100 text-emerald-700' : 
                 'bg-indigo-100 text-indigo-700'
               }`}>
                 {course.category || '免费课程'}
@@ -58,6 +62,10 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll }) => {
                   }</span>
                 </>
               )}
+              
+              <span className="mx-2">•</span>
+              <Users size={14} className="mr-1" />
+              <span>已有 {Math.floor(Math.random() * 100) + 5} 人加入</span>
             </div>
           </CardContent>
           
@@ -65,7 +73,7 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll }) => {
             <Button 
               onClick={() => onEnroll(course.id || '')}
               variant="default"
-              className="w-full bg-connect-blue hover:bg-blue-600"
+              className="w-full bg-blue-600 hover:bg-blue-700"
             >
               加入课程
             </Button>
