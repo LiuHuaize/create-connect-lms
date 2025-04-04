@@ -120,34 +120,69 @@ const ExploreCourses = () => {
         return;
       }
 
-      // 检查用户是否已经加入过这个课程 - 使用正确的类型断言
-      const { data: enrollmentData, error: enrollmentCheckError } = await supabase
-        .rpc('check_enrollment', { 
-          user_id_param: user.id, 
-          course_id_param: courseId 
-        }) as unknown as { data: CheckEnrollmentResult[] | null, error: any };
+      let isAlreadyEnrolled = false;
+      
+      try {
+        // 尝试使用check_enrollment RPC，但如果失败，就直接检查课程注册表
+        const { data: enrollmentData, error: enrollmentCheckError } = await supabase
+          .rpc('check_enrollment', { 
+            user_id_param: user.id, 
+            course_id_param: courseId 
+          });
+          
+        if (!enrollmentCheckError && enrollmentData && enrollmentData.length > 0) {
+          isAlreadyEnrolled = true;
+        }
+      } catch (checkError) {
+        console.log('使用RPC检查注册失败，将直接查询数据库:', checkError);
         
-      if (enrollmentCheckError) {
-        console.error('检查课程注册状态失败:', enrollmentCheckError);
-        toast.error('检查课程注册状态失败');
+        // 如果RPC调用失败，直接查询course_enrollments表
+        const { data: directEnrollmentCheck, error: directCheckError } = await supabase
+          .from('course_enrollments')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('course_id', courseId);
+          
+        if (!directCheckError && directEnrollmentCheck && directEnrollmentCheck.length > 0) {
+          isAlreadyEnrolled = true;
+        }
+      }
+      
+      // 如果用户已经注册，直接导航到课程页面
+      if (isAlreadyEnrolled) {
+        console.log('用户已经注册了这个课程');
+        toast.success('您已注册过此课程，正在跳转...');
+        navigate(`/course/${courseId}`);
         setLoadingEnrollment(false);
         return;
       }
       
-      // 检查用户是否已经注册了课程
-      if (!enrollmentData || enrollmentData.length === 0 || !enrollmentData[0].enrollment_id) {
-        // 使用类型断言来处理RPC调用
-        const { error: insertError } = await supabase
+      // 用户未注册，使用enroll_in_course函数
+      try {
+        const { error: enrollError } = await supabase
           .rpc('enroll_in_course', { 
             user_id_param: user.id, 
             course_id_param: courseId 
-          }) as unknown as { data: EnrollInCourseResult | null, error: any };
+          });
+          
+        if (enrollError) {
+          throw enrollError;
+        }
+      } catch (enrollRpcError) {
+        console.log('使用RPC注册失败，将直接插入数据:', enrollRpcError);
+        
+        // 如果RPC调用失败，直接插入数据
+        const { error: insertError } = await supabase
+          .from('course_enrollments')
+          .insert({
+            user_id: user.id,
+            course_id: courseId,
+            status: 'active',
+            progress: 0
+          });
           
         if (insertError) {
-          console.error('课程注册失败:', insertError);
-          toast.error('加入课程失败，请稍后再试');
-          setLoadingEnrollment(false);
-          return;
+          throw insertError;
         }
       }
       
