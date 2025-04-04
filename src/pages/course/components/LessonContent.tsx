@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { NavigateFunction, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Course, CourseLesson } from '@/types/course';
@@ -11,7 +11,7 @@ interface LessonContentProps {
   selectedUnit: any;
   courseData: Course & { modules?: any[] };
   enrollmentId: string | undefined;
-  navigate: NavigateFunction; // Use NavigateFunction instead of useNavigate
+  navigate: ReturnType<typeof useNavigate>;
 }
 
 const LessonContent: React.FC<LessonContentProps> = ({
@@ -41,14 +41,14 @@ const LessonContent: React.FC<LessonContentProps> = ({
 
     // 上一课
     if (lessonIndex > 0 && currentModule.lessons) {
-      setPrevLesson(currentModule.lessons[lessonIndex - 1]);
+      setPrevLesson(currentModule.lessons[lessonIndex - 1] as CourseLesson);
     } else {
       // 如果是模块的第一课，尝试找到上一个模块的最后一课
       const currentModuleIndex = courseData.modules?.findIndex(module => module.id === currentModule.id);
       if (currentModuleIndex && currentModuleIndex > 0 && courseData.modules) {
         const prevModule = courseData.modules[currentModuleIndex - 1];
         if (prevModule.lessons && prevModule.lessons.length > 0) {
-          setPrevLesson(prevModule.lessons[prevModule.lessons.length - 1]);
+          setPrevLesson(prevModule.lessons[prevModule.lessons.length - 1] as CourseLesson);
         } else {
           setPrevLesson(undefined);
         }
@@ -59,14 +59,14 @@ const LessonContent: React.FC<LessonContentProps> = ({
 
     // 下一课
     if (lessonIndex < currentModule.lessons!.length - 1 && currentModule.lessons) {
-      setNextLesson(currentModule.lessons[lessonIndex + 1]);
+      setNextLesson(currentModule.lessons[lessonIndex + 1] as CourseLesson);
     } else {
       // 如果是模块的最后一课，尝试找到下一个模块的第一课
       const currentModuleIndex = courseData.modules?.findIndex(module => module.id === currentModule.id);
       if (currentModuleIndex !== undefined && currentModuleIndex < courseData.modules!.length - 1 && courseData.modules) {
         const nextModule = courseData.modules[currentModuleIndex + 1];
         if (nextModule.lessons && nextModule.lessons.length > 0) {
-          setNextLesson(nextModule.lessons[0]);
+          setNextLesson(nextModule.lessons[0] as CourseLesson);
         } else {
           setNextLesson(undefined);
         }
@@ -145,7 +145,10 @@ const LessonContent: React.FC<LessonContentProps> = ({
               {selectedLesson.content && (
                 <div 
                   className="prose prose-blue max-w-none" 
-                  dangerouslySetInnerHTML={{ __html: selectedLesson.content }}
+                  dangerouslySetInnerHTML={{ __html: typeof selectedLesson.content === 'string' 
+                    ? selectedLesson.content 
+                    : JSON.stringify(selectedLesson.content) 
+                  }}
                 />
               )}
             </div>

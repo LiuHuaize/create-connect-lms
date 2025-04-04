@@ -2,7 +2,7 @@
 export interface Course {
   id?: string;
   created_at?: string;
-  updated_at?: string; // Added missing property
+  updated_at?: string;
   title: string;
   short_description?: string;
   description?: string;
@@ -11,7 +11,7 @@ export interface Course {
   level?: string;
   language?: string;
   user_id?: string;
-  author_id?: string; // Added missing property
+  author_id?: string;
   price?: number;
   discount?: number;
   start_date?: string;
@@ -31,7 +31,7 @@ export interface CourseModule {
   description?: string;
   course_id?: string;
   order?: number;
-  order_index?: number; // Added missing property
+  order_index?: number;
   lessons?: CourseLesson[] | Lesson[];
 }
 
@@ -39,12 +39,14 @@ export interface CourseLesson {
   id?: string;
   title: string;
   type: string;
-  content?: string;
+  content?: string | LessonContent;
   module_id?: string;
   order?: number;
+  order_index?: number;
   duration?: number;
   status?: 'draft' | 'published';
   video_url?: string;
+  video_file_path?: string | null;
   completed?: boolean;
 }
 

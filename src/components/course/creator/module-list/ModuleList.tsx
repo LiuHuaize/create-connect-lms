@@ -63,21 +63,31 @@ const ModuleList: React.FC<ModuleListProps> = ({
       order_index: orderIndex
     };
     
-    setModules(modules.map(module => 
-      module.id === moduleId 
-        ? { ...module, lessons: [...(module.lessons || []), newLesson] } 
-        : module
-    ));
+    const updatedModules = modules.map(module => {
+      if (module.id === moduleId) {
+        const updatedLessons = [...(module.lessons || [])];
+        updatedLessons.push(newLesson as Lesson);
+        return { ...module, lessons: updatedLessons };
+      }
+      return module;
+    });
     
+    setModules(updatedModules);
     setCurrentLesson(newLesson);
   };
 
   const deleteLesson = (moduleId: string, lessonId: string) => {
-    setModules(modules.map(module => 
-      module.id === moduleId 
-        ? { ...module, lessons: module.lessons.filter(lesson => lesson.id !== lessonId) } 
-        : module
-    ));
+    const updatedModules = modules.map(module => {
+      if (module.id === moduleId) {
+        return { 
+          ...module, 
+          lessons: module.lessons.filter(lesson => lesson.id !== lessonId) 
+        };
+      }
+      return module;
+    });
+    
+    setModules(updatedModules);
   };
 
   return (

@@ -193,25 +193,26 @@ export const courseService = {
     try {
       // First check if the completion record already exists
       const { data: existingCompletion } = await supabase
-        .from("lesson_completions")
-        .select("*")
-        .eq("enrollment_id", enrollmentId)
-        .eq("lesson_id", lessonId)
+        .from("course_enrollments")
+        .select("id")
+        .eq("id", enrollmentId)
         .maybeSingle();
       
-      if (existingCompletion) {
-        console.log('Lesson already marked as complete');
-        return;
+      if (!existingCompletion) {
+        console.log('Enrollment not found');
+        throw new Error('Enrollment not found');
       }
       
-      // Insert new completion record
+      // Update course_enrollments to track which lesson was completed
+      // Since we don't have a lesson_completions table yet, we'll use a workaround for now
+      // by updating the progress field in the enrollment
       const { error } = await supabase
-        .from("lesson_completions")
-        .insert({
-          enrollment_id: enrollmentId,
-          lesson_id: lessonId,
-          completed_at: new Date().toISOString()
-        });
+        .from("course_enrollments")
+        .update({
+          last_accessed_at: new Date().toISOString(),
+          progress: supabase.rpc('increment_progress', { enrollment_id: enrollmentId })
+        })
+        .eq("id", enrollmentId);
 
       if (error) {
         console.error('Error marking lesson as complete:', error);

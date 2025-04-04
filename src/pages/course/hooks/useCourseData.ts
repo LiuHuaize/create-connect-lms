@@ -1,85 +1,118 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { courseService } from '@/services/courseService';
-import { toast } from 'sonner';
-import { Course, CourseModule, Lesson } from '@/types/course';
+import { useAuth } from '@/contexts/AuthContext';
+import { Course, CourseLesson, CourseModule } from '@/types/course';
 
-export const useCourseData = (courseId: string | undefined) => {
+export const useCourseData = (courseId: string) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [courseData, setCourseData] = useState<(Course & { modules?: CourseModule[] }) | null>(null);
+  const [courseData, setCourseData] = useState<Course & { modules?: CourseModule[] }>(null);
   const [progress, setProgress] = useState(0);
-  const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
-  
+  const [enrollmentId, setEnrollmentId] = useState<string>(null);
+
   useEffect(() => {
-    const fetchCourseData = async () => {
-      if (!courseId) return;
-      
+    if (!courseId) {
+      setLoading(false);
+      return;
+    }
+
+    const loadCourseData = async () => {
       try {
         setLoading(true);
-        console.log('正在获取课程详情:', courseId);
         
-        const { data: user } = await supabase.auth.getUser();
-        if (user && user.user) {
-          const { data: enrollments } = await supabase
-            .from('course_enrollments')
-            .select('id, progress')
-            .eq('user_id', user.user.id)
-            .eq('course_id', courseId)
-            .maybeSingle();
+        // 获取课程详情
+        const { data: courseData, error: courseError } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('id', courseId)
+          .single();
+        
+        if (courseError) throw courseError;
+        
+        // 获取课程模块和课时
+        const { data: modulesData, error: modulesError } = await supabase
+          .from('course_modules')
+          .select(`
+            *,
+            lessons(*)
+          `)
+          .eq('course_id', courseId)
+          .order('order_index');
+        
+        if (modulesError) throw modulesError;
+        
+        // 整合数据
+        const fullCourseData = {
+          ...courseData,
+          modules: modulesData || []
+        };
+        
+        setCourseData(fullCourseData);
+        
+        // 如果用户已登录，获取课程注册信息
+        if (user) {
+          // Check for enrollment
+          const { data: enrollmentData, error: enrollmentError } = await supabase
+            .rpc('check_enrollment', {
+              user_id_param: user.id,
+              course_id_param: courseId
+            });
+          
+          if (!enrollmentError && enrollmentData && enrollmentData.length > 0) {
+            // User is enrolled, get progress info
+            const { data: progressData, error: progressError } = await supabase
+              .from('course_enrollments')
+              .select('id, progress')
+              .eq('user_id', user.id)
+              .eq('course_id', courseId)
+              .maybeSingle();
             
-          if (enrollments) {
-            setEnrollmentId(enrollments.id);
-            setProgress(enrollments.progress || 0);
+            if (!progressError && progressData) {
+              setProgress(progressData.progress || 0);
+              setEnrollmentId(progressData.id);
+            }
           }
         }
         
-        const courseDetails = await courseService.getCourseDetails(courseId);
-        console.log('获取到的课程详情:', courseDetails);
-        setCourseData(courseDetails);
       } catch (error) {
-        console.error('获取课程失败:', error);
-        toast.error('获取课程数据失败');
+        console.error('加载课程数据失败:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchCourseData();
-  }, [courseId]);
-  
-  const findCurrentLesson = (lessonId: string | undefined): { 
-    selectedLesson: Lesson | null; 
-    selectedUnit: CourseModule | null 
-  } => {
-    let selectedLesson = null;
-    let selectedUnit = null;
+    loadCourseData();
+  }, [courseId, user]);
+
+  const findCurrentLesson = (lessonId: string) => {
+    if (!courseData || !courseData.modules) {
+      return { selectedLesson: null, selectedUnit: null };
+    }
     
-    if (courseData?.modules && courseData.modules.length > 0) {
-      if (lessonId) {
-        for (const module of courseData.modules) {
-          if (!module.lessons) continue;
-          const lesson = module.lessons.find(l => l.id === lessonId);
-          if (lesson) {
-            selectedLesson = lesson;
-            selectedUnit = module;
-            break;
-          }
-        }
-      }
+    for (const module of courseData.modules) {
+      if (!module.lessons) continue;
       
-      if (!selectedLesson) {
-        for (const module of courseData.modules) {
-          if (module.lessons && module.lessons.length > 0) {
-            selectedLesson = module.lessons[0];
-            selectedUnit = module;
-            break;
-          }
-        }
+      const foundLesson = module.lessons.find(lesson => lesson.id === lessonId);
+      if (foundLesson) {
+        return { 
+          selectedLesson: foundLesson as CourseLesson, 
+          selectedUnit: module 
+        };
       }
     }
     
-    return { selectedLesson, selectedUnit };
+    // 如果没有找到指定课时，返回第一个课时
+    if (courseData.modules.length > 0 && 
+        courseData.modules[0].lessons && 
+        courseData.modules[0].lessons.length > 0) {
+      return { 
+        selectedLesson: courseData.modules[0].lessons[0] as CourseLesson, 
+        selectedUnit: courseData.modules[0] 
+      };
+    }
+    
+    return { selectedLesson: null, selectedUnit: null };
   };
 
   return {
