@@ -217,7 +217,8 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       // Convert canvas to data URL and then to blob
       const dataUrl = fabricCanvasRef.current.toDataURL({
         format: 'png',
-        quality: 0.8
+        quality: 0.8,
+        multiplier: 1, // Add this line to fix the TypeScript error
       });
       
       // Convert data URL to Blob
