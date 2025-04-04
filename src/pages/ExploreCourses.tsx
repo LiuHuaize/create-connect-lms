@@ -43,6 +43,7 @@ const ExploreCourses = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingEnrollment, setLoadingEnrollment] = useState(false);
+  const [activeTab, setActiveTab] = useState("recommended");
 
   // 定义课程分类
   const categories: CourseCategory[] = ['全部', '商业规划', '游戏设计', '产品开发', '编程', '创意写作'];
@@ -193,7 +194,7 @@ const ExploreCourses = () => {
         />
       </div>
       
-      <Tabs defaultValue="recommended" className="mb-12">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-12">
         <TabsList className="mb-6">
           <TabsTrigger value="recommended">推荐</TabsTrigger>
           <TabsTrigger value="popular">热门</TabsTrigger>
