@@ -230,6 +230,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_enrollment: {
+        Args: {
+          user_id_param: string
+          course_id_param: string
+        }
+        Returns: {
+          enrollment_id: string
+        }[]
+      }
       has_role: {
         Args: {
           user_id: string
