@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Course, CourseModule } from '@/types/course';
 import CourseHeader from './CourseHeader';
@@ -23,6 +23,7 @@ const PreviewDialog: React.FC<PreviewDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl p-0 h-[90vh] flex flex-col overflow-hidden">
+        <DialogTitle className="sr-only">课程预览</DialogTitle>
         <div className="flex justify-end p-2 absolute right-2 top-2 z-10">
           <button
             onClick={onClose}
