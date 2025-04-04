@@ -1,18 +1,16 @@
-
-import React from 'react';
-import { Play, Check } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BookOpen } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Lesson, CourseModule, LessonType, TextLessonContent } from '@/types/course';
-import LessonNavigation from './LessonNavigation';
-import { NavigateFunction } from 'react-router-dom';
+import { Course, CourseLesson } from '@/types/course';
+import { courseService } from '@/services/courseService';
 
 interface LessonContentProps {
-  selectedLesson: Lesson | null;
-  selectedUnit: CourseModule | null;
-  courseData: any;
-  enrollmentId: string | null;
-  navigate: NavigateFunction;
+  selectedLesson: CourseLesson | undefined;
+  selectedUnit: any;
+  courseData: Course & { modules?: any[] };
+  enrollmentId: string | undefined;
+  navigate: useNavigate;
 }
 
 const LessonContent: React.FC<LessonContentProps> = ({
@@ -22,195 +20,182 @@ const LessonContent: React.FC<LessonContentProps> = ({
   enrollmentId,
   navigate
 }) => {
-  const renderLessonContent = () => {
-    if (!selectedLesson) return null;
-    
-    switch (selectedLesson.type) {
-      case 'text':
-        const textContent = selectedLesson.content as TextLessonContent;
-        return (
-          <div className="prose max-w-none">
-            {textContent?.text ? (
-              <div dangerouslySetInnerHTML={{ 
-                __html: JSON.parse(textContent.text).map((block: any) => {
-                  if (block.type === 'paragraph') {
-                    return `<p>${block.content.map((item: any) => item.text).join('')}</p>`;
-                  }
-                  return '';
-                }).join('') 
-              }} />
-            ) : (
-              <p>此课时暂无内容</p>
-            )}
-          </div>
-        );
-      case 'video':
-        return (
-          <div className="aspect-video bg-gradient-to-br from-gray-900 to-blue-900 rounded-xl flex items-center justify-center mb-6 shadow-lg overflow-hidden">
-            {selectedLesson.video_file_path ? (
-              <video 
-                controls 
-                className="w-full h-full"
-                src={selectedLesson.video_file_path}
-              >
-                您的浏览器不支持视频播放
-              </video>
-            ) : (
-              <div className="text-center">
-                <div className="p-4 rounded-full bg-white/20 backdrop-blur-md inline-block mb-4 cursor-pointer hover:bg-white/30 transition-all">
-                  <Play size={48} className="text-white" />
-                </div>
-                <p className="text-white font-medium">暂无视频内容</p>
-              </div>
-            )}
-          </div>
-        );
-      case 'quiz':
-        return (
-          <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
-              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
-                <Check size={18} className="mr-2" /> 测验说明
-              </h3>
-              <p className="text-blue-700 text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
-            </div>
-            
-            <div className="space-y-6">
-              <div className="quiz-container">
-                <h4 className="font-medium text-lg mb-4">问题 1: 在数学中，5 + 3 = ?</h4>
-                <div className="space-y-3">
-                  {['7', '8', '9'].map((option, index) => (
-                    <label key={index} className="quiz-option">
-                      <input type="radio" name="q1" className="mr-3 h-4 w-4 accent-blue-500" />
-                      <span>{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="quiz-container">
-                <h4 className="font-medium text-lg mb-4">问题 2: 哪个形状有四个相等的边？</h4>
-                <div className="space-y-3">
-                  {['三角形', '圆形', '正方形'].map((option, index) => (
-                    <label key={index} className="quiz-option">
-                      <input type="radio" name="q2" className="mr-3 h-4 w-4 accent-blue-500" />
-                      <span>{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                提交答案
-              </Button>
-            </div>
-          </div>
-        );
-      // Handle other types with a default case
-      default:
-        return (
-          <div className="space-y-6">
-            <div className="interactive-container">
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-blue-700 mb-4">互动内容区域</h3>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  开始互动
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">学习目标</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-blue-500">
-                        <Check size={16} />
-                      </div>
-                      <span>理解基本概念</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-blue-500">
-                        <Check size={16} />
-                      </div>
-                      <span>应用所学知识解决简单问题</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-blue-500">
-                        <Check size={16} />
-                      </div>
-                      <span>通过互动加深理解</span>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">说明</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700">
-                    跟随指示完成互动练习。你可以随时暂停并返回。
-                    如果遇到困难，可以点击右下角的帮助按钮获取提示。
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [completionSuccess, setCompletionSuccess] = useState(false);
+  const [prevLesson, setPrevLesson] = useState<CourseLesson | undefined>(undefined);
+  const [nextLesson, setNextLesson] = useState<CourseLesson | undefined>(undefined);
+
+  useEffect(() => {
+    if (!courseData || !selectedLesson) return;
+
+    const currentModule = courseData.modules?.find(module =>
+      module.lessons?.some(lesson => lesson.id === selectedLesson.id)
+    );
+
+    if (!currentModule) return;
+
+    const lessonIndex = currentModule.lessons?.findIndex(lesson => lesson.id === selectedLesson.id);
+
+    if (lessonIndex === undefined || lessonIndex === -1) return;
+
+    // 上一课
+    if (lessonIndex > 0 && currentModule.lessons) {
+      setPrevLesson(currentModule.lessons[lessonIndex - 1]);
+    } else {
+      // 如果是模块的第一课，尝试找到上一个模块的最后一课
+      const currentModuleIndex = courseData.modules?.findIndex(module => module.id === currentModule.id);
+      if (currentModuleIndex && currentModuleIndex > 0 && courseData.modules) {
+        const prevModule = courseData.modules[currentModuleIndex - 1];
+        if (prevModule.lessons && prevModule.lessons.length > 0) {
+          setPrevLesson(prevModule.lessons[prevModule.lessons.length - 1]);
+        } else {
+          setPrevLesson(undefined);
+        }
+      } else {
+        setPrevLesson(undefined);
+      }
+    }
+
+    // 下一课
+    if (lessonIndex < currentModule.lessons!.length - 1 && currentModule.lessons) {
+      setNextLesson(currentModule.lessons[lessonIndex + 1]);
+    } else {
+      // 如果是模块的最后一课，尝试找到下一个模块的第一课
+      const currentModuleIndex = courseData.modules?.findIndex(module => module.id === currentModule.id);
+      if (currentModuleIndex !== undefined && currentModuleIndex < courseData.modules!.length - 1 && courseData.modules) {
+        const nextModule = courseData.modules[currentModuleIndex + 1];
+        if (nextModule.lessons && nextModule.lessons.length > 0) {
+          setNextLesson(nextModule.lessons[0]);
+        } else {
+          setNextLesson(undefined);
+        }
+      } else {
+        setNextLesson(undefined);
+      }
+    }
+  }, [courseData, selectedLesson]);
+
+  const handleMarkComplete = async () => {
+    if (!enrollmentId || !selectedLesson?.id) return;
+
+    setIsSubmitting(true);
+    setCompletionSuccess(false);
+
+    try {
+      await courseService.markLessonComplete(enrollmentId, selectedLesson.id);
+      setCompletionSuccess(true);
+      // Optionally, refresh course data or update UI immediately
+    } catch (error) {
+      console.error("Failed to mark lesson as complete:", error);
+      // Handle error (e.g., show a toast)
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (prevLesson) {
+      navigate(`/course/${courseData.id}/lesson/${prevLesson.id}`);
+    }
+  };
+
+  const handleNext = () => {
+    if (nextLesson) {
+      navigate(`/course/${courseData.id}/lesson/${nextLesson.id}`);
     }
   };
 
   return (
-    <>
-      {selectedLesson && selectedUnit ? (
-        <div className="container mx-auto px-4 py-4 sm:py-6">
-          <Card className="border-none shadow-md overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 py-4">
-              <div className="flex items-center text-xs sm:text-sm text-gray-600 mb-1">
-                <span className="truncate">{selectedUnit.title} / {selectedLesson.title}</span>
-              </div>
-              <CardTitle className="text-xl sm:text-2xl">{selectedLesson.title}</CardTitle>
-            </CardHeader>
+    <div className="p-6 md:p-8 max-w-4xl mx-auto">
+      {selectedLesson ? (
+        <div className="animate-fade-in">
+          <div className="space-y-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{selectedLesson.title}</h1>
             
-            <CardContent className="p-4 sm:p-6">
-              {renderLessonContent()}
+            {isSubmitting && (
+              <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                记录学习进度中...
+              </div>
+            )}
+            
+            {completionSuccess && (
+              <div className="bg-green-50 text-green-700 px-4 py-3 rounded-lg">
+                学习进度已更新！
+              </div>
+            )}
+            
+            <div className="p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+              {selectedLesson.type === 'video' && selectedLesson.video_url && (
+                <div className="aspect-video bg-gray-100 rounded-lg mb-6 overflow-hidden">
+                  <iframe 
+                    className="w-full h-full" 
+                    src={selectedLesson.video_url} 
+                    title={selectedLesson.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              )}
               
-              <LessonNavigation 
-                courseData={courseData}
-                selectedLesson={selectedLesson}
-                enrollmentId={enrollmentId}
-              />
-            </CardContent>
-          </Card>
+              {selectedLesson.content && (
+                <div 
+                  className="prose prose-blue max-w-none" 
+                  dangerouslySetInnerHTML={{ __html: selectedLesson.content }}
+                />
+              )}
+            </div>
+            
+            <div className="flex justify-between mt-8">
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={!prevLesson}
+                className="px-4"
+              >
+                上一课
+              </Button>
+              
+              <Button
+                onClick={handleMarkComplete}
+                disabled={completionSuccess || isSubmitting}
+                className="px-6 bg-blue-600 hover:bg-blue-700"
+              >
+                标记为已完成
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={handleNext}
+                disabled={!nextLesson}
+                className="px-4"
+              >
+                下一课
+              </Button>
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="container mx-auto px-4 py-6 text-center">
-          <Card>
-            <CardContent className="p-6 sm:p-8">
-              <div className="flex flex-col items-center justify-center py-6">
-                <div className="bg-blue-50 p-4 rounded-full mb-4">
-                  <Check className="h-8 w-8 sm:h-12 sm:w-12 text-blue-500" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">暂无课时内容</h3>
-                <p className="text-gray-500 mb-4 text-sm sm:text-base">此课程暂未添加课时内容，请稍后再查看</p>
-                <Button
-                  onClick={() => navigate('/learning')}
-                >
-                  返回课程列表
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+            <BookOpen size={36} className="text-blue-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">开始学习 {courseData.title}</h2>
+          <p className="text-gray-500 mb-6 max-w-md">选择左侧的课程开始学习，或者从第一节课开始</p>
+          {courseData.modules && courseData.modules.length > 0 && courseData.modules[0].lessons && courseData.modules[0].lessons.length > 0 && (
+            <Button 
+              onClick={() => navigate(`/course/${courseData.id}/lesson/${courseData.modules[0].lessons[0].id}`)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              开始第一课
+            </Button>
+          )}
         </div>
       )}
-    </>
+    </div>
   );
 };
 

@@ -44,7 +44,7 @@ const Learning = () => {
             </div>
           ) : enrolledCourses.length > 0 ? (
             // 显示用户已加入的课程
-            enrolledCourses.filter(course => course.progress < 100).map((course) => (
+            enrolledCourses.filter(course => (course.progress ?? 0) < 100).map((course) => (
               <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="p-6">
                   <div className="flex justify-between items-start">
@@ -79,9 +79,9 @@ const Learning = () => {
                   <div className="mt-2">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-medium">进度</span>
-                      <span className="text-sm text-gray-500">{course.progress}%</span>
+                      <span className="text-sm text-gray-500">{course.progress ?? 0}%</span>
                     </div>
-                    <Progress value={course.progress} className="h-2" />
+                    <Progress value={course.progress ?? 0} className="h-2" />
                   </div>
                 </div>
                 
@@ -115,9 +115,9 @@ const Learning = () => {
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">正在加载课程...</p>
             </div>
-          ) : enrolledCourses.filter(course => course.progress >= 100).length > 0 ? (
+          ) : enrolledCourses.filter(course => (course.progress ?? 0) >= 100).length > 0 ? (
             // 显示已完成的课程
-            enrolledCourses.filter(course => course.progress >= 100).map((course) => (
+            enrolledCourses.filter(course => (course.progress ?? 0) >= 100).map((course) => (
               <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-6">
                 <div className="flex justify-between items-center">
                   <div>
