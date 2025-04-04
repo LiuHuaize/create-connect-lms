@@ -52,22 +52,26 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   const [coverImageURL, setCoverImageURL] = useState<string | null>(null);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(true);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   
   // 使用加载状态分别控制不同组件的加载
-  const [moduleDataLoaded, setModuleDataLoaded] = useState(false);
+  const [moduleDataLoaded, setModuleDataLoaded] = useState(true);
   
   // 分批加载课程数据，优先加载基本信息，延迟加载模块和课程
   useEffect(() => {
     const loadCourseBasicInfo = async () => {
       if (!courseId) {
+        // 如果没有课程ID，则将所有加载状态设置为false，表示不需要加载数据
         setLoadingDetails(false);
+        setIsLoading(false);
+        setModuleDataLoaded(true);
         return;
       }
       
       try {
         setIsLoading(true);
         setLoadingDetails(true);
+        setModuleDataLoaded(false);
         
         // 优先加载课程基本信息
         const courseDetails = await courseService.getCourseDetails(courseId);
@@ -89,14 +93,12 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
         toast.error('加载课程失败，请重试');
         setLoadingDetails(false);
         setIsLoading(false);
+        setModuleDataLoaded(true);
       }
     };
 
-    if (courseId) {
-      loadCourseBasicInfo();
-    } else {
-      setLoadingDetails(false);
-    }
+    // 立即执行加载函数
+    loadCourseBasicInfo();
   }, [courseId]);
 
   useEffect(() => {
@@ -124,7 +126,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     
     totalPoints += 1;
     const hasLessons = modules.some(module => module.lessons && module.lessons.length > 0);
-    if (hasLessons) earnedPoints += 1;
+    if (hasLessons) earnedPoints += 0.5;
     
     if (course.description?.trim()) earnedPoints += 0.5;
     if (course.short_description?.trim()) earnedPoints += 0.5;
@@ -216,7 +218,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
   };
 
   // 完全加载中状态
-  if (isLoading && !loadingDetails) {
+  if (isLoading && !moduleDataLoaded) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-10 w-10 animate-spin mr-3 text-gray-400" />
