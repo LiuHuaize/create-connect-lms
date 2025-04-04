@@ -98,8 +98,41 @@ const ExploreCourses = () => {
         setLoadingEnrollment(false);
         return;
       }
+
+      // 检查用户是否已经加入过这个课程
+      const { data: existingEnrollment, error: enrollmentCheckError } = await supabase
+        .from('course_enrollments')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .maybeSingle();
+        
+      if (enrollmentCheckError) {
+        console.error('检查课程注册状态失败:', enrollmentCheckError);
+      }
       
-      // 课程存在，直接导航到课程详情页
+      // 如果用户尚未加入课程，则添加一条注册记录
+      if (!existingEnrollment) {
+        const { error: insertError } = await supabase
+          .from('course_enrollments')
+          .insert([
+            { 
+              user_id: user.id, 
+              course_id: courseId,
+              status: 'active',
+              progress: 0,
+              enrolled_at: new Date().toISOString()
+            }
+          ]);
+          
+        if (insertError) {
+          console.error('课程注册失败:', insertError);
+          toast.error('加入课程失败，请稍后再试');
+          setLoadingEnrollment(false);
+          return;
+        }
+      }
+      
       toast.success('成功加入课程！');
       navigate(`/course/${courseId}`);
     } catch (error) {
