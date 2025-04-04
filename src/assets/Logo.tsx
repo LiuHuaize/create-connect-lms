@@ -30,9 +30,9 @@ const Logo: React.FC<LogoProps> = ({
 
   return (
     <div className={`${logoStyles[variant]} ${className || ''}`}>
-      <div className={iconStyles[variant]}>小</div>
+      <div className={iconStyles[variant]}>亿</div>
       {variant !== 'compact' && (
-        <span className={textStyles[variant]}>小亿步</span>
+        <span className={textStyles[variant]}>亿小步</span>
       )}
     </div>
   );

@@ -96,7 +96,7 @@ const AppRoutes = () => {
             >
               <Menu size={24} />
             </button>
-            <div className="ml-4 text-lg font-semibold">小亿步</div>
+            <div className="ml-4 text-lg font-semibold">亿小步</div>
           </div>
         )}
         
