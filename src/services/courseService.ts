@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
@@ -187,5 +186,40 @@ export const courseService = {
     }
     
     return convertDbLessonToLesson(data);
+  },
+
+  // Add new function to mark a lesson as complete
+  async markLessonComplete(enrollmentId: string, lessonId: string): Promise<void> {
+    try {
+      // First check if the completion record already exists
+      const { data: existingCompletion } = await supabase
+        .from("lesson_completions")
+        .select("*")
+        .eq("enrollment_id", enrollmentId)
+        .eq("lesson_id", lessonId)
+        .maybeSingle();
+      
+      if (existingCompletion) {
+        console.log('Lesson already marked as complete');
+        return;
+      }
+      
+      // Insert new completion record
+      const { error } = await supabase
+        .from("lesson_completions")
+        .insert({
+          enrollment_id: enrollmentId,
+          lesson_id: lessonId,
+          completed_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Error marking lesson as complete:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Failed to mark lesson as complete:', error);
+      throw error;
+    }
   }
 };

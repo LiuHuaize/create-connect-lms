@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavigateFunction, useNavigate } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Course, CourseLesson } from '@/types/course';
@@ -10,7 +11,7 @@ interface LessonContentProps {
   selectedUnit: any;
   courseData: Course & { modules?: any[] };
   enrollmentId: string | undefined;
-  navigate: useNavigate;
+  navigate: NavigateFunction; // Use NavigateFunction instead of useNavigate
 }
 
 const LessonContent: React.FC<LessonContentProps> = ({
