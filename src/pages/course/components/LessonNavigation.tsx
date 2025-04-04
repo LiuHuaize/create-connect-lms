@@ -5,12 +5,12 @@ import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { toast } from 'sonner';
-import { Course, CourseModule, CourseLesson } from '@/types/course';
+import { Course, CourseModule, Lesson } from '@/types/course';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LessonNavigationProps {
   courseData: Course & { modules?: CourseModule[] };
-  selectedLesson: CourseLesson | null;
+  selectedLesson: Lesson | null;
   enrollmentId: string | null;
 }
 

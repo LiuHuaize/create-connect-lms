@@ -1,6 +1,7 @@
+
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, BookOpen, Menu, AlignLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, BookOpen, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Course } from '@/types/course';
 
@@ -15,40 +16,35 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   isMobile,
   setSidebarOpen 
 }) => {
-  const navigate = useNavigate();
-  
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-500 hover:text-gray-700 flex items-center gap-1"
-              onClick={() => navigate('/learning')}
-            >
-              <ChevronLeft size={16} />
-              <span>返回课程</span>
-            </Button>
-            
-            <div className="hidden md:block h-5 w-px bg-gray-200 mx-1"></div>
-            
-            <h1 className="text-base md:text-lg font-medium text-gray-900 line-clamp-1">
-              {courseData.title || '课程标题'}
-            </h1>
-          </div>
+    <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-10">
+      <div className="container mx-auto px-4 py-3 sm:py-4 flex items-center">
+        <div className="flex items-center flex-1">
+          <Link to="/learning" className="mr-2 sm:mr-4 text-gray-500 hover:text-blue-600 transition-colors">
+            <div className="flex items-center">
+              <ChevronLeft size={18} />
+              <span className="ml-1 text-sm font-medium hidden sm:inline">返回课程</span>
+            </div>
+          </Link>
           
           {isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mr-2"
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden"
             >
-              <AlignLeft size={20} />
+              <Menu size={18} />
             </Button>
           )}
+          
+          <div className="truncate">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-800 truncate">{courseData.title}</h1>
+            <div className="flex items-center text-xs sm:text-sm text-gray-500 truncate">
+              <BookOpen size={14} className="mr-1 flex-shrink-0 hidden xs:inline-block" /> 
+              <span className="truncate">{courseData.short_description || ""}</span>
+            </div>
+          </div>
         </div>
       </div>
     </header>

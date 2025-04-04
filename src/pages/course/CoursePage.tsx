@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, PanelLeft } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -21,7 +21,6 @@ const CoursePage = () => {
   const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const isMobile = useIsMobile();
   
   const { loading, courseData, progress, enrollmentId, findCurrentLesson } = useCourseData(courseId);
@@ -34,10 +33,6 @@ const CoursePage = () => {
   if (!courseData) {
     return <NotFoundCard />;
   }
-  
-  const toggleNav = () => {
-    setIsNavCollapsed(!isNavCollapsed);
-  };
   
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -59,57 +54,16 @@ const CoursePage = () => {
       
       <div className="flex flex-1 overflow-hidden">
         {!isMobile && (
-          <div 
-            className={`bg-white border-r border-gray-100 overflow-y-auto hidden md:block flex-shrink-0 transition-all duration-300 ease-in-out ${
-              isNavCollapsed ? 'w-16' : 'w-72'
-            }`}
-          >
-            {isNavCollapsed ? (
-              <div className="p-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleNav}
-                  className="w-full h-10 flex items-center justify-center"
-                  title="展开课程大纲"
-                >
-                  <PanelLeft className="h-5 w-5" />
-                </Button>
-                
-                <div className="mt-4 space-y-4">
-                  {courseData?.modules?.map((module, index) => (
-                    <div 
-                      key={module.id} 
-                      className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mx-auto"
-                      title={module.title}
-                    >
-                      <span className="text-blue-600 text-xs font-medium">{index + 1}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleNav}
-                  className="absolute right-2 top-2 h-8 w-8"
-                  title="收起课程大纲"
-                >
-                  <PanelLeft className="h-4 w-4 rotate-180" />
-                </Button>
-                <CourseSidebar 
-                  courseData={courseData}
-                  selectedLesson={selectedLesson}
-                  progress={progress}
-                />
-              </div>
-            )}
+          <div className="w-80 bg-white border-r border-gray-100 overflow-y-auto hidden md:block flex-shrink-0">
+            <CourseSidebar 
+              courseData={courseData}
+              selectedLesson={selectedLesson}
+              progress={progress}
+            />
           </div>
         )}
         
-        <div className="flex-1 overflow-auto relative">
+        <div className="flex-1 overflow-auto">
           {isMobile && (
             <div className="md:hidden mb-4 px-4 pt-4">
               <div className="mb-2">

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
@@ -186,41 +187,5 @@ export const courseService = {
     }
     
     return convertDbLessonToLesson(data);
-  },
-
-  // Add new function to mark a lesson as complete
-  async markLessonComplete(enrollmentId: string, lessonId: string): Promise<void> {
-    try {
-      // First check if the completion record already exists
-      const { data: existingCompletion } = await supabase
-        .from("course_enrollments")
-        .select("id")
-        .eq("id", enrollmentId)
-        .maybeSingle();
-      
-      if (!existingCompletion) {
-        console.log('Enrollment not found');
-        throw new Error('Enrollment not found');
-      }
-      
-      // Update course_enrollments to track which lesson was completed
-      // Since we don't have a lesson_completions table yet, we'll use a workaround for now
-      // by updating the progress field in the enrollment
-      const { error } = await supabase
-        .from("course_enrollments")
-        .update({
-          last_accessed_at: new Date().toISOString(),
-          progress: supabase.rpc('increment_progress', { enrollment_id: enrollmentId })
-        })
-        .eq("id", enrollmentId);
-
-      if (error) {
-        console.error('Error marking lesson as complete:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('Failed to mark lesson as complete:', error);
-      throw error;
-    }
   }
 };
