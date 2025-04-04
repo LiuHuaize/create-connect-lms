@@ -23,6 +23,7 @@ const ExploreCourses = () => {
   const [selectedCategory, setSelectedCategory] = useState<CourseCategory>('全部');
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingEnrollment, setLoadingEnrollment] = useState(false);
 
   // 定义课程分类
   const categories: CourseCategory[] = ['全部', '商业规划', '游戏设计', '产品开发', '编程', '创意写作'];
@@ -40,8 +41,14 @@ const ExploreCourses = () => {
         if (error) throw error;
         console.log('从数据库获取的课程:', data);
         
-        // Ensure the data conforms to the Course type
-        const typedCourses: Course[] = data?.map(course => ({
+        if (!data || data.length === 0) {
+          setCourses([]);
+          setLoading(false);
+          return;
+        }
+        
+        // 确保数据符合Course类型
+        const typedCourses: Course[] = data.map(course => ({
           ...course,
           status: course.status as Course['status'],
           tags: course.tags || [],
@@ -49,7 +56,9 @@ const ExploreCourses = () => {
           description: course.description || null,
           short_description: course.short_description || null,
           cover_image: course.cover_image || null,
-        })) || [];
+          difficulty: course.difficulty || 'initial',
+          category: course.category || null
+        }));
         
         setCourses(typedCourses);
       } catch (error) {
@@ -65,20 +74,15 @@ const ExploreCourses = () => {
 
   const handleEnrollCourse = async (courseId: string) => {
     try {
+      setLoadingEnrollment(true);
+      
       // 检查课程ID是否存在
       if (!courseId) {
         toast.error('课程ID无效');
         return;
       }
       
-      // 检查课程是否存在于当前列表中
-      const courseExists = courses.some(course => course.id === courseId);
-      if (!courseExists) {
-        toast.error('课程不存在或已被移除');
-        return;
-      }
-
-      // 获取课程详情以确保它真的存在于数据库中
+      // 确认课程在数据库中存在
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .select('*')
@@ -91,22 +95,25 @@ const ExploreCourses = () => {
         return;
       }
       
-      // 查找用户已加入的课程（这里可以添加课程注册逻辑）
-      // 例如：将用户ID和课程ID添加到user_courses表
+      // 可以添加课程注册逻辑，例如将用户添加到课程用户列表中
+      // 这里可以实现如 user_enrollments 表的插入操作
       
-      // 成功加入课程并导航
+      // 成功后导航到课程页面
       toast.success('成功加入课程！');
       navigate(`/course/${courseId}`);
     } catch (error) {
       console.error('加入课程失败:', error);
       toast.error('加入课程失败，请稍后再试');
+    } finally {
+      setLoadingEnrollment(false);
     }
   };
 
   const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          course.short_description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = 
+      (course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
+      (course.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+      (course.short_description?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
     
     const matchesCategory = selectedCategory === '全部' || course.category === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -145,21 +152,30 @@ const ExploreCourses = () => {
           ) : (
             <CourseList 
               courses={filteredCourses} 
-              onEnroll={handleEnrollCourse} 
+              onEnroll={handleEnrollCourse}
+              loadingEnrollment={loadingEnrollment}
             />
           )}
         </TabsContent>
         
         <TabsContent value="popular" className="mt-6">
-          <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-            <p className="text-gray-500">即将推出热门课程...</p>
-          </div>
+          {loading ? (
+            <LoadingCourses />
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-gray-500">即将推出热门课程...</p>
+            </div>
+          )}
         </TabsContent>
         
         <TabsContent value="new" className="mt-6">
-          <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-            <p className="text-gray-500">即将推出最新课程...</p>
-          </div>
+          {loading ? (
+            <LoadingCourses />
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-gray-500">即将推出最新课程...</p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
       
