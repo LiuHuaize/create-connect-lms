@@ -1,0 +1,151 @@
+
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, Heart, Share2 } from 'lucide-react';
+import { communityService, Discussion } from '@/services/communityService';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+
+interface DiscussionItemProps {
+  discussion: Discussion;
+  onLike: () => void;
+}
+
+const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) => {
+  const [hasLiked, setHasLiked] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      if (user) {
+        const liked = await communityService.hasLikedDiscussion(discussion.id);
+        setHasLiked(liked);
+      }
+    };
+    
+    checkLikeStatus();
+  }, [discussion.id, user]);
+  
+  const handleLike = async () => {
+    if (!user) {
+      toast({
+        title: "请先登录",
+        description: "您需要登录才能点赞。",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsLiking(true);
+      const newLikeStatus = await communityService.likeDiscussion(discussion.id);
+      setHasLiked(newLikeStatus);
+      onLike(); // 通知父组件刷新
+    } catch (error) {
+      console.error('点赞失败:', error);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+  
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+      
+      if (diffHours < 1) {
+        return '刚刚';
+      } else if (diffHours < 24) {
+        return `${diffHours}小时前`;
+      } else if (diffHours < 48) {
+        return '昨天';
+      } else {
+        return format(date, 'yyyy年MM月dd日', { locale: zhCN });
+      }
+    } catch (e) {
+      return dateString;
+    }
+  };
+  
+  // 提取用户头像的首字母
+  const getAvatarInitials = (username: string) => {
+    return username?.substring(0, 2) || '用户';
+  };
+  
+  // 随机生成头像背景色（但对同一用户保持一致）
+  const getAvatarBgColor = (userId: string) => {
+    const colors = [
+      'bg-blue-100 text-blue-700',
+      'bg-green-100 text-green-700',
+      'bg-purple-100 text-purple-700',
+      'bg-yellow-100 text-yellow-700',
+      'bg-red-100 text-red-700',
+      'bg-indigo-100 text-indigo-700',
+      'bg-pink-100 text-pink-700',
+    ];
+    
+    // 使用用户ID生成一个一致的索引
+    const charSum = userId.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    const colorIndex = charSum % colors.length;
+    
+    return colors[colorIndex];
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6 hover-scale shadow-sm">
+      <div className="flex items-start gap-4">
+        <div className={cn(
+          "h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0",
+          getAvatarBgColor(discussion.user_id)
+        )}>
+          {getAvatarInitials(discussion.user_info?.username || '用户')}
+        </div>
+        
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold">{discussion.user_info?.username || '未知用户'}</h3>
+            <span className="text-gray-500 text-sm">• {formatDate(discussion.created_at)}</span>
+            {discussion.tags && discussion.tags.length > 0 && (
+              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                {discussion.tags[0]}
+              </span>
+            )}
+          </div>
+          
+          <h4 className="text-lg font-bold mb-2">{discussion.title}</h4>
+          <p className="text-gray-600 mb-4 break-words whitespace-pre-line">{discussion.content}</p>
+          
+          <div className="flex items-center gap-6">
+            <button 
+              className={cn(
+                "flex items-center gap-1 transition-colors",
+                hasLiked 
+                  ? "text-red-500 hover:text-red-600" 
+                  : "text-gray-500 hover:text-connect-blue"
+              )}
+              onClick={handleLike}
+              disabled={isLiking}
+            >
+              <Heart size={16} className={cn(hasLiked && "fill-red-500")} />
+              <span className="text-sm">{discussion.likes_count}</span>
+            </button>
+            <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+              <MessageSquare size={16} />
+              <span className="text-sm">{discussion.comments_count}条评论</span>
+            </button>
+            <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+              <Share2 size={16} />
+              <span className="text-sm">分享</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DiscussionItem;
