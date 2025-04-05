@@ -69,15 +69,21 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
       // 调用API来更新服务器状态
       const result = await communityService.likeComment(comment.id);
       
-      // 如果API调用与预期不符，则恢复本地更新
+      // 如果API调用结果与预期不符，修正UI状态
       if (result !== newLikedStatus) {
-        console.log('API返回与预期不符，恢复本地状态');
-        setIsLiked(!newLikedStatus);
-        setLikesCount(prevCount => !newLikedStatus ? prevCount + 1 : Math.max(0, prevCount - 1));
+        console.log('API返回与预期不符，修正本地状态');
+        setIsLiked(result);
+        setLikesCount(prevCount => 
+          result ? Math.max(1, prevCount) : Math.max(0, prevCount - 1)
+        );
       }
       
       // 通知父组件，但不要立即刷新
-      if (onLiked) onLiked();
+      if (onLiked) {
+        setTimeout(() => {
+          onLiked();
+        }, 5000);
+      }
       
     } catch (error) {
       console.error('点赞评论失败:', error);
@@ -119,7 +125,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
         aria-label={isLiked ? "取消点赞" : "点赞"}
       >
         <Heart 
-          size={14} 
+          size={16} // 增加心形图标尺寸
           className={cn(isLiked && "fill-red-500")} 
         />
         {likesCount > 0 && (

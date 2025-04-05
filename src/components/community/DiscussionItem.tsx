@@ -32,7 +32,7 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
   const [localCommentsCount, setLocalCommentsCount] = useState(discussion.comments_count || 0);
   const { user } = useAuth();
   
-  // 初始化点赞状态
+  // 初始化点赞状态并同步点赞数
   useEffect(() => {
     const checkLikeStatus = async () => {
       if (user) {
@@ -42,13 +42,14 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
     };
     
     checkLikeStatus();
-  }, [discussion.id, user]);
+    // 确保本地点赞数与传入的数据同步
+    setLocalLikesCount(discussion.likes_count || 0);
+  }, [discussion.id, discussion.likes_count, user]);
   
   // 确保当discussion属性变化时更新本地状态
   useEffect(() => {
-    setLocalLikesCount(discussion.likes_count || 0);
     setLocalCommentsCount(discussion.comments_count || 0);
-  }, [discussion.likes_count, discussion.comments_count]);
+  }, [discussion.comments_count]);
   
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -76,16 +77,19 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
       // 调用API来更新服务器状态
       const result = await communityService.likeDiscussion(discussion.id);
       
-      // 如果API调用结果与预期不符，恢复本地状态
+      // 如果API调用结果与预期不符，修正UI状态
       if (result !== newLikeStatus) {
-        setHasLiked(!newLikeStatus);
-        setLocalLikesCount(prevCount => !newLikeStatus ? prevCount + 1 : Math.max(0, prevCount - 1));
+        console.log('API返回与预期不符，修正本地状态');
+        setHasLiked(result);
+        setLocalLikesCount(prevCount => 
+          result ? Math.max(1, prevCount) : Math.max(0, prevCount - 1)
+        );
       }
       
       // 延迟通知父组件刷新列表，防止UI闪烁
       setTimeout(() => {
         onLike();
-      }, 2000);
+      }, 5000);
     } catch (error) {
       console.error('点赞失败:', error);
       // 恢复本地状态
@@ -167,14 +171,17 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
                 onClick={handleLike}
                 disabled={isLiking}
               >
-                <Heart size={16} className={cn(hasLiked && "fill-red-500")} />
+                <Heart 
+                  size={20} // 增加心形图标尺寸
+                  className={cn(hasLiked && "fill-red-500")} 
+                />
                 <span className="text-sm">{localLikesCount}</span>
               </button>
               <button 
                 className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors"
                 onClick={handleOpenComments}
               >
-                <MessageSquare size={16} />
+                <MessageSquare size={18} />
                 <span className="text-sm">{localCommentsCount}条评论</span>
               </button>
             </div>
@@ -188,7 +195,8 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
         discussionId={discussion.id}
         discussion={{
           ...discussion,
-          comments_count: localCommentsCount  // 确保使用本地评论计数
+          likes_count: localLikesCount,
+          comments_count: localCommentsCount
         }}
       />
     </>

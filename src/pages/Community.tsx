@@ -21,11 +21,13 @@ const Community = () => {
     // 如果距离上次刷新不到30秒且非强制刷新，则跳过
     const now = Date.now();
     if (!force && now - lastRefreshTime < 30000) {
+      console.log('距离上次刷新时间不足30秒，跳过刷新');
       return;
     }
     
     setLoading(true);
     try {
+      console.log('加载社区数据，标签:', activeTab);
       const discussionsData = await communityService.getDiscussions(activeTab);
       setDiscussions(discussionsData);
       setLastRefreshTime(now);
@@ -47,12 +49,14 @@ const Community = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // 处理点赞更新 - 不立即刷新，延迟后再更新列表
+  // 处理点赞更新 - 延迟10秒后再更新列表，减少频繁刷新
   const handleLike = () => {
-    // 延迟5秒再刷新，减少频繁刷新
+    console.log('点赞操作完成，设置定时器延迟刷新');
+    // 延迟10秒再刷新，减少频繁刷新
     setTimeout(() => {
-      loadData();
-    }, 5000);
+      console.log('执行延迟刷新');
+      loadData(true);
+    }, 10000);
   };
 
   // 处理发布新讨论

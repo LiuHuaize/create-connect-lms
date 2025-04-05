@@ -43,11 +43,28 @@ export async function likeComment(commentId: string): Promise<boolean> {
       }
       
       // 更新评论的点赞计数
-      await supabase.rpc('decrement', { 
-        row_id: commentId, 
-        table_name: 'comments', 
-        column_name: 'likes_count' 
-      });
+      try {
+        const { error: updateError } = await supabase.rpc('decrement', { 
+          row_id: commentId, 
+          table_name: 'comments', 
+          column_name: 'likes_count' 
+        });
+        if (updateError) {
+          console.error('更新点赞计数失败:', updateError);
+          // 直接使用UPDATE作为回退方案
+          await supabase
+            .from('comments')
+            .update({ likes_count: supabase.sql`GREATEST(0, likes_count - 1)` })
+            .eq('id', commentId);
+        }
+      } catch (error) {
+        console.error('调用减少点赞RPC失败:', error);
+        // 直接使用UPDATE作为回退方案
+        await supabase
+          .from('comments')
+          .update({ likes_count: supabase.sql`GREATEST(0, likes_count - 1)` })
+          .eq('id', commentId);
+      }
       
       return false; // 返回新状态：未点赞
     } else {
@@ -65,11 +82,28 @@ export async function likeComment(commentId: string): Promise<boolean> {
       }
       
       // 更新评论的点赞计数
-      await supabase.rpc('increment', { 
-        row_id: commentId, 
-        table_name: 'comments', 
-        column_name: 'likes_count' 
-      });
+      try {
+        const { error: updateError } = await supabase.rpc('increment', { 
+          row_id: commentId, 
+          table_name: 'comments', 
+          column_name: 'likes_count' 
+        });
+        if (updateError) {
+          console.error('更新点赞计数失败:', updateError);
+          // 直接使用UPDATE作为回退方案
+          await supabase
+            .from('comments')
+            .update({ likes_count: supabase.sql`COALESCE(likes_count, 0) + 1` })
+            .eq('id', commentId);
+        }
+      } catch (error) {
+        console.error('调用增加点赞RPC失败:', error);
+        // 直接使用UPDATE作为回退方案
+        await supabase
+          .from('comments')
+          .update({ likes_count: supabase.sql`COALESCE(likes_count, 0) + 1` })
+          .eq('id', commentId);
+      }
       
       return true; // 返回新状态：已点赞
     }

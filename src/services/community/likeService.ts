@@ -47,13 +47,20 @@ export async function likeDiscussion(discussionId: string): Promise<boolean> {
         const { error: updateError } = await supabase.rpc('decrement_discussion_like', { 
           discussion_id_param: discussionId 
         });
-        if (updateError) console.error('更新点赞计数失败:', updateError);
+        if (updateError) {
+          console.error('更新点赞计数失败:', updateError);
+          // 直接使用UPDATE作为回退
+          await supabase
+            .from('discussions')
+            .update({ likes_count: supabase.sql`GREATEST(0, likes_count - 1)` })
+            .eq('id', discussionId);
+        }
       } catch (error) {
         console.error('调用减少点赞RPC失败:', error);
         // 直接使用UPDATE作为回退
         await supabase
           .from('discussions')
-          .update({ likes_count: supabase.sql('GREATEST(0, likes_count - 1)') })
+          .update({ likes_count: supabase.sql`GREATEST(0, likes_count - 1)` })
           .eq('id', discussionId);
       }
       
@@ -77,13 +84,20 @@ export async function likeDiscussion(discussionId: string): Promise<boolean> {
         const { error: updateError } = await supabase.rpc('increment_discussion_like', { 
           discussion_id_param: discussionId 
         });
-        if (updateError) console.error('更新点赞计数失败:', updateError);
+        if (updateError) {
+          console.error('更新点赞计数失败:', updateError);
+          // 直接使用UPDATE作为回退
+          await supabase
+            .from('discussions')
+            .update({ likes_count: supabase.sql`COALESCE(likes_count, 0) + 1` })
+            .eq('id', discussionId);
+        }
       } catch (error) {
         console.error('调用增加点赞RPC失败:', error);
         // 直接使用UPDATE作为回退
         await supabase
           .from('discussions')
-          .update({ likes_count: supabase.sql('COALESCE(likes_count, 0) + 1') })
+          .update({ likes_count: supabase.sql`COALESCE(likes_count, 0) + 1` })
           .eq('id', discussionId);
       }
       
