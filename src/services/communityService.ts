@@ -122,7 +122,7 @@ export const createComment = async (discussionId: string, content: string) => {
     
     if (error) throw error;
     
-    // 更新讨论的评论计数 - 使用原始SQL方式
+    // 更新讨论的评论计数 - 使用通用SQL函数
     await supabase.rpc('increment', { 
       table_name: 'discussions',
       column_name: 'comments_count',
@@ -168,7 +168,7 @@ export const likeDiscussion = async (discussionId: string) => {
           .eq('discussion_id', discussionId)
           .eq('user_id', userData.user.id);
         
-        // 减少点赞计数 - 使用原始SQL方式
+        // 减少点赞计数 - 使用通用SQL函数
         await supabase.rpc('decrement', { 
           table_name: 'discussions',
           column_name: 'likes_count',
@@ -180,7 +180,7 @@ export const likeDiscussion = async (discussionId: string) => {
         throw error;
       }
     } else {
-      // 增加点赞计数 - 使用原始SQL方式
+      // 增加点赞计数 - 使用通用SQL函数
       await supabase.rpc('increment', { 
         table_name: 'discussions',
         column_name: 'likes_count',
