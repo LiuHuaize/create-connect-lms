@@ -1,6 +1,5 @@
-
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -14,209 +13,261 @@ export type EnrolledCourse = Course & {
   enrolledAt?: string;
 };
 
+// 缓存助手函数
+const LOCAL_STORAGE_PREFIX = 'connect-lms-cache-';
+const CACHE_EXPIRY_TIME = 30 * 60 * 1000; // 30分钟
+
+// 从本地存储获取缓存数据
+const getFromLocalCache = (key: string) => {
+  try {
+    const cachedItem = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}${key}`);
+    if (!cachedItem) return null;
+    
+    const { data, timestamp } = JSON.parse(cachedItem);
+    
+    // 检查缓存是否过期
+    if (Date.now() - timestamp > CACHE_EXPIRY_TIME) {
+      localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}${key}`);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('从本地缓存获取数据失败:', error);
+    return null;
+  }
+};
+
+// 保存数据到本地存储
+const saveToLocalCache = (key: string, data: any) => {
+  try {
+    const cacheItem = {
+      data,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(`${LOCAL_STORAGE_PREFIX}${key}`, JSON.stringify(cacheItem));
+  } catch (error) {
+    console.error('保存数据到本地缓存失败:', error);
+  }
+};
+
+// API函数
+export const fetchAllCourses = async (): Promise<Course[]> => {
+  console.log('正在获取所有课程...');
+  
+  // 尝试从本地缓存获取
+  const cachedCourses = getFromLocalCache('all-courses');
+  if (cachedCourses) {
+    console.log('从本地缓存返回课程数据');
+    return cachedCourses;
+  }
+  
+  // 从数据库获取
+  const { data, error } = await supabase
+    .from('courses')
+    .select('*')
+    .eq('status', 'published');
+    
+  if (error) {
+    console.error('获取课程失败:', error);
+    throw new Error('获取课程失败');
+  }
+  
+  if (!data || data.length === 0) {
+    console.log('没有找到课程');
+    return [];
+  }
+  
+  console.log(`从API获取到 ${data.length} 个课程`);
+  
+  // 保存到本地缓存
+  saveToLocalCache('all-courses', data);
+  
+  return data as Course[];
+};
+
+// 获取用户已加入的课程
+export const fetchEnrolledCourses = async (userId: string): Promise<EnrolledCourse[]> => {
+  if (!userId) {
+    return [];
+  }
+  
+  console.log('正在获取用户已加入的课程...');
+  
+  // 尝试从本地缓存获取
+  const cacheKey = `enrolled-courses-${userId}`;
+  const cachedEnrolledCourses = getFromLocalCache(cacheKey);
+  if (cachedEnrolledCourses) {
+    console.log('从本地缓存返回已加入课程数据');
+    return cachedEnrolledCourses;
+  }
+  
+  // 联合查询课程和注册信息
+  const { data, error } = await supabase
+    .from('course_enrollments')
+    .select(`
+      id,
+      status,
+      progress,
+      enrolled_at,
+      courses:course_id(*)
+    `)
+    .eq('user_id', userId);
+    
+  if (error) {
+    console.error('获取已加入课程失败:', error);
+    throw new Error('获取已加入课程失败');
+  }
+  
+  if (!data || data.length === 0) {
+    console.log('没有找到已加入课程');
+    return [];
+  }
+  
+  // 提取课程数据并转换为EnrolledCourse类型数组
+  const coursesWithProgress = data.map(enrollment => ({
+    ...(enrollment.courses as Course),
+    progress: enrollment.progress,
+    enrollmentId: enrollment.id,
+    enrollmentStatus: enrollment.status,
+    enrolledAt: enrollment.enrolled_at
+  }));
+  
+  // 保存到本地缓存
+  saveToLocalCache(cacheKey, coursesWithProgress);
+  
+  return coursesWithProgress;
+};
+
+// 课程注册操作
+export const enrollCourse = async ({ userId, courseId }: { userId: string; courseId: string }) => {
+  if (!userId || !courseId) {
+    throw new Error('用户ID或课程ID无效');
+  }
+  
+  console.log(`尝试加入课程: ${courseId}`);
+  
+  // 验证课程是否存在并且是已发布状态
+  const { data: courseData, error: courseError } = await supabase
+    .from('courses')
+    .select('id, status')
+    .eq('id', courseId)
+    .eq('status', 'published')
+    .single();
+  
+  if (courseError || !courseData) {
+    throw new Error('课程不存在或未发布');
+  }
+  
+  // 检查用户是否已经注册了这个课程
+  const { data: enrollments, error: enrollmentError } = await supabase
+    .from('course_enrollments')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('course_id', courseId);
+    
+  if (enrollmentError) {
+    throw new Error('检查课程注册状态失败');
+  }
+  
+  // 如果用户已经注册，返回已存在的注册ID
+  if (enrollments && enrollments.length > 0) {
+    return { existingEnrollment: true, enrollmentId: enrollments[0].id };
+  }
+  
+  // 用户未注册，插入新的注册记录
+  const { data, error: insertError } = await supabase
+    .from('course_enrollments')
+    .insert({
+      user_id: userId,
+      course_id: courseId,
+      status: 'active',
+      progress: 0
+    })
+    .select('id')
+    .single();
+  
+  if (insertError) {
+    throw new Error('注册课程失败');
+  }
+  
+  return { existingEnrollment: false, enrollmentId: data.id };
+};
+
 export const useCoursesData = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingEnrolled, setLoadingEnrolled] = useState(true);
-  const [loadingEnrollment, setLoadingEnrollment] = useState(false);
-
-  useEffect(() => {
-    fetchCourses();
-    if (user) {
-      fetchEnrolledCourses();
-    }
-  }, [user]);
-
-  // 提取获取课程的逻辑到单独的函数中
-  const fetchCourses = async () => {
-    try {
-      setLoading(true);
-      console.log('正在获取课程...');
-      
-      // 获取已发布的课程
-      const { data, error } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('status', 'published');
-      
-      if (error) {
-        console.error('获取课程失败:', error);
-        toast.error('获取课程失败');
-        setLoading(false);
-        return;
-      }
-      
-      console.log('从数据库获取的课程:', data);
-      
-      if (!data || data.length === 0) {
-        console.log('没有找到课程');
-        setCourses([]);
-        setLoading(false);
-        return;
-      }
-      
-      // 直接将数据转换为Course类型
-      setCourses(data as Course[]);
-    } catch (error) {
-      console.error('获取课程失败:', error);
-      toast.error('获取课程失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const queryClient = useQueryClient();
+  
+  // 获取所有课程
+  const { 
+    data: courses = [], 
+    isLoading: loading,
+    refetch: refetchCourses
+  } = useQuery({
+    queryKey: ['courses'],
+    queryFn: fetchAllCourses,
+    enabled: true, // 总是启用这个查询
+  });
+  
   // 获取用户已加入的课程
-  const fetchEnrolledCourses = async () => {
+  const { 
+    data: enrolledCourses = [], 
+    isLoading: loadingEnrolled,
+    refetch: refetchEnrolledCourses 
+  } = useQuery({
+    queryKey: ['enrolledCourses', user?.id],
+    queryFn: () => user?.id ? fetchEnrolledCourses(user.id) : Promise.resolve([]),
+    enabled: !!user?.id, // 仅在用户已登录时启用
+  });
+  
+  // 课程注册mutation
+  const enrollMutation = useMutation({
+    mutationFn: enrollCourse,
+    onSuccess: (result, variables) => {
+      if (result.existingEnrollment) {
+        toast.success('您已注册过此课程，正在跳转...');
+      } else {
+        toast.success('成功加入课程！');
+        // 使缓存的已加入课程查询无效，强制重新获取
+        queryClient.invalidateQueries({ queryKey: ['enrolledCourses', user?.id] });
+      }
+      navigate(`/course/${variables.courseId}`);
+    },
+    onError: (error) => {
+      console.error('加入课程失败:', error);
+      toast.error(error instanceof Error ? error.message : '加入课程失败，请稍后重试');
+    }
+  });
+  
+  // 处理课程注册
+  const handleEnrollCourse = async (courseId: string) => {
     if (!user) {
-      console.log('用户未登录，无法获取已加入课程');
-      setEnrolledCourses([]);
-      setLoadingEnrolled(false);
+      toast.error('请先登录');
+      navigate('/auth');
       return;
     }
-
-    try {
-      setLoadingEnrolled(true);
-      console.log('正在获取用户已加入的课程...');
-      
-      // 联合查询课程和注册信息
-      const { data, error } = await supabase
-        .from('course_enrollments')
-        .select(`
-          id,
-          status,
-          progress,
-          enrolled_at,
-          courses:course_id(*)
-        `)
-        .eq('user_id', user.id);
-      
-      if (error) {
-        console.error('获取已加入课程失败:', error);
-        toast.error('获取已加入课程失败');
-        setLoadingEnrolled(false);
-        return;
-      }
-      
-      console.log('从数据库获取的已加入课程:', data);
-      
-      if (!data || data.length === 0) {
-        console.log('没有找到已加入课程');
-        setEnrolledCourses([]);
-        setLoadingEnrolled(false);
-        return;
-      }
-      
-      // 提取课程数据并转换为EnrolledCourse类型数组
-      const coursesWithProgress = data.map(enrollment => ({
-        ...(enrollment.courses as Course),
-        progress: enrollment.progress,
-        enrollmentId: enrollment.id,
-        enrollmentStatus: enrollment.status,
-        enrolledAt: enrollment.enrolled_at
-      }));
-      
-      setEnrolledCourses(coursesWithProgress);
-    } catch (error) {
-      console.error('获取已加入课程失败:', error);
-      toast.error('获取已加入课程失败');
-    } finally {
-      setLoadingEnrolled(false);
+    
+    enrollMutation.mutate({ userId: user.id, courseId });
+  };
+  
+  // 手动强制刷新所有数据的函数
+  const refreshAll = () => {
+    refetchCourses();
+    if (user?.id) {
+      refetchEnrolledCourses();
     }
   };
-
-  const handleEnrollCourse = async (courseId: string) => {
-    try {
-      if (!courseId) {
-        toast.error('课程ID无效');
-        return;
-      }
-      
-      if (!user) {
-        toast.error('请先登录');
-        navigate('/auth');
-        return;
-      }
-      
-      setLoadingEnrollment(true);
-      console.log(`尝试加入课程: ${courseId}`);
-      
-      // 验证课程是否存在并且是已发布状态
-      const { data: courseData, error: courseError } = await supabase
-        .from('courses')
-        .select('id, status')
-        .eq('id', courseId)
-        .eq('status', 'published')
-        .single();
-      
-      if (courseError || !courseData) {
-        toast.error('课程不存在或未发布');
-        setLoadingEnrollment(false);
-        return;
-      }
-      
-      // 检查用户是否已经注册了这个课程
-      const { data: enrollments, error: enrollmentError } = await supabase
-        .from('course_enrollments')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('course_id', courseId);
-        
-      if (enrollmentError) {
-        console.error('检查课程注册状态失败:', enrollmentError);
-        toast.error('注册课程失败，请稍后重试');
-        setLoadingEnrollment(false);
-        return;
-      }
-      
-      // 如果用户已经注册，直接导航到课程页面
-      if (enrollments && enrollments.length > 0) {
-        console.log('用户已经注册了这个课程');
-        toast.success('您已注册过此课程，正在跳转...');
-        navigate(`/course/${courseId}`);
-        setLoadingEnrollment(false);
-        return;
-      }
-      
-      // 用户未注册，直接插入新的注册记录
-      const { error: insertError } = await supabase
-        .from('course_enrollments')
-        .insert({
-          user_id: user.id,
-          course_id: courseId,
-          status: 'active',
-          progress: 0
-        });
-      
-      if (insertError) {
-        console.error('注册课程失败:', insertError);
-        toast.error('注册课程失败，请稍后重试');
-        setLoadingEnrollment(false);
-        return;
-      }
-      
-      toast.success('成功加入课程！');
-      // 刷新已加入的课程列表
-      fetchEnrolledCourses();
-      navigate(`/course/${courseId}`);
-    } catch (error) {
-      console.error('加入课程过程中发生错误:', error);
-      toast.error('加入课程失败，请稍后重试');
-    } finally {
-      setLoadingEnrollment(false);
-    }
-  };
-
+  
   return {
     courses,
     enrolledCourses,
     loading,
     loadingEnrolled,
-    loadingEnrollment,
-    fetchCourses,
-    fetchEnrolledCourses,
+    loadingEnrollment: enrollMutation.isPending,
+    refreshAll,
+    fetchCourses: refetchCourses,
+    fetchEnrolledCourses: refetchEnrolledCourses,
     handleEnrollCourse
   };
 };

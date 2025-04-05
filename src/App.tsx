@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import NotFound from "./pages/NotFound";
@@ -67,6 +67,7 @@ const AppRoutes = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [editorFullscreen, setEditorFullscreen] = useState(false);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -81,6 +82,24 @@ const AppRoutes = () => {
     
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+  
+  // 添加预加载数据逻辑
+  useEffect(() => {
+    // 如果用户已登录，预加载常用数据
+    if (user) {
+      // 预加载所有课程数据
+      queryClient.prefetchQuery({
+        queryKey: ['courses'],
+        staleTime: 5 * 60 * 1000 // 5分钟内保持数据新鲜
+      });
+      
+      // 预加载用户已加入的课程
+      queryClient.prefetchQuery({
+        queryKey: ['enrolledCourses', user.id],
+        staleTime: 5 * 60 * 1000
+      });
+    }
+  }, [user, queryClient]);
 
   const handleEditorFullscreenChange = (isFullscreen: boolean) => {
     setEditorFullscreen(isFullscreen);

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
@@ -8,16 +7,55 @@ import { Button } from '@/components/ui/button';
 import { useCoursesData, EnrolledCourse } from '@/hooks/useCoursesData';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 
 const Learning = () => {
   const { user } = useAuth();
-  const { enrolledCourses, loadingEnrolled, fetchEnrolledCourses } = useCoursesData();
+  const { enrolledCourses, loadingEnrolled } = useCoursesData();
+  const queryClient = useQueryClient();
 
+  // 在组件挂载时预获取常用数据
   useEffect(() => {
     if (user) {
-      fetchEnrolledCourses();
+      // 确保数据已加载到缓存，使页面切换回来时不会重新请求
+      queryClient.prefetchQuery({
+        queryKey: ['enrolledCourses', user.id],
+        staleTime: 5 * 60 * 1000 // 5分钟内保持数据新鲜
+      });
+      
+      // 优化性能 - 预获取探索课程页面的数据
+      queryClient.prefetchQuery({
+        queryKey: ['courses'],
+        staleTime: 5 * 60 * 1000
+      });
     }
-  }, [user]);
+    
+    // 监听页面可见性变化，在用户返回页面时检查数据是否需要刷新
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        const cachedData = queryClient.getQueryData(['enrolledCourses', user.id]);
+        if (!cachedData) {
+          queryClient.invalidateQueries({ queryKey: ['enrolledCourses', user.id] });
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, queryClient]);
+
+  // 使用useMemo优化过滤操作
+  const inProgressCourses = React.useMemo(() => 
+    enrolledCourses.filter(course => course.progress < 100), 
+    [enrolledCourses]
+  );
+  
+  const completedCourses = React.useMemo(() => 
+    enrolledCourses.filter(course => course.progress >= 100), 
+    [enrolledCourses]
+  );
 
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
@@ -42,9 +80,9 @@ const Learning = () => {
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">正在加载课程...</p>
             </div>
-          ) : enrolledCourses.length > 0 ? (
+          ) : inProgressCourses.length > 0 ? (
             // 显示用户已加入的课程
-            enrolledCourses.filter(course => course.progress < 100).map((course) => (
+            inProgressCourses.map((course) => (
               <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                 <div className="p-6">
                   <div className="flex justify-between items-start">
@@ -110,14 +148,14 @@ const Learning = () => {
           )}
         </TabsContent>
         
-        <TabsContent value="completed">
+        <TabsContent value="completed" className="space-y-6">
           {loadingEnrolled ? (
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">正在加载课程...</p>
             </div>
-          ) : enrolledCourses.filter(course => course.progress >= 100).length > 0 ? (
+          ) : completedCourses.length > 0 ? (
             // 显示已完成的课程
-            enrolledCourses.filter(course => course.progress >= 100).map((course) => (
+            completedCourses.map((course) => (
               <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-6">
                 <div className="flex justify-between items-center">
                   <div>
