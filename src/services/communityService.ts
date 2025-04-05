@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Discussion, Topic, Comment } from "@/types/community";
+import { Discussion, Topic, Comment, DiscussionWithProfile, CommentWithProfile } from "@/types/community";
 
 export const fetchDiscussions = async (filter: 'trending' | 'latest' | 'popular' | 'following' = 'trending') => {
   try {
@@ -24,7 +24,7 @@ export const fetchDiscussions = async (filter: 'trending' | 'latest' | 'popular'
     const { data, error } = await query;
     
     if (error) throw error;
-    return data;
+    return data as unknown as DiscussionWithProfile[];
   } catch (error) {
     console.error('Error fetching discussions:', error);
     toast({
@@ -44,7 +44,7 @@ export const fetchTopics = async () => {
       .order('posts_count', { ascending: false });
     
     if (error) throw error;
-    return data as Topic[];
+    return data as unknown as Topic[];
   } catch (error) {
     console.error('Error fetching topics:', error);
     return [];
@@ -74,7 +74,7 @@ export const createDiscussion = async (title: string, content: string, tags: str
       description: "您的讨论已成功发布",
     });
     
-    return data as Discussion;
+    return data as unknown as Discussion;
   } catch (error) {
     console.error('Error creating discussion:', error);
     toast({
@@ -98,7 +98,7 @@ export const fetchComments = async (discussionId: string) => {
       .order('created_at', { ascending: true });
     
     if (error) throw error;
-    return data;
+    return data as unknown as CommentWithProfile[];
   } catch (error) {
     console.error('Error fetching comments:', error);
     return [];
@@ -122,18 +122,19 @@ export const createComment = async (discussionId: string, content: string) => {
     
     if (error) throw error;
     
-    // 更新讨论的评论计数
-    await supabase
-      .from('discussions')
-      .update({ comments_count: supabase.rpc('increment', { x: 1 }) })
-      .eq('id', discussionId);
+    // 更新讨论的评论计数 - 使用原始SQL方式
+    await supabase.rpc('increment', { 
+      table_name: 'discussions',
+      column_name: 'comments_count',
+      row_id: discussionId
+    });
     
     toast({
       title: "评论成功",
       description: "您的评论已发布",
     });
     
-    return data as Comment;
+    return data as unknown as Comment;
   } catch (error) {
     console.error('Error creating comment:', error);
     toast({
@@ -167,22 +168,24 @@ export const likeDiscussion = async (discussionId: string) => {
           .eq('discussion_id', discussionId)
           .eq('user_id', userData.user.id);
         
-        // 减少点赞计数
-        await supabase
-          .from('discussions')
-          .update({ likes_count: supabase.rpc('decrement', { x: 1 }) })
-          .eq('id', discussionId);
+        // 减少点赞计数 - 使用原始SQL方式
+        await supabase.rpc('decrement', { 
+          table_name: 'discussions',
+          column_name: 'likes_count',
+          row_id: discussionId
+        });
         
         return { action: 'unliked' };
       } else {
         throw error;
       }
     } else {
-      // 增加点赞计数
-      await supabase
-        .from('discussions')
-        .update({ likes_count: supabase.rpc('increment', { x: 1 }) })
-        .eq('id', discussionId);
+      // 增加点赞计数 - 使用原始SQL方式
+      await supabase.rpc('increment', { 
+        table_name: 'discussions',
+        column_name: 'likes_count',
+        row_id: discussionId
+      });
       
       return { action: 'liked' };
     }
