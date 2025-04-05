@@ -101,8 +101,8 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
 
   // 处理评论点赞，但不立即刷新
   const handleCommentLiked = () => {
-    // 使用延迟刷新策略，3秒后再刷新评论列表
-    setTimeout(() => loadComments(), 3000);
+    // 延迟刷新策略，延迟5秒后再刷新，避免频繁刷新
+    setTimeout(() => loadComments(), 5000);
   };
 
   return (

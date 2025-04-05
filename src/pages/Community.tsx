@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { communityService, Discussion } from '@/services/community';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -13,14 +13,22 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const { user } = useAuth();
 
   // 加载数据
-  const loadData = async () => {
+  const loadData = useCallback(async (force = false) => {
+    // 如果距离上次刷新不到30秒且非强制刷新，则跳过
+    const now = Date.now();
+    if (!force && now - lastRefreshTime < 30000) {
+      return;
+    }
+    
     setLoading(true);
     try {
       const discussionsData = await communityService.getDiscussions(activeTab);
       setDiscussions(discussionsData);
+      setLastRefreshTime(now);
     } catch (error) {
       console.error('加载社区数据失败:', error);
       toast({
@@ -31,22 +39,20 @@ const Community = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, lastRefreshTime]);
 
   // 初始加载和标签切换时重新加载
   useEffect(() => {
-    loadData();
+    loadData(true); // 强制刷新
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // 处理点赞更新 - 不立即刷新，延迟2秒后再更新列表
+  // 处理点赞更新 - 不立即刷新，延迟后再更新列表
   const handleLike = () => {
-    // We don't need to immediately refresh, let the local state update first
-    // This avoids the jarring experience of the page refreshing on every like
-    // After 2 seconds we'll refresh in the background
+    // 延迟5秒再刷新，减少频繁刷新
     setTimeout(() => {
       loadData();
-    }, 2000);
+    }, 5000);
   };
 
   // 处理发布新讨论
@@ -95,7 +101,7 @@ const Community = () => {
       <NewDiscussionDialog 
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onDiscussionCreated={loadData}
+        onDiscussionCreated={() => loadData(true)}
       />
     </div>
   );

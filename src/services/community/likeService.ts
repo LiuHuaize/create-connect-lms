@@ -10,7 +10,7 @@ export async function likeDiscussion(discussionId: string): Promise<boolean> {
     if (userError || !userData.user) {
       toast({
         title: "操作失败",
-        description: "您需要登录才能点赞。",
+        description: "您需要登录才能点赞讨论。",
         variant: "destructive"
       });
       return false;
@@ -43,10 +43,18 @@ export async function likeDiscussion(discussionId: string): Promise<boolean> {
       }
       
       // 更新讨论的点赞计数
-      const { error: rpcError } = await supabase.rpc('decrement_discussion_like', { discussion_id_param: discussionId });
-      
-      if (rpcError) {
-        console.error('更新点赞计数失败:', rpcError);
+      try {
+        const { error: updateError } = await supabase.rpc('decrement_discussion_like', { 
+          discussion_id_param: discussionId 
+        });
+        if (updateError) console.error('更新点赞计数失败:', updateError);
+      } catch (error) {
+        console.error('调用减少点赞RPC失败:', error);
+        // 直接使用UPDATE作为回退
+        await supabase
+          .from('discussions')
+          .update({ likes_count: supabase.sql('GREATEST(0, likes_count - 1)') })
+          .eq('id', discussionId);
       }
       
       return false; // 返回新状态：未点赞
@@ -65,10 +73,18 @@ export async function likeDiscussion(discussionId: string): Promise<boolean> {
       }
       
       // 更新讨论的点赞计数
-      const { error: rpcError } = await supabase.rpc('increment_discussion_like', { discussion_id_param: discussionId });
-      
-      if (rpcError) {
-        console.error('更新点赞计数失败:', rpcError);
+      try {
+        const { error: updateError } = await supabase.rpc('increment_discussion_like', { 
+          discussion_id_param: discussionId 
+        });
+        if (updateError) console.error('更新点赞计数失败:', updateError);
+      } catch (error) {
+        console.error('调用增加点赞RPC失败:', error);
+        // 直接使用UPDATE作为回退
+        await supabase
+          .from('discussions')
+          .update({ likes_count: supabase.sql('COALESCE(likes_count, 0) + 1') })
+          .eq('id', discussionId);
       }
       
       return true; // 返回新状态：已点赞

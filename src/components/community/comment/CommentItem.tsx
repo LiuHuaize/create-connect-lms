@@ -22,8 +22,12 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
   useEffect(() => {
     const checkLikeStatus = async () => {
       if (user) {
-        const hasLiked = await communityService.hasLikedComment(comment.id);
-        setIsLiked(hasLiked);
+        try {
+          const hasLiked = await communityService.hasLikedComment(comment.id);
+          setIsLiked(hasLiked);
+        } catch (error) {
+          console.error('获取评论点赞状态失败:', error);
+        }
       }
     };
     
@@ -32,7 +36,9 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
 
   // 确保当likes_count属性变化时更新本地状态
   useEffect(() => {
-    setLikesCount(comment.likes_count || 0);
+    if (comment.likes_count !== undefined) {
+      setLikesCount(comment.likes_count);
+    }
   }, [comment.likes_count]);
 
   const handleLike = async (e) => {
@@ -110,6 +116,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
         )}
         onClick={handleLike}
         disabled={isLiking}
+        aria-label={isLiked ? "取消点赞" : "点赞"}
       >
         <Heart 
           size={14} 

@@ -6,7 +6,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
   UPDATE public.discussions
-  SET likes_count = likes_count + 1
+  SET likes_count = COALESCE(likes_count, 0) + 1
   WHERE id = discussion_id_param;
 END;
 $$;
