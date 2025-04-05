@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Heart, Share2 } from 'lucide-react';
+import { MessageSquare, Heart } from 'lucide-react';
 import { communityService, Discussion } from '@/services/communityService';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, formatDistance } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import CommentDialog from './CommentDialog';
 
 interface DiscussionItemProps {
   discussion: Discussion;
@@ -16,6 +17,7 @@ interface DiscussionItemProps {
 const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) => {
   const [hasLiked, setHasLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+  const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -29,7 +31,9 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
     checkLikeStatus();
   }, [discussion.id, user]);
   
-  const handleLike = async () => {
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
     if (!user) {
       toast({
         title: "请先登录",
@@ -51,21 +55,29 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
     }
   };
   
+  const handleOpenComments = () => {
+    setIsCommentDialogOpen(true);
+  };
+  
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
       const now = new Date();
-      const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
       
-      if (diffHours < 1) {
-        return '刚刚';
-      } else if (diffHours < 24) {
-        return `${diffHours}小时前`;
-      } else if (diffHours < 48) {
-        return '昨天';
-      } else {
-        return format(date, 'yyyy年MM月dd日', { locale: zhCN });
+      // 使用date-fns的formatDistance来获取更准确的相对时间
+      const relativeTime = formatDistance(date, now, { 
+        addSuffix: true, 
+        locale: zhCN 
+      });
+      
+      // 如果距离现在超过7天，则显示完整日期
+      const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays > 7) {
+        return format(date, 'yyyy年MM月dd日 HH:mm', { locale: zhCN });
       }
+      
+      return relativeTime;
     } catch (e) {
       return dateString;
     }
@@ -96,55 +108,69 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start gap-4">
-        <div className={cn(
-          "h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0",
-          getAvatarBgColor(discussion.user_id)
-        )}>
-          {getAvatarInitials(discussion.username)}
-        </div>
-        
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold">{discussion.username || '未知用户'}</h3>
-            <span className="text-gray-500 text-sm">• {formatDate(discussion.created_at)}</span>
-            {discussion.tags && discussion.tags.length > 0 && (
-              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                {discussion.tags[0]}
-              </span>
-            )}
+    <>
+      <div 
+        className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition-shadow cursor-pointer"
+        onClick={handleOpenComments}
+      >
+        <div className="flex items-start gap-4">
+          <div className={cn(
+            "h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0",
+            getAvatarBgColor(discussion.user_id)
+          )}>
+            {getAvatarInitials(discussion.username)}
           </div>
           
-          <h4 className="text-lg font-bold mb-2">{discussion.title}</h4>
-          <p className="text-gray-600 mb-4 break-words whitespace-pre-line">{discussion.content}</p>
-          
-          <div className="flex items-center gap-6">
-            <button 
-              className={cn(
-                "flex items-center gap-1 transition-colors",
-                hasLiked 
-                  ? "text-red-500 hover:text-red-600" 
-                  : "text-gray-500 hover:text-connect-blue"
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold">{discussion.username || '未知用户'}</h3>
+              <span className="text-gray-500 text-sm">• {formatDate(discussion.created_at)}</span>
+              {discussion.tags && discussion.tags.length > 0 && (
+                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                  {discussion.tags[0]}
+                </span>
               )}
-              onClick={handleLike}
-              disabled={isLiking}
-            >
-              <Heart size={16} className={cn(hasLiked && "fill-red-500")} />
-              <span className="text-sm">{discussion.likes_count}</span>
-            </button>
-            <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
-              <MessageSquare size={16} />
-              <span className="text-sm">{discussion.comments_count}条评论</span>
-            </button>
-            <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
-              <Share2 size={16} />
-              <span className="text-sm">分享</span>
-            </button>
+            </div>
+            
+            <h4 className="text-lg font-bold mb-2">{discussion.title}</h4>
+            <p className="text-gray-600 mb-4 break-words whitespace-pre-line">{discussion.content}</p>
+            
+            <div className="flex items-center gap-6">
+              <button 
+                className={cn(
+                  "flex items-center gap-1 transition-colors",
+                  hasLiked 
+                    ? "text-red-500 hover:text-red-600" 
+                    : "text-gray-500 hover:text-connect-blue"
+                )}
+                onClick={handleLike}
+                disabled={isLiking}
+              >
+                <Heart size={16} className={cn(hasLiked && "fill-red-500")} />
+                <span className="text-sm">{discussion.likes_count}</span>
+              </button>
+              <button 
+                className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenComments();
+                }}
+              >
+                <MessageSquare size={16} />
+                <span className="text-sm">{discussion.comments_count}条评论</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <CommentDialog 
+        open={isCommentDialogOpen} 
+        onOpenChange={setIsCommentDialogOpen}
+        discussionId={discussion.id}
+        discussion={discussion}
+      />
+    </>
   );
 };
 
