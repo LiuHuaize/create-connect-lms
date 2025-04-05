@@ -43,14 +43,11 @@ export async function likeComment(commentId: string): Promise<boolean> {
       }
       
       // 更新评论的点赞计数
-      const { error: updateError } = await supabase
-        .from('comments')
-        .update({ likes_count: supabase.rpc('decrement', { row_id: commentId, table_name: 'comments', column_name: 'likes_count' }) })
-        .eq('id', commentId);
-      
-      if (updateError) {
-        console.error('更新评论点赞计数失败:', updateError);
-      }
+      await supabase.rpc('decrement', { 
+        row_id: commentId, 
+        table_name: 'comments', 
+        column_name: 'likes_count' 
+      });
       
       return false; // 返回新状态：未点赞
     } else {
@@ -68,14 +65,11 @@ export async function likeComment(commentId: string): Promise<boolean> {
       }
       
       // 更新评论的点赞计数
-      const { error: updateError } = await supabase
-        .from('comments')
-        .update({ likes_count: supabase.rpc('increment', { row_id: commentId, table_name: 'comments', column_name: 'likes_count' }) })
-        .eq('id', commentId);
-      
-      if (updateError) {
-        console.error('更新评论点赞计数失败:', updateError);
-      }
+      await supabase.rpc('increment', { 
+        row_id: commentId, 
+        table_name: 'comments', 
+        column_name: 'likes_count' 
+      });
       
       return true; // 返回新状态：已点赞
     }
