@@ -46,7 +46,7 @@ export const communityService = {
         .from('discussions')
         .select(`
           *,
-          profiles:profiles(username)
+          profiles(username)
         `);
       
       // 根据过滤条件排序
@@ -72,7 +72,7 @@ export const communityService = {
       }
       
       // 处理用户信息
-      return data.map(item => ({
+      return (data as any[]).map(item => ({
         ...item,
         user_info: {
           username: item.profiles?.username || '未知用户'
@@ -167,12 +167,17 @@ export const communityService = {
       }
       
       // 检查是否已点赞
-      const { data: existingLike } = await supabase
+      const { data: existingLike, error: checkError } = await supabase
         .from('discussion_likes')
         .select('*')
         .eq('discussion_id', discussionId)
         .eq('user_id', userData.user.id)
-        .single();
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('检查点赞状态失败:', checkError);
+        return false;
+      }
       
       if (existingLike) {
         // 已点赞，取消点赞
@@ -225,12 +230,17 @@ export const communityService = {
         return false;
       }
       
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('discussion_likes')
         .select('*')
         .eq('discussion_id', discussionId)
         .eq('user_id', userData.user.id)
-        .single();
+        .maybeSingle();
+      
+      if (error) {
+        console.error('检查点赞状态失败:', error);
+        return false;
+      }
       
       return !!data;
     } catch (error) {
