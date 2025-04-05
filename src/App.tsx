@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,7 +25,18 @@ import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import ExploreCourses from "./pages/ExploreCourses";
 
-const queryClient = new QueryClient();
+// 创建QueryClient并配置默认缓存策略
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5分钟内数据视为新鲜
+      gcTime: 30 * 60 * 1000, // 30分钟内保留缓存数据
+      refetchOnWindowFocus: false, // 窗口获取焦点时不重新获取数据
+      refetchOnMount: false, // 组件挂载时不重新获取数据
+      retry: 1, // 失败时最多重试1次
+    },
+  },
+});
 
 // Protected route component with role check
 interface ProtectedRouteProps {

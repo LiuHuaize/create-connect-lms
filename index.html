@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>亿小步</title>
     <meta name="description" content="Lovable Generated Project" />
@@ -15,6 +16,21 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="/assets/index.css" as="style">
+    <link rel="preload" href="/assets/index.js" as="script">
+    
+    <!-- 添加DNS预解析，减少DNS查询时间 -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    
+    <!-- 对后续可能使用的字体资源进行预连接 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- 预加载经常使用的字体文件 -->
+    <link rel="preload" href="@blocknote/core/fonts/inter.css" as="style">
   </head>
 
   <body>
