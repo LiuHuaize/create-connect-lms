@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,6 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
 
-  // 加载评论
   useEffect(() => {
     if (open && discussionId) {
       loadComments();
@@ -54,7 +52,6 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
     }
   };
 
-  // 提交评论
   const handleSubmitComment = async () => {
     if (!user) {
       toast({
@@ -78,7 +75,7 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
       setIsSubmitting(true);
       await communityService.addComment(discussionId, newComment);
       setNewComment('');
-      loadComments(); // 重新加载评论
+      loadComments();
       toast({
         title: "评论成功",
         description: "您的评论已发布。"
@@ -95,19 +92,16 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
     }
   };
 
-  // 格式化日期
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
       const now = new Date();
       
-      // 使用date-fns的formatDistance来获取更准确的相对时间
       const relativeTime = formatDistance(date, now, { 
         addSuffix: true, 
         locale: zhCN 
       });
       
-      // 如果距离现在超过7天，则显示完整日期
       const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
       
       if (diffDays > 7) {
@@ -120,12 +114,10 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
     }
   };
 
-  // 提取用户头像的首字母
   const getAvatarInitials = (username: string = '未知用户') => {
     return username.substring(0, 2);
   };
-  
-  // 随机生成头像背景色（但对同一用户保持一致）
+
   const getAvatarBgColor = (userId: string) => {
     const colors = [
       'bg-blue-100 text-blue-700',
@@ -137,7 +129,6 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
       'bg-pink-100 text-pink-700',
     ];
     
-    // 使用用户ID生成一个一致的索引
     const charSum = userId.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
     const colorIndex = charSum % colors.length;
     
@@ -162,7 +153,6 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
         </DialogHeader>
 
         <div className="max-h-[70vh] overflow-y-auto">
-          {/* 原讨论内容 */}
           <div className="p-4 border-b">
             <div className="flex items-start gap-4">
               <div className={cn(
@@ -189,7 +179,6 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
             </div>
           </div>
 
-          {/* 评论列表 */}
           <div className="p-4">
             <h3 className="font-medium mb-4">评论 ({discussion.comments_count})</h3>
             
@@ -228,7 +217,6 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
           </div>
         </div>
 
-        {/* 评论输入框 */}
         <div className="p-4 border-t bg-gray-50">
           <div className="flex items-start gap-2">
             <Textarea

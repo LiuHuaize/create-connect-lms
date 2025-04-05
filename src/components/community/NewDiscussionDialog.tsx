@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { communityService } from '@/services/community';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NewDiscussionDialogProps {

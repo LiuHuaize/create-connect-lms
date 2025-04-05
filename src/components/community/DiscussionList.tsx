@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Discussion } from '@/services/communityService';
+import { Discussion } from '@/services/community/types';
 import DiscussionItem from './DiscussionItem';
 import { Button } from '@/components/ui/button';
 import { PenLine } from 'lucide-react';

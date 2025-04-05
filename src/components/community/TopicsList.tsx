@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Topic } from '@/services/communityService';
+import { Topic } from '@/services/community/types';
 
 interface TopicsListProps {
   topics: Topic[];

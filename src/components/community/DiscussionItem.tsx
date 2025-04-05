@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Heart } from 'lucide-react';
 import { communityService, Discussion } from '@/services/community';

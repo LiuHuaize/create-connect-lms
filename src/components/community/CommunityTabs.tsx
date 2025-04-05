@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Discussion } from '@/services/communityService';
+import { Discussion } from '@/services/community/types';
 import { useAuth } from '@/contexts/AuthContext';
 import DiscussionList from './DiscussionList';
 
