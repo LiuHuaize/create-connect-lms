@@ -33,58 +33,62 @@ const CommunityTabs: React.FC<CommunityTabsProps> = ({
       onValueChange={(value) => setActiveTab(value as any)}
       className="w-full"
     >
-      <TabsList className="mb-6">
-        <TabsTrigger value="trending">热门</TabsTrigger>
-        <TabsTrigger value="latest">最新</TabsTrigger>
-        <TabsTrigger value="popular">最受欢迎</TabsTrigger>
-        <TabsTrigger value="following">关注中</TabsTrigger>
-      </TabsList>
+      <div className="border-b border-gray-100">
+        <TabsList className="h-14 bg-transparent justify-start px-6">
+          <TabsTrigger value="trending" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:font-medium">热门</TabsTrigger>
+          <TabsTrigger value="latest" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:font-medium">最新</TabsTrigger>
+          <TabsTrigger value="popular" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:font-medium">最受欢迎</TabsTrigger>
+          <TabsTrigger value="following" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:font-medium">关注中</TabsTrigger>
+        </TabsList>
+      </div>
       
-      <TabsContent value="trending" className="space-y-6">
-        <DiscussionList 
-          discussions={discussions}
-          loading={loading}
-          searchQuery={searchQuery}
-          onLike={onLike}
-          onNewDiscussion={onNewDiscussion}
-        />
-      </TabsContent>
-      
-      <TabsContent value="latest" className="space-y-6">
-        <DiscussionList 
-          discussions={discussions}
-          loading={loading}
-          searchQuery={searchQuery}
-          onLike={onLike}
-          onNewDiscussion={onNewDiscussion}
-        />
-      </TabsContent>
-      
-      <TabsContent value="popular" className="space-y-6">
-        <DiscussionList 
-          discussions={discussions}
-          loading={loading}
-          searchQuery={searchQuery}
-          onLike={onLike}
-          onNewDiscussion={onNewDiscussion}
-        />
-      </TabsContent>
-      
-      <TabsContent value="following" className="space-y-6">
-        {!user ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">请登录后查看您关注的讨论</p>
-          </div>
-        ) : loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">正在加载您关注的讨论...</p>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">关注功能即将上线</p>
-          </div>
-        )}
-      </TabsContent>
+      <div className="p-6">
+        <TabsContent value="trending" className="mt-0">
+          <DiscussionList 
+            discussions={discussions}
+            loading={loading}
+            searchQuery={searchQuery}
+            onLike={onLike}
+            onNewDiscussion={onNewDiscussion}
+          />
+        </TabsContent>
+        
+        <TabsContent value="latest" className="mt-0">
+          <DiscussionList 
+            discussions={discussions}
+            loading={loading}
+            searchQuery={searchQuery}
+            onLike={onLike}
+            onNewDiscussion={onNewDiscussion}
+          />
+        </TabsContent>
+        
+        <TabsContent value="popular" className="mt-0">
+          <DiscussionList 
+            discussions={discussions}
+            loading={loading}
+            searchQuery={searchQuery}
+            onLike={onLike}
+            onNewDiscussion={onNewDiscussion}
+          />
+        </TabsContent>
+        
+        <TabsContent value="following" className="mt-0">
+          {!user ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">请登录后查看您关注的讨论</p>
+            </div>
+          ) : loading ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">正在加载您关注的讨论...</p>
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">关注功能即将上线</p>
+            </div>
+          )}
+        </TabsContent>
+      </div>
     </Tabs>
   );
 };

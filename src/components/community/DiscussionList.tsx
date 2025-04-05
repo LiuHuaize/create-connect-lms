@@ -3,6 +3,7 @@ import React from 'react';
 import { Discussion } from '@/services/communityService';
 import DiscussionItem from './DiscussionItem';
 import { Button } from '@/components/ui/button';
+import { PenLine } from 'lucide-react';
 
 interface DiscussionListProps {
   discussions: Discussion[];
@@ -21,7 +22,8 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
 }) => {
   if (loading) {
     return (
-      <div className="text-center py-12">
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="text-gray-500">正在加载讨论...</p>
       </div>
     );
@@ -29,15 +31,15 @@ const DiscussionList: React.FC<DiscussionListProps> = ({
 
   if (discussions.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">
+      <div className="text-center py-16 bg-gray-50 rounded-xl">
+        <p className="text-gray-500 mb-4">
           {searchQuery ? '没有找到匹配的讨论' : '暂无讨论'}
         </p>
         <Button 
           onClick={onNewDiscussion} 
-          variant="outline" 
-          className="mt-4"
+          className="bg-primary hover:bg-primary/90"
         >
+          <PenLine className="h-4 w-4 mr-2" />
           发起第一个讨论
         </Button>
       </div>

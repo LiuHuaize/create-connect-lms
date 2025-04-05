@@ -1,17 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { communityService, Discussion, Topic } from '@/services/communityService';
+import { communityService, Discussion } from '@/services/communityService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import NewDiscussionDialog from '@/components/community/NewDiscussionDialog';
 import SearchBar from '@/components/community/SearchBar';
 import CommunityTabs from '@/components/community/CommunityTabs';
-import Sidebar from '@/components/community/Sidebar';
 
 const Community = () => {
   const [activeTab, setActiveTab] = useState<'trending' | 'latest' | 'popular' | 'following'>('trending');
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
-  const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -23,9 +21,6 @@ const Community = () => {
     try {
       const discussionsData = await communityService.getDiscussions(activeTab);
       setDiscussions(discussionsData);
-      
-      const topicsData = await communityService.getTopics();
-      setTopics(topicsData);
     } catch (error) {
       console.error('加载社区数据失败:', error);
       toast({
@@ -65,7 +60,7 @@ const Community = () => {
     : discussions;
 
   return (
-    <div className="animate-fade-in p-6 max-w-7xl mx-auto">
+    <div className="animate-fade-in p-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">社区</h1>
         <SearchBar 
@@ -75,20 +70,16 @@ const Community = () => {
         />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-3">
-          <CommunityTabs 
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            discussions={filteredDiscussions}
-            loading={loading}
-            searchQuery={searchQuery}
-            onLike={loadData}
-            onNewDiscussion={handleNewDiscussion}
-          />
-        </div>
-        
-        <Sidebar topics={topics} />
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <CommunityTabs 
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          discussions={filteredDiscussions}
+          loading={loading}
+          searchQuery={searchQuery}
+          onLike={loadData}
+          onNewDiscussion={handleNewDiscussion}
+        />
       </div>
       
       <NewDiscussionDialog 

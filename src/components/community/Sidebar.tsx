@@ -1,18 +1,8 @@
 
 import React from 'react';
-import { Topic } from '@/services/communityService';
-import TopicsList from './TopicsList';
 
-interface SidebarProps {
-  topics: Topic[];
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ topics }) => {
-  return (
-    <div className="lg:col-span-1">
-      <TopicsList topics={topics} />
-    </div>
-  );
+const Sidebar: React.FC = () => {
+  return null; // 移除整个侧边栏
 };
 
 export default Sidebar;
