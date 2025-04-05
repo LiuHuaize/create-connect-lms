@@ -13,9 +13,7 @@ export interface Discussion {
   comments_count: number;
   tags: string[] | null;
   // 扩展属性
-  user_info?: {
-    username: string;
-  };
+  username?: string;
 }
 
 export interface Comment {
@@ -27,9 +25,7 @@ export interface Comment {
   updated_at: string;
   likes_count: number;
   // 扩展属性
-  user_info?: {
-    username: string;
-  };
+  username?: string;
 }
 
 export interface Topic {
@@ -44,10 +40,7 @@ export const communityService = {
     try {
       let query = supabase
         .from('discussions')
-        .select(`
-          *,
-          profiles(username)
-        `);
+        .select('*');
       
       // 根据过滤条件排序
       switch (filter) {
@@ -71,13 +64,25 @@ export const communityService = {
         throw error;
       }
       
-      // 处理用户信息
-      return (data as any[]).map(item => ({
-        ...item,
-        user_info: {
-          username: item.profiles?.username || '未知用户'
+      // 如果成功获取讨论列表，再获取每个讨论作者的用户名
+      const discussions = data as Discussion[];
+      
+      // 获取用户信息
+      for (const discussion of discussions) {
+        const { data: userData, error: userError } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', discussion.user_id)
+          .maybeSingle();
+        
+        if (!userError && userData) {
+          discussion.username = userData.username;
+        } else {
+          discussion.username = '未知用户';
         }
-      })) as Discussion[];
+      }
+      
+      return discussions;
     } catch (error) {
       console.error('获取讨论列表出错:', error);
       return [];

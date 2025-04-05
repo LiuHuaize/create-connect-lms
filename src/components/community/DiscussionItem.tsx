@@ -72,8 +72,8 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
   };
   
   // 提取用户头像的首字母
-  const getAvatarInitials = (username: string) => {
-    return username?.substring(0, 2) || '用户';
+  const getAvatarInitials = (username: string = '未知用户') => {
+    return username.substring(0, 2);
   };
   
   // 随机生成头像背景色（但对同一用户保持一致）
@@ -96,18 +96,18 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 hover-scale shadow-sm">
+    <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
       <div className="flex items-start gap-4">
         <div className={cn(
           "h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0",
           getAvatarBgColor(discussion.user_id)
         )}>
-          {getAvatarInitials(discussion.user_info?.username || '用户')}
+          {getAvatarInitials(discussion.username)}
         </div>
         
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold">{discussion.user_info?.username || '未知用户'}</h3>
+            <h3 className="font-semibold">{discussion.username || '未知用户'}</h3>
             <span className="text-gray-500 text-sm">• {formatDate(discussion.created_at)}</span>
             {discussion.tags && discussion.tags.length > 0 && (
               <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
