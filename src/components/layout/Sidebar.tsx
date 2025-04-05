@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   BookOpen,
   CalendarDays,
-  Users,
   PenTool,
   User,
   Settings,
@@ -60,11 +59,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
       label: "活动",
       icon: <CalendarDays className="h-5 w-5" />,
       href: "/events",
-    },
-    {
-      label: "社区",
-      icon: <Users className="h-5 w-5" />,
-      href: "/community",
     },
   ];
 

@@ -15,7 +15,6 @@ import { useAuth } from "./contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import Learning from "./pages/Learning";
 import Events from "./pages/Events";
-import Community from "./pages/Community";
 import CourseCreator from "./pages/CourseCreator";
 import CourseSelection from "./pages/CourseSelection"; 
 import Index from "./pages/Index";
@@ -118,11 +117,6 @@ const AppRoutes = () => {
             <Route path="/explore-courses" element={
               <ProtectedRoute>
                 <ExploreCourses />
-              </ProtectedRoute>
-            } />
-            <Route path="/community" element={
-              <ProtectedRoute>
-                <Community />
               </ProtectedRoute>
             } />
             <Route path="/events" element={
