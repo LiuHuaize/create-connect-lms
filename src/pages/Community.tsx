@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { communityService, Discussion } from '@/services/communityService';
+import { communityService, Discussion } from '@/services/community';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import NewDiscussionDialog from '@/components/community/NewDiscussionDialog';

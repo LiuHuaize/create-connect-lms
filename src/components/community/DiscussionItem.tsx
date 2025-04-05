@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Heart } from 'lucide-react';
-import { communityService, Discussion } from '@/services/communityService';
+import { communityService, Discussion } from '@/services/community';
 import { cn } from '@/lib/utils';
 import { format, formatDistance } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
