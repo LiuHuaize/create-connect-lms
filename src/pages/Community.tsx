@@ -39,6 +39,12 @@ const Community = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
+  // 处理点赞更新
+  const handleLike = () => {
+    // 不立即刷新，让页面先使用本地状态更新
+    setTimeout(loadData, 1000);
+  };
+
   // 处理发布新讨论
   const handleNewDiscussion = () => {
     if (!user) {
@@ -77,7 +83,7 @@ const Community = () => {
           discussions={filteredDiscussions}
           loading={loading}
           searchQuery={searchQuery}
-          onLike={loadData}
+          onLike={handleLike}
           onNewDiscussion={handleNewDiscussion}
         />
       </div>

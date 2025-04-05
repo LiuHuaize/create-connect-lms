@@ -173,11 +173,15 @@ export const communityService = {
         
         if (deleteError) {
           console.error('取消点赞失败:', deleteError);
-          return false;
+          return true; // 返回当前状态，仍然是已点赞
         }
         
         // 更新讨论的点赞计数
-        await supabase.rpc('decrement_discussion_like', { discussion_id_param: discussionId });
+        const { error: rpcError } = await supabase.rpc('decrement_discussion_like', { discussion_id_param: discussionId });
+        
+        if (rpcError) {
+          console.error('更新点赞计数失败:', rpcError);
+        }
         
         return false; // 返回新状态：未点赞
       } else {
@@ -195,7 +199,11 @@ export const communityService = {
         }
         
         // 更新讨论的点赞计数
-        await supabase.rpc('increment_discussion_like', { discussion_id_param: discussionId });
+        const { error: rpcError } = await supabase.rpc('increment_discussion_like', { discussion_id_param: discussionId });
+        
+        if (rpcError) {
+          console.error('更新点赞计数失败:', rpcError);
+        }
         
         return true; // 返回新状态：已点赞
       }
@@ -302,7 +310,11 @@ export const communityService = {
       }
       
       // 更新讨论的评论计数
-      await supabase.rpc('increment_discussion_comment', { discussion_id_param: discussionId });
+      const { error: rpcError } = await supabase.rpc('increment_discussion_comment', { discussion_id_param: discussionId });
+      
+      if (rpcError) {
+        console.error('更新评论计数失败:', rpcError);
+      }
       
       return data as Comment;
     } catch (error) {

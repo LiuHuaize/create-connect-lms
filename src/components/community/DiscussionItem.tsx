@@ -18,6 +18,7 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
   const [hasLiked, setHasLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
+  const [localLikesCount, setLocalLikesCount] = useState(discussion.likes_count);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -31,7 +32,13 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
     checkLikeStatus();
   }, [discussion.id, user]);
   
+  // Update the localLikesCount when the discussion prop changes
+  useEffect(() => {
+    setLocalLikesCount(discussion.likes_count);
+  }, [discussion.likes_count]);
+  
   const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     
     if (!user) {
@@ -43,19 +50,31 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
       return;
     }
     
+    if (isLiking) return; // Prevent multiple clicks
+    
     try {
       setIsLiking(true);
       const newLikeStatus = await communityService.likeDiscussion(discussion.id);
       setHasLiked(newLikeStatus);
-      onLike(); // 通知父组件刷新
+      
+      // Optimistically update the like count locally
+      setLocalLikesCount(prevCount => newLikeStatus ? prevCount + 1 : prevCount - 1);
+      
+      // Notify parent to refresh the list, but only after a delay to prevent UI flicker
+      setTimeout(() => {
+        onLike();
+      }, 500);
     } catch (error) {
       console.error('点赞失败:', error);
+      // Revert the optimistic update in case of error
+      setLocalLikesCount(discussion.likes_count);
     } finally {
       setIsLiking(false);
     }
   };
   
-  const handleOpenComments = () => {
+  const handleOpenComments = (e: React.MouseEvent) => {
+    e.preventDefault();
     setIsCommentDialogOpen(true);
   };
   
@@ -147,14 +166,11 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
                 disabled={isLiking}
               >
                 <Heart size={16} className={cn(hasLiked && "fill-red-500")} />
-                <span className="text-sm">{discussion.likes_count}</span>
+                <span className="text-sm">{localLikesCount}</span>
               </button>
               <button 
                 className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenComments();
-                }}
+                onClick={handleOpenComments}
               >
                 <MessageSquare size={16} />
                 <span className="text-sm">{discussion.comments_count}条评论</span>
