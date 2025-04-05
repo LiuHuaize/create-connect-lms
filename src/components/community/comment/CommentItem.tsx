@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Comment, communityService } from '@/services/community';
 import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -19,7 +19,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
   const { user } = useAuth();
 
   // Check if user has liked this comment
-  React.useEffect(() => {
+  useEffect(() => {
     const checkLikeStatus = async () => {
       if (user) {
         const hasLiked = await communityService.hasLikedComment(comment.id);
@@ -30,7 +30,17 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
     checkLikeStatus();
   }, [comment.id, user]);
 
-  const handleLike = async () => {
+  // 确保当likes_count属性变化时更新本地状态
+  useEffect(() => {
+    setLikesCount(comment.likes_count || 0);
+  }, [comment.likes_count]);
+
+  const handleLike = async (e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    
     if (!user) {
       toast({
         title: "请先登录",
@@ -45,38 +55,31 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
     try {
       setIsLiking(true);
       
-      // Toggle the liked status locally for immediate feedback
+      // 立即更新UI以提供即时反馈
       const newLikedStatus = !isLiked;
       setIsLiked(newLikedStatus);
+      setLikesCount(prevCount => newLikedStatus ? prevCount + 1 : Math.max(0, prevCount - 1));
       
-      // Update the comment's like count locally 
-      setLikesCount(prevCount => 
-        newLikedStatus ? prevCount + 1 : Math.max(0, prevCount - 1)
-      );
-      
-      // Call the API to like/unlike the comment
+      // 调用API来更新服务器状态
       const result = await communityService.likeComment(comment.id);
       
-      // If the API call fails, revert the optimistic update
+      // 如果API调用与预期不符，则恢复本地更新
       if (result !== newLikedStatus) {
+        console.log('API返回与预期不符，恢复本地状态');
         setIsLiked(!newLikedStatus);
-        setLikesCount(prevCount => 
-          !newLikedStatus ? prevCount + 1 : Math.max(0, prevCount - 1)
-        );
+        setLikesCount(prevCount => !newLikedStatus ? prevCount + 1 : Math.max(0, prevCount - 1));
       }
       
-      // Notify parent component
+      // 通知父组件，但不要立即刷新
       if (onLiked) onLiked();
       
     } catch (error) {
       console.error('点赞评论失败:', error);
-      // Revert the optimistic update in case of error
+      // 恢复本地更新
       setIsLiked(!isLiked);
-      setLikesCount(prevCount => 
-        !isLiked ? prevCount + 1 : Math.max(0, prevCount - 1)
-      );
+      setLikesCount(prevCount => !isLiked ? prevCount + 1 : Math.max(0, prevCount - 1));
     } finally {
-      // Unmark this comment as being liked after a delay
+      // 延迟一段时间后才允许再次点赞，防止连击
       setTimeout(() => {
         setIsLiking(false);
       }, 500);
@@ -105,10 +108,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onLiked }) =>
             ? "text-red-500" 
             : "text-gray-400 hover:text-red-500"
         )}
-        onClick={(e) => {
-          e.stopPropagation();
-          handleLike();
-        }}
+        onClick={handleLike}
         disabled={isLiking}
       >
         <Heart 

@@ -25,13 +25,15 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
 }) => {
   const [comments, setComments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [localCommentsCount, setLocalCommentsCount] = useState(discussion.comments_count);
+  const [localCommentsCount, setLocalCommentsCount] = useState(discussion.comments_count || 0);
   const { user } = useAuth();
 
+  // 打开对话框或讨论ID变化时加载评论
   useEffect(() => {
     if (open && discussionId) {
       loadComments();
-      setLocalCommentsCount(discussion.comments_count);
+      // 确保使用最新的讨论评论计数
+      setLocalCommentsCount(discussion.comments_count || 0);
     }
   }, [open, discussionId, discussion.comments_count]);
 
@@ -40,6 +42,11 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
       setIsLoading(true);
       const commentsData = await communityService.getComments(discussionId);
       setComments(commentsData);
+      
+      // 更新本地评论计数为实际加载的评论数量
+      if (commentsData.length !== localCommentsCount) {
+        setLocalCommentsCount(commentsData.length);
+      }
     } catch (error) {
       console.error('加载评论失败:', error);
       toast({
@@ -59,24 +66,28 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
         description: "您需要登录才能发表评论。",
         variant: "destructive"
       });
-      return;
+      return false;
     }
 
     try {
-      await communityService.addComment(discussionId, content);
+      const newComment = await communityService.addComment(discussionId, content);
       
-      // Update local comments count
-      setLocalCommentsCount(prevCount => prevCount + 1);
+      if (newComment) {
+        // 更新本地评论计数
+        setLocalCommentsCount(prevCount => prevCount + 1);
+        
+        // 重新加载评论列表以显示新评论
+        await loadComments();
+        
+        toast({
+          title: "评论成功",
+          description: "您的评论已发布。"
+        });
+        
+        return true;
+      }
       
-      // Reload comments to show the new one
-      loadComments();
-      
-      toast({
-        title: "评论成功",
-        description: "您的评论已发布。"
-      });
-      
-      return true;
+      return false;
     } catch (error) {
       console.error('发表评论失败:', error);
       toast({
@@ -86,6 +97,12 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
       });
       return false;
     }
+  };
+
+  // 处理评论点赞，但不立即刷新
+  const handleCommentLiked = () => {
+    // 使用延迟刷新策略，3秒后再刷新评论列表
+    setTimeout(() => loadComments(), 3000);
   };
 
   return (
@@ -113,10 +130,7 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
             <CommentList 
               comments={comments} 
               isLoading={isLoading} 
-              onCommentLiked={() => {
-                // Optionally refresh comments after a certain time
-                setTimeout(() => loadComments(), 3000);
-              }} 
+              onCommentLiked={handleCommentLiked}
             />
           </div>
         </div>

@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Heart } from 'lucide-react';
 import { communityService } from '@/services/community';
 import { cn } from '@/lib/utils';
-import { format, formatDistance } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+import { formatDate } from './utils/formatUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import CommentDialog from './CommentDialog';
@@ -29,9 +28,11 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
   const [hasLiked, setHasLiked] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [isCommentDialogOpen, setIsCommentDialogOpen] = useState(false);
-  const [localLikesCount, setLocalLikesCount] = useState(discussion.likes_count);
+  const [localLikesCount, setLocalLikesCount] = useState(discussion.likes_count || 0);
+  const [localCommentsCount, setLocalCommentsCount] = useState(discussion.comments_count || 0);
   const { user } = useAuth();
   
+  // 初始化点赞状态
   useEffect(() => {
     const checkLikeStatus = async () => {
       if (user) {
@@ -43,10 +44,11 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
     checkLikeStatus();
   }, [discussion.id, user]);
   
-  // Update the localLikesCount when the discussion prop changes
+  // 确保当discussion属性变化时更新本地状态
   useEffect(() => {
-    setLocalLikesCount(discussion.likes_count);
-  }, [discussion.likes_count]);
+    setLocalLikesCount(discussion.likes_count || 0);
+    setLocalCommentsCount(discussion.comments_count || 0);
+  }, [discussion.likes_count, discussion.comments_count]);
   
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -61,54 +63,45 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
       return;
     }
     
-    if (isLiking) return; // Prevent multiple clicks
+    if (isLiking) return; // 防止多次点击
     
     try {
       setIsLiking(true);
-      const newLikeStatus = await communityService.likeDiscussion(discussion.id);
+      
+      // 立即更新UI以提供即时反馈
+      const newLikeStatus = !hasLiked;
       setHasLiked(newLikeStatus);
+      setLocalLikesCount(prevCount => newLikeStatus ? prevCount + 1 : Math.max(0, prevCount - 1));
       
-      // Optimistically update the like count locally
-      setLocalLikesCount(prevCount => newLikeStatus ? prevCount + 1 : prevCount - 1);
+      // 调用API来更新服务器状态
+      const result = await communityService.likeDiscussion(discussion.id);
       
-      // Notify parent to refresh the list, but only after a delay to prevent UI flicker
-      onLike();
+      // 如果API调用结果与预期不符，恢复本地状态
+      if (result !== newLikeStatus) {
+        setHasLiked(!newLikeStatus);
+        setLocalLikesCount(prevCount => !newLikeStatus ? prevCount + 1 : Math.max(0, prevCount - 1));
+      }
+      
+      // 延迟通知父组件刷新列表，防止UI闪烁
+      setTimeout(() => {
+        onLike();
+      }, 2000);
     } catch (error) {
       console.error('点赞失败:', error);
-      // Revert the optimistic update in case of error
-      setLocalLikesCount(discussion.likes_count);
+      // 恢复本地状态
+      setHasLiked(!hasLiked);
+      setLocalLikesCount(prevCount => !hasLiked ? prevCount + 1 : Math.max(0, prevCount - 1));
     } finally {
-      setIsLiking(false);
+      // 延迟一段时间后才允许再次点赞，防止连击
+      setTimeout(() => {
+        setIsLiking(false);
+      }, 500);
     }
   };
   
   const handleOpenComments = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsCommentDialogOpen(true);
-  };
-  
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      
-      // 使用date-fns的formatDistance来获取更准确的相对时间
-      const relativeTime = formatDistance(date, now, { 
-        addSuffix: true, 
-        locale: zhCN 
-      });
-      
-      // 如果距离现在超过7天，则显示完整日期
-      const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (diffDays > 7) {
-        return format(date, 'yyyy年MM月dd日 HH:mm', { locale: zhCN });
-      }
-      
-      return relativeTime;
-    } catch (e) {
-      return dateString;
-    }
   };
   
   // 提取用户头像的首字母
@@ -182,7 +175,7 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
                 onClick={handleOpenComments}
               >
                 <MessageSquare size={16} />
-                <span className="text-sm">{discussion.comments_count}条评论</span>
+                <span className="text-sm">{localCommentsCount}条评论</span>
               </button>
             </div>
           </div>
@@ -193,7 +186,10 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
         open={isCommentDialogOpen} 
         onOpenChange={setIsCommentDialogOpen}
         discussionId={discussion.id}
-        discussion={discussion}
+        discussion={{
+          ...discussion,
+          comments_count: localCommentsCount  // 确保使用本地评论计数
+        }}
       />
     </>
   );
