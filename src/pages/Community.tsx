@@ -1,101 +1,32 @@
-
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { Search, MessageSquare, Users } from 'lucide-react';
-import { 
-  fetchDiscussions, fetchTopics, 
-  likeDiscussion, checkDiscussionLiked 
-} from '@/services/communityService';
-import { Discussion, DiscussionWithProfile, Topic } from '@/types/community';
-import DiscussionCard from '@/components/community/DiscussionCard';
-import NewDiscussionDialog from '@/components/community/NewDiscussionDialog';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/contexts/AuthContext';
+import { Search, MessageSquare, Heart, BarChart, Users, ThumbsUp, Share2 } from 'lucide-react';
 
 const Community = () => {
-  const [activeTab, setActiveTab] = useState<'trending' | 'latest' | 'popular' | 'following'>('trending');
-  const [searchQuery, setSearchQuery] = useState('');
-  const { user } = useAuth();
-  
-  // 获取讨论列表
-  const { 
-    data: discussions, 
-    isLoading: isLoadingDiscussions, 
-    refetch: refetchDiscussions 
-  } = useQuery({
-    queryKey: ['discussions', activeTab],
-    queryFn: () => fetchDiscussions(activeTab),
-    refetchOnWindowFocus: false,
-  });
-  
-  // 获取话题列表
-  const {
-    data: topics,
-    isLoading: isLoadingTopics
-  } = useQuery({
-    queryKey: ['topics'],
-    queryFn: fetchTopics,
-    refetchOnWindowFocus: false,
-  });
-  
-  // 处理点赞
-  const handleLike = async (discussionId: string) => {
-    if (!user) return;
-    await likeDiscussion(discussionId);
-    refetchDiscussions();
-  };
-  
-  // 处理搜索
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // 实现搜索功能 - 后续添加
-    console.log('Searching for:', searchQuery);
-  };
-  
-  // 检查讨论是否已点赞
-  useEffect(() => {
-    const checkLikes = async () => {
-      if (!discussions || !user) return;
-      
-      const discussionsWithLikes = await Promise.all(
-        discussions.map(async (discussion: Discussion) => {
-          const isLiked = await checkDiscussionLiked(discussion.id);
-          return { ...discussion, is_liked: isLiked };
-        })
-      );
-      
-      // 这里我们不重新设置state，因为会触发无限循环
-      // 实际项目中应该使用React Query的状态管理或其他状态管理工具
-    };
-    
-    checkLikes();
-  }, [discussions, user]);
-  
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900">社区</h1>
         
         <div className="flex items-center gap-3">
-          <form onSubmit={handleSearch} className="relative">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
               placeholder="搜索讨论..."
               className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-connect-blue/20 focus:border-connect-blue transition-all w-64"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
             />
-          </form>
-          <NewDiscussionDialog onDiscussionCreated={refetchDiscussions} />
+          </div>
+          <Button className="bg-connect-blue hover:bg-blue-600">
+            <MessageSquare size={16} className="mr-2" /> 新讨论
+          </Button>
         </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3">
-          <Tabs defaultValue="trending" className="w-full" onValueChange={(value) => setActiveTab(value as any)}>
+          <Tabs defaultValue="trending" className="w-full">
             <TabsList className="mb-6">
               <TabsTrigger value="trending">热门</TabsTrigger>
               <TabsTrigger value="latest">最新</TabsTrigger>
@@ -104,85 +35,127 @@ const Community = () => {
             </TabsList>
             
             <TabsContent value="trending" className="space-y-6">
-              {isLoadingDiscussions ? (
-                // 加载骨架屏
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-6">
-                    <div className="flex items-start gap-4">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-4 w-16" />
-                        </div>
-                        <Skeleton className="h-6 w-3/4" />
-                        <Skeleton className="h-20 w-full" />
-                        <div className="flex gap-4">
-                          <Skeleton className="h-8 w-20" />
-                          <Skeleton className="h-8 w-20" />
-                        </div>
-                      </div>
+              {/* Discussion post */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6 hover-scale shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 text-sm font-medium flex-shrink-0">
+                    JD
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold">简·多伊</h3>
+                      <span className="text-gray-500 text-sm">• 2小时前</span>
+                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">创业者</span>
+                    </div>
+                    
+                    <h4 className="text-lg font-bold mb-2">验证商业创意的最佳方法？</h4>
+                    <p className="text-gray-600 mb-4">我正在为桌游爱好者开发一项订阅盒服务的商业计划。在启动前，您发现哪些方法最有效地验证需求？</p>
+                    
+                    <div className="flex items-center gap-6">
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <ThumbsUp size={16} />
+                        <span className="text-sm">24</span>
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <MessageSquare size={16} />
+                        <span className="text-sm">12条评论</span>
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <Share2 size={16} />
+                        <span className="text-sm">分享</span>
+                      </button>
                     </div>
                   </div>
-                ))
-              ) : discussions && discussions.length > 0 ? (
-                discussions.map((discussion: DiscussionWithProfile) => (
-                  <DiscussionCard 
-                    key={discussion.id} 
-                    discussion={discussion} 
-                    onLike={handleLike} 
-                  />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">还没有讨论，来发布第一个吧！</p>
                 </div>
-              )}
+              </div>
+              
+              {/* Second discussion */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6 hover-scale shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-medium flex-shrink-0">
+                    TK
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold">汤姆·凯勒</h3>
+                      <span className="text-gray-500 text-sm">• 1天前</span>
+                      <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full">游戏设计师</span>
+                    </div>
+                    
+                    <h4 className="text-lg font-bold mb-2">卡牌游戏平衡技巧？</h4>
+                    <p className="text-gray-600 mb-4">我正在设计一款策略卡牌游戏，但在平衡不同卡牌能力方面遇到困难。您使用哪些技术或工具来确保游戏公平性的同时保持趣味性？</p>
+                    
+                    <div className="flex items-center gap-6">
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <ThumbsUp size={16} />
+                        <span className="text-sm">56</span>
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <MessageSquare size={16} />
+                        <span className="text-sm">35条评论</span>
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <Share2 size={16} />
+                        <span className="text-sm">分享</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Third discussion */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6 hover-scale shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-sm font-medium flex-shrink-0">
+                    MS
+                  </div>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold">迈克·史密斯</h3>
+                      <span className="text-gray-500 text-sm">• 3天前</span>
+                      <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">产品经理</span>
+                    </div>
+                    
+                    <h4 className="text-lg font-bold mb-2">产品开发路线图应该有多详细？</h4>
+                    <p className="text-gray-600 mb-4">我正在为一个实体产品创建路线图。开发步骤应该多细致，您通常包含哪些关键里程碑？</p>
+                    
+                    <div className="flex items-center gap-6">
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <ThumbsUp size={16} />
+                        <span className="text-sm">32</span>
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <MessageSquare size={16} />
+                        <span className="text-sm">18条评论</span>
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-500 hover:text-connect-blue transition-colors">
+                        <Share2 size={16} />
+                        <span className="text-sm">分享</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </TabsContent>
             
-            <TabsContent value="latest" className="space-y-6">
-              {isLoadingDiscussions ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">正在加载最新讨论...</p>
-                </div>
-              ) : discussions && discussions.length > 0 ? (
-                discussions.map((discussion: DiscussionWithProfile) => (
-                  <DiscussionCard 
-                    key={discussion.id} 
-                    discussion={discussion} 
-                    onLike={handleLike} 
-                  />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">还没有讨论，来发布第一个吧！</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="popular" className="space-y-6">
-              {isLoadingDiscussions ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">正在加载热门讨论...</p>
-                </div>
-              ) : discussions && discussions.length > 0 ? (
-                discussions.map((discussion: DiscussionWithProfile) => (
-                  <DiscussionCard 
-                    key={discussion.id} 
-                    discussion={discussion} 
-                    onLike={handleLike} 
-                  />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500">还没有讨论，来发布第一个吧！</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="following" className="space-y-6">
+            <TabsContent value="latest">
               <div className="text-center py-12">
-                <p className="text-gray-500">关注功能即将上线，敬请期待！</p>
+                <p className="text-gray-500">正在加载最新讨论...</p>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="popular">
+              <div className="text-center py-12">
+                <p className="text-gray-500">正在加载热门讨论...</p>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="following">
+              <div className="text-center py-12">
+                <p className="text-gray-500">正在加载您关注的人的讨论...</p>
               </div>
             </TabsContent>
           </Tabs>
@@ -192,23 +165,21 @@ const Community = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mb-6">
             <h3 className="font-bold mb-4">热门话题</h3>
             <div className="space-y-3">
-              {isLoadingTopics ? (
-                // 加载骨架屏
-                Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="w-full h-10" />
-                ))
-              ) : topics && topics.length > 0 ? (
-                topics.map((topic: Topic) => (
-                  <button 
-                    key={topic.id} 
-                    className="w-full text-left px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors"
-                  >
-                    {topic.name} {topic.posts_count > 0 && <span className="text-xs text-gray-500">({topic.posts_count})</span>}
-                  </button>
-                ))
-              ) : (
-                <p className="text-gray-500 text-sm">暂无热门话题</p>
-              )}
+              <button className="w-full text-left px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors">
+                商业规划
+              </button>
+              <button className="w-full text-left px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors">
+                游戏设计
+              </button>
+              <button className="w-full text-left px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors">
+                产品开发
+              </button>
+              <button className="w-full text-left px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors">
+                市场研究
+              </button>
+              <button className="w-full text-left px-3 py-2 bg-gray-50 rounded-lg hover:bg-gray-100 text-sm font-medium transition-colors">
+                原型制作
+              </button>
             </div>
           </div>
           

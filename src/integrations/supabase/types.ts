@@ -9,73 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      comment_likes: {
-        Row: {
-          comment_id: string
-          created_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          comment_id: string
-          created_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          comment_id?: string
-          created_at?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comment_likes_comment_id_fkey"
-            columns: ["comment_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      comments: {
-        Row: {
-          content: string
-          created_at: string
-          discussion_id: string
-          id: string
-          likes_count: number
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          discussion_id: string
-          id?: string
-          likes_count?: number
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          discussion_id?: string
-          id?: string
-          likes_count?: number
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comments_discussion_id_fkey"
-            columns: ["discussion_id"]
-            isOneToOne: false
-            referencedRelation: "discussions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       course_enrollments: {
         Row: {
           completed_at: string | null
@@ -194,71 +127,6 @@ export type Database = {
         }
         Relationships: []
       }
-      discussion_likes: {
-        Row: {
-          created_at: string
-          discussion_id: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          discussion_id: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          discussion_id?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "discussion_likes_discussion_id_fkey"
-            columns: ["discussion_id"]
-            isOneToOne: false
-            referencedRelation: "discussions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      discussions: {
-        Row: {
-          comments_count: number
-          content: string
-          created_at: string
-          id: string
-          likes_count: number
-          tags: string[] | null
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          comments_count?: number
-          content: string
-          created_at?: string
-          id?: string
-          likes_count?: number
-          tags?: string[] | null
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          comments_count?: number
-          content?: string
-          created_at?: string
-          id?: string
-          likes_count?: number
-          tags?: string[] | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       lessons: {
         Row: {
           content: Json
@@ -333,30 +201,6 @@ export type Database = {
           settings?: Json | null
           updated_at?: string
           username?: string
-        }
-        Relationships: []
-      }
-      topics: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          posts_count: number
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          posts_count?: number
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          posts_count?: number
-          updated_at?: string
         }
         Relationships: []
       }
