@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Heart } from 'lucide-react';
-import { communityService, Discussion } from '@/services/community';
+import { communityService } from '@/services/community';
 import { cn } from '@/lib/utils';
 import { format, formatDistance } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -9,7 +10,18 @@ import { toast } from '@/hooks/use-toast';
 import CommentDialog from './CommentDialog';
 
 interface DiscussionItemProps {
-  discussion: Discussion;
+  discussion: {
+    id: string;
+    user_id: string;
+    title: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+    likes_count: number;
+    comments_count: number;
+    tags: string[] | null;
+    username?: string;
+  };
   onLike: () => void;
 }
 
@@ -60,9 +72,7 @@ const DiscussionItem: React.FC<DiscussionItemProps> = ({ discussion, onLike }) =
       setLocalLikesCount(prevCount => newLikeStatus ? prevCount + 1 : prevCount - 1);
       
       // Notify parent to refresh the list, but only after a delay to prevent UI flicker
-      setTimeout(() => {
-        onLike();
-      }, 500);
+      onLike();
     } catch (error) {
       console.error('点赞失败:', error);
       // Revert the optimistic update in case of error

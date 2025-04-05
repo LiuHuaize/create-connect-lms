@@ -1,10 +1,12 @@
+
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { communityService } from '@/services/community';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { PenLine } from 'lucide-react';
 
 interface NewDiscussionDialogProps {
   open: boolean;
@@ -12,28 +14,31 @@ interface NewDiscussionDialogProps {
   onDiscussionCreated: () => void;
 }
 
-const NewDiscussionDialog: React.FC<NewDiscussionDialogProps> = ({ open, onOpenChange, onDiscussionCreated }) => {
+const NewDiscussionDialog: React.FC<NewDiscussionDialogProps> = ({
+  open,
+  onOpenChange,
+  onDiscussionCreated
+}) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useAuth();
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
+    if (!title.trim()) {
       toast({
-        title: "请先登录",
-        description: "您需要登录才能发布讨论。",
+        title: "标题不能为空",
+        description: "请输入讨论标题。",
         variant: "destructive"
       });
       return;
     }
     
-    if (!title.trim() || !content.trim()) {
+    if (!content.trim()) {
       toast({
-        title: "内容不完整",
-        description: "标题和内容不能为空。",
+        title: "内容不能为空",
+        description: "请输入讨论内容。",
         variant: "destructive"
       });
       return;
@@ -41,20 +46,21 @@ const NewDiscussionDialog: React.FC<NewDiscussionDialogProps> = ({ open, onOpenC
     
     try {
       setIsSubmitting(true);
-      const result = await communityService.createDiscussion(title, content);
+      const discussion = await communityService.createDiscussion(title, content);
       
-      if (result) {
+      if (discussion) {
         setTitle('');
         setContent('');
         onOpenChange(false);
         onDiscussionCreated();
-        toast({
-          title: "发布成功",
-          description: "您的讨论已成功发布。"
-        });
       }
     } catch (error) {
       console.error('发布讨论失败:', error);
+      toast({
+        title: "发布失败",
+        description: "发布讨论时出错，请稍后再试。",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -64,57 +70,50 @@ const NewDiscussionDialog: React.FC<NewDiscussionDialogProps> = ({ open, onOpenC
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>发布新讨论</DialogTitle>
-          <DialogDescription>
-            分享您的想法、问题或经验与社区成员交流。
-          </DialogDescription>
+          <DialogTitle className="flex items-center">
+            <PenLine className="h-5 w-5 mr-2" />
+            发起新讨论
+          </DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium">
-              标题
-            </label>
+            <label htmlFor="title" className="text-sm font-medium">标题</label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="讨论标题"
+              placeholder="讨论的主题是什么？"
               maxLength={100}
-              required
             />
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="content" className="text-sm font-medium">
-              内容
-            </label>
+            <label htmlFor="content" className="text-sm font-medium">内容</label>
             <Textarea
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="详细描述您的想法、问题或经验..."
-              rows={8}
-              required
+              placeholder="详细描述你想讨论的话题..."
+              className="min-h-[200px]"
             />
           </div>
           
-          <DialogFooter>
+          <div className="flex justify-end gap-2">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
             >
               取消
             </Button>
             <Button 
-              type="submit" 
-              disabled={isSubmitting || !title.trim() || !content.trim()}
+              type="submit"
+              disabled={isSubmitting}
             >
               {isSubmitting ? '发布中...' : '发布讨论'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

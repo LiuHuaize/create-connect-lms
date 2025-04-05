@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { communityService, Discussion } from '@/services/community';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,10 +39,14 @@ const Community = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  // 处理点赞更新
+  // 处理点赞更新 - 不立即刷新，延迟2秒后再更新列表
   const handleLike = () => {
-    // 不立即刷新，让页面先使用本地状态更新
-    setTimeout(loadData, 1000);
+    // We don't need to immediately refresh, let the local state update first
+    // This avoids the jarring experience of the page refreshing on every like
+    // After 2 seconds we'll refresh in the background
+    setTimeout(() => {
+      loadData();
+    }, 2000);
   };
 
   // 处理发布新讨论

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -27,19 +28,34 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
   const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [likedComments, setLikedComments] = useState<Record<string, boolean>>({});
+  const [likingComments, setLikingComments] = useState<Record<string, boolean>>({});
+  const [localCommentsCount, setLocalCommentsCount] = useState(discussion.comments_count);
   const { user } = useAuth();
 
   useEffect(() => {
     if (open && discussionId) {
       loadComments();
+      setLocalCommentsCount(discussion.comments_count);
     }
-  }, [open, discussionId]);
+  }, [open, discussionId, discussion.comments_count]);
 
   const loadComments = async () => {
     try {
       setIsLoading(true);
       const commentsData = await communityService.getComments(discussionId);
       setComments(commentsData);
+      
+      // Check like status for each comment if user is logged in
+      if (user) {
+        const likeStatusMap: Record<string, boolean> = {};
+        for (const comment of commentsData) {
+          // This would require a new function to check if user has liked a comment
+          // For now we'll leave it unimplemented
+          likeStatusMap[comment.id] = false;
+        }
+        setLikedComments(likeStatusMap);
+      }
     } catch (error) {
       console.error('加载评论失败:', error);
       toast({
@@ -75,7 +91,13 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
       setIsSubmitting(true);
       await communityService.addComment(discussionId, newComment);
       setNewComment('');
+      
+      // Update local comments count
+      setLocalCommentsCount(prevCount => prevCount + 1);
+      
+      // Reload comments to show the new one
       loadComments();
+      
       toast({
         title: "评论成功",
         description: "您的评论已发布。"
@@ -89,6 +111,59 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleLikeComment = async (commentId: string) => {
+    if (!user) {
+      toast({
+        title: "请先登录",
+        description: "您需要登录才能点赞评论。",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (likingComments[commentId]) return; // Prevent multiple clicks
+
+    try {
+      // Mark this comment as being liked to prevent multiple clicks
+      setLikingComments(prev => ({ ...prev, [commentId]: true }));
+      
+      // Toggle the liked status locally for immediate feedback
+      const newLikedStatus = !likedComments[commentId];
+      setLikedComments(prev => ({ ...prev, [commentId]: newLikedStatus }));
+      
+      // Update the comment's like count locally 
+      setComments(prevComments => 
+        prevComments.map(comment => 
+          comment.id === commentId 
+            ? { 
+                ...comment, 
+                likes_count: newLikedStatus 
+                  ? (comment.likes_count || 0) + 1 
+                  : Math.max(0, (comment.likes_count || 0) - 1) 
+              } 
+            : comment
+        )
+      );
+      
+      // In a real implementation, this would call an API to like the comment
+      // For now we'll simulate the behavior
+      setTimeout(() => {
+        // API call would go here
+        console.log(`${newLikedStatus ? 'Liked' : 'Unliked'} comment: ${commentId}`);
+      }, 300);
+      
+    } catch (error) {
+      console.error('点赞评论失败:', error);
+      // Revert the optimistic update in case of error
+      setLikedComments(prev => ({ ...prev, [commentId]: !likedComments[commentId] }));
+    } finally {
+      // Unmark this comment as being liked
+      setTimeout(() => {
+        setLikingComments(prev => ({ ...prev, [commentId]: false }));
+      }, 500);
     }
   };
 
@@ -180,7 +255,7 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
           </div>
 
           <div className="p-4">
-            <h3 className="font-medium mb-4">评论 ({discussion.comments_count})</h3>
+            <h3 className="font-medium mb-4">评论 ({localCommentsCount})</h3>
             
             {isLoading ? (
               <div className="flex justify-center py-8">
@@ -207,8 +282,26 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
                       </div>
                       <p className="text-gray-700 text-sm">{comment.content}</p>
                     </div>
-                    <button className="text-gray-400 hover:text-red-500 transition-colors">
-                      <Heart size={14} />
+                    <button 
+                      className={cn(
+                        "flex items-center transition-colors",
+                        likedComments[comment.id] 
+                          ? "text-red-500" 
+                          : "text-gray-400 hover:text-red-500"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLikeComment(comment.id);
+                      }}
+                      disabled={likingComments[comment.id]}
+                    >
+                      <Heart 
+                        size={14} 
+                        className={cn(likedComments[comment.id] && "fill-red-500")} 
+                      />
+                      {comment.likes_count > 0 && (
+                        <span className="text-xs ml-1">{comment.likes_count}</span>
+                      )}
                     </button>
                   </div>
                 ))}

@@ -3,6 +3,7 @@ import { Discussion, Comment, Topic } from './types';
 import { getDiscussions, createDiscussion } from './discussionService';
 import { getComments, addComment } from './commentService';
 import { likeDiscussion, hasLikedDiscussion } from './likeService';
+import { likeComment, hasLikedComment } from './commentLikeService';
 
 // 导出一个符合原始communityService结构的对象，保证向后兼容性
 export const communityService = {
@@ -11,7 +12,9 @@ export const communityService = {
   likeDiscussion,
   hasLikedDiscussion,
   getComments,
-  addComment
+  addComment,
+  likeComment,
+  hasLikedComment
 };
 
 // 导出所有类型
@@ -21,3 +24,4 @@ export type { Discussion, Comment, Topic };
 export * from './discussionService';
 export * from './commentService';
 export * from './likeService';
+export * from './commentLikeService';
