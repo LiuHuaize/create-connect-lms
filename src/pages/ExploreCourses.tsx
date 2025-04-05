@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchAndFilter from '@/components/explore/SearchAndFilter';
-import CommunityCard from '@/components/explore/CommunityCard';
 import ExploreTabsContent from '@/components/explore/TabsContent';
 import { useCoursesData } from '@/hooks/useCoursesData';
 import { filterCourses } from '@/utils/courseUtils';
@@ -56,9 +55,6 @@ const ExploreCourses = () => {
           loadingEnrollment={loadingEnrollment}
         />
       </Tabs>
-      
-      {/* 加入社区 */}
-      <CommunityCard />
     </div>
   );
 };
