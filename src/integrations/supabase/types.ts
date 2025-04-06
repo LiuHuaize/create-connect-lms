@@ -225,6 +225,61 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_completions: {
+        Row: {
+          id: string
+          user_id: string
+          lesson_id: string
+          course_id: string
+          enrollment_id: string
+          completed_at: string
+          score: number | null
+          data: Json | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          lesson_id: string
+          course_id: string
+          enrollment_id: string
+          completed_at?: string
+          score?: number | null
+          data?: Json | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          lesson_id?: string
+          course_id?: string
+          enrollment_id?: string
+          completed_at?: string
+          score?: number | null
+          data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_completions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_completions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_completions_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "course_enrollments"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

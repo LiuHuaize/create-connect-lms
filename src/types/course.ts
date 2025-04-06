@@ -93,6 +93,18 @@ export type StudentProgress = {
   lastActivity: string; // 最后活动时间
 };
 
+// 课程完成记录
+export type LessonCompletion = {
+  id: string;
+  userId: string;
+  lessonId: string;
+  courseId: string;
+  enrollmentId: string;
+  completedAt: string;
+  score?: number;
+  data?: any;
+};
+
 // Union type for all possible lesson content
 export type LessonContent = 
   | VideoLessonContent 

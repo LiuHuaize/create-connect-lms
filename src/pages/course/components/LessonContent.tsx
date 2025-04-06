@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
 import BlockNoteRenderer from '@/components/editor/BlockNoteRenderer';
 import { courseService } from '@/services/courseService';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
@@ -26,6 +28,56 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [userAnswers, setUserAnswers] = useState<{[key: string]: string}>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizResult, setQuizResult] = useState<{score: number, totalQuestions: number} | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCompletionLoading, setIsCompletionLoading] = useState(false);
+  
+  // 在组件挂载和课程ID/课时ID变化时，加载测验状态
+  useEffect(() => {
+    // 只有在课时是测验类型时才加载
+    if (selectedLesson?.type === 'quiz' && courseData?.id && enrollmentId) {
+      loadQuizState();
+    }
+  }, [selectedLesson?.id, courseData?.id, enrollmentId]);
+  
+  // 从数据库加载测验状态
+  const loadQuizState = async () => {
+    if (!selectedLesson || !courseData?.id) return;
+    
+    try {
+      // 1. 检查用户是否已完成该课时
+      const { data: user } = await supabase.auth.getUser();
+      if (!user?.user) return;
+      
+      const { data: completionData, error: completionError } = await supabase
+        .from('lesson_completions')
+        .select('*')
+        .eq('user_id', user.user.id)
+        .eq('lesson_id', selectedLesson.id)
+        .eq('course_id', courseData.id)
+        .maybeSingle();
+        
+      if (completionError) {
+        console.error('获取课时完成记录失败:', completionError);
+        return;
+      }
+      
+      // 如果已完成，恢复测验状态
+      if (completionData) {
+        setQuizSubmitted(true);
+        setQuizResult({
+          score: completionData.score || 0,
+          totalQuestions: completionData.data?.totalQuestions || 0
+        });
+        
+        // 恢复用户答案
+        if (completionData.data?.userAnswers) {
+          setUserAnswers(completionData.data.userAnswers);
+        }
+      }
+    } catch (error) {
+      console.error('加载测验状态失败:', error);
+    }
+  };
   
   // 处理用户选择答案
   const handleAnswerSelect = (questionId: string, optionId: string) => {
@@ -36,39 +88,77 @@ const LessonContent: React.FC<LessonContentProps> = ({
   };
   
   // 处理测验提交
-  const handleQuizSubmit = () => {
+  const handleQuizSubmit = async () => {
     if (!selectedLesson || selectedLesson.type !== 'quiz') return;
     
     const quizContent = selectedLesson.content as any;
     if (!quizContent?.questions) return;
     
-    let correctAnswers = 0;
-    const totalQuestions = quizContent.questions.length;
+    setIsLoading(true);
     
-    quizContent.questions.forEach((question: any) => {
-      if (userAnswers[question.id] === question.correctOption) {
-        correctAnswers++;
-      }
-    });
-    
-    const score = Math.round((correctAnswers / totalQuestions) * 100);
-    setQuizResult({score, totalQuestions});
-    setQuizSubmitted(true);
-    
-    // 如果有注册ID，可以调用API标记课时完成
-    if (enrollmentId && selectedLesson.id && courseData?.id) {
-      try {
+    try {
+      let correctAnswers = 0;
+      const totalQuestions = quizContent.questions.length;
+      
+      // 收集用户答案和正确答案，用于保存到数据库
+      const userAnswersData = { ...userAnswers };
+      const correctAnswersData = {};
+      
+      quizContent.questions.forEach((question: any) => {
+        correctAnswersData[question.id] = question.correctOption;
+        if (userAnswers[question.id] === question.correctOption) {
+          correctAnswers++;
+        }
+      });
+      
+      const score = Math.round((correctAnswers / totalQuestions) * 100);
+      setQuizResult({score, totalQuestions});
+      setQuizSubmitted(true);
+      
+      // 如果有注册ID，调用API来保存测验结果
+      if (enrollmentId && selectedLesson.id && courseData?.id) {
+        // 创建数据对象，用于保存到lesson_completions表
+        const quizData = {
+          userAnswers: userAnswersData,
+          correctAnswers: correctAnswersData,
+          score,
+          totalQuestions,
+          submittedAt: new Date().toISOString()
+        };
+        
         // 调用API来记录测验结果和更新课程进度
-        courseService.markLessonComplete(selectedLesson.id, courseData.id, enrollmentId)
-          .then(() => {
-            console.log('测验完成并标记为已完成');
-          })
-          .catch(error => {
-            console.error('标记课时完成失败:', error);
-          });
-      } catch (error) {
-        console.error('提交测验结果失败:', error);
+        await courseService.markLessonComplete(
+          selectedLesson.id, 
+          courseData.id, 
+          enrollmentId,
+          score,
+          quizData
+        );
+        console.log('测验完成并标记为已完成');
       }
+    } catch (error) {
+      console.error('提交测验结果失败:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 取消完成标记
+  const handleUnmarkComplete = async () => {
+    if (!selectedLesson?.id) return;
+    
+    setIsCompletionLoading(true);
+    try {
+      await courseService.unmarkLessonComplete(selectedLesson.id);
+      setQuizSubmitted(false);
+      setQuizResult(null);
+      setUserAnswers({});
+      toast.success('已取消完成标记');
+    } catch (error) {
+      console.error('取消标记失败:', error);
+      toast.error('取消标记失败');
+    } finally {
+      setIsCompletionLoading(false);
     }
   };
 
@@ -160,12 +250,25 @@ const LessonContent: React.FC<LessonContentProps> = ({
             
             {quizSubmitted && quizResult && (
               <div className={`p-4 rounded-lg mb-4 ${quizResult.score >= 60 ? 'bg-green-50 border border-green-100' : 'bg-yellow-50 border border-yellow-100'}`}>
-                <h3 className={`font-medium mb-2 ${quizResult.score >= 60 ? 'text-green-800' : 'text-yellow-800'}`}>
-                  测验结果
-                </h3>
-                <p className={quizResult.score >= 60 ? 'text-green-700' : 'text-yellow-700'}>
-                  你的得分: {quizResult.score}% ({Math.round(quizResult.score * quizResult.totalQuestions / 100)}/{quizResult.totalQuestions} 题正确)
-                </p>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className={`font-medium mb-2 ${quizResult.score >= 60 ? 'text-green-800' : 'text-yellow-800'}`}>
+                      测验结果
+                    </h3>
+                    <p className={quizResult.score >= 60 ? 'text-green-700' : 'text-yellow-700'}>
+                      你的得分: {quizResult.score}% ({Math.round(quizResult.score * quizResult.totalQuestions / 100)}/{quizResult.totalQuestions} 题正确)
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                    onClick={handleUnmarkComplete}
+                    disabled={isCompletionLoading}
+                  >
+                    {isCompletionLoading ? '取消中...' : '取消标记'}
+                  </Button>
+                </div>
               </div>
             )}
             
@@ -215,8 +318,9 @@ const LessonContent: React.FC<LessonContentProps> = ({
                     <Button 
                       className="bg-blue-600 hover:bg-blue-700"
                       onClick={handleQuizSubmit}
+                      disabled={isLoading}
                     >
-                      提交答案
+                      {isLoading ? '提交中...' : '提交答案'}
                     </Button>
                   ) : (
                     <Button 

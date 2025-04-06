@@ -206,61 +206,128 @@ export const courseService = {
   },
 
   // 标记课时为已完成并更新进度
-  async markLessonComplete(lessonId: string, courseId: string, enrollmentId: string): Promise<void> {
+  async markLessonComplete(lessonId: string, courseId: string, enrollmentId: string, score?: number, data?: any): Promise<void> {
     try {
-      // 获取课程总课时数
-      const { data: courseData, error: courseError } = await supabase
-        .from('course_modules')
-        .select(`
-          id,
-          lessons(id)
-        `)
-        .eq('course_id', courseId);
-        
-      if (courseError) {
-        console.error('获取课程模块失败:', courseError);
-        throw courseError;
-      }
-
-      // 计算总课时数
-      const totalLessons = courseData.reduce((sum, module) => 
-        sum + (module.lessons ? module.lessons.length : 0), 0);
-      
-      if (totalLessons === 0) return; // 如果没有课时，直接返回
-
-      // 获取当前注册信息
-      const { data: enrollmentData, error: enrollmentError } = await supabase
-        .from('course_enrollments')
-        .select('progress')
-        .eq('id', enrollmentId)
-        .single();
-        
-      if (enrollmentError) {
-        console.error('获取注册信息失败:', enrollmentError);
-        throw enrollmentError;
+      // 检查当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
       }
       
-      // 计算新的进度
-      const progressIncrement = totalLessons > 0 ? Math.round(1 / totalLessons * 100) : 0;
-      const currentProgress = enrollmentData ? enrollmentData.progress || 0 : 0;
-      const newProgress = Math.min(currentProgress + progressIncrement, 100);
-      
-      // 更新注册进度
-      const { error: updateError } = await supabase
-        .from('course_enrollments')
-        .update({
-          progress: newProgress,
-          last_accessed_at: new Date().toISOString()
-        })
-        .eq('id', enrollmentId);
+      // 检查是否已存在完成记录
+      const { data: existingCompletion, error: fetchError } = await supabase
+        .from('lesson_completions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
         
-      if (updateError) {
-        console.error('更新进度失败:', updateError);
-        throw updateError;
+      if (fetchError) {
+        console.error('检查课时完成记录失败:', fetchError);
+        throw fetchError;
       }
+      
+      // 如果已存在，则更新记录
+      if (existingCompletion) {
+        const { error: updateError } = await supabase
+          .from('lesson_completions')
+          .update({
+            completed_at: new Date().toISOString(),
+            score: score || null,
+            data: data || null
+          })
+          .eq('id', existingCompletion.id);
+          
+        if (updateError) {
+          console.error('更新课时完成记录失败:', updateError);
+          throw updateError;
+        }
+      } else {
+        // 如果不存在，则创建新记录
+        const { error: insertError } = await supabase
+          .from('lesson_completions')
+          .insert({
+            user_id: user.id,
+            lesson_id: lessonId,
+            course_id: courseId,
+            enrollment_id: enrollmentId,
+            completed_at: new Date().toISOString(),
+            score: score || null,
+            data: data || null
+          });
+          
+        if (insertError) {
+          console.error('创建课时完成记录失败:', insertError);
+          throw insertError;
+        }
+      }
+      
+      // 触发器会自动更新课程进度，所以这里不需要手动更新
     } catch (error) {
       console.error('标记课时完成失败:', error);
       throw error;
+    }
+  },
+  
+  // 取消课时完成标记
+  async unmarkLessonComplete(lessonId: string): Promise<void> {
+    try {
+      // 检查当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      // 删除课时完成记录
+      const { error } = await supabase
+        .from('lesson_completions')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('lesson_id', lessonId);
+        
+      if (error) {
+        console.error('删除课时完成记录失败:', error);
+        throw error;
+      }
+      
+      // 触发器会自动更新课程进度
+    } catch (error) {
+      console.error('取消标记课时完成失败:', error);
+      throw error;
+    }
+  },
+  
+  // 获取用户课时完成状态
+  async getLessonCompletionStatus(courseId: string): Promise<Record<string, boolean>> {
+    try {
+      // 检查当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {};
+      }
+      
+      // 获取用户在该课程中已完成的课时
+      const { data, error } = await supabase
+        .from('lesson_completions')
+        .select('lesson_id')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId);
+        
+      if (error) {
+        console.error('获取课时完成状态失败:', error);
+        throw error;
+      }
+      
+      // 将结果转换为Map格式
+      const completionStatus: Record<string, boolean> = {};
+      data.forEach(item => {
+        completionStatus[item.lesson_id] = true;
+      });
+      
+      return completionStatus;
+    } catch (error) {
+      console.error('获取课时完成状态失败:', error);
+      return {};
     }
   }
 };
