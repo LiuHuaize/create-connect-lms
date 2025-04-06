@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Lesson, CourseModule, LessonType, TextLessonContent } from '@/types/course';
 import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
+import BlockNoteRenderer from '@/components/editor/BlockNoteRenderer';
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
@@ -30,11 +31,24 @@ const LessonContent: React.FC<LessonContentProps> = ({
         return (
           <div className="prose max-w-none">
             {textContent?.text ? (
-              <div dangerouslySetInnerHTML={{ 
-                __html: (() => {
+              (() => {
+                try {
+                  const text = textContent.text;
+                  
+                  // 检查是否可能是BlockNote格式
+                  if (text.trim().startsWith('[')) {
+                    try {
+                      // 尝试使用专用渲染组件
+                      return <BlockNoteRenderer content={text} />;
+                    } catch (error) {
+                      console.error('BlockNote渲染失败:', error);
+                    }
+                  }
+                  
+                  // 如果不是BlockNote格式或渲染失败，尝试其他格式解析
                   try {
                     // 尝试解析文本内容
-                    const parsed = JSON.parse(textContent.text);
+                    const parsed = JSON.parse(text);
                     // 检查是否是数组
                     if (Array.isArray(parsed)) {
                       return parsed.map((block: any) => {
@@ -45,15 +59,18 @@ const LessonContent: React.FC<LessonContentProps> = ({
                       }).join('');
                     } else {
                       // 如果不是预期的格式，直接显示文本
-                      return `<p>${textContent.text}</p>`;
+                      return <p>{text}</p>;
                     }
                   } catch (error) {
                     // 解析失败时,直接显示原始文本
                     console.error('解析文本内容失败:', error);
-                    return `<p>${textContent.text}</p>`;
+                    return <p>{text}</p>;
                   }
-                })()
-              }} />
+                } catch (error) {
+                  console.error('处理课程内容失败:', error);
+                  return <p>内容无法显示</p>;
+                }
+              })()
             ) : (
               <p>此课时暂无内容</p>
             )}
