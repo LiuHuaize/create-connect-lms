@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Play, Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Lesson, CourseModule, LessonType, TextLessonContent } from '@/types/cou
 import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
 import BlockNoteRenderer from '@/components/editor/BlockNoteRenderer';
+import { courseService } from '@/services/courseService';
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
@@ -22,6 +23,55 @@ const LessonContent: React.FC<LessonContentProps> = ({
   enrollmentId,
   navigate
 }) => {
+  const [userAnswers, setUserAnswers] = useState<{[key: string]: string}>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizResult, setQuizResult] = useState<{score: number, totalQuestions: number} | null>(null);
+  
+  // 处理用户选择答案
+  const handleAnswerSelect = (questionId: string, optionId: string) => {
+    setUserAnswers(prev => ({
+      ...prev,
+      [questionId]: optionId
+    }));
+  };
+  
+  // 处理测验提交
+  const handleQuizSubmit = () => {
+    if (!selectedLesson || selectedLesson.type !== 'quiz') return;
+    
+    const quizContent = selectedLesson.content as any;
+    if (!quizContent?.questions) return;
+    
+    let correctAnswers = 0;
+    const totalQuestions = quizContent.questions.length;
+    
+    quizContent.questions.forEach((question: any) => {
+      if (userAnswers[question.id] === question.correctOption) {
+        correctAnswers++;
+      }
+    });
+    
+    const score = Math.round((correctAnswers / totalQuestions) * 100);
+    setQuizResult({score, totalQuestions});
+    setQuizSubmitted(true);
+    
+    // 如果有注册ID，可以调用API标记课时完成
+    if (enrollmentId && selectedLesson.id && courseData?.id) {
+      try {
+        // 调用API来记录测验结果和更新课程进度
+        courseService.markLessonComplete(selectedLesson.id, courseData.id, enrollmentId)
+          .then(() => {
+            console.log('测验完成并标记为已完成');
+          })
+          .catch(error => {
+            console.error('标记课时完成失败:', error);
+          });
+      } catch (error) {
+        console.error('提交测验结果失败:', error);
+      }
+    }
+  };
+
   const renderLessonContent = () => {
     if (!selectedLesson) return null;
     
@@ -108,6 +158,17 @@ const LessonContent: React.FC<LessonContentProps> = ({
               <p className="text-blue-700 text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
             </div>
             
+            {quizSubmitted && quizResult && (
+              <div className={`p-4 rounded-lg mb-4 ${quizResult.score >= 60 ? 'bg-green-50 border border-green-100' : 'bg-yellow-50 border border-yellow-100'}`}>
+                <h3 className={`font-medium mb-2 ${quizResult.score >= 60 ? 'text-green-800' : 'text-yellow-800'}`}>
+                  测验结果
+                </h3>
+                <p className={quizResult.score >= 60 ? 'text-green-700' : 'text-yellow-700'}>
+                  你的得分: {quizResult.score}% ({Math.round(quizResult.score * quizResult.totalQuestions / 100)}/{quizResult.totalQuestions} 题正确)
+                </p>
+              </div>
+            )}
+            
             {quizContent?.questions && quizContent.questions.length > 0 ? (
               <div className="space-y-6">
                 {quizContent.questions.map((question: any, qIndex: number) => (
@@ -121,8 +182,14 @@ const LessonContent: React.FC<LessonContentProps> = ({
                               type="radio" 
                               name={`q-${question.id || qIndex}`} 
                               className="mr-3 h-4 w-4 accent-blue-500 mt-1" 
+                              checked={userAnswers[question.id] === option.id}
+                              onChange={() => handleAnswerSelect(question.id, option.id)}
+                              disabled={quizSubmitted}
                             />
                             <span>{option.text}</span>
+                            {quizSubmitted && option.id === question.correctOption && (
+                              <span className="ml-2 text-green-600 text-sm">(正确答案)</span>
+                            )}
                           </label>
                         ))}
                       </div>
@@ -134,6 +201,9 @@ const LessonContent: React.FC<LessonContentProps> = ({
                           className="w-full p-3 border border-gray-300 rounded-md" 
                           rows={4}
                           placeholder="在此输入您的答案..."
+                          value={userAnswers[question.id] || ''}
+                          onChange={(e) => handleAnswerSelect(question.id, e.target.value)}
+                          disabled={quizSubmitted}
                         ></textarea>
                       </div>
                     )}
@@ -141,31 +211,36 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 ))}
                 
                 <div className="flex justify-end">
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    提交答案
-                  </Button>
+                  {!quizSubmitted ? (
+                    <Button 
+                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={handleQuizSubmit}
+                    >
+                      提交答案
+                    </Button>
+                  ) : (
+                    <Button 
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => navigate('/learning')}
+                    >
+                      返回课程
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="space-y-6">
                 <div className="quiz-container">
-                  <h4 className="font-medium text-lg mb-4">问题 1: 在数学中，5 + 3 = ?</h4>
+                  <h4 className="font-medium text-lg mb-4">问题 1: 新问题</h4>
                   <div className="space-y-3">
-                    {['7', '8', '9'].map((option, index) => (
+                    {['选项1', '选项2'].map((option, index) => (
                       <label key={index} className="quiz-option">
-                        <input type="radio" name="q1" className="mr-3 h-4 w-4 accent-blue-500" />
-                        <span>{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="quiz-container">
-                  <h4 className="font-medium text-lg mb-4">问题 2: 哪个形状有四个相等的边？</h4>
-                  <div className="space-y-3">
-                    {['三角形', '圆形', '正方形'].map((option, index) => (
-                      <label key={index} className="quiz-option">
-                        <input type="radio" name="q2" className="mr-3 h-4 w-4 accent-blue-500" />
+                        <input 
+                          type="radio" 
+                          name="q1" 
+                          className="mr-3 h-4 w-4 accent-blue-500" 
+                          disabled={quizSubmitted}
+                        />
                         <span>{option}</span>
                       </label>
                     ))}
@@ -173,7 +248,10 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 </div>
                 
                 <div className="flex justify-end">
-                  <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={handleQuizSubmit}
+                  >
                     提交答案
                   </Button>
                 </div>
