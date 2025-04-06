@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
@@ -68,6 +68,10 @@ const AppRoutes = () => {
   const [editorFullscreen, setEditorFullscreen] = useState(false);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const location = useLocation();
+
+  // 判断当前是否在课程页面
+  const isCoursePage = location.pathname.includes('/course/');
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -107,7 +111,7 @@ const AppRoutes = () => {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {!editorFullscreen && user && (
+      {!editorFullscreen && user && !isCoursePage && (
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={() => setSidebarOpen(false)} 
@@ -116,7 +120,7 @@ const AppRoutes = () => {
       )}
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {isMobile && !editorFullscreen && user && (
+        {isMobile && !editorFullscreen && user && !isCoursePage && (
           <div className="bg-white border-b border-gray-200 p-4 flex items-center">
             <button
               onClick={() => setSidebarOpen(true)}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
@@ -23,16 +22,11 @@ const CoursePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   
-  // 默认侧边栏状态设为折叠
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  // 默认侧边栏状态设为展开
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   const { loading, courseData, progress, enrollmentId, findCurrentLesson } = useCourseData(courseId);
   const { selectedLesson, selectedUnit } = findCurrentLesson(lessonId);
-  
-  // 在页面加载时自动折叠侧边栏
-  useEffect(() => {
-    setSidebarCollapsed(true);
-  }, [courseId, lessonId]);
   
   if (loading) {
     return <LoadingSkeleton />;
