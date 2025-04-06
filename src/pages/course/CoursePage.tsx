@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -37,7 +37,7 @@ const CoursePage = () => {
   }
   
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50">
       <CourseHeader 
         courseData={courseData} 
         isMobile={isMobile} 
@@ -57,69 +57,73 @@ const CoursePage = () => {
       <div className="flex flex-1 overflow-hidden">
         {!isMobile && (
           <div 
-            className={`bg-white border-r border-gray-100 overflow-y-auto transition-all duration-300 ease-in-out flex-shrink-0 ${
-              sidebarCollapsed ? 'w-0' : 'w-72'
+            className={`bg-white border-r border-gray-100 flex-shrink-0 transition-all duration-300 h-full flex flex-col ${
+              sidebarCollapsed ? 'w-16' : 'w-80'
             }`}
           >
-            <CourseSidebar 
-              courseData={courseData}
-              selectedLesson={selectedLesson}
-              progress={progress}
-            />
+            {/* 侧边栏顶部控制栏 */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              {!sidebarCollapsed && (
+                <h3 className="font-medium text-gray-800">课程大纲</h3>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="text-gray-600 hover:text-blue-600 ml-auto"
+                aria-label={sidebarCollapsed ? "展开大纲" : "收起大纲"}
+              >
+                {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+              </Button>
+            </div>
+            
+            {/* 侧边栏内容区域（可滚动） */}
+            <div className="flex-1 overflow-y-auto">
+              {!sidebarCollapsed && (
+                <CourseSidebar 
+                  courseData={courseData}
+                  selectedLesson={selectedLesson}
+                  progress={progress}
+                />
+              )}
+            </div>
           </div>
         )}
         
-        <div className="flex-1 overflow-auto">
-          {!isMobile && (
-            <div className="flex justify-between items-center px-6 py-3 border-b border-gray-100 bg-white">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* 内容区域顶部控制栏 */}
+          <div className="flex justify-between items-center px-6 py-3 border-b border-gray-100 bg-white">
+            {isMobile && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="text-gray-600 hover:text-blue-600"
+                onClick={() => setSidebarOpen(true)}
+                className="text-gray-600 hover:text-blue-600 mr-2"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
-                {sidebarCollapsed ? '显示课程大纲' : '隐藏课程大纲'}
+                课程大纲
               </Button>
-              
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-600">课程进度:</span>
-                <div className="w-36 mr-2">
-                  <Progress value={progress} className="h-2" />
-                </div>
-                <span className="text-xs font-semibold text-blue-600">{progress}%</span>
+            )}
+            
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs font-medium text-gray-600">课程进度:</span>
+              <div className="w-40 mr-2">
+                <Progress value={progress} className="h-2" />
               </div>
+              <span className="text-xs font-semibold text-blue-600">{progress}%</span>
             </div>
-          )}
+          </div>
           
-          {isMobile && (
-            <div className="md:hidden px-4 pt-4">
-              <div className="mb-2">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-semibold text-gray-700">课程进度</span>
-                  <span className="text-xs font-medium text-blue-600">{progress}%</span>
-                </div>
-                <Progress value={progress} className="h-1.5" />
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full flex items-center justify-center gap-2 text-sm"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <BookOpen size={14} /> 查看课程大纲
-              </Button>
-            </div>
-          )}
-          
-          <LessonContent
-            selectedLesson={selectedLesson}
-            selectedUnit={selectedUnit}
-            courseData={courseData}
-            enrollmentId={enrollmentId}
-            navigate={navigate}
-          />
+          {/* 内容区域（可滚动） */}
+          <div className="flex-1 overflow-y-auto">
+            <LessonContent
+              selectedLesson={selectedLesson}
+              selectedUnit={selectedUnit}
+              courseData={courseData}
+              enrollmentId={enrollmentId}
+              navigate={navigate}
+            />
+          </div>
         </div>
       </div>
       

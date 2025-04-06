@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
@@ -98,8 +97,6 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
                   courseData.id,
                   enrollmentId
                 );
-                
-                toast.success('课时已完成');
                 
                 // 如果有下一课时，自动导航到下一课时
                 if (nextLesson) {
