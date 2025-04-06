@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { BookOpen, Video, FileText, HelpCircle, ArrowLeft } from 'lucide-react';
-import { CourseModule, Lesson, TextLessonContent } from '@/types/course';
+import { CourseModule, Lesson, TextLessonContent, QuizLessonContent, CodeLessonContent } from '@/types/course';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import BlockNoteRenderer from '@/components/editor/BlockNoteRenderer';
 
 interface ContentTabProps {
   modules: CourseModule[];
@@ -39,17 +39,30 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
         </div>
 
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          {lesson.type === 'text' && lesson.content && 'text' in lesson.content && (
+          {lesson.type === 'text' && lesson.content && (
             <div className="prose max-w-none">
-              {lesson.content.text ? (
-                <div dangerouslySetInnerHTML={{ 
-                  __html: JSON.parse(lesson.content.text).map((block: any) => {
-                    if (block.type === 'paragraph') {
-                      return `<p>${block.content.map((item: any) => item.text).join('')}</p>`;
+              {((lesson.content as TextLessonContent).text) ? (
+                (() => {
+                  try {
+                    const textContent = (lesson.content as TextLessonContent).text;
+                    
+                    // 检查是否可能是BlockNote格式
+                    if (textContent.trim().startsWith('[')) {
+                      try {
+                        // 尝试使用专用渲染组件
+                        return <BlockNoteRenderer content={textContent} />;
+                      } catch (error) {
+                        console.error('BlockNote渲染失败:', error);
+                      }
                     }
-                    return '';
-                  }).join('') 
-                }} />
+                    
+                    // 如果不是BlockNote格式或渲染失败，以纯文本显示
+                    return <p>{textContent}</p>;
+                  } catch (error) {
+                    console.error('处理课程内容失败:', error);
+                    return <p>内容无法显示</p>;
+                  }
+                })()
               ) : (
                 <p>此课时暂无内容</p>
               )}
@@ -75,15 +88,74 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
             </div>
           )}
           
-          {lesson.type === 'quiz' && (
-            <div className="text-center p-6">
-              <HelpCircle className="h-12 w-12 text-purple-400 mx-auto mb-2" />
-              <p className="text-gray-700 font-medium">测验内容预览</p>
-              <p className="text-gray-500 text-sm mt-1">学生将在此看到测验问题</p>
+          {lesson.type === 'quiz' && lesson.content && (
+            <div className="space-y-6">
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                <h3 className="text-lg font-semibold mb-2">测验内容预览</h3>
+                <p className="text-sm text-purple-700">共 {(lesson.content as QuizLessonContent).questions ? (lesson.content as QuizLessonContent).questions.length : 0} 道题目</p>
+              </div>
+              
+              {(lesson.content as QuizLessonContent).questions && (lesson.content as QuizLessonContent).questions.length > 0 ? (
+                <div className="space-y-6">
+                  {(lesson.content as QuizLessonContent).questions.map((question: any, index: number) => (
+                    <div key={question.id || index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start mb-3">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mr-2 text-sm">
+                          {index + 1}
+                        </span>
+                        <h4 className="font-medium">{question.text || '未命名问题'}</h4>
+                      </div>
+                      
+                      {question.options && question.options.length > 0 && (
+                        <div className="ml-8 space-y-2">
+                          {question.options.map((option: any) => (
+                            <div key={option.id} className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded-full border border-gray-300"></div>
+                              <span>{option.text}</span>
+                              {option.id === question.correctOption && (
+                                <span className="text-xs text-green-600 ml-2">(正确答案)</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {question.type === 'short_answer' && (
+                        <div className="ml-8 mt-2">
+                          <div className="bg-gray-100 p-3 rounded border border-gray-200">
+                            <p className="text-sm text-gray-500 italic">简答题 - 学生将在此输入回答</p>
+                          </div>
+                          {question.sampleAnswer && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500">示例答案:</p>
+                              <p className="text-sm mt-1">{question.sampleAnswer}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-8">
+                  <HelpCircle className="h-12 w-12 text-purple-300 mx-auto mb-2" />
+                  <p className="text-gray-500">此测验暂无问题</p>
+                </div>
+              )}
             </div>
           )}
           
-          {lesson.type !== 'text' && lesson.type !== 'video' && lesson.type !== 'quiz' && (
+          {lesson.type === 'code' && lesson.content && (
+            <div className="space-y-4">
+              <div className="bg-white border border-gray-200 rounded-lg p-4 font-mono text-sm overflow-x-auto whitespace-pre text-gray-900">
+                {typeof lesson.content === 'object' && lesson.content !== null && 'code' in lesson.content
+                  ? (lesson.content as CodeLessonContent).code
+                  : '// 无代码内容'}
+              </div>
+            </div>
+          )}
+          
+          {lesson.type !== 'text' && lesson.type !== 'video' && lesson.type !== 'quiz' && lesson.type !== 'code' && (
             <div className="text-center p-6">
               <BookOpen className="h-12 w-12 text-blue-400 mx-auto mb-2" />
               <p className="text-gray-700">内容预览</p>

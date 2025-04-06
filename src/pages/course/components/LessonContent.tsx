@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Play, Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -32,12 +31,28 @@ const LessonContent: React.FC<LessonContentProps> = ({
           <div className="prose max-w-none">
             {textContent?.text ? (
               <div dangerouslySetInnerHTML={{ 
-                __html: JSON.parse(textContent.text).map((block: any) => {
-                  if (block.type === 'paragraph') {
-                    return `<p>${block.content.map((item: any) => item.text).join('')}</p>`;
+                __html: (() => {
+                  try {
+                    // 尝试解析文本内容
+                    const parsed = JSON.parse(textContent.text);
+                    // 检查是否是数组
+                    if (Array.isArray(parsed)) {
+                      return parsed.map((block: any) => {
+                        if (block.type === 'paragraph' && block.content && Array.isArray(block.content)) {
+                          return `<p>${block.content.map((item: any) => item.text || '').join('')}</p>`;
+                        }
+                        return '';
+                      }).join('');
+                    } else {
+                      // 如果不是预期的格式，直接显示文本
+                      return `<p>${textContent.text}</p>`;
+                    }
+                  } catch (error) {
+                    // 解析失败时,直接显示原始文本
+                    console.error('解析文本内容失败:', error);
+                    return `<p>${textContent.text}</p>`;
                   }
-                  return '';
-                }).join('') 
+                })()
               }} />
             ) : (
               <p>此课时暂无内容</p>
@@ -66,6 +81,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
           </div>
         );
       case 'quiz':
+        const quizContent = selectedLesson.content as any;
         return (
           <div className="space-y-6">
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
@@ -75,37 +91,77 @@ const LessonContent: React.FC<LessonContentProps> = ({
               <p className="text-blue-700 text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
             </div>
             
-            <div className="space-y-6">
-              <div className="quiz-container">
-                <h4 className="font-medium text-lg mb-4">问题 1: 在数学中，5 + 3 = ?</h4>
-                <div className="space-y-3">
-                  {['7', '8', '9'].map((option, index) => (
-                    <label key={index} className="quiz-option">
-                      <input type="radio" name="q1" className="mr-3 h-4 w-4 accent-blue-500" />
-                      <span>{option}</span>
-                    </label>
-                  ))}
+            {quizContent?.questions && quizContent.questions.length > 0 ? (
+              <div className="space-y-6">
+                {quizContent.questions.map((question: any, qIndex: number) => (
+                  <div key={question.id || `q-${qIndex}`} className="quiz-container">
+                    <h4 className="font-medium text-lg mb-4">问题 {qIndex + 1}: {question.text || '未命名问题'}</h4>
+                    {question.options && (
+                      <div className="space-y-3">
+                        {question.options.map((option: any, oIndex: number) => (
+                          <label key={option.id || `opt-${oIndex}`} className="quiz-option flex items-start">
+                            <input 
+                              type="radio" 
+                              name={`q-${question.id || qIndex}`} 
+                              className="mr-3 h-4 w-4 accent-blue-500 mt-1" 
+                            />
+                            <span>{option.text}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {question.type === 'short_answer' && (
+                      <div className="mt-4">
+                        <textarea 
+                          className="w-full p-3 border border-gray-300 rounded-md" 
+                          rows={4}
+                          placeholder="在此输入您的答案..."
+                        ></textarea>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                <div className="flex justify-end">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    提交答案
+                  </Button>
                 </div>
               </div>
-              
-              <div className="quiz-container">
-                <h4 className="font-medium text-lg mb-4">问题 2: 哪个形状有四个相等的边？</h4>
-                <div className="space-y-3">
-                  {['三角形', '圆形', '正方形'].map((option, index) => (
-                    <label key={index} className="quiz-option">
-                      <input type="radio" name="q2" className="mr-3 h-4 w-4 accent-blue-500" />
-                      <span>{option}</span>
-                    </label>
-                  ))}
+            ) : (
+              <div className="space-y-6">
+                <div className="quiz-container">
+                  <h4 className="font-medium text-lg mb-4">问题 1: 在数学中，5 + 3 = ?</h4>
+                  <div className="space-y-3">
+                    {['7', '8', '9'].map((option, index) => (
+                      <label key={index} className="quiz-option">
+                        <input type="radio" name="q1" className="mr-3 h-4 w-4 accent-blue-500" />
+                        <span>{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="quiz-container">
+                  <h4 className="font-medium text-lg mb-4">问题 2: 哪个形状有四个相等的边？</h4>
+                  <div className="space-y-3">
+                    {['三角形', '圆形', '正方形'].map((option, index) => (
+                      <label key={index} className="quiz-option">
+                        <input type="radio" name="q2" className="mr-3 h-4 w-4 accent-blue-500" />
+                        <span>{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    提交答案
+                  </Button>
                 </div>
               </div>
-            </div>
-            
-            <div className="flex justify-end">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                提交答案
-              </Button>
-            </div>
+            )}
           </div>
         );
       // Handle other types with a default case

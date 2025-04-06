@@ -283,11 +283,7 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
               <FormLabel className="block text-sm font-medium text-gray-700 mb-2">上传视频</FormLabel>
               <VideoUploader 
                 onVideoUploaded={handleVideoUploaded} 
-                initialVideoPath={
-                  lesson.video_file_path 
-                    ? supabase.storage.from('course_videos').getPublicUrl(lesson.video_file_path).data.publicUrl
-                    : null
-                }
+                initialVideoPath={lesson.video_file_path || null}
               />
               <p className="text-xs text-gray-500 mt-1">
                 上传视频文件或使用URL。视频文件将存储在我们的服务器上。

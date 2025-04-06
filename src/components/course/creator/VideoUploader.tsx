@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -80,7 +79,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
         .getPublicUrl(filePath);
 
       setVideoPath(publicUrl);
-      onVideoUploaded(filePath);
+      onVideoUploaded(publicUrl);
       toast.success('视频上传成功');
     } catch (error: any) {
       setError(error.message || '上传失败，请重试');

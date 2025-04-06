@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye, Loader2 } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Check, Clock } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
@@ -11,6 +11,8 @@ interface CourseHeaderProps {
   modules: CourseModule[];
   handleBackToSelection: () => void;
   handleSaveCourse: () => Promise<void>;
+  isAutoSaving?: boolean;
+  lastSaved?: Date | null;
 }
 
 const CourseHeader: React.FC<CourseHeaderProps> = ({
@@ -18,6 +20,8 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   modules,
   handleBackToSelection,
   handleSaveCourse,
+  isAutoSaving = false,
+  lastSaved = null,
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,6 +63,24 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
     }
   };
 
+  // 格式化上次保存时间
+  const getLastSavedText = () => {
+    if (!lastSaved) return '';
+    
+    const now = new Date();
+    const diffMs = now.getTime() - lastSaved.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) {
+      return '刚刚保存';
+    } else if (diffMins < 60) {
+      return `${diffMins}分钟前保存`;
+    } else {
+      const hours = Math.floor(diffMins / 60);
+      return `${hours}小时前保存`;
+    }
+  };
+
   return (
     <>
       <div className="flex justify-between items-center mb-8">
@@ -76,6 +98,28 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         </div>
         
         <div className="flex items-center gap-3">
+          {/* 自动保存状态指示器 */}
+          {course.id && (
+            <div className="flex items-center mr-3 text-sm text-gray-500">
+              {isAutoSaving ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin text-gray-400" />
+                  <span>自动保存中...</span>
+                </>
+              ) : lastSaved ? (
+                <>
+                  <Check className="h-3 w-3 mr-1 text-green-500" />
+                  <span>{getLastSavedText()}</span>
+                </>
+              ) : (
+                <>
+                  <Clock className="h-3 w-3 mr-1 text-gray-400" />
+                  <span>未保存</span>
+                </>
+              )}
+            </div>
+          )}
+          
           <Button 
             variant="outline" 
             onClick={() => setPreviewOpen(true)}

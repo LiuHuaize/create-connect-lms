@@ -1,4 +1,3 @@
-
 // 导入必要的类型
 import { Json } from "@/integrations/supabase/types";
 
@@ -53,6 +52,12 @@ export type AssignmentLessonContent = {
   aiGradingPrompt?: string; // AI评分提示
 };
 
+// 代码课程内容类型
+export type CodeLessonContent = {
+  code: string;
+  language?: string;
+};
+
 // AI评分结果类型
 export type AIGradingResult = {
   score: number; // AI给出的分数
@@ -93,7 +98,8 @@ export type LessonContent =
   | VideoLessonContent 
   | TextLessonContent 
   | QuizLessonContent 
-  | AssignmentLessonContent;
+  | AssignmentLessonContent
+  | CodeLessonContent;
 
 // Quiz related types
 export type QuizQuestionType = 'multiple_choice' | 'true_false' | 'short_answer';
@@ -113,7 +119,7 @@ export type QuizQuestion = {
 };
 
 // Lesson type - use string union for better type safety
-export type LessonType = 'video' | 'text' | 'quiz' | 'assignment';
+export type LessonType = 'video' | 'text' | 'quiz' | 'assignment' | 'code';
 
 // Make sure order_index is included in the Lesson type
 export type Lesson = {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { courseService } from '@/services/courseService';
@@ -32,6 +32,13 @@ export const useCourseCreator = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [moduleDataLoaded, setModuleDataLoaded] = useState(true);
+  // 添加自动保存相关状态
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 保存课程的前一个状态，用于比较是否有变更
+  const previousCourseRef = useRef<Course | null>(null);
+  const previousModulesRef = useRef<CourseModule[] | null>(null);
 
   useEffect(() => {
     const loadCourseBasicInfo = async () => {
@@ -63,6 +70,11 @@ export const useCourseCreator = () => {
           }
           setModuleDataLoaded(true);
           setIsLoading(false);
+          
+          // 加载完成后，设置初始的引用状态
+          previousCourseRef.current = { ...courseDetails };
+          previousModulesRef.current = [...(courseDetails.modules || [])];
+          setLastSaved(new Date());
         }, 100);
       } catch (error) {
         console.error('加载课程失败:', error);
@@ -85,6 +97,104 @@ export const useCourseCreator = () => {
   useEffect(() => {
     calculateCompletionPercentage();
   }, [course, modules]);
+
+  // 检测课程内容变更并触发自动保存
+  useEffect(() => {
+    // 如果课程未加载完成，不执行自动保存
+    if (isLoading || !moduleDataLoaded) return;
+
+    // 检查是否有courseId（新建课程未保存时没有id）
+    if (!course.id && !courseId) return;
+
+    // 只有当课程或模块发生变化时才触发自动保存
+    const hasChanged = checkForChanges();
+
+    if (hasChanged) {
+      // 清除之前的定时器
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+
+      // 设置新的定时器，延迟3秒自动保存，避免频繁保存
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        handleAutoSave();
+      }, 3000);
+    }
+
+    // 组件卸载时清除定时器
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [course, modules]);
+
+  // 检查课程内容是否有变更
+  const checkForChanges = () => {
+    if (!previousCourseRef.current || !previousModulesRef.current) return false;
+
+    // 简单比较课程基本信息
+    const courseChanged = 
+      previousCourseRef.current.title !== course.title ||
+      previousCourseRef.current.description !== course.description ||
+      previousCourseRef.current.short_description !== course.short_description ||
+      previousCourseRef.current.category !== course.category;
+
+    // 模块数量变更
+    if (previousModulesRef.current.length !== modules.length) return true;
+
+    // 简单检测模块内容变更
+    // 注意：这不是深度比较，仅作为触发自动保存的简单检查
+    const modulesChanged = modules.some((module, index) => {
+      const prevModule = previousModulesRef.current![index];
+      if (!prevModule) return true;
+      
+      // 检查模块标题变更
+      if (prevModule.title !== module.title) return true;
+      
+      // 检查课时数量变更
+      if ((prevModule.lessons?.length || 0) !== (module.lessons?.length || 0)) return true;
+      
+      // 简单检查课时内容
+      return module.lessons?.some((lesson, lessonIndex) => {
+        const prevLesson = prevModule.lessons?.[lessonIndex];
+        if (!prevLesson) return true;
+        return prevLesson.title !== lesson.title || prevLesson.content !== lesson.content;
+      });
+    });
+
+    return courseChanged || modulesChanged;
+  };
+
+  // 自动保存函数
+  const handleAutoSave = async () => {
+    // 如果已经在保存中，跳过
+    if (isAutoSaving) return;
+
+    try {
+      setIsAutoSaving(true);
+      
+      // 如果没有标题，不进行自动保存
+      if (!course.title.trim()) {
+        setIsAutoSaving(false);
+        return;
+      }
+
+      await handleSaveCourse();
+      
+      // 更新最后保存时间
+      setLastSaved(new Date());
+      
+      // 更新引用值，用于下次比较
+      previousCourseRef.current = { ...course };
+      previousModulesRef.current = [...modules];
+    } catch (error) {
+      console.error('自动保存失败:', error);
+      // 自动保存失败不显示错误提示，避免干扰用户
+    } finally {
+      setIsAutoSaving(false);
+    }
+  };
 
   const calculateCompletionPercentage = () => {
     let totalPoints = 0;
@@ -201,7 +311,11 @@ export const useCourseCreator = () => {
       }
 
       console.log('课程保存完成');
-      toast.success('课程保存成功');
+      
+      // 非自动保存时才显示成功提示
+      if (!isAutoSaving) {
+        toast.success('课程保存成功');
+      }
       
       // 更新模块数据，确保所有模块和课时都有正确的ID
       const updatedModules = savedModules.map((savedModule, index) => ({
@@ -217,7 +331,11 @@ export const useCourseCreator = () => {
       const errorMessage = error instanceof Error 
         ? error.message 
         : '未知错误，请稍后重试或联系支持';
-      toast.error(`保存课程失败: ${errorMessage}`);
+      
+      // 非自动保存时才显示错误提示
+      if (!isAutoSaving) {
+        toast.error(`保存课程失败: ${errorMessage}`);
+      }
       throw error;
     }
   };
@@ -243,5 +361,8 @@ export const useCourseCreator = () => {
     moduleDataLoaded,
     handleSaveCourse,
     handleBackToSelection,
+    // 导出自动保存相关状态
+    isAutoSaving,
+    lastSaved
   };
 };

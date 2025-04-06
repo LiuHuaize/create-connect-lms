@@ -294,6 +294,15 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
     initialContent: initialContent ? safelyParseContent(initialContent) : undefined,
     uploadFile: handleFileUpload, // 添加图片上传处理函数
     dictionary: zhDictionary, // 添加中文本地化支持
+    // 自定义代码块样式，确保深色主题下代码块背景是白色
+    domAttributes: {
+      // 为代码块容器添加类名
+      codeBlock: {
+        code: {
+          className: 'bg-white text-gray-900 dark:bg-white dark:text-gray-900'
+        }
+      }
+    }
   });
 
   // 处理编辑器内容变化
