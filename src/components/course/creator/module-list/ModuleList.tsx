@@ -1,11 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CourseModule, Lesson, LessonType } from '@/types/course';
 import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import ModuleItem from './ModuleItem';
 import { getInitialContentByType } from './lessonTypeUtils';
-import { DragDropContext, DropResult } from 'react-beautiful-dnd';
+import { 
+  DndContext, 
+  DragEndEvent, 
+  DragOverEvent, 
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core';
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 interface ModuleListProps {
   modules: CourseModule[];
@@ -22,6 +31,17 @@ const ModuleList: React.FC<ModuleListProps> = ({
   expandedModule, 
   setExpandedModule 
 }) => {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  
+  // 使用PointerSensor而不是默认传感器，这样可以避免在点击按钮时触发拖拽
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 需要移动至少5px才触发拖拽
+      }
+    })
+  );
+
   const addModule = () => {
     const newModule: CourseModule = {
       id: uuidv4(),
@@ -80,95 +100,160 @@ const ModuleList: React.FC<ModuleListProps> = ({
     ));
   };
 
-  const onDragStart = () => {
-    // 在拖拽开始时可以添加一些视觉效果
+  const handleDragStart = (event: DragStartEvent) => {
+    // 设置当前正在拖拽的元素ID
+    setActiveId(event.active.id as string);
+    
+    // 修改光标样式
     if (typeof document !== 'undefined') {
       document.body.style.cursor = 'grabbing';
     }
   };
+  
+  const handleDragOver = (event: DragOverEvent) => {
+    // 当元素拖拽到另一个区域时，我们需要处理跨容器拖拽
+    const { active, over } = event;
+    
+    if (!over) return;
+    
+    const activeId = active.id;
+    const overId = over.id;
+    
+    // 如果是相同元素，不做任何处理
+    if (activeId === overId) return;
+    
+    // 查找拖动项所在的模块
+    const activeModuleId = active.data.current?.moduleId;
+    if (!activeModuleId) return;
+    
+    // 如果over是模块ID，说明我们要把元素移动到另一个模块
+    // 跨模块的拖拽我们暂时不用处理这里的逻辑，因为会在dragEnd中处理
+  };
 
-  const onDragEnd = (result: DropResult) => {
-    // 拖拽结束时重置样式
+  const handleDragEnd = (event: DragEndEvent) => {
+    // 重置光标样式
     if (typeof document !== 'undefined') {
       document.body.style.cursor = '';
     }
     
-    const { destination, source, draggableId } = result;
+    // 重置activeId
+    setActiveId(null);
     
-    // 如果没有目标位置或拖拽到了相同位置，则不做任何改变
-    if (!destination || 
-        (destination.droppableId === source.droppableId && 
-         destination.index === source.index)) {
-      return;
-    }
+    const { active, over } = event;
     
-    // 获取源模块和目标模块
-    const sourceModuleId = source.droppableId;
-    const destModuleId = destination.droppableId;
+    if (!over) return;
     
+    const activeId = active.id as string;
+    const overId = over.id as string;
+    
+    // 如果没有移动位置，不做任何处理
+    if (activeId === overId) return;
+    
+    // 源数据
+    const activeData = active.data.current;
+    const activeModuleId = activeData?.moduleId;
+    
+    // 目标数据
+    const overData = over.data.current;
+    const overModuleId = overData?.moduleId;
+    
+    // 如果over是模块ID而不是课时ID，说明将课时拖到了模块上
+    const overIsModule = !overData || overData.moduleId === overId;
+    
+    // 更新状态前先复制一份
     const updatedModules = [...modules];
     
-    // 找到源模块和目标模块的索引
-    const sourceModuleIndex = updatedModules.findIndex(m => m.id === sourceModuleId);
-    const destModuleIndex = updatedModules.findIndex(m => m.id === destModuleId);
+    // 找到源模块
+    const sourceModuleIndex = updatedModules.findIndex(m => m.id === activeModuleId);
+    if (sourceModuleIndex === -1) return;
     
-    if (sourceModuleIndex === -1 || destModuleIndex === -1) return;
-    
-    // 获取被拖拽的课时
     const sourceModule = updatedModules[sourceModuleIndex];
     const sourceLessons = [...(sourceModule.lessons || [])];
-    const [movedLesson] = sourceLessons.splice(source.index, 1);
     
-    // 更新源模块
-    updatedModules[sourceModuleIndex] = {
-      ...sourceModule,
-      lessons: sourceLessons.map((lesson, idx) => ({
-        ...lesson,
-        order_index: idx
-      }))
-    };
+    // 找到被拖拽的课时
+    const lessonIndex = sourceLessons.findIndex(l => l.id === activeId);
+    if (lessonIndex === -1) return;
     
-    // 如果是同一个模块内移动
-    if (sourceModuleId === destModuleId) {
-      const newLessons = [...sourceLessons];
-      newLessons.splice(destination.index, 0, movedLesson);
+    const movedLesson = sourceLessons[lessonIndex];
+    
+    // 如果是在同一个模块内拖拽
+    if (activeModuleId === overModuleId && !overIsModule) {
+      // 找到目标课时的索引
+      const overLessonIndex = sourceLessons.findIndex(l => l.id === overId);
+      if (overLessonIndex === -1) return;
+      
+      // 移动课时并更新order_index
+      const newLessons = arrayMove(sourceLessons, lessonIndex, overLessonIndex);
+      newLessons.forEach((lesson, idx) => {
+        lesson.order_index = idx;
+      });
       
       updatedModules[sourceModuleIndex] = {
         ...sourceModule,
-        lessons: newLessons.map((lesson, idx) => ({
-          ...lesson,
-          order_index: idx
-        }))
+        lessons: newLessons
       };
-    } else {
-      // 如果是跨模块移动
-      const destModule = updatedModules[destModuleIndex];
-      const destLessons = [...(destModule.lessons || [])];
+    } 
+    // 如果是跨模块拖拽
+    else if (activeModuleId !== overModuleId || overIsModule) {
+      // 从源模块删除课时
+      sourceLessons.splice(lessonIndex, 1);
+      sourceLessons.forEach((lesson, idx) => {
+        lesson.order_index = idx;
+      });
       
-      // 更新被移动课时的模块ID
-      const updatedMovedLesson = {
-        ...movedLesson,
-        module_id: destModuleId
+      updatedModules[sourceModuleIndex] = {
+        ...sourceModule,
+        lessons: sourceLessons
       };
       
-      destLessons.splice(destination.index, 0, updatedMovedLesson);
+      // 将课时添加到目标模块
+      const targetModuleIndex = updatedModules.findIndex(m => overIsModule ? m.id === overId : m.id === overModuleId);
       
-      updatedModules[destModuleIndex] = {
-        ...destModule,
-        lessons: destLessons.map((lesson, idx) => ({
-          ...lesson,
-          order_index: idx
-        }))
-      };
+      if (targetModuleIndex !== -1) {
+        const targetModule = updatedModules[targetModuleIndex];
+        const targetLessons = [...(targetModule.lessons || [])];
+        
+        // 更新被移动课时的模块ID
+        const updatedMovedLesson = {
+          ...movedLesson,
+          module_id: targetModule.id
+        };
+        
+        // 如果拖到了模块上，则添加到末尾
+        if (overIsModule) {
+          updatedMovedLesson.order_index = targetLessons.length;
+          targetLessons.push(updatedMovedLesson);
+        } 
+        // 否则找到目标位置插入
+        else {
+          const overLessonIndex = targetLessons.findIndex(l => l.id === overId);
+          if (overLessonIndex !== -1) {
+            targetLessons.splice(overLessonIndex, 0, updatedMovedLesson);
+            targetLessons.forEach((lesson, idx) => {
+              lesson.order_index = idx;
+            });
+          } else {
+            updatedMovedLesson.order_index = targetLessons.length;
+            targetLessons.push(updatedMovedLesson);
+          }
+        }
+        
+        updatedModules[targetModuleIndex] = {
+          ...targetModule,
+          lessons: targetLessons
+        };
+      }
     }
     
     setModules(updatedModules);
   };
 
   return (
-    <DragDropContext 
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+    <DndContext 
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
     >
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex justify-between items-center mb-6">
@@ -179,22 +264,27 @@ const ModuleList: React.FC<ModuleListProps> = ({
         </div>
         
         <div className="space-y-4">
-          {modules.map((module) => (
-            <ModuleItem 
-              key={module.id} 
-              module={module}
-              expandedModule={expandedModule}
-              onUpdateModuleTitle={updateModuleTitle}
-              onDeleteModule={deleteModule}
-              onToggleExpand={toggleModuleExpand}
-              onEditLesson={setCurrentLesson}
-              onDeleteLesson={deleteLesson}
-              onAddLesson={addLesson}
-            />
-          ))}
+          <SortableContext 
+            items={modules.map(module => module.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {modules.map((module) => (
+              <ModuleItem 
+                key={module.id} 
+                module={module}
+                expandedModule={expandedModule}
+                onUpdateModuleTitle={updateModuleTitle}
+                onDeleteModule={deleteModule}
+                onToggleExpand={toggleModuleExpand}
+                onEditLesson={setCurrentLesson}
+                onDeleteLesson={deleteLesson}
+                onAddLesson={addLesson}
+              />
+            ))}
+          </SortableContext>
         </div>
       </div>
-    </DragDropContext>
+    </DndContext>
   );
 };
 

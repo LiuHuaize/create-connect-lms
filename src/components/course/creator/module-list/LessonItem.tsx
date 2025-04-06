@@ -2,7 +2,8 @@ import React from 'react';
 import { Trash2, Pencil, GripVertical } from 'lucide-react';
 import { Lesson } from '@/types/course';
 import { getLessonTypeInfo } from './lessonTypeUtils';
-import { Draggable } from 'react-beautiful-dnd';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface LessonItemProps {
   lesson: Lesson;
@@ -20,49 +21,63 @@ const LessonItem: React.FC<LessonItemProps> = ({
   onDeleteLesson
 }) => {
   const typeInfo = getLessonTypeInfo(lesson.type);
+  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({
+    id: lesson.id,
+    data: {
+      moduleId,
+      index
+    }
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 'auto',
+  };
 
   return (
-    <Draggable draggableId={lesson.id} index={index}>
-      {(provided, snapshot) => (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between p-3 border rounded-md 
+        ${isDragging ? 'border-blue-300 bg-blue-50 shadow-md' : 'border-gray-100 hover:bg-gray-50'} 
+        transition-colors`}
+    >
+      <div className="flex items-center gap-2 flex-1 min-w-0">
         <div 
-          className={`flex items-center justify-between p-3 border ${snapshot.isDragging ? 'border-blue-300 bg-blue-50' : 'border-gray-100'} rounded-md hover:bg-gray-50 transition-colors`}
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          style={{
-            ...provided.draggableProps.style,
-            boxShadow: snapshot.isDragging ? '0 5px 10px rgba(0, 0, 0, 0.1)' : 'none',
-            transform: snapshot.isDragging ? `${provided.draggableProps.style?.transform} scale(1.02)` : provided.draggableProps.style?.transform,
-            zIndex: snapshot.isDragging ? 10 : 'auto',
-          }}
+          className="cursor-grab hover:text-blue-500 flex-shrink-0" 
+          {...attributes}
+          {...listeners}
         >
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div 
-              className="cursor-grab hover:text-blue-500 flex-shrink-0" 
-              {...provided.dragHandleProps}
-            >
-              <GripVertical size={18} />
-            </div>
-            {typeInfo?.icon}
-            <span className="truncate">{lesson.title}</span>
-          </div>
-          
-          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-            <button 
-              onClick={() => onEditLesson(lesson)}
-              className="text-gray-400 hover:text-connect-blue transition-colors"
-            >
-              <Pencil size={16} />
-            </button>
-            <button 
-              onClick={() => onDeleteLesson(moduleId, lesson.id)}
-              className="text-gray-400 hover:text-red-500 transition-colors"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
+          <GripVertical size={18} />
         </div>
-      )}
-    </Draggable>
+        {typeInfo?.icon}
+        <span className="truncate">{lesson.title}</span>
+      </div>
+      
+      <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+        <button 
+          onClick={() => onEditLesson(lesson)}
+          className="text-gray-400 hover:text-connect-blue transition-colors"
+        >
+          <Pencil size={16} />
+        </button>
+        <button 
+          onClick={() => onDeleteLesson(moduleId, lesson.id)}
+          className="text-gray-400 hover:text-red-500 transition-colors"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
   );
 };
 

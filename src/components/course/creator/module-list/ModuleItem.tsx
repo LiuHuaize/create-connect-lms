@@ -4,7 +4,8 @@ import ModuleHeader from './ModuleHeader';
 import LessonItem from './LessonItem';
 import LessonTypeButton from './LessonTypeButton';
 import { LESSON_TYPES } from './lessonTypeUtils';
-import { Droppable } from 'react-beautiful-dnd';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 interface ModuleItemProps {
   module: CourseModule;
@@ -28,6 +29,13 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   onAddLesson
 }) => {
   const isExpanded = expandedModule === module.id;
+  
+  const { setNodeRef, isOver } = useDroppable({
+    id: module.id!,
+    data: {
+      moduleId: module.id
+    }
+  });
 
   return (
     <div className="border border-gray-200 rounded-lg">
@@ -42,37 +50,37 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
       
       {isExpanded && (
         <div className="p-4 pt-0 border-t border-gray-200">
-          <Droppable droppableId={module.id!}>
-            {(provided, snapshot) => (
-              <div 
-                className={`space-y-2 mb-4 rounded-md ${snapshot.isDraggingOver ? 'bg-blue-50 p-2 border border-dashed border-blue-300' : ''}`}
-                ref={provided.innerRef}
-                {...provided.droppableProps}
+          <div 
+            className={`space-y-2 mb-4 rounded-md p-2 ${isOver ? 'bg-blue-50 border border-dashed border-blue-300' : ''}`}
+            ref={setNodeRef}
+          >
+            {module.lessons && module.lessons.length > 0 ? (
+              <SortableContext 
+                items={module.lessons.map(lesson => lesson.id)} 
+                strategy={verticalListSortingStrategy}
               >
-                {module.lessons && module.lessons.length > 0 ? (
-                  module.lessons
-                    .sort((a, b) => a.order_index - b.order_index)
-                    .map((lesson, index) => (
-                      <LessonItem 
-                        key={lesson.id} 
-                        lesson={lesson} 
-                        moduleId={module.id!}
-                        index={index}
-                        onEditLesson={onEditLesson}
-                        onDeleteLesson={onDeleteLesson}
-                      />
-                    ))
-                ) : (
-                  <div className="text-center py-4 text-gray-400 text-sm italic">
-                    {snapshot.isDraggingOver 
-                      ? "放置课时到这里..." 
-                      : "此模块暂无课时，请添加内容"}
-                  </div>
-                )}
-                {provided.placeholder}
+                {module.lessons
+                  .sort((a, b) => a.order_index - b.order_index)
+                  .map((lesson, index) => (
+                    <LessonItem 
+                      key={lesson.id} 
+                      lesson={lesson} 
+                      moduleId={module.id!}
+                      index={index}
+                      onEditLesson={onEditLesson}
+                      onDeleteLesson={onDeleteLesson}
+                    />
+                  ))
+                }
+              </SortableContext>
+            ) : (
+              <div className="text-center py-4 text-gray-400 text-sm italic">
+                {isOver 
+                  ? "放置课时到这里..." 
+                  : "此模块暂无课时，请添加内容"}
               </div>
             )}
-          </Droppable>
+          </div>
           
           <div className="flex flex-wrap gap-2">
             {LESSON_TYPES.map((type) => (
