@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CourseModule, Lesson, LessonType } from '@/types/course';
@@ -6,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import ModuleItem from './ModuleItem';
 import { getInitialContentByType } from './lessonTypeUtils';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 interface ModuleListProps {
   modules: CourseModule[];
@@ -80,31 +80,121 @@ const ModuleList: React.FC<ModuleListProps> = ({
     ));
   };
 
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-bold">课程结构</h2>
-        <Button onClick={addModule} className="bg-connect-blue hover:bg-blue-600">
-          <Plus size={16} className="mr-2" /> 添加模块
-        </Button>
-      </div>
+  const onDragStart = () => {
+    // 在拖拽开始时可以添加一些视觉效果
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = 'grabbing';
+    }
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    // 拖拽结束时重置样式
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = '';
+    }
+    
+    const { destination, source, draggableId } = result;
+    
+    // 如果没有目标位置或拖拽到了相同位置，则不做任何改变
+    if (!destination || 
+        (destination.droppableId === source.droppableId && 
+         destination.index === source.index)) {
+      return;
+    }
+    
+    // 获取源模块和目标模块
+    const sourceModuleId = source.droppableId;
+    const destModuleId = destination.droppableId;
+    
+    const updatedModules = [...modules];
+    
+    // 找到源模块和目标模块的索引
+    const sourceModuleIndex = updatedModules.findIndex(m => m.id === sourceModuleId);
+    const destModuleIndex = updatedModules.findIndex(m => m.id === destModuleId);
+    
+    if (sourceModuleIndex === -1 || destModuleIndex === -1) return;
+    
+    // 获取被拖拽的课时
+    const sourceModule = updatedModules[sourceModuleIndex];
+    const sourceLessons = [...(sourceModule.lessons || [])];
+    const [movedLesson] = sourceLessons.splice(source.index, 1);
+    
+    // 更新源模块
+    updatedModules[sourceModuleIndex] = {
+      ...sourceModule,
+      lessons: sourceLessons.map((lesson, idx) => ({
+        ...lesson,
+        order_index: idx
+      }))
+    };
+    
+    // 如果是同一个模块内移动
+    if (sourceModuleId === destModuleId) {
+      const newLessons = [...sourceLessons];
+      newLessons.splice(destination.index, 0, movedLesson);
       
-      <div className="space-y-4">
-        {modules.map((module) => (
-          <ModuleItem 
-            key={module.id} 
-            module={module}
-            expandedModule={expandedModule}
-            onUpdateModuleTitle={updateModuleTitle}
-            onDeleteModule={deleteModule}
-            onToggleExpand={toggleModuleExpand}
-            onEditLesson={setCurrentLesson}
-            onDeleteLesson={deleteLesson}
-            onAddLesson={addLesson}
-          />
-        ))}
+      updatedModules[sourceModuleIndex] = {
+        ...sourceModule,
+        lessons: newLessons.map((lesson, idx) => ({
+          ...lesson,
+          order_index: idx
+        }))
+      };
+    } else {
+      // 如果是跨模块移动
+      const destModule = updatedModules[destModuleIndex];
+      const destLessons = [...(destModule.lessons || [])];
+      
+      // 更新被移动课时的模块ID
+      const updatedMovedLesson = {
+        ...movedLesson,
+        module_id: destModuleId
+      };
+      
+      destLessons.splice(destination.index, 0, updatedMovedLesson);
+      
+      updatedModules[destModuleIndex] = {
+        ...destModule,
+        lessons: destLessons.map((lesson, idx) => ({
+          ...lesson,
+          order_index: idx
+        }))
+      };
+    }
+    
+    setModules(updatedModules);
+  };
+
+  return (
+    <DragDropContext 
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+    >
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-bold">课程结构</h2>
+          <Button onClick={addModule} className="bg-connect-blue hover:bg-blue-600">
+            <Plus size={16} className="mr-2" /> 添加模块
+          </Button>
+        </div>
+        
+        <div className="space-y-4">
+          {modules.map((module) => (
+            <ModuleItem 
+              key={module.id} 
+              module={module}
+              expandedModule={expandedModule}
+              onUpdateModuleTitle={updateModuleTitle}
+              onDeleteModule={deleteModule}
+              onToggleExpand={toggleModuleExpand}
+              onEditLesson={setCurrentLesson}
+              onDeleteLesson={deleteLesson}
+              onAddLesson={addLesson}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+    </DragDropContext>
   );
 };
 

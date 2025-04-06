@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +17,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -31,6 +31,7 @@ import {
   UserCog
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 type User = {
   id: string;
@@ -48,146 +49,147 @@ const roleConfig = {
   student: { icon: User, color: 'text-green-600 bg-green-100', label: '学生' },
 };
 
+// 获取所有用户数据
+const fetchUsers = async () => {
+  // 获取所有用户资料
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select('*');
+
+  if (profilesError) {
+    throw new Error(profilesError.message);
+  }
+
+  // 获取所有角色数据
+  const { data: allRoles, error: rolesError } = await supabase
+    .from('user_roles')
+    .select('user_id, role');
+
+  if (rolesError) {
+    throw new Error(rolesError.message);
+  }
+
+  // 合并数据
+  return profiles.map(profile => {
+    const userRoleRecord = allRoles.find((r: any) => r.user_id === profile.id);
+    return {
+      id: profile.id,
+      username: profile.username,
+      currentRole: userRoleRecord?.role || 'student', // 如果没有分配角色，默认为学生
+    };
+  });
+};
+
+// 更新用户角色
+const updateUserRoleAPI = async ({ userId, newRole }: { userId: string; newRole: UserRole }) => {
+  // 检查用户是否已有角色
+  const { data: existingRole, error: checkError } = await supabase
+    .from('user_roles')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (checkError) {
+    throw new Error(checkError.message);
+  }
+
+  let result;
+  if (existingRole && existingRole.length > 0) {
+    // 更新现有角色
+    result = await supabase
+      .from('user_roles')
+      .update({ role: newRole })
+      .eq('user_id', userId);
+  } else {
+    // 插入新角色
+    result = await supabase
+      .from('user_roles')
+      .insert({ user_id: userId, role: newRole });
+  }
+
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+
+  return { userId, newRole };
+};
+
 const UserManagement = () => {
   const { role, user, refreshUserRole } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { toast: useToastNotify } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const queryClient = useQueryClient();
 
-  // Redirect non-admin users
+  // 重定向非管理员用户
   useEffect(() => {
     if (role !== 'admin') {
       navigate('/dashboard');
-      toast({
+      useToastNotify({
         title: "无权限",
         description: "您没有访问此页面的权限",
         variant: "destructive",
       });
     }
-  }, [role, navigate, toast]);
+  }, [role, navigate, useToastNotify]);
 
-  // Fetch all users and their roles
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
+  // 使用React Query获取用户数据
+  const { 
+    data: users = [], 
+    isLoading: loading,
+    refetch: refetchUsers
+  } = useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: fetchUsers,
+    enabled: role === 'admin',
+    staleTime: 5 * 60 * 1000, // 5分钟内数据保持新鲜
+    retry: 1,
+  });
+
+  // 刷新当前用户角色的mutation
+  const refreshRoleMutation = useMutation({
+    mutationFn: refreshUserRole,
+    onSuccess: () => {
+      toast.success("角色已刷新", {
+        description: "您的角色权限已更新"
+      });
+    },
+  });
+
+  // 更新用户角色的mutation
+  const updateRoleMutation = useMutation({
+    mutationFn: updateUserRoleAPI,
+    onSuccess: (data) => {
+      toast.success("角色更新成功", {
+        description: `用户角色已更新为${roleConfig[data.newRole].label}`
+      });
       
-      // First get all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (profilesError) {
-        throw new Error(profilesError.message);
+      // 更新查询缓存
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      
+      // 如果更新的是当前用户的角色，刷新角色
+      if (data.userId === user?.id) {
+        refreshUserRole();
       }
-
-      // Use raw SQL to get all roles as the TypeScript definitions don't match
-      const { data: allRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) {
-        throw new Error(rolesError.message);
-      }
-
-      // Combine the data
-      const combinedData = profiles.map(profile => {
-        // Find the role record for this user
-        const userRoleRecord = allRoles.find((r: any) => r.user_id === profile.id);
-        return {
-          id: profile.id,
-          username: profile.username,
-          currentRole: userRoleRecord?.role || 'student', // Default to student if no role assigned
-        };
+    },
+    onError: (error) => {
+      toast.error("更新角色失败", {
+        description: error instanceof Error ? error.message : "请重试"
       });
+    },
+  });
 
-      setUsers(combinedData);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast({
-        title: "获取用户数据失败",
-        description: "请刷新页面重试",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  // 处理刷新角色按钮点击
+  const handleRefreshRole = () => {
+    refreshRoleMutation.mutate();
   };
 
-  useEffect(() => {
-    if (role === 'admin') {
-      fetchUsers();
-    }
-  }, [role]);
-
-  // Refresh the role of the current user
-  const handleRefreshRole = async () => {
-    setRefreshing(true);
-    await refreshUserRole();
-    toast({
-      title: "角色已刷新",
-      description: "您的角色权限已更新"
-    });
-    setRefreshing(false);
+  // 处理更新用户角色
+  const handleUpdateUserRole = (userId: string, newRole: UserRole) => {
+    updateRoleMutation.mutate({ userId, newRole });
   };
 
-  // Update user role using raw SQL to avoid type issues
-  const updateUserRole = async (userId: string, newRole: UserRole) => {
-    try {
-      // Check if user already has a role
-      const { data: existingRole, error: checkError } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (checkError) {
-        throw new Error(checkError.message);
-      }
-
-      let result;
-      if (existingRole && existingRole.length > 0) {
-        // Update existing role using raw SQL
-        result = await supabase
-          .from('user_roles')
-          .update({ role: newRole })
-          .eq('user_id', userId);
-      } else {
-        // Insert new role
-        result = await supabase
-          .from('user_roles')
-          .insert({ user_id: userId, role: newRole });
-      }
-
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-
-      // If updating the current user's role, refresh the role in context
-      if (userId === user?.id) {
-        await refreshUserRole();
-      }
-
-      toast({
-        title: "角色更新成功",
-        description: `用户角色已更新为${roleConfig[newRole].label}`,
-      });
-
-      // Refresh the user list
-      fetchUsers();
-    } catch (error) {
-      console.error('Error updating role:', error);
-      toast({
-        title: "更新角色失败",
-        description: "请重试",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Filter users by search query
-  const filteredUsers = searchQuery 
+  // 过滤用户列表
+  const filteredUsers = searchQuery
     ? users.filter(user => 
         user.username.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -195,11 +197,11 @@ const UserManagement = () => {
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
-      <Card className="bg-white/95 backdrop-blur-sm shadow-lg border-none">
-        <CardHeader className="bg-gradient-to-r from-connect-blue/10 to-connect-purple/10 rounded-t-lg border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+      <Card className="bg-white shadow-md border border-gray-200">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
           <div>
             <div className="flex items-center gap-2">
-              <UserCog className="h-6 w-6 text-connect-blue" />
+              <UserCog className="h-6 w-6 text-blue-600" />
               <CardTitle className="text-xl md:text-2xl font-bold">用户管理</CardTitle>
             </div>
             <CardDescription className="mt-1 text-gray-600">管理平台用户的角色和权限</CardDescription>
@@ -218,10 +220,10 @@ const UserManagement = () => {
               onClick={handleRefreshRole} 
               variant="outline" 
               size="sm"
-              className="transition-all duration-200 hover:bg-connect-blue/10"
-              disabled={refreshing}
+              className="transition-all duration-200 hover:bg-blue-50"
+              disabled={refreshRoleMutation.isPending}
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`mr-2 h-4 w-4 ${refreshRoleMutation.isPending ? "animate-spin" : ""}`} />
               刷新我的角色
             </Button>
           </div>
@@ -229,7 +231,7 @@ const UserManagement = () => {
         <CardContent className="pt-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <RefreshCw className="h-10 w-10 text-connect-blue animate-spin mb-4" />
+              <RefreshCw className="h-10 w-10 text-blue-500 animate-spin mb-4" />
               <p className="text-gray-500">正在加载用户数据...</p>
             </div>
           ) : (
@@ -243,7 +245,7 @@ const UserManagement = () => {
                   )}
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-lg border border-gray-100">
+                <div className="overflow-hidden rounded-lg border border-gray-200">
                   <Table className="w-full">
                     <TableHeader className="bg-gray-50">
                       <TableRow>
@@ -259,7 +261,7 @@ const UserManagement = () => {
                         const roleLabel = roleConfig[user.currentRole as keyof typeof roleConfig]?.label || user.currentRole;
                         
                         return (
-                          <TableRow key={user.id} className="hover:bg-gray-50/50">
+                          <TableRow key={user.id} className="hover:bg-gray-50">
                             <TableCell className="font-medium">{user.username}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
@@ -275,6 +277,7 @@ const UserManagement = () => {
                                   <Button 
                                     variant="outline" 
                                     className="flex items-center justify-between w-40 bg-white hover:bg-gray-50"
+                                    disabled={updateRoleMutation.isPending}
                                   >
                                     <div className="flex items-center gap-2">
                                       <RoleIcon size={16} className={roleColor.split(' ')[0]} />
@@ -283,24 +286,24 @@ const UserManagement = () => {
                                     <ChevronDown className="h-4 w-4 ml-2 opacity-70" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-40 bg-white shadow-lg border border-gray-100">
+                                <DropdownMenuContent align="end" className="w-40 border border-gray-100">
                                   <DropdownMenuItem 
                                     className="flex items-center gap-2 cursor-pointer"
-                                    onClick={() => updateUserRole(user.id, 'student')}
+                                    onClick={() => handleUpdateUserRole(user.id, 'student')}
                                   >
                                     <User size={16} className="text-green-600" />
                                     <span>学生</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
                                     className="flex items-center gap-2 cursor-pointer"
-                                    onClick={() => updateUserRole(user.id, 'teacher')}
+                                    onClick={() => handleUpdateUserRole(user.id, 'teacher')}
                                   >
                                     <BookOpen size={16} className="text-blue-600" />
                                     <span>教师</span>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
                                     className="flex items-center gap-2 cursor-pointer"
-                                    onClick={() => updateUserRole(user.id, 'admin')}
+                                    onClick={() => handleUpdateUserRole(user.id, 'admin')}
                                   >
                                     <Shield size={16} className="text-red-600" />
                                     <span>管理员</span>
@@ -315,7 +318,19 @@ const UserManagement = () => {
                   </Table>
                 </div>
               )}
-              <p className="text-sm text-gray-500 mt-4 text-right">共 {filteredUsers.length} 名用户</p>
+              <div className="flex justify-between items-center mt-4">
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="text-blue-600 hover:bg-blue-50"
+                  onClick={() => refetchUsers()}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                  刷新用户列表
+                </Button>
+                <p className="text-sm text-gray-500">共 {filteredUsers.length} 名用户</p>
+              </div>
             </>
           )}
         </CardContent>

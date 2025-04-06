@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
@@ -116,18 +115,35 @@ export const courseService = {
 
   // 更新课程状态（发布/草稿/存档）
   async updateCourseStatus(courseId: string, status: CourseStatus): Promise<Course> {
-    const { data, error } = await supabase
-      .from("courses")
-      .update({ 
-        status, 
-        updated_at: new Date().toISOString() 
-      })
-      .eq("id", courseId)
-      .select("*")
-      .single();
+    console.log(`开始更新课程状态: courseId=${courseId}, status=${status}`);
+    
+    if (!courseId) {
+      console.error('更新课程状态失败: 缺少课程ID');
+      throw new Error('更新课程状态需要有效的课程ID');
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from("courses")
+        .update({ 
+          status, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq("id", courseId)
+        .select("*")
+        .single();
 
-    if (error) throw error;
-    return data as Course;
+      if (error) {
+        console.error('数据库更新课程状态失败:', error);
+        throw error;
+      }
+      
+      console.log('课程状态更新成功:', data);
+      return data as Course;
+    } catch (error) {
+      console.error('更新课程状态失败:', error);
+      throw error;
+    }
   },
 
   // 添加或更新课程模块

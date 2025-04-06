@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { CourseModule, Lesson, LessonType } from '@/types/course';
 import ModuleHeader from './ModuleHeader';
 import LessonItem from './LessonItem';
 import LessonTypeButton from './LessonTypeButton';
 import { LESSON_TYPES } from './lessonTypeUtils';
+import { Droppable } from 'react-beautiful-dnd';
 
 interface ModuleItemProps {
   module: CourseModule;
@@ -42,17 +42,37 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
       
       {isExpanded && (
         <div className="p-4 pt-0 border-t border-gray-200">
-          <div className="space-y-2 mb-4">
-            {module.lessons && module.lessons.map((lesson) => (
-              <LessonItem 
-                key={lesson.id} 
-                lesson={lesson} 
-                moduleId={module.id!}
-                onEditLesson={onEditLesson}
-                onDeleteLesson={onDeleteLesson}
-              />
-            ))}
-          </div>
+          <Droppable droppableId={module.id!}>
+            {(provided, snapshot) => (
+              <div 
+                className={`space-y-2 mb-4 rounded-md ${snapshot.isDraggingOver ? 'bg-blue-50 p-2 border border-dashed border-blue-300' : ''}`}
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+              >
+                {module.lessons && module.lessons.length > 0 ? (
+                  module.lessons
+                    .sort((a, b) => a.order_index - b.order_index)
+                    .map((lesson, index) => (
+                      <LessonItem 
+                        key={lesson.id} 
+                        lesson={lesson} 
+                        moduleId={module.id!}
+                        index={index}
+                        onEditLesson={onEditLesson}
+                        onDeleteLesson={onDeleteLesson}
+                      />
+                    ))
+                ) : (
+                  <div className="text-center py-4 text-gray-400 text-sm italic">
+                    {snapshot.isDraggingOver 
+                      ? "放置课时到这里..." 
+                      : "此模块暂无课时，请添加内容"}
+                  </div>
+                )}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
           
           <div className="flex flex-wrap gap-2">
             {LESSON_TYPES.map((type) => (

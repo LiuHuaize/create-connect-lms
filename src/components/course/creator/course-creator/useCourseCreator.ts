@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -113,11 +112,26 @@ export const useCourseCreator = () => {
 
   const handleSaveCourse = async () => {
     try {
-      console.log('Trying to save course:', course);
+      console.log('开始保存课程:', course);
+      
+      if (!user?.id) {
+        throw new Error('用户未登录或无法获取用户ID，请重新登录后再试');
+      }
+      
+      if (!course.title.trim()) {
+        toast.error('请填写课程标题');
+        return;
+      }
       
       // 1. 保存课程基本信息
-      const savedCourse = await courseService.saveCourse(course);
-      console.log('Course saved successfully:', savedCourse);
+      const courseToSave = {
+        ...course,
+        author_id: user.id
+      };
+      
+      console.log('准备发送到后端的课程数据:', courseToSave);
+      const savedCourse = await courseService.saveCourse(courseToSave);
+      console.log('课程基本信息保存成功:', savedCourse);
       
       setCourse(prev => ({ 
         ...prev, 
@@ -125,8 +139,10 @@ export const useCourseCreator = () => {
       }));
       
       // 2. 保存所有模块和课时
+      console.log('开始保存课程模块，数量:', modules.length);
       const savedModules = await Promise.all(
-        modules.map(async (module) => {
+        modules.map(async (module, index) => {
+          console.log(`开始保存模块 #${index + 1}:`, module.title);
           const moduleToSave = { ...module };
           
           // 确保使用保存后的课程ID
@@ -139,35 +155,52 @@ export const useCourseCreator = () => {
             moduleToSave.id = uuidv4();
           }
           
-          const savedModule = await courseService.addCourseModule(moduleToSave);
+          try {
+            const savedModule = await courseService.addCourseModule(moduleToSave);
+            console.log(`模块 #${index + 1} 保存成功:`, savedModule.id);
 
-          // 保存模块下的所有课时
-          if (module.lessons && module.lessons.length > 0) {
-            await Promise.all(
-              module.lessons.map(lesson => {
-                // 确保课时的ID是有效的UUID
-                const lessonToSave = { ...lesson };
-                if (!lessonToSave.id || lessonToSave.id.startsWith('l')) {
-                  lessonToSave.id = uuidv4();
-                }
-                
-                return courseService.addLesson({
-                  ...lessonToSave,
-                  module_id: savedModule.id!
-                });
-              })
-            );
+            // 保存模块下的所有课时
+            if (module.lessons && module.lessons.length > 0) {
+              console.log(`开始保存模块 #${index + 1} 的 ${module.lessons.length} 个课时`);
+              await Promise.all(
+                module.lessons.map(async (lesson, lessonIndex) => {
+                  // 确保课时的ID是有效的UUID
+                  const lessonToSave = { ...lesson };
+                  if (!lessonToSave.id || lessonToSave.id.startsWith('l')) {
+                    lessonToSave.id = uuidv4();
+                  }
+                  
+                  try {
+                    const savedLesson = await courseService.addLesson({
+                      ...lessonToSave,
+                      module_id: savedModule.id!
+                    });
+                    console.log(`课时 #${lessonIndex + 1} 保存成功:`, savedLesson.id);
+                    return savedLesson;
+                  } catch (error) {
+                    console.error(`保存课时 #${lessonIndex + 1} 失败:`, error);
+                    throw error;
+                  }
+                })
+              );
+              console.log(`模块 #${index + 1} 的所有课时保存完成`);
+            }
+
+            return savedModule;
+          } catch (error) {
+            console.error(`保存模块 #${index + 1} 失败:`, error);
+            throw error;
           }
-
-          return savedModule;
         })
       );
 
       // 如果是新课程，重定向到带有ID的课程编辑页面
       if (!courseId && savedCourse.id) {
+        console.log('重定向到课程编辑页面:', savedCourse.id);
         navigate(`/course-creator?id=${savedCourse.id}`, { replace: true });
       }
 
+      console.log('课程保存完成');
       toast.success('课程保存成功');
       
       // 更新模块数据，确保所有模块和课时都有正确的ID
@@ -178,9 +211,14 @@ export const useCourseCreator = () => {
       
       setModules(updatedModules);
       
+      return savedCourse.id;
     } catch (error) {
       console.error('保存课程失败:', error);
-      toast.error(`保存课程失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : '未知错误，请稍后重试或联系支持';
+      toast.error(`保存课程失败: ${errorMessage}`);
+      throw error;
     }
   };
 
