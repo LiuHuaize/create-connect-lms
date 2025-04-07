@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Course, CourseModule } from '@/types/course';
 import ContentTypeIcon from './ContentTypeIcon';
 import { CheckCircle, Loader2 } from 'lucide-react';
-import { courseService } from '@/services/courseService';
+import { courseService, lessonCompletionCache } from '@/services/courseService';
 
 interface CourseSidebarProps {
   courseData: Course & { modules?: CourseModule[] };
@@ -27,9 +27,17 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   // 获取课时完成状态
   useEffect(() => {
     if (courseData?.id) {
+      // 如果缓存中有此课程的完成状态，直接使用缓存
+      if (lessonCompletionCache[courseData.id]) {
+        setCompletionStatus(lessonCompletionCache[courseData.id]);
+        setIsLoadingStatus(false);
+        return;
+      }
+      
       setIsLoadingStatus(true);
       courseService.getLessonCompletionStatus(courseData.id)
         .then(status => {
+          // 缓存在服务中已经更新，这里只需更新状态
           setCompletionStatus(status);
           setIsLoadingStatus(false);
         })
@@ -38,7 +46,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
           setIsLoadingStatus(false);
         });
     }
-  }, [courseData?.id, selectedLesson?.id]);
+  }, [courseData?.id]);
   
   return (
     <div className="py-2 h-full overflow-y-auto">
@@ -50,7 +58,10 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
           
           {module.lessons && module.lessons.length > 0 ? (
             <ul className="mt-1">
-              {module.lessons.map((lesson) => {
+              {module.lessons
+                .slice() // 创建数组副本，避免修改原数组
+                .sort((a, b) => a.order_index - b.order_index) // 按照order_index排序
+                .map((lesson) => {
                 // 使用从服务器获取的完成状态
                 const isCompleted = completionStatus[lesson.id] || false;
                 const isActive = selectedLesson && selectedLesson.id === lesson.id;

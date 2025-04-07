@@ -2,6 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
 import { Json } from "@/integrations/supabase/types";
+import { Database } from '@/types/database.types';
+
+// 全局课程完成状态缓存
+export const lessonCompletionCache: Record<string, Record<string, boolean>> = {};
 
 // 辅助函数：将Json转换为LessonContent
 const convertJsonToLessonContent = (content: Json): LessonContent => {
@@ -103,7 +107,11 @@ export const courseService = {
     const modulesWithConvertedLessons = (modulesData || []).map((module: any) => {
       return {
         ...module,
-        lessons: module.lessons ? module.lessons.map(convertDbLessonToLesson) : []
+        lessons: module.lessons ? module.lessons
+          .map(convertDbLessonToLesson)
+          // 对课时按照order_index排序
+          .sort((a: Lesson, b: Lesson) => a.order_index - b.order_index) 
+          : []
       };
     });
 
@@ -262,6 +270,11 @@ export const courseService = {
         }
       }
       
+      // 更新缓存状态
+      if (lessonCompletionCache[courseId]) {
+        lessonCompletionCache[courseId][lessonId] = true;
+      }
+      
       // 触发器会自动更新课程进度，所以这里不需要手动更新
     } catch (error) {
       console.error('标记课时完成失败:', error);
@@ -278,6 +291,21 @@ export const courseService = {
         throw new Error('用户未登录');
       }
       
+      // 获取课程ID (需要先查询)
+      const { data: completion, error: fetchError } = await supabase
+        .from('lesson_completions')
+        .select('course_id')
+        .eq('user_id', user.id)
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
+        
+      if (fetchError) {
+        console.error('获取课时完成记录失败:', fetchError);
+        throw fetchError;
+      }
+      
+      const courseId = completion?.course_id;
+      
       // 删除课时完成记录
       const { error } = await supabase
         .from('lesson_completions')
@@ -290,6 +318,11 @@ export const courseService = {
         throw error;
       }
       
+      // 更新缓存状态
+      if (courseId && lessonCompletionCache[courseId]) {
+        delete lessonCompletionCache[courseId][lessonId];
+      }
+      
       // 触发器会自动更新课程进度
     } catch (error) {
       console.error('取消标记课时完成失败:', error);
@@ -300,6 +333,11 @@ export const courseService = {
   // 获取用户课时完成状态
   async getLessonCompletionStatus(courseId: string, forceRefresh = false): Promise<Record<string, boolean>> {
     try {
+      // 如果不强制刷新且缓存中有值，则使用缓存
+      if (!forceRefresh && lessonCompletionCache[courseId]) {
+        return lessonCompletionCache[courseId];
+      }
+      
       // 检查当前用户ID
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -323,6 +361,9 @@ export const courseService = {
       data.forEach(item => {
         completionStatus[item.lesson_id] = true;
       });
+      
+      // 更新缓存
+      lessonCompletionCache[courseId] = completionStatus;
       
       return completionStatus;
     } catch (error) {
