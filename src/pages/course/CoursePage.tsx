@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -27,6 +27,16 @@ const CoursePage = () => {
   
   const { loading, courseData, progress, enrollmentId, findCurrentLesson } = useCourseData(courseId);
   const { selectedLesson, selectedUnit } = findCurrentLesson(lessonId);
+  
+  // 添加进度加载状态
+  const [isProgressLoading, setIsProgressLoading] = useState(true);
+  
+  useEffect(() => {
+    // 课程数据加载完成后，进度值准备就绪
+    if (!loading && progress !== undefined) {
+      setIsProgressLoading(false);
+    }
+  }, [loading, progress]);
   
   if (loading) {
     return <LoadingSkeleton />;
@@ -107,10 +117,21 @@ const CoursePage = () => {
             
             <div className="flex items-center gap-2 ml-auto">
               <span className="text-xs font-medium text-gray-600">课程进度:</span>
-              <div className="w-40 mr-2">
-                <Progress value={progress} className="h-2" />
+              <div className="w-40 mr-2 relative">
+                <Progress value={isProgressLoading ? 0 : progress} className="h-2" />
+                {isProgressLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="h-2 w-2 animate-spin text-blue-500" />
+                  </div>
+                )}
               </div>
-              <span className="text-xs font-semibold text-blue-600">{progress}%</span>
+              <span className="text-xs font-semibold text-blue-600 min-w-[30px]">
+                {isProgressLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin inline" />
+                ) : (
+                  `${progress}%`
+                )}
+              </span>
             </div>
           </div>
           

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Course, CourseModule } from '@/types/course';
 import ContentTypeIcon from './ContentTypeIcon';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 
 interface CourseSidebarProps {
@@ -22,16 +22,20 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   isMobile
 }) => {
   const [completionStatus, setCompletionStatus] = useState<Record<string, boolean>>({});
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
   
   // 获取课时完成状态
   useEffect(() => {
     if (courseData?.id) {
+      setIsLoadingStatus(true);
       courseService.getLessonCompletionStatus(courseData.id)
         .then(status => {
           setCompletionStatus(status);
+          setIsLoadingStatus(false);
         })
         .catch(error => {
           console.error('获取课时完成状态失败:', error);
+          setIsLoadingStatus(false);
         });
     }
   }, [courseData?.id, selectedLesson?.id]);
@@ -62,11 +66,14 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                     >
                       <div className="flex-shrink-0 mr-3">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          isLoadingStatus ? 'text-blue-300' :
                           isCompleted ? 'text-green-500' : 
                           isActive ? 'text-blue-500 bg-blue-50 border-2 border-blue-500' : 
                           'border-2 border-gray-200'
                         }`}>
-                          {isCompleted ? (
+                          {isLoadingStatus ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : isCompleted ? (
                             <CheckCircle size={16} />
                           ) : isActive ? (
                             <span className="text-xs">•</span>

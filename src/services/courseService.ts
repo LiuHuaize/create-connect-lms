@@ -298,7 +298,7 @@ export const courseService = {
   },
   
   // 获取用户课时完成状态
-  async getLessonCompletionStatus(courseId: string): Promise<Record<string, boolean>> {
+  async getLessonCompletionStatus(courseId: string, forceRefresh = false): Promise<Record<string, boolean>> {
     try {
       // 检查当前用户ID
       const { data: { user } } = await supabase.auth.getUser();
