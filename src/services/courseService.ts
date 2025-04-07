@@ -222,6 +222,8 @@ export const courseService = {
         throw new Error('用户未登录');
       }
       
+      console.log(`标记课时 ${lessonId} 为已完成...`);
+      
       // 检查是否已存在完成记录
       const { data: existingCompletion, error: fetchError } = await supabase
         .from('lesson_completions')
@@ -250,6 +252,8 @@ export const courseService = {
           console.error('更新课时完成记录失败:', updateError);
           throw updateError;
         }
+        
+        console.log('已更新现有的课时完成记录');
       } else {
         // 如果不存在，则创建新记录
         const { error: insertError } = await supabase
@@ -268,12 +272,17 @@ export const courseService = {
           console.error('创建课时完成记录失败:', insertError);
           throw insertError;
         }
+        
+        console.log('已创建新的课时完成记录');
       }
       
       // 更新缓存状态
-      if (lessonCompletionCache[courseId]) {
-        lessonCompletionCache[courseId][lessonId] = true;
+      if (!lessonCompletionCache[courseId]) {
+        lessonCompletionCache[courseId] = {};
       }
+      lessonCompletionCache[courseId][lessonId] = true;
+      
+      console.log('已更新课时完成状态缓存');
       
       // 触发器会自动更新课程进度，所以这里不需要手动更新
     } catch (error) {
@@ -335,14 +344,18 @@ export const courseService = {
     try {
       // 如果不强制刷新且缓存中有值，则使用缓存
       if (!forceRefresh && lessonCompletionCache[courseId]) {
+        console.log('使用缓存的课时完成状态:', lessonCompletionCache[courseId]);
         return lessonCompletionCache[courseId];
       }
       
       // 检查当前用户ID
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.warn('获取课时完成状态: 用户未登录');
         return {};
       }
+      
+      console.log(`正在从服务器获取课程 ${courseId} 的完成状态...`);
       
       // 获取用户在该课程中已完成的课时
       const { data, error } = await supabase
@@ -358,9 +371,16 @@ export const courseService = {
       
       // 将结果转换为Map格式
       const completionStatus: Record<string, boolean> = {};
-      data.forEach(item => {
-        completionStatus[item.lesson_id] = true;
-      });
+      if (data && data.length > 0) {
+        data.forEach(item => {
+          if (item.lesson_id) {
+            completionStatus[item.lesson_id] = true;
+          }
+        });
+        console.log(`找到 ${data.length} 个已完成的课时:`, completionStatus);
+      } else {
+        console.log('未找到已完成的课时');
+      }
       
       // 更新缓存
       lessonCompletionCache[courseId] = completionStatus;

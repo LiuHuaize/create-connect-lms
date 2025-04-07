@@ -27,17 +27,12 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   // 获取课时完成状态
   useEffect(() => {
     if (courseData?.id) {
-      // 如果缓存中有此课程的完成状态，直接使用缓存
-      if (lessonCompletionCache[courseData.id]) {
-        setCompletionStatus(lessonCompletionCache[courseData.id]);
-        setIsLoadingStatus(false);
-        return;
-      }
-      
       setIsLoadingStatus(true);
-      courseService.getLessonCompletionStatus(courseData.id)
+      
+      // 强制从服务器刷新课程完成状态，不使用缓存
+      courseService.getLessonCompletionStatus(courseData.id, true)
         .then(status => {
-          // 缓存在服务中已经更新，这里只需更新状态
+          console.log('获取到课时完成状态:', status);
           setCompletionStatus(status);
           setIsLoadingStatus(false);
         })
@@ -46,7 +41,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
           setIsLoadingStatus(false);
         });
     }
-  }, [courseData?.id]);
+  }, [courseData?.id, progress]); // 添加progress作为依赖，当进度变化时重新获取完成状态
   
   return (
     <div className="py-2 h-full overflow-y-auto">
