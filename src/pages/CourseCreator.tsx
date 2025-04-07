@@ -51,6 +51,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
         handleSaveCourse={handleSaveCourse}
         isAutoSaving={isAutoSaving}
         lastSaved={lastSaved}
+        setCourse={setCourse}
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

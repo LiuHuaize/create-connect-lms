@@ -10,9 +10,10 @@ interface CourseHeaderProps {
   course: Course;
   modules: CourseModule[];
   handleBackToSelection: () => void;
-  handleSaveCourse: () => Promise<void>;
+  handleSaveCourse: () => Promise<string | undefined>;
   isAutoSaving?: boolean;
   lastSaved?: Date | null;
+  setCourse?: React.Dispatch<React.SetStateAction<Course>>;
 }
 
 const CourseHeader: React.FC<CourseHeaderProps> = ({
@@ -22,6 +23,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   handleSaveCourse,
   isAutoSaving = false,
   lastSaved = null,
+  setCourse
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,20 +46,45 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
     try {
       setIsPublishing(true);
       
-      if (!course.id) {
-        toast.info('正在先保存课程，然后发布...');
-        await handleSaveCourse();
+      // 先保存课程内容
+      const savedCourseId = await handleSaveCourse();
+      if (!savedCourseId) {
+        throw new Error('保存课程失败，无法发布');
       }
-
-      if (!course.id) {
-        throw new Error('无法获取课程ID，请先保存课程');
+      
+      // 检查课程内容是否足够发布
+      if (modules.length === 0) {
+        toast.error('课程需要至少包含一个模块才能发布');
+        return;
       }
-
-      await courseService.updateCourseStatus(course.id, 'published');
-      toast.success('课程已成功发布');
+      
+      // 检查每个模块是否有内容
+      const hasEmptyModule = modules.some(module => !module.lessons || module.lessons.length === 0);
+      if (hasEmptyModule) {
+        toast.error('所有模块都必须包含至少一个课时才能发布');
+        return;
+      }
+      
+      // 更新课程状态为发布
+      const updatedCourse = await courseService.updateCourseStatus(savedCourseId, 'published');
+      
+      // 更新本地状态
+      if (setCourse) {
+        setCourse(prev => ({
+          ...prev,
+          status: updatedCourse.status
+        }));
+      }
+      
+      toast.success('课程已成功发布，现在学生可以访问此课程');
+      
+      // 强制重新获取课程数据以确保显示的是最新状态
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error('发布课程失败:', error);
-      toast.error('发布课程失败，请先保存课程或检查网络连接');
+      toast.error(error instanceof Error ? error.message : "未知错误");
     } finally {
       setIsPublishing(false);
     }

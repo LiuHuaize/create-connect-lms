@@ -272,7 +272,7 @@ export const useCourseCreator = () => {
             // 保存模块下的所有课时
             if (module.lessons && module.lessons.length > 0) {
               console.log(`开始保存模块 #${index + 1} 的 ${module.lessons.length} 个课时`);
-              await Promise.all(
+              const savedLessons = await Promise.all(
                 module.lessons.map(async (lesson, lessonIndex) => {
                   // 确保课时的ID是有效的UUID
                   const lessonToSave = { ...lesson };
@@ -294,6 +294,11 @@ export const useCourseCreator = () => {
                 })
               );
               console.log(`模块 #${index + 1} 的所有课时保存完成`);
+              // 返回模块和已保存的课时
+              return {
+                ...savedModule,
+                lessons: savedLessons
+              };
             }
 
             return savedModule;
@@ -318,12 +323,22 @@ export const useCourseCreator = () => {
       }
       
       // 更新模块数据，确保所有模块和课时都有正确的ID
-      const updatedModules = savedModules.map((savedModule, index) => ({
-        ...savedModule,
-        lessons: modules[index].lessons || []
-      }));
+      // 这里的关键是保留原有课时的内容，同时更新ID
+      const updatedModules = savedModules.map((savedModule, index) => {
+        const originalModule = modules[index];
+        return {
+          ...savedModule,
+          // 如果savedModule已经包含正确的lessons，直接使用它
+          // 否则使用原始模块的lessons
+          lessons: savedModule.lessons || originalModule.lessons || []
+        };
+      });
       
       setModules(updatedModules);
+      
+      // 更新引用值，用于下次比较
+      previousCourseRef.current = { ...course, id: savedCourse.id };
+      previousModulesRef.current = [...updatedModules];
       
       return savedCourse.id;
     } catch (error) {

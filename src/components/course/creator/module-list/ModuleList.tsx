@@ -83,13 +83,29 @@ const ModuleList: React.FC<ModuleListProps> = ({
       order_index: orderIndex
     };
     
-    setModules(modules.map(module => 
-      module.id === moduleId 
-        ? { ...module, lessons: [...(module.lessons || []), newLesson] } 
-        : module
-    ));
+    // 先创建一个模块的副本
+    const updatedModules = modules.map(module => {
+      if (module.id === moduleId) {
+        // 确保lessons数组存在
+        const currentLessons = module.lessons || [];
+        return { 
+          ...module, 
+          lessons: [...currentLessons, newLesson] 
+        };
+      }
+      return module;
+    });
     
+    // 更新状态
+    setModules(updatedModules);
+    
+    // 设置当前课时
     setCurrentLesson(newLesson);
+    
+    // 确保模块是展开的
+    if (expandedModule !== moduleId) {
+      setExpandedModule(moduleId);
+    }
   };
 
   const deleteLesson = (moduleId: string, lessonId: string) => {
