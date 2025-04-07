@@ -1,7 +1,8 @@
-
 import React, { useState } from 'react';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface CourseAssistantChatProps {
   isChatOpen: boolean;
@@ -12,67 +13,91 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
   isChatOpen,
   setIsChatOpen
 }) => {
+  const [message, setMessage] = useState('');
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // 提交消息逻辑将在此处添加
+    setMessage('');
+  };
+
   return (
-    <div className={`fixed bottom-6 right-6 transition-all duration-300 z-40 ${isChatOpen ? 'w-80 h-96' : 'w-auto h-auto'}`}>
-      {isChatOpen ? (
-        <Card className="flex flex-col h-full shadow-xl border border-gray-200 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <MessageSquare size={18} className="mr-2" />
-                <CardTitle className="text-base font-medium">课程助手</CardTitle>
-              </div>
-              <button onClick={() => setIsChatOpen(false)} className="text-white hover:text-gray-200 transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="flex-1 p-4 overflow-y-auto bg-gray-50">
-            <div className="space-y-4">
-              <div className="flex">
-                <div className="bg-purple-100 rounded-lg p-3 max-w-[80%]">
-                  <p className="text-sm text-purple-800">
-                    你好！我是你的学习助手。有什么问题我可以帮忙解答吗？
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          
-          <CardFooter className="border-t border-gray-200 p-3 bg-white">
-            <div className="w-full">
-              <div className="flex">
-                <input 
-                  type="text" 
-                  placeholder="输入你的问题..." 
-                  className="flex-1 border border-gray-300 rounded-l-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
-                />
-                <button className="bg-purple-600 text-white rounded-r-lg px-3 py-2 text-sm hover:bg-purple-700 transition-colors">
-                  发送
-                </button>
-              </div>
-              
-              <div className="mt-2 flex flex-wrap justify-center gap-2">
-                <button className="bg-gray-100 text-gray-700 rounded-lg px-3 py-1 text-xs hover:bg-gray-200 transition-colors">
-                  解释这个概念
-                </button>
-                <button className="bg-gray-100 text-gray-700 rounded-lg px-3 py-1 text-xs hover:bg-gray-200 transition-colors">
-                  我需要帮助
-                </button>
-              </div>
-            </div>
-          </CardFooter>
-        </Card>
-      ) : (
-        <button 
-          onClick={() => setIsChatOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all"
-          aria-label="打开聊天助手"
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center">
+          <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
+            <Sparkles size={18} className="text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <h3 className="font-medium text-slate-800 dark:text-slate-200 text-sm">学习助手</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">AI驱动的课程辅导</p>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsChatOpen(false)}
+          className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 rounded-full"
         >
-          <MessageSquare size={24} />
-        </button>
-      )}
+          <X size={18} />
+        </Button>
+      </div>
+      
+      <div className="flex-1 p-4 overflow-y-auto bg-slate-50 dark:bg-slate-900 space-y-4">
+        <div className="flex">
+          <div className="bg-blue-100 dark:bg-blue-900/50 rounded-2xl p-3 max-w-[80%] shadow-sm">
+            <p className="text-sm text-slate-800 dark:text-slate-200">
+              你好！我是你的学习助手。有什么问题我可以帮忙解答吗？
+            </p>
+          </div>
+        </div>
+        
+        {/* 用户消息示例 */}
+        <div className="flex justify-end">
+          <div className="bg-blue-500 rounded-2xl p-3 max-w-[80%] shadow-sm">
+            <p className="text-sm text-white">
+              我想了解一下这个课程的难度如何？
+            </p>
+          </div>
+        </div>
+        
+        {/* 助手消息示例 */}
+        <div className="flex">
+          <div className="bg-blue-100 dark:bg-blue-900/50 rounded-2xl p-3 max-w-[80%] shadow-sm">
+            <p className="text-sm text-slate-800 dark:text-slate-200">
+              这个课程设计为初级到中级水平，每个模块都有详细的解释和练习。如果你已经有一些基础知识，应该能够轻松跟上。如果遇到任何困难，随时可以向我提问！
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="border-t border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-slate-800">
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="flex gap-2">
+            <Input 
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="输入你的问题..." 
+              className="flex-1 bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 focus-visible:ring-blue-500"
+            />
+            <Button type="submit" size="icon" className="bg-blue-600 hover:bg-blue-700 text-white rounded-full">
+              <Send size={16} />
+            </Button>
+          </div>
+          
+          <div className="flex flex-wrap gap-2 justify-start">
+            <Button variant="outline" size="sm" className="text-xs rounded-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
+              解释这个概念
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs rounded-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
+              我需要帮助
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs rounded-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
+              推荐学习资源
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
