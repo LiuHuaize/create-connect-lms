@@ -179,6 +179,53 @@ export const courseService = {
     return data as unknown as CourseModule;
   },
 
+  // 删除课程模块
+  async deleteModule(moduleId: string): Promise<void> {
+    console.log(`开始删除模块: ${moduleId}`);
+    try {
+      // 先删除该模块下的所有课时
+      const { data: lessonsData, error: lessonsError } = await supabase
+        .from("lessons")
+        .select("id")
+        .eq("module_id", moduleId);
+      
+      if (lessonsError) {
+        console.error('获取模块课时失败:', lessonsError);
+        throw lessonsError;
+      }
+      
+      if (lessonsData && lessonsData.length > 0) {
+        console.log(`删除模块 ${moduleId} 下的 ${lessonsData.length} 个课时`);
+        // 有课时需要删除
+        const { error: deleteLessonsError } = await supabase
+          .from("lessons")
+          .delete()
+          .eq("module_id", moduleId);
+        
+        if (deleteLessonsError) {
+          console.error('删除模块课时失败:', deleteLessonsError);
+          throw deleteLessonsError;
+        }
+      }
+      
+      // 然后删除模块本身
+      const { error: deleteModuleError } = await supabase
+        .from("course_modules")
+        .delete()
+        .eq("id", moduleId);
+      
+      if (deleteModuleError) {
+        console.error('删除模块失败:', deleteModuleError);
+        throw deleteModuleError;
+      }
+      
+      console.log(`模块 ${moduleId} 及其课时已成功删除`);
+    } catch (error) {
+      console.error('删除模块过程中出错:', error);
+      throw error;
+    }
+  },
+
   // 添加或更新课时
   async addLesson(lesson: Omit<Lesson, "created_at" | "updated_at">): Promise<Lesson> {
     // 确保提供了必要的属性
@@ -211,6 +258,27 @@ export const courseService = {
     }
     
     return convertDbLessonToLesson(data);
+  },
+
+  // 删除课时
+  async deleteLesson(lessonId: string): Promise<void> {
+    console.log(`开始删除课时: ${lessonId}`);
+    try {
+      const { error } = await supabase
+        .from("lessons")
+        .delete()
+        .eq("id", lessonId);
+      
+      if (error) {
+        console.error('删除课时失败:', error);
+        throw error;
+      }
+      
+      console.log(`课时 ${lessonId} 已成功删除`);
+    } catch (error) {
+      console.error('删除课时过程中出错:', error);
+      throw error;
+    }
   },
 
   // 标记课时为已完成并更新进度

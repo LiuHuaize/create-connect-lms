@@ -32,8 +32,17 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   const handleSave = async () => {
     try {
       setIsSaving(true);
+      
+      // 显示保存中的提示
+      const toastId = toast.loading('正在保存课程...');
+      
       await handleSaveCourse();
-      toast.success('课程已保存');
+      
+      // 更新提示为保存成功
+      toast.success('课程已保存', {
+        id: toastId,
+        duration: 2000
+      });
     } catch (error) {
       console.error('保存课程失败:', error);
       toast.error('保存课程失败，请检查网络连接或刷新页面后重试');
@@ -46,22 +55,32 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
     try {
       setIsPublishing(true);
       
-      // 先保存课程内容
+      // 显示发布中的提示
+      const toastId = toast.loading('正在发布课程...');
+      
+      // 先保存课程内容（会同步删除的模块和课时到数据库）
       const savedCourseId = await handleSaveCourse();
       if (!savedCourseId) {
         throw new Error('保存课程失败，无法发布');
       }
       
+      // 等待一小段时间确保所有删除操作都完成
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // 检查课程内容是否足够发布
       if (modules.length === 0) {
-        toast.error('课程需要至少包含一个模块才能发布');
+        toast.error('课程需要至少包含一个模块才能发布', {
+          id: toastId
+        });
         return;
       }
       
       // 检查每个模块是否有内容
       const hasEmptyModule = modules.some(module => !module.lessons || module.lessons.length === 0);
       if (hasEmptyModule) {
-        toast.error('所有模块都必须包含至少一个课时才能发布');
+        toast.error('所有模块都必须包含至少一个课时才能发布', {
+          id: toastId
+        });
         return;
       }
       
@@ -76,15 +95,40 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         }));
       }
       
-      toast.success('课程已成功发布，现在学生可以访问此课程');
+      // 清除本地缓存
+      try {
+        // 尝试清除本地课程缓存
+        const LOCAL_STORAGE_PREFIX = 'connect-lms-cache-';
+        localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}course-details-${savedCourseId}`);
+        
+        // 清除可能存在的其他相关缓存
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith(LOCAL_STORAGE_PREFIX) && key.includes(savedCourseId)) {
+            localStorage.removeItem(key);
+          }
+        });
+        
+        console.log('发布后已清除课程相关缓存');
+      } catch (cacheError) {
+        console.error('清除缓存失败:', cacheError);
+        // 继续执行，不中断流程
+      }
       
-      // 强制重新获取课程数据以确保显示的是最新状态
+      // 更新发布成功提示
+      toast.success('课程已成功发布，现在学生可以访问此课程', {
+        id: toastId,
+        duration: 3000
+      });
+      
+      // 短暂延迟后强制刷新页面以显示最新状态
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (error) {
       console.error('发布课程失败:', error);
-      toast.error(error instanceof Error ? error.message : "未知错误");
+      toast.error('发布课程失败，请稍后重试', {
+        duration: 3000
+      });
     } finally {
       setIsPublishing(false);
     }

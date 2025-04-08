@@ -115,10 +115,10 @@ export const useCourseCreator = () => {
         clearTimeout(autoSaveTimeoutRef.current);
       }
 
-      // 设置新的定时器，延迟3秒自动保存，避免频繁保存
+      // 设置新的定时器，延迟2秒自动保存，避免频繁保存
       autoSaveTimeoutRef.current = setTimeout(() => {
         handleAutoSave();
-      }, 3000);
+      }, 2000);
     }
 
     // 组件卸载时清除定时器
@@ -129,41 +129,78 @@ export const useCourseCreator = () => {
     };
   }, [course, modules]);
 
-  // 检查课程内容是否有变更
+  // 检查课程和模块是否有变化
   const checkForChanges = () => {
-    if (!previousCourseRef.current || !previousModulesRef.current) return false;
+    // 如果没有之前的状态参考，认为有变化
+    if (!previousCourseRef.current || !previousModulesRef.current) {
+      return true;
+    }
 
-    // 简单比较课程基本信息
-    const courseChanged = 
-      previousCourseRef.current.title !== course.title ||
-      previousCourseRef.current.description !== course.description ||
-      previousCourseRef.current.short_description !== course.short_description ||
-      previousCourseRef.current.category !== course.category;
+    // 比较课程基本信息
+    const prevCourse = previousCourseRef.current;
+    const currentCourse = course;
+    
+    // 检查主要字段是否改变
+    if (
+      prevCourse.title !== currentCourse.title ||
+      prevCourse.description !== currentCourse.description ||
+      prevCourse.short_description !== currentCourse.short_description ||
+      prevCourse.status !== currentCourse.status ||
+      prevCourse.cover_image !== currentCourse.cover_image ||
+      JSON.stringify(prevCourse.tags) !== JSON.stringify(currentCourse.tags) ||
+      prevCourse.category !== currentCourse.category ||
+      prevCourse.price !== currentCourse.price
+    ) {
+      return true;
+    }
 
-    // 模块数量变更
-    if (previousModulesRef.current.length !== modules.length) return true;
+    // 比较模块数量
+    const prevModules = previousModulesRef.current;
+    if (prevModules.length !== modules.length) {
+      return true;
+    }
 
-    // 简单检测模块内容变更
-    // 注意：这不是深度比较，仅作为触发自动保存的简单检查
-    const modulesChanged = modules.some((module, index) => {
-      const prevModule = previousModulesRef.current![index];
-      if (!prevModule) return true;
-      
-      // 检查模块标题变更
-      if (prevModule.title !== module.title) return true;
-      
-      // 检查课时数量变更
-      if ((prevModule.lessons?.length || 0) !== (module.lessons?.length || 0)) return true;
-      
-      // 简单检查课时内容
-      return module.lessons?.some((lesson, lessonIndex) => {
-        const prevLesson = prevModule.lessons?.[lessonIndex];
-        if (!prevLesson) return true;
-        return prevLesson.title !== lesson.title || prevLesson.content !== lesson.content;
-      });
-    });
+    // 比较每个模块的内容
+    for (let i = 0; i < modules.length; i++) {
+      const currentModule = modules[i];
+      const prevModule = prevModules[i];
 
-    return courseChanged || modulesChanged;
+      // 比较模块基本信息
+      if (
+        currentModule.title !== prevModule.title ||
+        currentModule.order_index !== prevModule.order_index
+      ) {
+        return true;
+      }
+
+      // 获取当前模块和前一个状态的课时
+      const currentLessons = currentModule.lessons || [];
+      const prevLessons = prevModule.lessons || [];
+
+      // 比较课时数量
+      if (currentLessons.length !== prevLessons.length) {
+        return true;
+      }
+
+      // 比较每个课时的内容
+      for (let j = 0; j < currentLessons.length; j++) {
+        const currentLesson = currentLessons[j];
+        const prevLesson = prevLessons[j];
+
+        // 比较课时基本信息
+        if (
+          currentLesson.title !== prevLesson.title ||
+          currentLesson.type !== prevLesson.type ||
+          currentLesson.order_index !== prevLesson.order_index ||
+          JSON.stringify(currentLesson.content) !== JSON.stringify(prevLesson.content)
+        ) {
+          return true;
+        }
+      }
+    }
+
+    // 如果所有比较都通过，则没有变化
+    return false;
   };
 
   // 自动保存函数
@@ -180,17 +217,36 @@ export const useCourseCreator = () => {
         return;
       }
 
+      // 添加视觉反馈 - 开始保存
+      const toastId = toast.loading('自动保存中...');
+      
       await handleSaveCourse();
       
       // 更新最后保存时间
       setLastSaved(new Date());
       
       // 更新引用值，用于下次比较
-      previousCourseRef.current = { ...course };
-      previousModulesRef.current = [...modules];
+      previousCourseRef.current = JSON.parse(JSON.stringify(course));
+      previousModulesRef.current = JSON.parse(JSON.stringify(modules));
+      
+      // 更新视觉反馈 - 保存成功
+      toast.success('自动保存成功', {
+        id: toastId,
+        duration: 1500, // 1.5秒后自动消失
+      });
     } catch (error) {
       console.error('自动保存失败:', error);
-      // 自动保存失败不显示错误提示，避免干扰用户
+      // 自动保存失败显示一个短暂的错误提示
+      toast.error('自动保存失败，将稍后重试', {
+        duration: 3000,
+      });
+      
+      // 如果自动保存失败，1分钟后重试
+      setTimeout(() => {
+        if (checkForChanges()) {
+          handleAutoSave();
+        }
+      }, 60000);
     } finally {
       setIsAutoSaving(false);
     }
@@ -248,6 +304,44 @@ export const useCourseCreator = () => {
         id: savedCourse.id 
       }));
       
+      // 如果是之前加载的课程，跟踪已删除的模块
+      if (courseId && previousModulesRef.current) {
+        // 获取所有之前存在但现在已删除的模块ID
+        const previousModuleIds = new Set(
+          previousModulesRef.current
+            .filter(m => m.id && typeof m.id === 'string' && !m.id.startsWith('m'))
+            .map(m => m.id as string)
+        );
+        
+        // 获取当前存在的模块ID
+        const currentModuleIds = new Set(
+          modules
+            .filter(m => m.id && typeof m.id === 'string')
+            .map(m => m.id as string)
+        );
+        
+        // 找出已删除的模块ID（之前有，现在没有）
+        const deletedModuleIds = Array.from(previousModuleIds)
+          .filter(id => !currentModuleIds.has(id));
+        
+        if (deletedModuleIds.length > 0) {
+          console.log(`检测到 ${deletedModuleIds.length} 个已删除的模块，确保从数据库中删除`);
+          
+          // 删除这些模块
+          await Promise.all(
+            deletedModuleIds.map(async moduleId => {
+              try {
+                await courseService.deleteModule(moduleId);
+                console.log(`已从数据库删除模块: ${moduleId}`);
+              } catch (error) {
+                console.error(`删除模块 ${moduleId} 失败:`, error);
+                // 继续处理其他模块，不中断整个保存过程
+              }
+            })
+          );
+        }
+      }
+      
       // 2. 保存所有模块和课时
       console.log('开始保存课程模块，数量:', modules.length);
       const savedModules = await Promise.all(
@@ -268,6 +362,47 @@ export const useCourseCreator = () => {
           try {
             const savedModule = await courseService.addCourseModule(moduleToSave);
             console.log(`模块 #${index + 1} 保存成功:`, savedModule.id);
+
+            // 跟踪可能已删除的课时
+            if (module.id && previousModulesRef.current) {
+              const previousModule = previousModulesRef.current.find(m => m.id === module.id);
+              if (previousModule && previousModule.lessons) {
+                // 获取所有之前存在但现在已删除的课时ID
+                const previousLessonIds = new Set(
+                  previousModule.lessons
+                    .filter(l => l.id && typeof l.id === 'string' && !l.id.startsWith('l'))
+                    .map(l => l.id as string)
+                );
+                
+                // 获取当前存在的课时ID
+                const currentLessonIds = new Set(
+                  (module.lessons || [])
+                    .filter(l => l.id && typeof l.id === 'string')
+                    .map(l => l.id as string)
+                );
+                
+                // 找出已删除的课时ID（之前有，现在没有）
+                const deletedLessonIds = Array.from(previousLessonIds)
+                  .filter(id => !currentLessonIds.has(id));
+                
+                if (deletedLessonIds.length > 0) {
+                  console.log(`模块 #${index + 1}: 检测到 ${deletedLessonIds.length} 个已删除的课时`);
+                  
+                  // 删除这些课时
+                  await Promise.all(
+                    deletedLessonIds.map(async lessonId => {
+                      try {
+                        await courseService.deleteLesson(lessonId);
+                        console.log(`已从数据库删除课时: ${lessonId}`);
+                      } catch (error) {
+                        console.error(`删除课时 ${lessonId} 失败:`, error);
+                        // 继续处理其他课时，不中断整个保存过程
+                      }
+                    })
+                  );
+                }
+              }
+            }
 
             // 保存模块下的所有课时
             if (module.lessons && module.lessons.length > 0) {

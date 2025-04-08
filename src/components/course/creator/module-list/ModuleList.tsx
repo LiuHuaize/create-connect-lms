@@ -15,6 +15,8 @@ import {
   useSensors
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { courseService } from '@/services/courseService';
+import { toast } from 'sonner';
 
 interface ModuleListProps {
   modules: CourseModule[];
@@ -32,6 +34,8 @@ const ModuleList: React.FC<ModuleListProps> = ({
   setExpandedModule 
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isDeletingModule, setIsDeletingModule] = useState(false);
+  const [isDeletingLesson, setIsDeletingLesson] = useState(false);
   
   // 使用PointerSensor而不是默认传感器，这样可以避免在点击按钮时触发拖拽
   const sensors = useSensors(
@@ -60,8 +64,30 @@ const ModuleList: React.FC<ModuleListProps> = ({
     ));
   };
 
-  const deleteModule = (moduleId: string) => {
-    setModules(modules.filter(module => module.id !== moduleId));
+  const deleteModule = async (moduleId: string) => {
+    try {
+      setIsDeletingModule(true);
+      const toastId = toast.loading(`正在删除模块...`);
+
+      // 首先更新前端状态
+      setModules(modules.filter(module => module.id !== moduleId));
+      
+      // 如果模块ID不是有效UUID（可能是新创建还未保存的），则跳过后端删除
+      if (moduleId.startsWith('m') || !moduleId.includes('-')) {
+        toast.success('模块已删除', { id: toastId });
+        return;
+      }
+      
+      // 调用后端删除API
+      await courseService.deleteModule(moduleId);
+      
+      toast.success('模块及其所有课时已删除', { id: toastId });
+    } catch (error) {
+      console.error('删除模块失败:', error);
+      toast.error('删除模块失败，请稍后再试', { duration: 3000 });
+    } finally {
+      setIsDeletingModule(false);
+    }
   };
 
   const toggleModuleExpand = (moduleId: string) => {
@@ -108,12 +134,34 @@ const ModuleList: React.FC<ModuleListProps> = ({
     }
   };
 
-  const deleteLesson = (moduleId: string, lessonId: string) => {
-    setModules(modules.map(module => 
-      module.id === moduleId 
-        ? { ...module, lessons: module.lessons.filter(lesson => lesson.id !== lessonId) } 
-        : module
-    ));
+  const deleteLesson = async (moduleId: string, lessonId: string) => {
+    try {
+      setIsDeletingLesson(true);
+      const toastId = toast.loading(`正在删除课时...`);
+      
+      // 首先更新前端状态
+      setModules(modules.map(module => 
+        module.id === moduleId 
+          ? { ...module, lessons: module.lessons.filter(lesson => lesson.id !== lessonId) } 
+          : module
+      ));
+      
+      // 如果课时ID不是有效UUID（可能是新创建还未保存的），则跳过后端删除
+      if (lessonId.startsWith('l') || !lessonId.includes('-')) {
+        toast.success('课时已删除', { id: toastId });
+        return;
+      }
+      
+      // 调用后端删除API
+      await courseService.deleteLesson(lessonId);
+      
+      toast.success('课时已成功删除', { id: toastId });
+    } catch (error) {
+      console.error('删除课时失败:', error);
+      toast.error('删除课时失败，请稍后再试', { duration: 3000 });
+    } finally {
+      setIsDeletingLesson(false);
+    }
   };
 
   const handleDragStart = (event: DragStartEvent) => {

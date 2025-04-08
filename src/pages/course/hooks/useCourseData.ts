@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 // 本地存储缓存辅助函数
 const LOCAL_STORAGE_PREFIX = 'connect-lms-cache-';
-const CACHE_EXPIRY_TIME = 10 * 60 * 1000; // 10分钟
+const CACHE_EXPIRY_TIME = 2 * 60 * 1000; // 缩短到2分钟
 
 // 从本地存储获取缓存数据
 const getFromLocalCache = (key: string) => {
@@ -40,6 +40,26 @@ const saveToLocalCache = (key: string, data: any) => {
     localStorage.setItem(`${LOCAL_STORAGE_PREFIX}${key}`, JSON.stringify(cacheItem));
   } catch (error) {
     console.error('保存数据到本地缓存失败:', error);
+  }
+};
+
+// 清除指定课程的所有缓存
+const clearCourseCache = (courseId: string) => {
+  try {
+    // 清除课程详情缓存
+    localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}course-details-${courseId}`);
+    
+    // 清除课程注册相关缓存
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith(`${LOCAL_STORAGE_PREFIX}enrollment-${courseId}`)) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('已清除课程相关缓存:', courseId);
+  } catch (error) {
+    console.error('清除课程缓存失败:', error);
   }
 };
 
@@ -104,24 +124,37 @@ export const useCourseData = (courseId: string | undefined) => {
   const { 
     data: courseData, 
     isLoading: isLoadingCourse,
+    refetch: refetchCourseData
   } = useQuery({
     queryKey: ['courseDetails', courseId],
     queryFn: () => fetchCourseDetails(courseId),
     enabled: !!courseId,
-    staleTime: 5 * 60 * 1000, // 5分钟内保持数据新鲜
+    staleTime: 1 * 60 * 1000, // 减少到1分钟保持数据新鲜
   });
   
   // 获取用户的课程注册信息
   const {
     data: enrollmentData,
     isLoading: isLoadingEnrollment,
+    refetch: refetchEnrollment
   } = useQuery({
     queryKey: ['enrollment', courseId, user?.id],
     queryFn: () => fetchEnrollmentInfo(courseId || '', user?.id || ''),
     enabled: !!courseId && !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5分钟内保持数据新鲜
+    staleTime: 1 * 60 * 1000, // 减少到1分钟保持数据新鲜
   });
   
+  // 强制刷新课程数据，清除缓存并重新获取
+  const refreshCourseData = () => {
+    if (courseId) {
+      clearCourseCache(courseId);
+      refetchCourseData();
+      if (user?.id) {
+        refetchEnrollment();
+      }
+    }
+  };
+
   // 查找当前课时
   const findCurrentLesson = (lessonId: string | undefined): { 
     selectedLesson: Lesson | null; 
@@ -162,6 +195,8 @@ export const useCourseData = (courseId: string | undefined) => {
     courseData,
     progress: enrollmentData?.progress || 0,
     enrollmentId: enrollmentData?.id || null,
-    findCurrentLesson
+    findCurrentLesson,
+    refreshCourseData, // 暴露刷新方法
+    clearCourseCache    // 暴露清除缓存方法
   };
 };
