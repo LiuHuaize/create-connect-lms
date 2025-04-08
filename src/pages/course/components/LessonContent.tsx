@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lesson, CourseModule, LessonType, TextLessonContent } from '@/types/course';
+import { Lesson, CourseModule, LessonType, TextLessonContent, AssignmentLessonContent } from '@/types/course';
 import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
 import BlockNoteRenderer from '@/components/editor/BlockNoteRenderer';
@@ -361,6 +361,56 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        );
+      case 'assignment':
+        const assignmentContent = selectedLesson.content as AssignmentLessonContent;
+        return (
+          <div className="space-y-6">
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-5">
+              <h3 className="font-medium text-amber-800 mb-2 flex items-center">
+                <Check size={18} className="mr-2" /> 作业说明
+              </h3>
+              <p className="text-amber-700 text-sm">请按照要求完成作业并提交。</p>
+            </div>
+            
+            <div className="prose max-w-none">
+              <h3 className="font-medium text-lg mb-4">作业要求</h3>
+              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                <p>{assignmentContent.instructions || '同学们需要自己去做一个网站'}</p>
+              </div>
+              
+              <h3 className="font-medium text-lg mb-4">评分标准</h3>
+              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                <p>{assignmentContent.criteria || '只要做了就满分'}</p>
+              </div>
+            </div>
+            
+            <div className="mt-8 border-t border-gray-200 pt-6">
+              <h3 className="font-medium text-lg mb-4">提交作业</h3>
+              <textarea 
+                className="w-full p-3 border border-gray-300 rounded-md" 
+                rows={8}
+                placeholder="在此输入您的答案或上传文件..."
+              ></textarea>
+              
+              <div className="flex items-center gap-4 mt-4">
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  上传文件
+                </Button>
+                <Button 
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  提交作业
+                </Button>
+              </div>
+              
+              <p className="text-sm text-gray-500 mt-4">
+                提交后，您的作业将被AI自动评分，老师也会对您的作业进行审核。
+              </p>
+            </div>
           </div>
         );
       // Handle other types with a default case

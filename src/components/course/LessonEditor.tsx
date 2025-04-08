@@ -40,10 +40,11 @@ const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
 interface LessonEditorProps {
   lesson: Lesson;
   onSave: (updatedLesson: Lesson | null) => void;
+  onContentChange: (newContent: LessonContent) => void;
   onEditorFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditorProps) => {
+const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChange }: LessonEditorProps) => {
   // Initialize content with the correct structure based on lesson type
   const initializeContent = (): LessonContent => {
     const baseContent = lesson.content;
@@ -89,10 +90,12 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
   
   const handleVideoUploaded = (filePath: string) => {
     if (lesson.type === 'video') {
-      setCurrentContent({
+      const newContent = {
         ...(currentContent as VideoLessonContent),
         videoFilePath: filePath
-      });
+      };
+      setCurrentContent(newContent);
+      onContentChange(newContent);
     }
   };
   
@@ -133,12 +136,13 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
   // 处理Lexical编辑器内容变化
   const handleLexicalEditorChange = (content: string) => {
     if (lesson.type === 'text') {
-      setCurrentContent({
+      const newContent = {
         ...(currentContent as TextLessonContent),
         text: content
-      });
-      
+      };
+      setCurrentContent(newContent);
       form.setValue('text', content);
+      onContentChange(newContent);
     }
   };
   
@@ -175,7 +179,9 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
     
     const updatedQuestions = [...questions, newQuestion];
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
+    const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
+    setCurrentContent(newQuizContent);
+    onContentChange(newQuizContent);
   };
   
   const updateQuestion = (questionId: string, field: string, value: any) => {
@@ -184,7 +190,9 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
     );
     
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
+    const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
+    setCurrentContent(newQuizContent);
+    onContentChange(newQuizContent);
   };
   
   const updateOption = (questionId: string, optionId: string, value: string) => {
@@ -200,7 +208,9 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
     );
     
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
+    const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
+    setCurrentContent(newQuizContent);
+    onContentChange(newQuizContent);
   };
   
   const addOption = (questionId: string) => {
@@ -219,7 +229,9 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
       );
       
       setQuestions(updatedQuestions);
-      setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
+      const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
+      setCurrentContent(newQuizContent);
+      onContentChange(newQuizContent);
     }
   };
   
@@ -235,13 +247,17 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
     );
     
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
+    const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
+    setCurrentContent(newQuizContent);
+    onContentChange(newQuizContent);
   };
   
   const deleteQuestion = (questionId: string) => {
     const updatedQuestions = questions.filter(q => q.id !== questionId);
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
+    const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
+    setCurrentContent(newQuizContent);
+    onContentChange(newQuizContent);
   };
   
   const setCorrectOption = (questionId: string, optionId: string) => {
@@ -250,7 +266,9 @@ const LessonEditor = ({ lesson, onSave, onEditorFullscreenChange }: LessonEditor
     );
     
     setQuestions(updatedQuestions);
-    setCurrentContent({ ...currentContent, questions: updatedQuestions } as QuizLessonContent);
+    const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
+    setCurrentContent(newQuizContent);
+    onContentChange(newQuizContent);
   };
   
   // 处理编辑器全屏状态变化

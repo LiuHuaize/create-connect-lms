@@ -67,6 +67,35 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
     ));
     setCurrentLesson(null);
   };
+  
+  // Add a new handler for content changes
+  const handleLessonContentChange = (moduleId: string, lessonId: string, newContent: any) => {
+    setModules(prevModules => 
+      prevModules.map(module => {
+        if (module.id === moduleId) {
+          return {
+            ...module,
+            lessons: module.lessons.map(lesson => {
+              if (lesson.id === lessonId) {
+                return {
+                  ...lesson,
+                  content: newContent
+                };
+              }
+              return lesson;
+            })
+          };
+        }
+        return module;
+      })
+    );
+    // Also update the currentLesson state if it's the one being edited
+    if (currentLesson && currentLesson.id === lessonId) {
+      setCurrentLesson(prevLesson => (
+        prevLesson ? { ...prevLesson, content: newContent } : null
+      ));
+    }
+  };
 
   return (
     <Suspense fallback={<LoadingFallback />}>
@@ -113,6 +142,14 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
                 
                 if (moduleId) {
                   updateLesson(moduleId, currentLesson.id, updatedLesson);
+                }
+              }}
+              onContentChange={(newContent) => {
+                const moduleId = modules.find(m => 
+                  m.lessons.some(l => l.id === currentLesson.id)
+                )?.id;
+                if (moduleId) {
+                  handleLessonContentChange(moduleId, currentLesson.id, newContent);
                 }
               }}
               onEditorFullscreenChange={onEditorFullscreenChange}
