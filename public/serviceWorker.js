@@ -1,6 +1,7 @@
 // 为应用程序定义一个缓存版本
-const CACHE_NAME = 'connect-lms-cache-v1';
-const API_CACHE_NAME = 'connect-lms-api-cache-v1';
+const CACHE_VERSION = 'v3';
+const CACHE_NAME = 'connect-lms-cache-' + CACHE_VERSION;
+const API_CACHE_NAME = 'connect-lms-api-cache-' + CACHE_VERSION;
 
 // 需要缓存的静态资源列表
 const urlsToCache = [
@@ -16,6 +17,10 @@ const urlsToCache = [
 // Service Worker安装后缓存指定的静态资源
 self.addEventListener('install', (event) => {
   console.log('Service Worker安装中...');
+  
+  // 强制立即激活，不等待旧的Service Worker终止
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -29,13 +34,24 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // 判断是否为API请求
-  const isApiRequest = url.pathname.includes('/rest/v1/') || 
-                        url.hostname.includes('supabase.co') || 
-                        url.pathname.includes('/auth/v1/');
+  // 排除不支持缓存的URL协议
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return; // 不处理非http和https请求，让浏览器默认处理
+  }
   
+  // 判断是否为API请求但不是认证相关请求
+  const isApiRequest = url.pathname.includes('/rest/v1/') || 
+                        url.hostname.includes('supabase.co');
+  
+  // 判断是否为认证相关请求
+  const isAuthRequest = url.pathname.includes('/auth/v1/');
+  
+  // 对认证请求直接使用网络，不缓存
+  if (isAuthRequest) {
+    event.respondWith(fetch(event.request));
+  }
   // 对API请求使用不同的缓存策略
-  if (isApiRequest) {
+  else if (isApiRequest) {
     // 只缓存GET请求
     if (event.request.method === 'GET') {
       event.respondWith(networkFirstThenCache(event.request));
@@ -55,11 +71,19 @@ async function networkFirstThenCache(request) {
   
   try {
     // 首先尝试从网络获取
-    const networkResponse = await fetch(request);
+    const networkResponse = await fetch(request.clone());
     
     // 如果成功获取，复制一份存入缓存
     if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
+      // 确保只缓存HTTP/HTTPS请求
+      const url = new URL(request.url);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        try {
+          await cache.put(request, networkResponse.clone());
+        } catch (cacheError) {
+          console.error('缓存请求失败:', cacheError);
+        }
+      }
     }
     
     return networkResponse;
@@ -91,11 +115,19 @@ async function cacheFirstThenNetwork(request) {
   
   // 缓存中没有，则从网络获取
   try {
-    const networkResponse = await fetch(request);
+    const networkResponse = await fetch(request.clone());
     
     // 如果成功获取，复制一份存入缓存
     if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
+      // 确保只缓存HTTP/HTTPS请求
+      const url = new URL(request.url);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
+        try {
+          await cache.put(request, networkResponse.clone());
+        } catch (cacheError) {
+          console.error('缓存请求失败:', cacheError);
+        }
+      }
     }
     
     return networkResponse;
@@ -111,19 +143,24 @@ self.addEventListener('activate', (event) => {
   
   const cacheWhitelist = [CACHE_NAME, API_CACHE_NAME];
   
+  // 立即接管所有页面
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (!cacheWhitelist.includes(cacheName)) {
-            console.log('删除旧缓存', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
+    Promise.all([
+      // 清理旧缓存
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (!cacheWhitelist.includes(cacheName)) {
+              console.log('删除旧缓存', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // 立即激活并接管所有客户端
+      self.clients.claim()
+    ]).then(() => {
       console.log('Service Worker现已激活并接管所有客户端');
-      return self.clients.claim();
     })
   );
 }); 

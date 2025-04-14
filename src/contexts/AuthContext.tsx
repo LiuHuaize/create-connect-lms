@@ -31,7 +31,9 @@ const cacheUserRole = (userId: string, role: UserRole | null) => {
       role,
       timestamp: Date.now()
     };
-    localStorage.setItem(USER_ROLE_CACHE_KEY, JSON.stringify(cacheData));
+    
+    // 使用sessionStorage代替localStorage，这样仅限于当前会话
+    sessionStorage.setItem(USER_ROLE_CACHE_KEY, JSON.stringify(cacheData));
     console.log('用户角色已缓存:', role);
   } catch (error) {
     console.error('缓存用户角色失败:', error);
@@ -41,21 +43,24 @@ const cacheUserRole = (userId: string, role: UserRole | null) => {
 // 从本地存储获取角色
 const getCachedUserRole = (userId: string): UserRole | null => {
   try {
-    const cachedData = localStorage.getItem(USER_ROLE_CACHE_KEY);
+    // 尝试从sessionStorage获取
+    const cachedData = sessionStorage.getItem(USER_ROLE_CACHE_KEY);
     if (!cachedData) return null;
     
     const { userId: cachedUserId, role, timestamp } = JSON.parse(cachedData);
     
-    // 检查是否为当前用户以及缓存是否在24小时内
+    // 检查是否为当前用户以及缓存是否在2小时内（减少时间）
     const isValid = 
       cachedUserId === userId && 
-      Date.now() - timestamp < 24 * 60 * 60 * 1000;
+      Date.now() - timestamp < 2 * 60 * 60 * 1000;
     
     if (isValid) {
       console.log('从缓存读取用户角色:', role);
       return role;
     }
     
+    // 如果无效则清除
+    sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
     return null;
   } catch (error) {
     console.error('读取缓存用户角色失败:', error);
@@ -128,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       console.log('刷新用户角色:', user.id);
       // 清除本地缓存
-      localStorage.removeItem(USER_ROLE_CACHE_KEY);
+      sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
       await fetchUserRole(user.id);
       
       // 重置相关查询的缓存
@@ -160,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // 用户登出
           setRole(null);
           // 清除本地缓存
-          localStorage.removeItem(USER_ROLE_CACHE_KEY);
+          sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
           // 清除React Query缓存
           if (event === 'SIGNED_OUT') {
             queryClient.clear();
@@ -229,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     console.log('正在退出登录');
     // 清理本地缓存和React Query缓存
-    localStorage.removeItem(USER_ROLE_CACHE_KEY);
+    sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
     queryClient.clear();
     await supabase.auth.signOut();
   };

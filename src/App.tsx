@@ -7,8 +7,12 @@ import { AuthProvider } from "./contexts/AuthContext";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import { Menu } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, StrictMode } from "react";
 import { useAuth } from "./contexts/AuthContext";
+
+// 导入BlockNote必要的样式
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
 
 // Import all pages
 import Dashboard from "./pages/Dashboard";
@@ -207,17 +211,19 @@ const AppRoutes = () => {
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
+    <StrictMode>
       <BrowserRouter>
-        <TooltipProvider>
-          <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
-          </AuthProvider>
-        </TooltipProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <AuthProvider>
+              <Toaster />
+              <Sonner />
+              <AppRoutes />
+            </AuthProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
       </BrowserRouter>
-    </QueryClientProvider>
+    </StrictMode>
   );
 };
 
