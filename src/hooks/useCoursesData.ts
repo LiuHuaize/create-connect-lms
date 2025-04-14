@@ -11,6 +11,7 @@ export type EnrolledCourse = Course & {
   enrollmentId: string;
   enrollmentStatus?: string;
   enrolledAt?: string;
+  isAvailable: boolean;
 };
 
 // 缓存助手函数
@@ -48,6 +49,26 @@ const saveToLocalCache = (key: string, data: any) => {
     localStorage.setItem(`${LOCAL_STORAGE_PREFIX}${key}`, JSON.stringify(cacheItem));
   } catch (error) {
     console.error('保存数据到本地缓存失败:', error);
+  }
+};
+
+// 清除所有课程相关缓存
+export const clearAllCoursesCache = () => {
+  try {
+    // 清除所有课程列表缓存
+    localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}all-courses`);
+    
+    // 清除其他可能与课程相关的缓存
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith(LOCAL_STORAGE_PREFIX) && 
+          (key.includes('course') || key.includes('enrolled'))) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('已清除所有课程相关缓存');
+  } catch (error) {
+    console.error('清除课程缓存失败:', error);
   }
 };
 
@@ -102,7 +123,7 @@ export const fetchEnrolledCourses = async (userId: string): Promise<EnrolledCour
     return cachedEnrolledCourses;
   }
   
-  // 联合查询课程和注册信息
+  // 联合查询课程和注册信息，添加对已发布课程的过滤
   const { data, error } = await supabase
     .from('course_enrollments')
     .select(`
@@ -125,12 +146,14 @@ export const fetchEnrolledCourses = async (userId: string): Promise<EnrolledCour
   }
   
   // 提取课程数据并转换为EnrolledCourse类型数组
+  // 标记课程是否可用（已发布）
   const coursesWithProgress = data.map(enrollment => ({
     ...(enrollment.courses as Course),
     progress: enrollment.progress,
     enrollmentId: enrollment.id,
     enrollmentStatus: enrollment.status,
-    enrolledAt: enrollment.enrolled_at
+    enrolledAt: enrollment.enrolled_at,
+    isAvailable: (enrollment.courses as Course).status === 'published'
   }));
   
   // 保存到本地缓存

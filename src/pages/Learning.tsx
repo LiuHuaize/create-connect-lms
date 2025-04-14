@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Play, Clock, Award, Search } from 'lucide-react';
+import { BookOpen, Play, Clock, Award, Search, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useCoursesData, EnrolledCourse } from '@/hooks/useCoursesData';
@@ -87,8 +87,16 @@ const Learning = () => {
                 <div className="p-6">
                   <div className="flex justify-between items-start">
                     <div>
-                      <div className="bg-connect-lightBlue text-connect-blue inline-block px-3 py-1 rounded-full text-xs font-medium mb-3">
-                        {course.category || '未分类'}
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="bg-connect-lightBlue text-connect-blue inline-block px-3 py-1 rounded-full text-xs font-medium">
+                          {course.category || '未分类'}
+                        </div>
+                        
+                        {course.isAvailable === false && (
+                          <div className="bg-amber-100 text-amber-700 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium">
+                            <AlertCircle size={12} className="mr-1" /> 课程暂不可用
+                          </div>
+                        )}
                       </div>
                       <h3 className="font-bold text-xl mb-2">{course.title}</h3>
                       <p className="text-gray-600 mb-4">{course.short_description || '暂无描述'}</p>
@@ -107,11 +115,17 @@ const Learning = () => {
                       </div>
                     </div>
                     
-                    <Link to={`/course/${course.id}`}>
-                      <button className="bg-connect-blue text-white p-3 rounded-full hover:bg-blue-600 transition-colors">
+                    {course.isAvailable !== false ? (
+                      <Link to={`/course/${course.id}`}>
+                        <button className="bg-connect-blue text-white p-3 rounded-full hover:bg-blue-600 transition-colors">
+                          <Play size={20} fill="white" />
+                        </button>
+                      </Link>
+                    ) : (
+                      <button disabled className="bg-gray-300 text-white p-3 rounded-full cursor-not-allowed opacity-50">
                         <Play size={20} fill="white" />
                       </button>
-                    </Link>
+                    )}
                   </div>
                   
                   <div className="mt-2">
@@ -129,11 +143,18 @@ const Learning = () => {
                       <h4 className="font-medium">继续学习</h4>
                       <p className="text-sm text-gray-500">{course.title}</p>
                     </div>
-                    <Link to={`/course/${course.id}`}>
-                      <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                        继续
-                      </button>
-                    </Link>
+                    
+                    {course.isAvailable !== false ? (
+                      <Link to={`/course/${course.id}`}>
+                        <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                          继续
+                        </button>
+                      </Link>
+                    ) : (
+                      <div className="py-2 px-4 text-gray-500 text-sm">
+                        教师已暂时取消此课程的发布
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -167,17 +188,29 @@ const Learning = () => {
                         <Award size={16} className="mr-1" />
                         <span className="text-xs font-medium">已完成</span>
                       </div>
+                      
+                      {course.isAvailable === false && (
+                        <div className="ml-3 bg-amber-100 text-amber-700 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium">
+                          <AlertCircle size={12} className="mr-1" /> 课程暂不可用
+                        </div>
+                      )}
                     </div>
                     <h3 className="font-bold text-xl mb-2">{course.title}</h3>
                     <p className="text-gray-600">{course.short_description || '暂无描述'}</p>
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    <Link to={`/course/${course.id}`}>
-                      <button className="py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                        回顾
+                    {course.isAvailable !== false ? (
+                      <Link to={`/course/${course.id}`}>
+                        <button className="py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                          回顾
+                        </button>
+                      </Link>
+                    ) : (
+                      <button disabled className="py-2 px-4 border border-gray-300 text-gray-400 rounded-lg cursor-not-allowed opacity-50 text-sm">
+                        暂不可用
                       </button>
-                    </Link>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, ChevronLeft, ChevronRight, Loader2, MessageSquare, X } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Loader2, MessageSquare, X, AlertCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -44,6 +44,32 @@ const CoursePage = () => {
   
   if (!courseData) {
     return <NotFoundCard />;
+  }
+  
+  // 检查课程是否可用（课程状态为已发布）
+  const isCourseAvailable = courseData.status === 'published';
+  
+  // 如果课程不可用，显示不可用信息
+  if (!isCourseAvailable) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
+        <div className="bg-white p-8 rounded-xl shadow-md max-w-md text-center">
+          <div className="inline-flex items-center justify-center p-4 bg-amber-100 rounded-full mb-6">
+            <AlertCircle size={32} className="text-amber-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">课程暂不可用</h2>
+          <p className="text-gray-600 mb-6">
+            该课程目前已被教师取消发布，暂时无法访问。请等待课程重新发布后再来学习。
+          </p>
+          <Button 
+            onClick={() => navigate('/learning')}
+            className="bg-connect-blue hover:bg-blue-600 text-white"
+          >
+            返回我的学习
+          </Button>
+        </div>
+      </div>
+    );
   }
   
   return (

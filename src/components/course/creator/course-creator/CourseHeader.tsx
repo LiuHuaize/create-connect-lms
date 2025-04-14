@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye, Loader2, Check, Clock } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Check, Clock, Archive } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
 import CoursePreview from '../CoursePreview';
+import { clearAllCoursesCache } from '@/hooks/useCoursesData';
 
 interface CourseHeaderProps {
   course: Course;
@@ -28,6 +29,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isUnpublishing, setIsUnpublishing] = useState(false);
 
   const handleSave = async () => {
     try {
@@ -95,24 +97,8 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         }));
       }
       
-      // 清除本地缓存
-      try {
-        // 尝试清除本地课程缓存
-        const LOCAL_STORAGE_PREFIX = 'connect-lms-cache-';
-        localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}course-details-${savedCourseId}`);
-        
-        // 清除可能存在的其他相关缓存
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith(LOCAL_STORAGE_PREFIX) && key.includes(savedCourseId)) {
-            localStorage.removeItem(key);
-          }
-        });
-        
-        console.log('发布后已清除课程相关缓存');
-      } catch (cacheError) {
-        console.error('清除缓存失败:', cacheError);
-        // 继续执行，不中断流程
-      }
+      // 清除所有课程相关缓存
+      clearAllCoursesCache();
       
       // 更新发布成功提示
       toast.success('课程已成功发布，现在学生可以访问此课程', {
@@ -133,6 +119,54 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
       setIsPublishing(false);
     }
   };
+  
+  // 取消发布课程
+  const handleUnpublishCourse = async () => {
+    try {
+      setIsUnpublishing(true);
+      
+      // 显示取消发布中的提示
+      const toastId = toast.loading('正在取消发布课程...');
+      
+      // 先保存课程内容
+      const savedCourseId = await handleSaveCourse();
+      if (!savedCourseId) {
+        throw new Error('保存课程失败，无法取消发布');
+      }
+      
+      // 更新课程状态为草稿
+      const updatedCourse = await courseService.updateCourseStatus(savedCourseId, 'draft');
+      
+      // 更新本地状态
+      if (setCourse) {
+        setCourse(prev => ({
+          ...prev,
+          status: updatedCourse.status
+        }));
+      }
+      
+      // 清除所有课程相关缓存
+      clearAllCoursesCache();
+      
+      // 更新取消发布成功提示
+      toast.success('课程已取消发布，学生将无法访问此课程', {
+        id: toastId,
+        duration: 3000
+      });
+      
+      // 短暂延迟后强制刷新页面以显示最新状态
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('取消发布课程失败:', error);
+      toast.error('取消发布课程失败，请稍后重试', {
+        duration: 3000
+      });
+    } finally {
+      setIsUnpublishing(false);
+    }
+  };
 
   // 格式化上次保存时间
   const getLastSavedText = () => {
@@ -151,6 +185,9 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
       return `${hours}小时前保存`;
     }
   };
+
+  // 判断当前是否已发布
+  const isPublished = course.status === 'published';
 
   return (
     <>
@@ -195,7 +232,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
             variant="outline" 
             onClick={() => setPreviewOpen(true)}
             className="gap-2"
-            disabled={isSaving || isPublishing}
+            disabled={isSaving || isPublishing || isUnpublishing}
           >
             <Eye className="h-4 w-4" />
             预览
@@ -203,7 +240,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
           <Button 
             variant="outline" 
             onClick={handleSave}
-            disabled={isSaving || isPublishing}
+            disabled={isSaving || isPublishing || isUnpublishing}
           >
             {isSaving ? (
               <>
@@ -212,18 +249,42 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
               </>
             ) : '保存草稿'}
           </Button>
-          <Button 
-            onClick={handlePublishCourse} 
-            className="bg-connect-blue hover:bg-blue-600"
-            disabled={isSaving || isPublishing}
-          >
-            {isPublishing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                发布中...
-              </>
-            ) : '发布'}
-          </Button>
+          
+          {isPublished ? (
+            // 已发布状态，显示取消发布按钮
+            <Button 
+              onClick={handleUnpublishCourse} 
+              variant="outline"
+              className="text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100"
+              disabled={isSaving || isPublishing || isUnpublishing}
+            >
+              {isUnpublishing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  取消发布中...
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4 mr-2" />
+                  取消发布
+                </>
+              )}
+            </Button>
+          ) : (
+            // 草稿状态，显示发布按钮
+            <Button 
+              onClick={handlePublishCourse} 
+              className="bg-connect-blue hover:bg-blue-600"
+              disabled={isSaving || isPublishing || isUnpublishing}
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  发布中...
+                </>
+              ) : '发布'}
+            </Button>
+          )}
         </div>
       </div>
 
