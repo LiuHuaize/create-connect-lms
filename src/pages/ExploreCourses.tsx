@@ -6,11 +6,13 @@ import { useCoursesData } from '@/hooks/useCoursesData';
 import { filterCourses } from '@/utils/courseUtils';
 import { COURSE_CATEGORIES, CourseCategory } from '@/types/course-enrollment';
 import { useQueryClient } from '@tanstack/react-query';
+import XiyoujiCourse from '@/components/xiyouji/XiyoujiCourse';
 
 const ExploreCourses = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CourseCategory>('全部');
   const [activeTab, setActiveTab] = useState("recommended");
+  const [showXiyoujiCourse, setShowXiyoujiCourse] = useState(false);
   const queryClient = useQueryClient();
   
   const {
@@ -51,6 +53,16 @@ const ExploreCourses = () => {
     [courses, searchQuery, selectedCategory]
   );
 
+  // 西游记课程的处理
+  const handleXiyoujiCourseEnroll = () => {
+    setShowXiyoujiCourse(true);
+  };
+
+  // 如果显示西游记课程页面，直接返回该组件
+  if (showXiyoujiCourse) {
+    return <XiyoujiCourse onBack={() => setShowXiyoujiCourse(false)} />;
+  }
+
   return (
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
       <div className="text-center mb-12">
@@ -67,6 +79,74 @@ const ExploreCourses = () => {
           setSelectedCategory={setSelectedCategory}
           categories={COURSE_CATEGORIES}
         />
+      </div>
+      
+      {/* 西游记PBL课程卡片(置顶展示) */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+          <span className="bg-gradient-to-r from-yellow-400 to-red-500 text-transparent bg-clip-text">特色课程</span>
+          <span className="ml-2 px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">新上线</span>
+        </h2>
+        
+        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border border-orange-100 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="w-full md:w-1/3 h-64 overflow-hidden rounded-xl bg-white p-2 border border-orange-200">
+              <div className="w-full h-full rounded-lg overflow-hidden relative group">
+                <img 
+                  src="https://source.unsplash.com/random/800x600/?journey,mythology,chinese" 
+                  alt="西游记PBL课程" 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80"></div>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <span className="inline-block px-3 py-1 text-xs font-semibold text-white bg-red-500 rounded-full shadow-lg mb-2">PBL项目式学习</span>
+                  <h3 className="text-xl font-bold text-white">西游记创新编程课</h3>
+                </div>
+              </div>
+            </div>
+            
+            <div className="w-full md:w-2/3 flex flex-col justify-between">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">西游记PBL项目课程</h3>
+                <p className="text-lg font-medium text-orange-600 mb-4">假如你穿越到古代，成为师徒四人的技术负责人</p>
+                <p className="text-gray-700 mb-4">这门课程将引导10岁左右的孩子通过创意编程，解决西游记中师徒四人的旅程难题。课程融合了故事分析、产品设计和编程创作，让孩子在有趣的互动中学习问题解决和编程思维。</p>
+                
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <span className="text-xs px-3 py-1 bg-blue-50 text-blue-600 rounded-full">人物分析</span>
+                  <span className="text-xs px-3 py-1 bg-green-50 text-green-600 rounded-full">产品设计</span>
+                  <span className="text-xs px-3 py-1 bg-purple-50 text-purple-600 rounded-full">流程图绘制</span>
+                  <span className="text-xs px-3 py-1 bg-amber-50 text-amber-600 rounded-full">网站制作</span>
+                  <span className="text-xs px-3 py-1 bg-pink-50 text-pink-600 rounded-full">创意思维</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap justify-between items-center">
+                <div className="flex items-center text-sm text-gray-600 gap-4 mb-4 md:mb-0">
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>约8小时课程</span>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <svg className="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span>已有 156 人加入</span>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={handleXiyoujiCourseEnroll}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-full shadow-lg hover:shadow-orange-200 hover:scale-105 transition-all duration-300 animate-pulse"
+                >
+                  立即加入课程
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-12">
