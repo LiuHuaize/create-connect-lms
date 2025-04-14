@@ -1,5 +1,4 @@
 import React from 'react';
-import { Heart, AlertTriangle } from 'lucide-react';
 
 interface CharacterCardProps {
   avatar: string;
@@ -21,53 +20,25 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
   return (
     <div 
       onClick={onClick}
-      className={`cursor-pointer rounded-xl p-3 transition-all duration-300 ${
+      className={`cursor-pointer rounded-lg p-2 transition-all duration-200 ${
         isSelected 
-          ? 'bg-orange-100 border-2 border-orange-300 shadow-md scale-105' 
-          : 'bg-gray-50 hover:bg-gray-100 border border-gray-200 hover:scale-105'
+          ? 'bg-gray-50 border border-gray-200 shadow-sm' 
+          : 'bg-white hover:bg-gray-50 border border-gray-100'
       }`}
     >
       <div className="flex flex-col items-center">
-        <div className={`w-20 h-20 overflow-hidden rounded-full mb-2 border-2 ${isSelected ? 'border-orange-400' : 'border-gray-200'}`}>
+        <div className={`w-16 h-16 overflow-hidden rounded-full mb-2 ${isSelected ? 'ring-2 ring-gray-300' : ''}`}>
           <img 
             src={avatar} 
             alt={name} 
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+            className="w-full h-full object-cover"
           />
         </div>
-        <p className={`font-bold ${isSelected ? 'text-orange-600' : 'text-gray-800'}`}>{name}</p>
+        <p className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>{name}</p>
         
-        <div className="mt-3 w-full">
-          <div className="flex items-center mb-1">
-            <Heart size={14} className="mr-1 text-red-500" />
-            <span className="text-xs text-gray-600">优点</span>
-          </div>
-          <div className="flex flex-wrap gap-1 mb-2">
-            {strengths.slice(0, 2).map((strength, i) => (
-              <span key={i} className="text-xs px-2 py-0.5 bg-green-50 text-green-600 rounded-full">
-                {strength}
-              </span>
-            ))}
-            {strengths.length > 2 && (
-              <span className="text-xs px-1 text-gray-500">+{strengths.length - 2}</span>
-            )}
-          </div>
-          
-          <div className="flex items-center mb-1">
-            <AlertTriangle size={14} className="mr-1 text-amber-500" />
-            <span className="text-xs text-gray-600">弱点</span>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {weaknesses.slice(0, 2).map((weakness, i) => (
-              <span key={i} className="text-xs px-2 py-0.5 bg-red-50 text-red-600 rounded-full">
-                {weakness}
-              </span>
-            ))}
-            {weaknesses.length > 2 && (
-              <span className="text-xs px-1 text-gray-500">+{weaknesses.length - 2}</span>
-            )}
-          </div>
-        </div>
+        {isSelected && (
+          <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1"></div>
+        )}
       </div>
     </div>
   );

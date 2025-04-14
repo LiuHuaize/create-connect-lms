@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Info, Heart, AlertTriangle, Github, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import CharacterCard from './CharacterCard';
@@ -141,28 +141,28 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
       {/* 顶部导航 */}
       <div className="flex items-center justify-between mb-8">
         <button
           onClick={onBack}
-          className="flex items-center text-gray-700 hover:text-orange-600 transition-colors"
+          className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors"
         >
-          <ArrowLeft size={20} className="mr-2" />
+          <ArrowLeft size={18} className="mr-2" />
           <span>返回课程列表</span>
         </button>
         
-        <div className="px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+        <div className="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-xs font-medium">
           模块 1/4: 人物分析
         </div>
       </div>
       
       {/* 课程标题 */}
-      <div className="text-center mb-10">
-        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 text-transparent bg-clip-text mb-3">
+      <div className="text-center mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-indigo-700 mb-2">
           西游记PBL项目课程
         </h1>
-        <p className="text-lg text-gray-700">假如你穿越到古代，成为师徒四人的技术负责人</p>
+        <p className="text-indigo-500">假如你穿越到古代，成为师徒四人的技术负责人</p>
       </div>
       
       {/* 动画人物行走 */}
@@ -173,15 +173,15 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
         bounceHeight={4}
       />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
         {/* 人物选择卡片 */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 h-min">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-            <Info size={18} className="mr-2 text-blue-500" />
+        <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4 h-min">
+          <h2 className="text-base font-medium text-indigo-700 mb-3 flex items-center">
+            <Info size={16} className="mr-2 text-indigo-400" />
             选择人物
           </h2>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {characters.map(character => (
               <CharacterCard
                 key={character.id}
@@ -197,71 +197,59 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
         </div>
         
         {/* 人物详情卡片 */}
-        <div className="bg-white rounded-2xl shadow-lg lg:col-span-2">
+        <div className="bg-white rounded-xl shadow-sm border border-indigo-100 lg:col-span-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="px-6 pt-6">
-              <TabsList className="w-full grid grid-cols-3 mb-6">
-                <TabsTrigger value="analysis" className="data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700">
+            <div className="px-4 pt-4">
+              <TabsList className="w-full grid grid-cols-3 bg-indigo-50">
+                <TabsTrigger value="analysis" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">
                   人物特点
                 </TabsTrigger>
-                <TabsTrigger value="stories" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700">
+                <TabsTrigger value="stories" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">
                   相关故事
                 </TabsTrigger>
-                <TabsTrigger value="ai-chat" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700">
+                <TabsTrigger value="ai-chat" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">
                   AI 思考助手
                 </TabsTrigger>
               </TabsList>
             </div>
             
             {/* 人物特点标签内容 */}
-            <TabsContent value="analysis" className="p-6 pt-0">
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-                  <Heart size={18} className="mr-2 text-red-500" />
-                  优点
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCharacter.strengths.map((strength, index) => (
-                    <span 
-                      key={index}
-                      className="px-3 py-1.5 bg-green-50 text-green-600 rounded-full text-sm font-medium animate-fadeIn"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      {strength}
-                    </span>
-                  ))}
-                </div>
+            <TabsContent value="analysis" className="p-4 pt-6">
+              <div className="flex flex-wrap gap-2 mb-5">
+                {selectedCharacter.strengths.map((strength, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-medium animate-fadeIn border border-green-100"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    + {strength}
+                  </span>
+                ))}
               </div>
               
-              <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-                  <AlertTriangle size={18} className="mr-2 text-amber-500" />
-                  弱点
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCharacter.weaknesses.map((weakness, index) => (
-                    <span 
-                      key={index}
-                      className="px-3 py-1.5 bg-red-50 text-red-600 rounded-full text-sm font-medium animate-fadeIn"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      {weakness}
-                    </span>
-                  ))}
-                </div>
+              <div className="flex flex-wrap gap-2 mb-5">
+                {selectedCharacter.weaknesses.map((weakness, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-xs font-medium animate-fadeIn border border-amber-100"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    - {weakness}
+                  </span>
+                ))}
               </div>
               
               {showNeeds && (
-                <div className="mb-6 animate-fadeSlideUp">
-                  <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-                    <Github size={18} className="mr-2 text-purple-500" />
+                <div className="mb-5 animate-fadeSlideUp">
+                  <h3 className="text-sm font-medium text-indigo-700 mb-3 flex items-center">
+                    <Sparkles size={16} className="mr-2 text-amber-400" />
                     可能的需求
                   </h3>
                   <div className="space-y-2">
                     {characterNeeds.map((need, index) => (
                       <div 
                         key={index}
-                        className="p-3 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium animate-fadeSlideUp"
+                        className="p-3 bg-purple-50 text-purple-600 rounded-lg text-sm animate-fadeSlideUp border border-purple-100"
                         style={{ animationDelay: `${index * 0.2}s` }}
                       >
                         {need}
@@ -271,13 +259,13 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                 </div>
               )}
               
-              <div className="p-4 bg-blue-50 rounded-lg text-sm text-blue-700 border border-blue-100">
+              <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-600 border border-blue-100">
                 <p>👉 思考: 分析{selectedCharacter.name}的特点，你觉得他在西天取经路上最需要什么样的帮助？</p>
               </div>
             </TabsContent>
             
             {/* 相关故事标签内容 */}
-            <TabsContent value="stories" className="p-6 pt-0">
+            <TabsContent value="stories" className="p-4 pt-6">
               <CharacterStoryWithStyle 
                 stories={selectedCharacter.stories}
                 characterName={selectedCharacter.name}
@@ -285,7 +273,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
             </TabsContent>
             
             {/* AI 思考助手标签内容 */}
-            <TabsContent value="ai-chat" className="p-6 pt-0 h-[400px]">
+            <TabsContent value="ai-chat" className="p-4 pt-6 h-[400px]">
               <AIChatBox
                 messages={chatMessages}
                 onSendMessage={handleSendMessage}
@@ -299,7 +287,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
       {/* 下一步按钮 */}
       <div className="mt-8 text-center">
         <Button 
-          className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-6 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+          className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-6 py-2 rounded-lg text-sm shadow-sm transition-all duration-300"
           disabled
         >
           下一步：产品画布
@@ -339,7 +327,7 @@ const GlobalStyle = () => {
       }
       
       .text-shadow {
-        text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+        text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
       }
     `}</style>
   );
