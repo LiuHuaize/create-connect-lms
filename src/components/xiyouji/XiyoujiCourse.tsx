@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import CharacterCard from './CharacterCard';
 import AIChatBox, { ChatMessage } from './AIChatBox';
-import WalkingAnimation from './WalkingAnimation';
 import CharacterStoryWithStyle from './CharacterStory';
 
 interface XiyoujiCourseProps {
@@ -165,14 +164,6 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
         <p className="text-indigo-500">假如你穿越到古代，成为师徒四人的技术负责人</p>
       </div>
       
-      {/* 动画人物行走 */}
-      <WalkingAnimation 
-        avatar={selectedCharacter.avatar}
-        name={selectedCharacter.name}
-        speed={6}
-        bounceHeight={4}
-      />
-      
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
         {/* 人物选择卡片 */}
         <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4 h-min">
@@ -301,7 +292,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
 // 添加自定义动画到全局样式
 const GlobalStyle = () => {
   return (
-    <style jsx global>{`
+    <style>{`
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
