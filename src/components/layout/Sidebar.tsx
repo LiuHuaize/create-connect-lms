@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -12,6 +11,9 @@ import {
   LogOut,
   UserCog,
   Search,
+  MenuIcon,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +31,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
   const location = useLocation();
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // 判断当前是否在课程页面
+  const isCoursePage = location.pathname.includes('/course/');
+  
+  // 当进入课程页面时，自动折叠侧边栏
+  useEffect(() => {
+    if (isCoursePage) {
+      setIsCollapsed(true);
+    } else {
+      setIsCollapsed(false);
+    }
+  }, [isCoursePage]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -234,8 +249,35 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
     );
   }
 
+  if (isCollapsed && !isMobile) {
+    return (
+      <div className="relative">
+        <div className="fixed top-4 left-0 z-30">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(false)}
+            className="ml-2 bg-white hover:bg-gray-100 border shadow-sm rounded-full p-2 h-8 w-8"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="hidden md:block w-64 border-r h-full bg-white">
+    <div className="hidden md:block w-64 border-r h-full bg-white relative">
+      {!isCoursePage && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsCollapsed(true)}
+          className="absolute top-4 right-0 transform translate-x-1/2 z-10 bg-white hover:bg-gray-100 border shadow-sm rounded-full p-2 h-8 w-8"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      )}
       <SidebarContent />
     </div>
   );

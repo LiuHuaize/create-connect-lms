@@ -15,7 +15,7 @@ const characters = [
   {
     id: 'tangseng',
     name: '唐僧',
-    avatar: 'https://source.unsplash.com/random/200x200/?monk,buddhist',
+    avatar: 'https://img.freepik.com/free-vector/journey-west-concept-illustration_114360-7490.jpg',
     strengths: ['善良', '坚持', '忠诚', '有信仰'],
     weaknesses: ['轻信他人', '缺乏判断力', '体弱多病', '缺乏自保能力'],
     stories: [
@@ -33,7 +33,7 @@ const characters = [
   {
     id: 'wukong',
     name: '孙悟空',
-    avatar: 'https://source.unsplash.com/random/200x200/?monkey,king',
+    avatar: 'https://img.freepik.com/free-vector/monkey-king-concept-illustration_114360-8170.jpg',
     strengths: ['战斗力强', '神通广大', '机智聪明', '忠心护主'],
     weaknesses: ['暴躁易怒', '傲慢自大', '叛逆', '缺乏耐心'],
     stories: [
@@ -51,7 +51,7 @@ const characters = [
   {
     id: 'bajie',
     name: '猪八戒',
-    avatar: 'https://source.unsplash.com/random/200x200/?pig,funny',
+    avatar: 'https://img.freepik.com/free-vector/hand-drawn-journey-west-illustration_23-2149282107.jpg',
     strengths: ['力气大', '老实', '会水性', '有生活情趣'],
     weaknesses: ['贪吃', '好色', '懒惰', '胆小'],
     stories: [
@@ -69,7 +69,7 @@ const characters = [
   {
     id: 'wujing',
     name: '沙僧',
-    avatar: 'https://source.unsplash.com/random/200x200/?river,monster',
+    avatar: 'https://img.freepik.com/free-vector/hand-drawn-journey-west-illustration_23-2149282108.jpg',
     strengths: ['忠诚', '踏实', '有耐心', '做事稳重'],
     weaknesses: ['存在感低', '个性不突出', '缺乏特殊能力', '沟通技巧欠缺'],
     stories: [
@@ -140,39 +140,39 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-3 md:p-6">
       {/* 顶部导航 */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <button
           onClick={onBack}
-          className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors"
+          className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors text-sm md:text-base"
         >
-          <ArrowLeft size={18} className="mr-2" />
+          <ArrowLeft size={18} className="mr-1.5" />
           <span>返回课程列表</span>
         </button>
         
-        <div className="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-xs font-medium">
+        <div className="px-3 py-1 bg-indigo-100/80 text-indigo-600 rounded-full text-xs md:text-sm font-medium backdrop-blur-sm">
           模块 1/4: 人物分析
         </div>
       </div>
       
       {/* 课程标题 */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-indigo-700 mb-2">
           西游记PBL项目课程
         </h1>
-        <p className="text-indigo-500">假如你穿越到古代，成为师徒四人的技术负责人</p>
+        <p className="text-indigo-500 text-sm md:text-base">假如你穿越到古代，成为师徒四人的技术负责人</p>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-4">
         {/* 人物选择卡片 */}
-        <div className="bg-white rounded-xl shadow-sm border border-indigo-100 p-4 h-min">
-          <h2 className="text-base font-medium text-indigo-700 mb-3 flex items-center">
-            <Info size={16} className="mr-2 text-indigo-400" />
+        <div className="bg-white rounded-xl shadow-sm border border-indigo-100/80 p-4 h-min backdrop-blur-sm bg-white/90">
+          <h2 className="text-base md:text-lg font-medium text-indigo-700 mb-3 flex items-center">
+            <Info size={16} className="mr-1.5 text-indigo-400" />
             选择人物
           </h2>
           
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2.5">
             {characters.map(character => (
               <CharacterCard
                 key={character.id}
@@ -188,29 +188,29 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
         </div>
         
         {/* 人物详情卡片 */}
-        <div className="bg-white rounded-xl shadow-sm border border-indigo-100 lg:col-span-3">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-indigo-100/80 lg:col-span-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="px-4 pt-4">
-              <TabsList className="w-full grid grid-cols-3 bg-indigo-50">
-                <TabsTrigger value="analysis" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">
+              <TabsList className="w-full grid grid-cols-3 bg-indigo-50/70">
+                <TabsTrigger value="analysis" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm text-sm py-2.5">
                   人物特点
                 </TabsTrigger>
-                <TabsTrigger value="stories" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">
+                <TabsTrigger value="stories" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm text-sm py-2.5">
                   相关故事
                 </TabsTrigger>
-                <TabsTrigger value="ai-chat" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm">
+                <TabsTrigger value="ai-chat" className="data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm text-sm py-2.5">
                   AI 思考助手
                 </TabsTrigger>
               </TabsList>
             </div>
             
             {/* 人物特点标签内容 */}
-            <TabsContent value="analysis" className="p-4 pt-6">
+            <TabsContent value="analysis" className="p-4 pt-5">
               <div className="flex flex-wrap gap-2 mb-5">
                 {selectedCharacter.strengths.map((strength, index) => (
                   <span 
                     key={index}
-                    className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-medium animate-fadeIn border border-green-100"
+                    className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs md:text-sm font-medium animate-fadeIn border border-green-100"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     + {strength}
@@ -222,7 +222,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                 {selectedCharacter.weaknesses.map((weakness, index) => (
                   <span 
                     key={index}
-                    className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-xs font-medium animate-fadeIn border border-amber-100"
+                    className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-xs md:text-sm font-medium animate-fadeIn border border-amber-100"
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     - {weakness}
@@ -232,15 +232,15 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
               
               {showNeeds && (
                 <div className="mb-5 animate-fadeSlideUp">
-                  <h3 className="text-sm font-medium text-indigo-700 mb-3 flex items-center">
-                    <Sparkles size={16} className="mr-2 text-amber-400" />
+                  <h3 className="text-sm md:text-base font-medium text-indigo-700 mb-3 flex items-center">
+                    <Sparkles size={16} className="mr-1.5 text-amber-400" />
                     可能的需求
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {characterNeeds.map((need, index) => (
                       <div 
                         key={index}
-                        className="p-3 bg-purple-50 text-purple-600 rounded-lg text-sm animate-fadeSlideUp border border-purple-100"
+                        className="p-3 bg-purple-50 text-purple-600 rounded-lg text-xs md:text-sm animate-fadeSlideUp border border-purple-100"
                         style={{ animationDelay: `${index * 0.2}s` }}
                       >
                         {need}
@@ -250,13 +250,13 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                 </div>
               )}
               
-              <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-600 border border-blue-100">
+              <div className="p-3 bg-blue-50 rounded-lg text-xs md:text-sm text-blue-600 border border-blue-100">
                 <p>👉 思考: 分析{selectedCharacter.name}的特点，你觉得他在西天取经路上最需要什么样的帮助？</p>
               </div>
             </TabsContent>
             
             {/* 相关故事标签内容 */}
-            <TabsContent value="stories" className="p-4 pt-6">
+            <TabsContent value="stories" className="p-4 pt-5 max-h-[600px] overflow-y-auto">
               <CharacterStoryWithStyle 
                 stories={selectedCharacter.stories}
                 characterName={selectedCharacter.name}
@@ -264,7 +264,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
             </TabsContent>
             
             {/* AI 思考助手标签内容 */}
-            <TabsContent value="ai-chat" className="p-4 pt-6 h-[400px]">
+            <TabsContent value="ai-chat" className="p-4 pt-5 h-[450px]">
               <AIChatBox
                 messages={chatMessages}
                 onSendMessage={handleSendMessage}
@@ -278,11 +278,11 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
       {/* 下一步按钮 */}
       <div className="mt-8 text-center">
         <Button 
-          className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-6 py-2 rounded-lg text-sm shadow-sm transition-all duration-300"
+          className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-6 py-2.5 rounded-lg text-sm md:text-base shadow-sm transition-all duration-300"
           disabled
         >
           下一步：产品画布
-          <span className="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded">即将推出</span>
+          <span className="ml-2 text-xs bg-white/20 px-1.5 py-0.5 rounded">即将推出</span>
         </Button>
       </div>
     </div>
@@ -301,7 +301,7 @@ const GlobalStyle = () => {
       @keyframes fadeSlideUp {
         from { 
           opacity: 0;
-          transform: translateY(10px);
+          transform: translateY(8px);
         }
         to { 
           opacity: 1;
@@ -310,15 +310,15 @@ const GlobalStyle = () => {
       }
       
       .animate-fadeIn {
-        animation: fadeIn 0.5s ease-out forwards;
+        animation: fadeIn 0.4s ease-out forwards;
       }
       
       .animate-fadeSlideUp {
-        animation: fadeSlideUp 0.5s ease-out forwards;
+        animation: fadeSlideUp 0.4s ease-out forwards;
       }
       
       .text-shadow {
-        text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.08);
       }
     `}</style>
   );

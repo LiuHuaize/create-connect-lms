@@ -77,6 +77,14 @@ const AppRoutes = () => {
   // 判断当前是否在课程页面
   const isCoursePage = location.pathname.includes('/course/');
 
+  // 添加路径变化监听，自动隐藏主侧边栏
+  useEffect(() => {
+    // 当进入课程页面时，如果是移动设备，自动关闭侧边栏
+    if (isCoursePage && isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isCoursePage, isMobile]);
+  
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -115,7 +123,7 @@ const AppRoutes = () => {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {!editorFullscreen && user && !isCoursePage && (
+      {!editorFullscreen && user && (
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={() => setSidebarOpen(false)} 

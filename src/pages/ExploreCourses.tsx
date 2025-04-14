@@ -138,7 +138,7 @@ const ExploreCourses = () => {
                     <span>已有 156 人加入</span>
                   </div>
                 </div>
-                
+              xian shi
                 <button 
                   onClick={handleXiyoujiCourseEnroll}
                   className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-sm transition-all duration-200"

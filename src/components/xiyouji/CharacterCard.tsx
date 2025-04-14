@@ -22,22 +22,22 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
       onClick={onClick}
       className={`cursor-pointer rounded-lg p-2 transition-all duration-200 ${
         isSelected 
-          ? 'bg-gray-50 border border-gray-200 shadow-sm' 
-          : 'bg-white hover:bg-gray-50 border border-gray-100'
+          ? 'bg-indigo-50/80 border border-indigo-200/50 shadow-sm' 
+          : 'bg-white hover:bg-gray-50/80 border border-gray-100'
       }`}
     >
       <div className="flex flex-col items-center">
-        <div className={`w-16 h-16 overflow-hidden rounded-full mb-2 ${isSelected ? 'ring-2 ring-gray-300' : ''}`}>
+        <div className={`w-14 h-14 overflow-hidden rounded-full mb-1.5 ${isSelected ? 'ring-2 ring-indigo-300' : ''}`}>
           <img 
             src={avatar} 
             alt={name} 
             className="w-full h-full object-cover"
           />
         </div>
-        <p className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>{name}</p>
+        <p className={`text-xs font-medium ${isSelected ? 'text-indigo-800' : 'text-gray-600'}`}>{name}</p>
         
         {isSelected && (
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-0.5"></div>
         )}
       </div>
     </div>

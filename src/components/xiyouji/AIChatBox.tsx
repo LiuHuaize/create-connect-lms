@@ -90,26 +90,26 @@ const AIChatBox: React.FC<AIChatBoxProps> = ({
     <div className="flex flex-col h-full">
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 bg-white rounded-lg"
+        className="flex-1 overflow-y-auto p-3 bg-white/80 rounded-lg"
       >
         {messages.map((msg, index) => (
           <div 
             key={index} 
-            className={`mb-4 ${
+            className={`mb-3 ${
               msg.role === 'user' ? 'text-right' : 'text-left'
             }`}
           >
             <div 
-              className={`inline-block max-w-[85%] p-3 rounded-lg ${
+              className={`inline-block max-w-[85%] p-2.5 rounded-lg ${
                 msg.role === 'user' 
-                  ? 'bg-gray-100 text-gray-800' 
-                  : 'bg-gray-50 text-gray-700 border border-gray-100'
+                  ? 'bg-indigo-100/90 text-indigo-800' 
+                  : 'bg-gray-50/90 text-gray-700 border border-gray-100'
               }`}
             >
-              <div className="whitespace-pre-wrap text-sm">
+              <div className="whitespace-pre-wrap text-xs md:text-sm">
                 {displayedContent[index]}
                 {msg.role === 'ai' && displayedContent[index] !== msg.content && (
-                  <span className="inline-block w-1 h-4 bg-gray-300 ml-0.5 animate-pulse"></span>
+                  <span className="inline-block w-1 h-3.5 bg-indigo-300 ml-0.5 animate-pulse"></span>
                 )}
               </div>
             </div>
@@ -118,7 +118,7 @@ const AIChatBox: React.FC<AIChatBoxProps> = ({
         <div ref={messagesEndRef} />
       </div>
       
-      <div className="p-3 border-t border-gray-100">
+      <div className="p-2.5 border-t border-gray-100">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -126,18 +126,18 @@ const AIChatBox: React.FC<AIChatBoxProps> = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={characterName ? `思考${characterName}的需求...` : placeholder}
-            className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+            className="flex-1 px-3 py-1.5 border border-indigo-100 rounded-md text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
           />
           <Button 
             onClick={handleSend} 
-            className="bg-gray-800 hover:bg-gray-700 transition-colors"
+            className="bg-indigo-600 hover:bg-indigo-700 transition-colors"
             size="sm"
           >
-            <Send size={14} />
+            <Send size={12} />
           </Button>
         </div>
         
-        <div className="mt-2 text-xs text-gray-400">
+        <div className="mt-1.5 text-xs text-gray-500">
           <p>提示: 尝试询问「需求」、「优点」或「弱点」</p>
         </div>
       </div>

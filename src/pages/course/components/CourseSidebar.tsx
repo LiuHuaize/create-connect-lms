@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Course, CourseModule } from '@/types/course';
 import ContentTypeIcon from './ContentTypeIcon';
-import { CheckCircle, Loader2, BookOpen, GraduationCap } from 'lucide-react';
+import { CheckCircle, Loader2, BookOpen, GraduationCap, ChevronRight } from 'lucide-react';
 import { courseService, lessonCompletionCache } from '@/services/courseService';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 interface CourseSidebarProps {
   courseData: Course & { modules?: CourseModule[] };
@@ -13,6 +15,7 @@ interface CourseSidebarProps {
   progress: number;
   setSidebarOpen?: (open: boolean) => void;
   isMobile?: boolean;
+  collapsed?: boolean;
 }
 
 const CourseSidebar: React.FC<CourseSidebarProps> = ({
@@ -20,7 +23,8 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   selectedLesson,
   progress,
   setSidebarOpen,
-  isMobile
+  isMobile,
+  collapsed = false
 }) => {
   const [completionStatus, setCompletionStatus] = useState<Record<string, boolean>>({});
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
@@ -43,6 +47,84 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
         });
     }
   }, [courseData?.id, progress]); // 添加progress作为依赖，当进度变化时重新获取完成状态
+  
+  // 折叠状态下的简化渲染
+  if (collapsed) {
+    return (
+      <div className="py-2 h-full overflow-y-auto flex flex-col items-center">
+        {/* 整体课程进度指示器 */}
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mb-2 relative">
+          <div className="absolute inset-0 rounded-full">
+            <svg className="w-full h-full" viewBox="0 0 100 100">
+              <circle 
+                cx="50" cy="50" r="40" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeOpacity="0.2"
+                strokeWidth="8" 
+              />
+              <circle 
+                cx="50" cy="50" r="40" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="8" 
+                strokeDasharray="251.2" 
+                strokeDashoffset={251.2 - (251.2 * progress / 100)}
+                transform="rotate(-90 50 50)" 
+              />
+            </svg>
+          </div>
+          <span className="text-xs font-medium z-10">{progress}%</span>
+        </div>
+        
+        {/* 模块指示点 */}
+        {courseData?.modules && courseData.modules.map((module, moduleIndex) => {
+          const totalLessons = module.lessons?.length || 0;
+          const completedLessons = module.lessons?.filter(lesson => completionStatus[lesson.id]).length || 0;
+          const moduleProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+          
+          const currentModuleHasActiveLesson = module.lessons?.some(
+            lesson => selectedLesson && selectedLesson.id === lesson.id
+          );
+          
+          return (
+            <div 
+              key={module.id} 
+              className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center my-1 relative", 
+                currentModuleHasActiveLesson 
+                  ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" 
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              )}
+              title={`${module.title} - 完成度: ${moduleProgress}%`}
+            >
+              <div className="absolute inset-0 rounded-full">
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  <circle 
+                    cx="50" cy="50" r="40" 
+                    fill="none" 
+                    stroke={currentModuleHasActiveLesson ? "currentColor" : "#9CA3AF"}
+                    strokeOpacity="0.2"
+                    strokeWidth="8" 
+                  />
+                  <circle 
+                    cx="50" cy="50" r="40" 
+                    fill="none" 
+                    stroke={moduleProgress === 100 ? "#10B981" : currentModuleHasActiveLesson ? "currentColor" : "#9CA3AF"}
+                    strokeWidth="8" 
+                    strokeDasharray="251.2" 
+                    strokeDashoffset={251.2 - (251.2 * moduleProgress / 100)}
+                    transform="rotate(-90 50 50)" 
+                  />
+                </svg>
+              </div>
+              <span className="text-xs font-medium z-10">{moduleIndex + 1}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
   
   return (
     <div className="py-2 h-full overflow-y-auto">

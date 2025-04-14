@@ -22,8 +22,16 @@ const CoursePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   
-  // 默认侧边栏状态设为展开
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // 使用localStorage记住用户的侧边栏折叠状态偏好
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const savedState = localStorage.getItem('course_sidebar_collapsed');
+    return savedState ? JSON.parse(savedState) : false;
+  });
+  
+  // 当折叠状态变化时保存到localStorage
+  useEffect(() => {
+    localStorage.setItem('course_sidebar_collapsed', JSON.stringify(sidebarCollapsed));
+  }, [sidebarCollapsed]);
   
   const { loading, courseData, progress, enrollmentId, findCurrentLesson } = useCourseData(courseId);
   const { selectedLesson, selectedUnit } = findCurrentLesson(lessonId);
@@ -106,7 +114,7 @@ const CoursePage = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 ml-auto rounded-full transition-colors"
+                className={`text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-colors`}
                 aria-label={sidebarCollapsed ? "展开大纲" : "收起大纲"}
               >
                 {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -115,11 +123,18 @@ const CoursePage = () => {
             
             {/* 侧边栏内容区域（可滚动） */}
             <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
-              {!sidebarCollapsed && (
+              {!sidebarCollapsed ? (
                 <CourseSidebar 
                   courseData={courseData}
                   selectedLesson={selectedLesson}
                   progress={progress}
+                />
+              ) : (
+                <CourseSidebar 
+                  courseData={courseData}
+                  selectedLesson={selectedLesson}
+                  progress={progress}
+                  collapsed={true}
                 />
               )}
             </div>
