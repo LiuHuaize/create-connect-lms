@@ -32,6 +32,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
             src={avatar} 
             alt={name} 
             className="w-full h-full object-cover"
+            style={{ objectFit: 'cover', objectPosition: 'center top' }}
           />
         </div>
         <p className={`text-xs font-medium ${isSelected ? 'text-indigo-800' : 'text-gray-600'}`}>{name}</p>

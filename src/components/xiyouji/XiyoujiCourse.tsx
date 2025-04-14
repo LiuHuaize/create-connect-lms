@@ -15,7 +15,7 @@ const characters = [
   {
     id: 'tangseng',
     name: '唐僧',
-    avatar: 'https://img.freepik.com/free-vector/journey-west-concept-illustration_114360-7490.jpg',
+    avatar: '/images/唐僧.png',
     strengths: ['善良', '坚持', '忠诚', '有信仰'],
     weaknesses: ['轻信他人', '缺乏判断力', '体弱多病', '缺乏自保能力'],
     stories: [
@@ -33,7 +33,7 @@ const characters = [
   {
     id: 'wukong',
     name: '孙悟空',
-    avatar: 'https://img.freepik.com/free-vector/monkey-king-concept-illustration_114360-8170.jpg',
+    avatar: '/images/孙悟空.jpeg',
     strengths: ['战斗力强', '神通广大', '机智聪明', '忠心护主'],
     weaknesses: ['暴躁易怒', '傲慢自大', '叛逆', '缺乏耐心'],
     stories: [
@@ -51,7 +51,7 @@ const characters = [
   {
     id: 'bajie',
     name: '猪八戒',
-    avatar: 'https://img.freepik.com/free-vector/hand-drawn-journey-west-illustration_23-2149282107.jpg',
+    avatar: '/images/猪八戒.jpeg',
     strengths: ['力气大', '老实', '会水性', '有生活情趣'],
     weaknesses: ['贪吃', '好色', '懒惰', '胆小'],
     stories: [
@@ -69,7 +69,7 @@ const characters = [
   {
     id: 'wujing',
     name: '沙僧',
-    avatar: 'https://img.freepik.com/free-vector/hand-drawn-journey-west-illustration_23-2149282108.jpg',
+    avatar: '/images/沙僧.jpeg',
     strengths: ['忠诚', '踏实', '有耐心', '做事稳重'],
     weaknesses: ['存在感低', '个性不突出', '缺乏特殊能力', '沟通技巧欠缺'],
     stories: [
@@ -264,7 +264,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
             </TabsContent>
             
             {/* AI 思考助手标签内容 */}
-            <TabsContent value="ai-chat" className="p-4 pt-5 h-[450px]">
+            <TabsContent value="ai-chat" className="p-0 h-[450px]">
               <AIChatBox
                 messages={chatMessages}
                 onSendMessage={handleSendMessage}
