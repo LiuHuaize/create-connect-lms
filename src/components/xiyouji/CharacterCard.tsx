@@ -1,14 +1,19 @@
 import React from 'react';
+import { CheckCircle } from 'lucide-react';
 
-interface CharacterCardProps {
+export interface CharacterCardProps {
   avatar: string;
   name: string;
   strengths: string[];
   weaknesses: string[];
   isSelected: boolean;
+  isAnalyzed: boolean;
   onClick: () => void;
-  isAnalyzed?: boolean;
-  customTraits?: string[];
+  layout?: 'normal' | 'compact';
+  customTraits?: {
+    strengths: string[];
+    weaknesses: string[];
+  };
 }
 
 const CharacterCard: React.FC<CharacterCardProps> = ({
@@ -19,8 +24,14 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
   isSelected,
   onClick,
   isAnalyzed = false,
-  customTraits = []
+  layout = 'normal',
+  customTraits = { strengths: [], weaknesses: [] }
 }) => {
+  // 计算已发现的特质总数
+  const customTraitsCount = 
+    (customTraits.strengths ? customTraits.strengths.length : 0) + 
+    (customTraits.weaknesses ? customTraits.weaknesses.length : 0);
+    
   return (
     <div 
       className={`relative flex flex-col items-center p-3 rounded-lg cursor-pointer transition-all duration-300 border-2 ${
@@ -44,7 +55,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
       <div className="text-center mb-1">
         <div className="font-medium text-gray-800">{name}</div>
         <div className="text-xs text-gray-500">
-          {customTraits.length > 0 ? `已发现${customTraits.length}个特质` : '点击分析人物'}
+          {customTraitsCount > 0 ? `已发现${customTraitsCount}个特质` : '点击分析人物'}
         </div>
       </div>
       

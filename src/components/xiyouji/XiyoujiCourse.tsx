@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Sparkles, Info, ChevronRight, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Sparkles, Info, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import CharacterCard from './CharacterCard';
@@ -10,6 +10,10 @@ import FloatingChatButton from './FloatingChatButton';
 import { sendMessageToAI, formatMessages } from '@/services/aiService';
 import { toast } from '@/components/ui/use-toast';
 import { supabase, getCurrentUser } from '@/lib/supabase';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface XiyoujiCourseProps {
   onBack: () => void;
@@ -163,6 +167,33 @@ const courseStages = [
   { id: 'website-creation', title: '网站制作', description: '构建产品原型网站' }
 ];
 
+// 定义CourseHeader组件
+interface CourseHeaderProps {
+  courseId: string;
+  currentModuleIndex: number;
+}
+
+const CourseHeader: React.FC<CourseHeaderProps> = ({ courseId, currentModuleIndex }) => {
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm">
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => window.history.back()}
+          className="h-8 w-8"
+        >
+          <ArrowLeft size={16} />
+        </Button>
+        <div>
+          <h1 className="text-lg font-bold text-indigo-800">西游记课程</h1>
+          <p className="text-xs text-gray-500">中国古典名著学习</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   const [selectedCharacter, setSelectedCharacter] = useState(characters[0]);
   const [activeTab, setActiveTab] = useState('analysis');
@@ -232,6 +263,12 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
     bajie: [],
     wujing: []
   });
+  
+  // 添加当前故事页码状态
+  const [currentPage, setCurrentPage] = useState(0);
+  
+  // 修改或添加相关状态变量
+  const [characterAnalyses, setCharacterAnalyses] = useState<any[]>([]);
   
   // 获取当前用户
   useEffect(() => {
@@ -361,12 +398,79 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
     }
   }, [user, courseId]);
   
-  // 修改选择角色时的处理函数
+  // 从故事内容中分析特质
+  const analyzeStoryForTraits = (storyText: string, characterName: string) => {
+    // 初步实现检测特质的逻辑
+    const possibleStrengths = [
+      '勇敢', '聪明', '忠诚', '善良', '坚持', '谨慎', '自信', '谦虚', '正直', '诚实', 
+      '耐心', '温柔', '机智', '踏实', '负责', '乐观', '慷慨', '坚强', '细心', '慈悲',
+      '执着', '有信仰', '领导力', '决断力', '包容', '智慧', '有远见'
+    ];
+    
+    const possibleWeaknesses = [
+      '固执', '贪婪', '自私', '冲动', '暴躁', '傲慢', '叛逆', '多疑', '悲观',
+      '贪心', '胆小', '软弱', '粗心', '轻信', '优柔寡断', '固执己见', '体弱', 
+      '缺乏判断力', '缺乏自保能力', '嫉妒', '懒惰', '害怕', '贪吃', '好色'
+    ];
+    
+    const discoveredStrengths: string[] = [];
+    const discoveredWeaknesses: string[] = [];
+    
+    // 简单检测文本中是否包含这些特质词
+    possibleStrengths.forEach(trait => {
+      if (storyText.includes(trait)) {
+        discoveredStrengths.push(trait);
+      }
+    });
+    
+    possibleWeaknesses.forEach(trait => {
+      if (storyText.includes(trait)) {
+        discoveredWeaknesses.push(trait);
+      }
+    });
+    
+    return { strengths: discoveredStrengths, weaknesses: discoveredWeaknesses };
+  };
+
+  // 修改处理故事页码变化函数，加入特质识别功能
+  const handlePageChange = (index: number) => {
+    setCurrentPage(index);
+    
+    // 从故事中识别特质
+    const story = selectedCharacter.stories[index];
+    const { strengths, weaknesses } = analyzeStoryForTraits(story.content, selectedCharacter.name);
+    
+    // 自动将识别的特质添加到角色特点中
+    strengths.forEach(trait => {
+      handleTraitDiscovered(trait, 'strength');
+    });
+    
+    weaknesses.forEach(trait => {
+      handleTraitDiscovered(trait, 'weakness');
+    });
+  };
+  
+  // 处理前一个故事
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
+  // 处理下一个故事
+  const handleNextPage = () => {
+    if (currentPage < selectedCharacter.stories.length - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  // 选择角色时也要重置当前页码
   const handleSelectCharacter = (character: typeof characters[0]) => {
     setSelectedCharacter(character);
     // 重置需求显示
     setShowNeeds(false);
     setCharacterNeeds([]);
+    setCurrentPage(0); // 重置故事页码
     
     // 如果该角色有保存的聊天记录，使用保存的记录
     if (characterChats[character.id] && characterChats[character.id].length > 0) {
@@ -601,150 +705,239 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
     }
   };
 
-  // 渲染当前阶段内容
+  // 修改渲染特质的部分
+  const renderCharacterTraits = () => {
+    const characterId = selectedCharacter.id;
+    const discoveredStrengths = characterTraits[characterId].strengths;
+    const discoveredWeaknesses = characterTraits[characterId].weaknesses;
+    
+    return (
+      <>
+        {/* 显示自定义特质 */}
+        {(discoveredStrengths.length > 0 || discoveredWeaknesses.length > 0) && (
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-blue-600 mb-2 flex items-center gap-1">
+              <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</span> 
+              发现的特质
+            </h4>
+            
+            {discoveredStrengths.length > 0 && (
+              <div className="mb-2">
+                <h5 className="text-xs font-medium text-green-600 mb-1 ml-1">优点:</h5>
+                <ul className="grid grid-cols-2 gap-2">
+                  {discoveredStrengths.map((trait, index) => (
+                    <li 
+                      key={`strength-${index}`}
+                      className="bg-green-50 px-3 py-2 rounded text-sm text-green-700 flex items-center gap-2"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">+</span>
+                      {trait}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {discoveredWeaknesses.length > 0 && (
+              <div>
+                <h5 className="text-xs font-medium text-red-600 mb-1 ml-1">缺点:</h5>
+                <ul className="grid grid-cols-2 gap-2">
+                  {discoveredWeaknesses.map((trait, index) => (
+                    <li 
+                      key={`weakness-${index}`}
+                      className="bg-red-50 px-3 py-2 rounded text-sm text-red-600 flex items-center gap-2"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs">-</span>
+                      {trait}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // 修改渲染特质的部分
   const renderStageContent = () => {
     switch (currentStage) {
       case 0: // 人物分析
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-[1200px] mx-auto px-4">
-            {/* 左侧区域：人物选择 */}
-            <div className="bg-white rounded-xl shadow-sm p-4 h-fit">
-              <div className="mb-4 text-indigo-700 flex items-center gap-2 font-medium">
-                <span className="flex items-center justify-center w-6 h-6 bg-indigo-100 rounded-full text-xs">1</span>
-                选择人物
-              </div>
-              
-              {/* 添加任务说明 */}
-              <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg mb-4">
-                <h4 className="text-sm font-medium text-amber-700 mb-1">任务说明</h4>
-                <p className="text-xs text-amber-700">
-                  与AI助手讨论每个角色的性格特点，从故事中发现他们的优点和缺点。每个角色至少需要找出一个优点和一个缺点。完成所有角色分析后，才能进入下一阶段。
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                {characters.map((char) => (
-                  <CharacterCard
-                    key={char.id}
-                    avatar={char.avatar}
-                    name={char.name}
-                    strengths={char.strengths}
-                    weaknesses={char.weaknesses}
-                    isSelected={selectedCharacter.id === char.id}
-                    onClick={() => handleSelectCharacter(char)}
-                    isAnalyzed={analyzedCharacters[char.id]}
-                  />
-                ))}
-              </div>
-              
-              {/* 分析完成进度 */}
-              <div className="mt-4 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
-                <h4 className="text-sm font-medium text-indigo-700 mb-2">分析进度</h4>
-                <div className="w-full bg-white rounded-full h-2.5">
-                  <div 
-                    className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
-                    style={{ width: `${(getAnalyzedCount() / 4) * 100}%` }}
-                  ></div>
+          <div className="flex flex-col h-full">
+            <div className="flex-1 grid grid-cols-12 gap-4 h-[calc(100vh-150px)]">
+              {/* 左侧：角色选择（固定） */}
+              <div className="col-span-2 h-full overflow-y-auto rounded-lg border border-indigo-100">
+                <div className="p-4 bg-indigo-50 border-b border-indigo-100 font-medium text-indigo-800">
+                  选择角色
                 </div>
-                <p className="mt-2 text-xs text-indigo-600 text-center">
-                  {getAnalyzedCount()}/4 人物分析完成
-                </p>
-                {allCharactersAnalyzed && (
-                  <div className="mt-3 p-2 bg-green-50 border border-green-100 rounded-lg text-xs text-green-700 text-center">
-                    恭喜！你已完成所有人物分析，可以进入下一阶段
+                <div className="divide-y divide-indigo-100">
+                  {characters.map((character) => (
+                    <button
+                      key={character.id}
+                      onClick={() => handleSelectCharacter(character)}
+                      className={`w-full p-3 text-left transition-colors duration-200 flex items-center gap-2 ${
+                        selectedCharacter?.id === character.id
+                          ? "bg-indigo-50 text-indigo-800"
+                          : "hover:bg-indigo-50/50"
+                      }`}
+                    >
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage src={character.avatar} alt={character.name} />
+                        <AvatarFallback>
+                          {character.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-sm font-medium">{character.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {
+                            characterAnalyses.find(
+                              (a) => a.character_id === character.id
+                            )?.is_analyzed
+                              ? "已分析"
+                              : "未分析"
+                          }
+                        </div>
+                      </div>
+                      {characterAnalyses.find(
+                        (a) => a.character_id === character.id
+                      )?.is_analyzed && (
+                        <CheckCircle2
+                          size={16}
+                          className="ml-auto text-green-500"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 中间：故事内容 */}
+              <div className="col-span-6 h-full overflow-hidden flex flex-col border border-indigo-100 rounded-lg">
+                {!selectedCharacter ? (
+                  <div className="flex-1 flex items-center justify-center text-gray-500">
+                    请选择一个角色开始分析
                   </div>
+                ) : (
+                  <>
+                    <div className="p-4 bg-indigo-50 border-b border-indigo-100 font-medium text-indigo-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={selectedCharacter.avatar} alt={selectedCharacter.name} />
+                          <AvatarFallback>{selectedCharacter.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        {selectedCharacter.name}的故事
+                      </div>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        故事 {currentPage + 1}/{selectedCharacter.stories.length}
+                      </Badge>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6">
+                      <ScrollArea className="h-full w-full">
+                        <div className="prose prose-indigo max-w-none">
+                          <h3 className="text-lg font-medium mb-4">
+                            {selectedCharacter.stories[currentPage].title}
+                          </h3>
+                          <div className="whitespace-pre-line leading-relaxed">
+                            {selectedCharacter.stories[currentPage].content}
+                          </div>
+                        </div>
+                      </ScrollArea>
+                    </div>
+
+                    <div className="p-4 border-t border-indigo-100 bg-indigo-50/50 flex justify-between items-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 0}
+                        className="h-8 flex items-center gap-1 text-xs"
+                      >
+                        <ChevronLeft size={14} />
+                        上一个故事
+                      </Button>
+                      
+                      <div className="flex gap-1">
+                        {selectedCharacter.stories.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handlePageChange(index)}
+                            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                              index === currentPage 
+                                ? 'bg-indigo-500 scale-125' 
+                                : 'bg-indigo-200 hover:bg-indigo-300'
+                            }`}
+                            aria-label={`跳转到故事 ${index + 1}`}
+                          />
+                        ))}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === selectedCharacter.stories.length - 1}
+                        className="h-8 flex items-center gap-1 text-xs"
+                      >
+                        下一个故事
+                        <ChevronRight size={14} />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* 右侧：聊天框（单一） */}
+              <div className="col-span-4 h-full overflow-hidden flex flex-col border border-indigo-100 rounded-lg">
+                <div className="p-4 bg-indigo-50 border-b border-indigo-100 font-medium text-indigo-800 flex items-center justify-between">
+                  <div>与AI角色对话</div>
+                  <Badge variant="outline" className="text-xs font-normal">
+                    讨论角色特点
+                  </Badge>
+                </div>
+                
+                {!selectedCharacter ? (
+                  <div className="flex-1 flex items-center justify-center text-gray-500">
+                    请选择一个角色开始分析
+                  </div>
+                ) : (
+                  <AIChatBox
+                    characterName={selectedCharacter.name}
+                    messages={aiResponses[selectedCharacter.id] || []}
+                    onSendMessage={handleSendMessage}
+                    height="calc(100% - 57px)"
+                  />
                 )}
               </div>
             </div>
             
-            {/* 中间区域：人物特点和故事 */}
-            <div className="lg:col-span-2">
-              <Tabs defaultValue="story" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="w-full bg-white rounded-t-xl overflow-hidden grid grid-cols-2 p-0">
-                  <TabsTrigger value="analysis" className="py-3 rounded-none data-[state=active]:bg-indigo-50">
-                    人物特点
-                  </TabsTrigger>
-                  <TabsTrigger value="story" className="py-3 rounded-none data-[state=active]:bg-indigo-50">
-                    相关故事
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="analysis" className="m-0 bg-white rounded-b-xl shadow-sm p-4">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium text-gray-800">{selectedCharacter.name}的特点分析</h3>
-                    
-                    {/* 如果尚未分析，显示引导信息 */}
-                    {!analyzedCharacters[selectedCharacter.id] && characterTraits[selectedCharacter.id].strengths.length === 0 && characterTraits[selectedCharacter.id].weaknesses.length === 0 ? (
-                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
-                        <div className="text-gray-500 mb-3">尚未进行分析</div>
-                        <p className="text-sm text-gray-600 mb-3">
-                          请先阅读"相关故事"，然后与AI助手讨论{selectedCharacter.name}的性格特点。
-                          你发现的优点和缺点将会显示在这里。
-                        </p>
-                        <Button 
-                          onClick={() => setActiveTab('story')}
-                          className="bg-indigo-500 hover:bg-indigo-600 text-white"
-                        >
-                          前往阅读故事
-                        </Button>
-                      </div>
-                    ) : (
-                      renderCharacterTraits()
-                    )}
-                    
-                    {showNeeds && (
-                      <div className="mt-4 animate-fadeIn">
-                        <h4 className="text-sm font-medium text-indigo-600 mb-2 flex items-center gap-1">
-                          <Sparkles size={16} className="text-indigo-500" />
-                          可能的需求
-                        </h4>
-                        <ul className="space-y-2">
-                          {characterNeeds.map((need, index) => (
-                            <li 
-                              key={index}
-                              className="bg-indigo-50 px-3 py-2 rounded text-sm text-indigo-700 flex items-center gap-2"
-                            >
-                              <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">{index + 1}</span>
-                              {need}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="story" className="m-0 bg-white rounded-b-xl shadow-sm">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-                    <CharacterStoryWithStyle 
-                      stories={selectedCharacter.stories} 
-                      characterName={selectedCharacter.name}
-                      onTraitDiscovered={handleTraitDiscovered}
-                    />
-                    
-                    {/* 添加AI对话区域到故事页面 */}
-                    <div className="border-l border-gray-200">
-                      <div className="p-3 bg-indigo-50 border-b border-indigo-100">
-                        <h3 className="text-sm font-medium text-indigo-700">与{selectedCharacter.name}分析助手对话</h3>
-                        <p className="text-xs text-gray-600 mt-1">
-                          讨论你从故事中发现的性格特点，AI会帮你分析并总结
-                        </p>
-                      </div>
-                      <AIChatBox 
-                        messages={aiResponses}
-                        onSendMessage={handleSendMessage}
-                        aiName={`${selectedCharacter.name}故事分析助手`}
-                        placeholder={`讨论${selectedCharacter.name}的性格特点...`}
-                        height="500px"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+            {/* 底部按钮 */}
+            <div className="mt-6 p-4 border border-indigo-100 rounded-lg">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-medium text-indigo-800">人物分析进度: {characterAnalyses.filter(a => a.is_analyzed).length}/4</h3>
+                  <p className="text-sm text-gray-500">为每个角色至少发现一个优点和一个缺点</p>
+                </div>
+                <Button
+                  onClick={handleNextStage}
+                  disabled={!allCharactersAnalyzed}
+                  variant={allCharactersAnalyzed ? "default" : "outline"}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  进入下一阶段
+                </Button>
+              </div>
+              <Progress
+                value={(characterAnalyses.filter(a => a.is_analyzed).length / 4) * 100}
+                max={100}
+                className="h-2 mt-2"
+              />
             </div>
           </div>
         );
-        
       case 1: // 产品画布
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
@@ -995,154 +1188,10 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
     }
   };
 
-  // 修改渲染特质的部分
-  const renderCharacterTraits = () => {
-    const characterId = selectedCharacter.id;
-    const discoveredStrengths = characterTraits[characterId].strengths;
-    const discoveredWeaknesses = characterTraits[characterId].weaknesses;
-    
-    return (
-      <>
-        {/* 显示自定义特质 */}
-        {(discoveredStrengths.length > 0 || discoveredWeaknesses.length > 0) && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium text-blue-600 mb-2 flex items-center gap-1">
-              <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</span> 
-              发现的特质
-            </h4>
-            
-            {discoveredStrengths.length > 0 && (
-              <div className="mb-2">
-                <h5 className="text-xs font-medium text-green-600 mb-1 ml-1">优点:</h5>
-                <ul className="grid grid-cols-2 gap-2">
-                  {discoveredStrengths.map((trait, index) => (
-                    <li 
-                      key={`strength-${index}`}
-                      className="bg-green-50 px-3 py-2 rounded text-sm text-green-700 flex items-center gap-2"
-                    >
-                      <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">+</span>
-                      {trait}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {discoveredWeaknesses.length > 0 && (
-              <div>
-                <h5 className="text-xs font-medium text-red-600 mb-1 ml-1">缺点:</h5>
-                <ul className="grid grid-cols-2 gap-2">
-                  {discoveredWeaknesses.map((trait, index) => (
-                    <li 
-                      key={`weakness-${index}`}
-                      className="bg-red-50 px-3 py-2 rounded text-sm text-red-600 flex items-center gap-2"
-                    >
-                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs">-</span>
-                      {trait}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </>
-    );
-  };
-
   return (
-    <div className="h-full flex flex-col bg-gray-50 overflow-auto">
-      <GlobalStyle />
-      
-      {/* 顶部导航栏 */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-screen-xl mx-auto px-4 flex justify-between items-center py-3">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={onBack}
-              className="h-8 w-8"
-            >
-              <ArrowLeft size={16} />
-            </Button>
-            <div>
-              <h1 className="text-lg font-bold text-indigo-800">西游记PBL项目课程</h1>
-              <p className="text-xs text-gray-500">假如你穿越到古代，成为师徒四人的技术负责人</p>
-            </div>
-          </div>
-          
-          {/* 课程阶段导航 */}
-          <div className="hidden md:flex items-center gap-3">
-            {courseStages.map((stage, index) => (
-              <div 
-                key={stage.id} 
-                className={`flex items-center ${index > 0 ? 'ml-4' : ''}`}
-              >
-                {index > 0 && (
-                  <div className="h-0.5 w-8 bg-gray-200 -ml-10"></div>
-                )}
-                <div className={`flex flex-col items-center`}>
-                  <div 
-                    className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      index === currentStage 
-                        ? 'border-indigo-500 bg-indigo-100 text-indigo-700' 
-                        : index < currentStage
-                          ? 'border-green-500 bg-green-100 text-green-700'
-                          : 'border-gray-300 bg-gray-100 text-gray-500'
-                    } text-xs`}
-                  >
-                    {index + 1}
-                  </div>
-                  <div className="text-xs mt-1 whitespace-nowrap text-gray-600">{stage.title}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      {/* 主内容区域 */}
-      <div className="flex-1 overflow-auto py-6">
-        {renderStageContent()}
-      </div>
-      
-      {/* 底部导航 */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 py-3 px-4">
-        <div className="max-w-screen-xl mx-auto flex justify-between items-center">
-          <Button
-            variant="outline"
-            onClick={handlePrevStage}
-            disabled={currentStage === 0}
-            className="flex items-center gap-1"
-          >
-            <ChevronLeft size={16} />
-            上一步
-          </Button>
-          
-          <div className="text-sm text-gray-500">
-            阶段 {currentStage + 1}/{courseStages.length}: {courseStages[currentStage].title}
-          </div>
-          
-          <Button
-            onClick={handleNextStage}
-            disabled={currentStage === 0 && !allCharactersAnalyzed}
-            className={`flex items-center gap-1 ${
-              currentStage === 0 && !allCharactersAnalyzed ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
-            }`}
-          >
-            下一步
-            <ChevronRight size={16} />
-          </Button>
-        </div>
-      </div>
-      
-      {/* 浮动聊天按钮 */}
-      <FloatingChatButton 
-        characterName={selectedCharacter.name}
-        initialMessages={aiResponses}
-        onSendMessage={handleSendMessage}
-      />
+    <div className="container py-8 space-y-8">
+      <CourseHeader courseId={courseId} currentModuleIndex={0} />
+      {renderStageContent()}
     </div>
   );
 };
