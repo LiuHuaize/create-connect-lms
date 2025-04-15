@@ -12,13 +12,15 @@ interface AIChatBoxProps {
   onSendMessage: (message: string) => void;
   placeholder?: string;
   characterName?: string;
+  aiName?: string;
 }
 
 const AIChatBox: React.FC<AIChatBoxProps> = ({
   messages,
   onSendMessage,
   placeholder = '输入你的问题...',
-  characterName = ''
+  characterName = '',
+  aiName = 'AI 思考助手'
 }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -99,7 +101,7 @@ const AIChatBox: React.FC<AIChatBoxProps> = ({
         <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center">
           <Bot size={15} className="text-indigo-600" />
         </div>
-        <div className="text-xs font-medium text-indigo-700">AI 思考助手</div>
+        <div className="text-xs font-medium text-indigo-700">{aiName}</div>
       </div>
       
       {/* 聊天区域 */}
