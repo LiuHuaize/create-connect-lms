@@ -211,6 +211,7 @@ const CoursePage = () => {
           <CourseAssistantChat
             isChatOpen={isChatOpen}
             setIsChatOpen={setIsChatOpen}
+            courseName={courseData.title}
           />
         </div>
       </div>

@@ -28,6 +28,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import ExploreCourses from "./pages/ExploreCourses";
+import ModelTestComponent from "./components/ModelTestComponent";
 
 // 创建QueryClient并配置默认缓存策略
 const queryClient = new QueryClient({
@@ -209,6 +210,7 @@ const AppRoutes = () => {
                 <BlockNoteEditorTest onEditorFullscreenChange={handleEditorFullscreenChange} />
               </ProtectedRoute>
             } />
+            <Route path="/model-test" element={<ModelTestComponent />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

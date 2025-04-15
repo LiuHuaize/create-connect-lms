@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AIChatBox, { ChatMessage } from './AIChatBox';
+import { sendMessageToAI, formatMessages } from '@/services/aiService';
 
 interface Story {
   title: string;
@@ -43,20 +44,39 @@ const CharacterStory: React.FC<CharacterStoryProps> = ({
     ]);
   }, [currentPage, characterName, stories]);
   
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = async (message: string) => {
     // 添加用户消息
     const updatedMessages = [...chatMessages, { role: 'user' as 'user', content: message }];
     setChatMessages(updatedMessages);
     
-    // 模拟AI回复
-    setTimeout(() => {
-      let aiResponse = '';
+    try {
+      // 准备发送给AI的消息，包括系统提示
+      const aiMessages = [
+        { 
+          role: 'system' as const, 
+          content: `你是一位文学分析专家，专注于分析《西游记》中${characterName}的性格特质。
+当前正在分析的故事是《${stories[currentPage]?.title}》。
+故事内容：${stories[currentPage]?.content}
+
+请帮助用户分析${characterName}在这个故事中表现出的性格特质。
+你的分析应该基于故事中的具体情节和${characterName}的言行。
+如果用户提到了某些特质，就分析这些特质是否在故事中有体现，并给出具体的例子。
+可能的性格特质包括但不限于：勇敢、聪明、忠诚、固执、善良、坚持、谨慎、贪婪、自私、自信、谦虚等。` 
+        },
+        ...formatMessages(updatedMessages)
+      ];
       
-      // 分析用户输入中提到的特质
-      const traits = analyzeTraits(message);
+      // 调用API获取回复
+      const aiResponse = await sendMessageToAI(aiMessages);
       
+      // 添加AI回复
+      setChatMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
+      
+      // 分析AI回复中提到的特质
+      const traits = analyzeTraits(aiResponse);
+      
+      // 添加新发现的特质
       if (traits.length > 0) {
-        // 添加新发现的特质
         const newTraits = traits.filter(trait => !discoveredTraits.includes(trait));
         if (newTraits.length > 0) {
           setDiscoveredTraits(prev => [...prev, ...newTraits]);
@@ -65,20 +85,15 @@ const CharacterStory: React.FC<CharacterStoryProps> = ({
           newTraits.forEach(trait => {
             onTraitDiscovered && onTraitDiscovered(trait);
           });
-          
-          aiResponse = `你提到了一些很好的观点！从《${stories[currentPage]?.title}》中，我们确实可以看出${characterName}有${traits.join('、')}等特质。
-还有什么其他特质你注意到了吗？`;
-        } else {
-          aiResponse = `是的，${characterName}确实具有${traits.join('、')}的特质。你还观察到其他方面吗？`;
         }
-      } else if (message.includes('特质') || message.includes('性格') || message.includes('特点')) {
-        aiResponse = `在《${stories[currentPage]?.title}》这个故事中，${characterName}表现出了一些明显的性格特点。仔细阅读故事内容，你认为他/她有哪些性格特质呢？`;
-      } else {
-        aiResponse = `你的观点很有趣！从这个故事中，你能具体指出${characterName}表现出了哪些性格特质吗？例如勇敢、聪明、固执等等。`;
       }
-      
-      setChatMessages(prev => [...prev, { role: 'ai' as 'ai', content: aiResponse }]);
-    }, 1000);
+    } catch (error) {
+      console.error('获取AI回复失败:', error);
+      setChatMessages(prev => [...prev, { 
+        role: 'ai', 
+        content: '抱歉，我在分析故事时遇到了问题。请稍后再试。' 
+      }]);
+    }
   };
   
   // 简单分析文本中可能提到的特质

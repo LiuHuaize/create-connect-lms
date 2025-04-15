@@ -7,6 +7,7 @@ import AIChatBox, { ChatMessage } from './AIChatBox';
 import CharacterStoryWithStyle from './CharacterStory';
 import GlobalStyle from './GlobalStyle';
 import FloatingChatButton from './FloatingChatButton';
+import { sendMessageToAI, formatMessages } from '@/services/aiService';
 
 interface XiyoujiCourseProps {
   onBack: () => void;
@@ -221,61 +222,49 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   };
   
   // 处理聊天消息发送
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = async (message: string) => {
     // 添加用户消息
     const updatedMessages = [...aiResponses, { role: 'user' as 'user', content: message }];
+    setAiResponses(updatedMessages);
     
-    // 模拟AI回复
-    setTimeout(() => {
-      let aiResponse = '';
-      
-      // 根据当前阶段提供不同的回复
-      if (currentStage === 0) {
-        // 人物分析阶段
-        if (message.includes('需求') || message.includes('功能')) {
-          aiResponse = `根据${selectedCharacter.name}的性格特点，我认为他需要的软件功能可能包括：
-1. ${selectedCharacter.needs[0]}
-2. ${selectedCharacter.needs[1]}
-3. ${selectedCharacter.needs[2]}
+    try {
+      // 准备发送给AI的消息，包括系统提示
+      const aiMessages = [
+        { 
+          role: 'system' as const, 
+          content: `你是一位产品设计专家，正在帮助用户分析西游记中${selectedCharacter.name}的特点和需求。
+${selectedCharacter.name}的优点：${selectedCharacter.strengths.join('、')}
+${selectedCharacter.name}的缺点：${selectedCharacter.weaknesses.join('、')}
 
-你觉得还有什么其他功能可以帮助他吗？`;
-          // 显示需求列表
-          setShowNeeds(true);
-          setCharacterNeeds(selectedCharacter.needs);
-        } else if (message.includes('弱点') || message.includes('缺点')) {
-          aiResponse = `${selectedCharacter.name}的主要弱点包括：${selectedCharacter.weaknesses.join('、')}。我们可以设计软件来弥补这些不足，你有什么想法吗？`;
-        } else if (message.includes('优点') || message.includes('长处')) {
-          aiResponse = `${selectedCharacter.name}的优势包括：${selectedCharacter.strengths.join('、')}。我们可以基于这些优势设计更适合的功能，你觉得可以如何利用这些优势呢？`;
-        } else {
-          aiResponse = `你提到了关于${selectedCharacter.name}的看法，很有趣！基于他的性格特点，你认为什么样的软件功能可以帮助他解决西天取经路上的问题呢？`;
-        }
-      } else if (currentStage === 1) {
-        // 产品画布阶段
-        if (message.toLowerCase().includes('idea') || message.includes('想法') || message.includes('创意')) {
-          const newIdea = message.replace(/.*?[:：]/, '').trim();
-          if (newIdea) {
-            // 添加新创意
-            setProductIdeas(prev => [...prev, newIdea]);
-            aiResponse = `我已添加你的创意：${newIdea}。还有其他想法吗？或者你可以从已有的创意中选择最有潜力的3个进行深入开发。`;
-          } else {
-            aiResponse = `请分享一下你的具体创意，比如"创意：一个能够识别妖怪的AR系统"。`;
-          }
-        } else if (message.toLowerCase().includes('select') || message.includes('选择')) {
-          aiResponse = `好的，请从你的创意列表中选择最有潜力的3个。然后我们可以开始填写产品画布。`;
-        } else {
-          aiResponse = `在这个阶段，我们需要发散思维，提出尽可能多的创意。你可以说"创意：xxx"来添加一个新的产品想法。当你有足够的创意后，可以选择最好的3个进入下一步。`;
-        }
-      } else if (currentStage === 2) {
-        // 流程图阶段
-        aiResponse = `在流程图阶段，我们需要绘制产品的使用流程。你可以使用Excalidraw来创建流程图。有什么需要我帮助解释的吗？`;
-      } else {
-        // 网站制作阶段
-        aiResponse = `在网站制作阶段，我们需要根据你的产品创意和流程图设计一个原型网站。你想从哪个方面开始？比如用户界面、功能实现或者技术选择？`;
-      }
+当前用户正在进行的是西游记课程的第${currentStage + 1}阶段：${courseStages[currentStage].title}。
+${currentStage === 0 ? '这个阶段主要分析人物特点和需求，帮助用户确定适合' + selectedCharacter.name + '的产品功能。' : ''}
+${currentStage === 1 ? '这个阶段主要进行产品创意头脑风暴，确定最适合的产品方向。' : ''}
+${currentStage === 2 ? '这个阶段主要设计产品流程图，帮助用户理清产品使用流程。' : ''}
+${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产品的初步展示。' : ''}
+
+请根据用户的提问提供专业的指导和建议。` 
+        },
+        ...formatMessages(updatedMessages)
+      ];
       
-      // 添加AI响应
-      setAiResponses([...updatedMessages, { role: 'ai' as 'ai', content: aiResponse }]);
-    }, 1000);
+      // 调用API获取回复
+      const aiResponse = await sendMessageToAI(aiMessages);
+      
+      // 添加AI回复
+      setAiResponses(prev => [...prev, { role: 'ai', content: aiResponse }]);
+      
+      // 如果用户询问需求相关问题，显示需求列表
+      if (message.toLowerCase().includes('需求') || message.toLowerCase().includes('功能')) {
+        setShowNeeds(true);
+        setCharacterNeeds(selectedCharacter.needs);
+      }
+    } catch (error) {
+      console.error('获取AI回复失败:', error);
+      setAiResponses(prev => [...prev, { 
+        role: 'ai', 
+        content: '抱歉，我在处理您的请求时遇到了问题。请稍后再试。' 
+      }]);
+    }
   };
 
   // 处理添加产品创意
