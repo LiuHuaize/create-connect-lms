@@ -7,6 +7,8 @@ interface CharacterCardProps {
   weaknesses: string[];
   isSelected: boolean;
   onClick: () => void;
+  isAnalyzed?: boolean;
+  customTraits?: string[];
 }
 
 const CharacterCard: React.FC<CharacterCardProps> = ({
@@ -15,31 +17,49 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
   strengths,
   weaknesses,
   isSelected,
-  onClick
+  onClick,
+  isAnalyzed = false,
+  customTraits = []
 }) => {
   return (
     <div 
-      onClick={onClick}
-      className={`cursor-pointer rounded-lg p-2 transition-all duration-200 ${
+      className={`relative flex flex-col items-center p-3 rounded-lg cursor-pointer transition-all duration-300 border-2 ${
         isSelected 
-          ? 'bg-indigo-50/80 border border-indigo-200/50 shadow-sm' 
-          : 'bg-white hover:bg-gray-50/80 border border-gray-100'
+          ? 'border-indigo-500 bg-indigo-50 shadow-sm' 
+          : 'border-transparent hover:bg-indigo-50/30 bg-white'
       }`}
+      onClick={onClick}
     >
-      <div className="flex flex-col items-center">
-        <div className={`w-14 h-14 overflow-hidden rounded-full mb-1.5 ${isSelected ? 'ring-2 ring-indigo-300' : ''}`}>
-          <img 
-            src={avatar} 
-            alt={name} 
-            className="w-full h-full object-cover"
-            style={{ objectFit: 'cover', objectPosition: 'center top' }}
-          />
+      {/* 分析完成标记 */}
+      {isAnalyzed && (
+        <div className="absolute top-1 right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-sm">
+          ✓
         </div>
-        <p className={`text-xs font-medium ${isSelected ? 'text-indigo-800' : 'text-gray-600'}`}>{name}</p>
-        
-        {isSelected && (
-          <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-0.5"></div>
-        )}
+      )}
+      
+      <div className={`w-16 h-16 rounded-full mb-2 flex items-center justify-center overflow-hidden ${isSelected ? 'ring-2 ring-indigo-400' : ''}`}>
+        <img src={avatar} alt={name} className="w-full h-full object-cover" />
+      </div>
+      
+      <div className="text-center mb-1">
+        <div className="font-medium text-gray-800">{name}</div>
+        <div className="text-xs text-gray-500">
+          {customTraits.length > 0 ? `已发现${customTraits.length}个特质` : '点击分析人物'}
+        </div>
+      </div>
+      
+      <div className="text-center">
+        <div 
+          className={`text-[10px] flex gap-0.5 transition-opacity duration-300 ${
+            isSelected ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          {isSelected && (
+            <div className="w-full flex mt-1 justify-center">
+              <div className="w-5 h-1 bg-indigo-500 rounded-full"></div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

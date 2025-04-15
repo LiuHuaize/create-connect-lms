@@ -43,7 +43,7 @@ const characters = [
       },
       {
         title: '普济寺募捐',
-        content: '唐僧途经普济寺时，看到寺庙年久失修，立即发心募捐重建，并亲自参与劳作。这个故事展示了他慈悲为怀、乐于助人的性格特点。',
+        content: '唐僧途经普济寺时，看到寺庙年久失修，立即发心募捐重建，并亲自参与劳作。这个故事展示了他慈悲为怀、乐于助人的性格特点。'
       }
     ],
     needs: ['安全保障系统', '辨别真伪的AI助手', '身体健康管理APP', '准确的导航系统']
@@ -77,7 +77,7 @@ const characters = [
       },
       {
         title: '大战红孩儿',
-        content: '面对火云洞的红孩儿，孙悟空初战失利，但不气馁，最终寻求帮助战胜对手。这表明他虽然骄傲，但在关键时刻也懂得寻求援助，有一定的团队意识。',
+        content: '面对火云洞的红孩儿，孙悟空初战失利，但不气馁，最终寻求帮助战胜对手。这表明他虽然骄傲，但在关键时刻也懂得寻求援助，有一定的团队意识。'
       }
     ],
     needs: ['情绪管理工具', '沟通技巧提升APP', '团队协作系统', '战斗力量监测器']
@@ -111,7 +111,7 @@ const characters = [
       },
       {
         title: '黑风山救师',
-        content: '在黑风山，猪八戒虽然害怕黑风怪，但仍与孙悟空一起努力救出师父。在危险面前，他虽然胆小，但不会完全退缩，依然愿意尽自己的责任。',
+        content: '在黑风山，猪八戒虽然害怕黑风怪，但仍与孙悟空一起努力救出师父。在危险面前，他虽然胆小，但不会完全退缩，依然愿意尽自己的责任。'
       }
     ],
     needs: ['饮食管理系统', '意志力训练app', '体能提升工具', '任务提醒器']
@@ -145,7 +145,7 @@ const characters = [
       },
       {
         title: '独守行囊',
-        content: '在师徒遇到危险时，沙僧常常被安排看守行李，虽然任务单调，但他从不抱怨。这表明他能够安于本分，踏实可靠。',
+        content: '在师徒遇到危险时，沙僧常常被安排看守行李，虽然任务单调，但他从不抱怨。这表明他能够安于本分，踏实可靠。'
       }
     ],
     needs: ['个人形象提升系统', '特殊技能培训程序', '团队定位系统', '沟通辅助工具']
@@ -183,6 +183,30 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
     userGroups: '',
     keyFeatures: ''
   });
+  
+  // 添加字符分析状态跟踪
+  const [analyzedCharacters, setAnalyzedCharacters] = useState<{[key: string]: boolean}>({
+    tangseng: false,
+    wukong: false,
+    bajie: false,
+    wujing: false
+  });
+  
+  // 添加每个角色的自定义特质
+  const [characterTraits, setCharacterTraits] = useState<{[key: string]: string[]}>({
+    tangseng: [],
+    wukong: [],
+    bajie: [],
+    wujing: []
+  });
+  
+  // 获取分析完成的角色数量
+  const getAnalyzedCount = () => {
+    return Object.values(analyzedCharacters).filter(Boolean).length;
+  };
+  
+  // 检查是否所有角色都已分析
+  const allCharactersAnalyzed = getAnalyzedCount() === 4;
   
   // 选择角色时的处理函数
   const handleSelectCharacter = (character: typeof characters[0]) => {
@@ -283,8 +307,31 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   };
 
   const handleNextStage = () => {
+    // 只有当所有角色都已分析或不在第一阶段时才能进入下一阶段
+    if (currentStage === 0 && !allCharactersAnalyzed) {
+      return;
+    }
+    
     if (currentStage < courseStages.length - 1) {
       setCurrentStage(currentStage + 1);
+    }
+  };
+
+  // 处理发现的新特质
+  const handleTraitDiscovered = (trait: string) => {
+    // 将新特质添加到当前角色
+    const characterId = selectedCharacter.id;
+    if (!characterTraits[characterId].includes(trait)) {
+      const updatedTraits = {...characterTraits};
+      updatedTraits[characterId] = [...updatedTraits[characterId], trait];
+      setCharacterTraits(updatedTraits);
+      
+      // 如果角色特质达到至少3个，将该角色标记为已分析
+      if (updatedTraits[characterId].length >= 3 && !analyzedCharacters[characterId]) {
+        const updatedAnalyzed = {...analyzedCharacters};
+        updatedAnalyzed[characterId] = true;
+        setAnalyzedCharacters(updatedAnalyzed);
+      }
     }
   };
 
@@ -310,8 +357,29 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                     weaknesses={char.weaknesses}
                     isSelected={selectedCharacter.id === char.id}
                     onClick={() => handleSelectCharacter(char)}
+                    isAnalyzed={analyzedCharacters[char.id]}
+                    customTraits={characterTraits[char.id]}
                   />
                 ))}
+              </div>
+              
+              {/* 分析完成进度 */}
+              <div className="mt-4 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                <h4 className="text-sm font-medium text-indigo-700 mb-2">分析进度</h4>
+                <div className="w-full bg-white rounded-full h-2.5">
+                  <div 
+                    className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
+                    style={{ width: `${(getAnalyzedCount() / 4) * 100}%` }}
+                  ></div>
+                </div>
+                <p className="mt-2 text-xs text-indigo-600 text-center">
+                  {getAnalyzedCount()}/4 人物分析完成
+                </p>
+                {allCharactersAnalyzed && (
+                  <div className="mt-3 p-2 bg-green-50 border border-green-100 rounded-lg text-xs text-green-700 text-center">
+                    恭喜！你已完成所有人物分析，可以进入下一阶段
+                  </div>
+                )}
               </div>
             </div>
             
@@ -330,6 +398,27 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                 <TabsContent value="analysis" className="m-0 bg-white rounded-b-xl shadow-sm p-4">
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-800">{selectedCharacter.name}的特点分析</h3>
+                    
+                    {/* 显示自定义特质 */}
+                    {characterTraits[selectedCharacter.id].length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-600 mb-2 flex items-center gap-1">
+                          <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</span> 
+                          发现的特质
+                        </h4>
+                        <ul className="grid grid-cols-2 gap-2">
+                          {characterTraits[selectedCharacter.id].map((trait, index) => (
+                            <li 
+                              key={index}
+                              className="bg-blue-50 px-3 py-2 rounded text-sm text-blue-700 flex items-center gap-2"
+                            >
+                              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</span>
+                              {trait}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     
                     <div>
                       <h4 className="text-sm font-medium text-green-600 mb-2 flex items-center gap-1">
@@ -390,7 +479,11 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                 </TabsContent>
                 
                 <TabsContent value="story" className="m-0 bg-white rounded-b-xl shadow-sm p-4">
-                  <CharacterStoryWithStyle stories={selectedCharacter.stories} characterName={selectedCharacter.name} />
+                  <CharacterStoryWithStyle 
+                    stories={selectedCharacter.stories} 
+                    characterName={selectedCharacter.name}
+                    onTraitDiscovered={handleTraitDiscovered}
+                  />
                 </TabsContent>
               </Tabs>
             </div>
@@ -648,86 +741,93 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
-      {/* 顶部导航栏 */}
-      <div className="bg-white shadow-sm py-2 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft size={18} />
-          </Button>
-          <div className="text-sm font-medium">返回课程列表</div>
-        </div>
-        <div className="text-sm text-gray-500">
-          模块 {currentStage + 1}/4: {courseStages[currentStage].title}
-        </div>
-      </div>
+    <div className="h-full flex flex-col bg-gray-50 overflow-auto">
+      <GlobalStyle />
       
-      {/* 主要内容区域 */}
-      <div className="flex-1 py-6">
-        {/* 课程标题 */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-indigo-700 mb-2">西游记PBL项目课程</h1>
-          <p className="text-gray-600">假如你穿越到古代，成为师徒四人的技术负责人</p>
-        </div>
-        
-        {/* 进度条 */}
-        <div className="w-full max-w-[1000px] mx-auto px-4 mb-8">
-          <div className="h-2 bg-indigo-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-indigo-500 transition-all duration-500 ease-out"
-              style={{ width: `${(currentStage / (courseStages.length - 1)) * 100}%` }}
-            />
+      {/* 顶部导航栏 */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-screen-xl mx-auto px-4 flex justify-between items-center py-3">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={onBack}
+              className="h-8 w-8"
+            >
+              <ArrowLeft size={16} />
+            </Button>
+            <div>
+              <h1 className="text-lg font-bold text-indigo-800">西游记PBL项目课程</h1>
+              <p className="text-xs text-gray-500">假如你穿越到古代，成为师徒四人的技术负责人</p>
+            </div>
           </div>
-          <div className="flex justify-between mt-2">
+          
+          {/* 课程阶段导航 */}
+          <div className="hidden md:flex items-center gap-3">
             {courseStages.map((stage, index) => (
               <div 
                 key={stage.id} 
-                className={`flex flex-col items-center ${index <= currentStage ? 'text-indigo-600' : 'text-gray-400'}`}
-                style={{ width: `${100 / courseStages.length}%` }}
+                className={`flex items-center ${index > 0 ? 'ml-4' : ''}`}
               >
-                <div 
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                    index < currentStage 
-                      ? 'bg-indigo-500 text-white' 
-                      : index === currentStage 
-                        ? 'bg-indigo-100 text-indigo-600 border-2 border-indigo-500' 
-                        : 'bg-gray-100 text-gray-400'
-                  }`}
-                >
-                  {index + 1}
+                {index > 0 && (
+                  <div className="h-0.5 w-8 bg-gray-200 -ml-10"></div>
+                )}
+                <div className={`flex flex-col items-center`}>
+                  <div 
+                    className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                      index === currentStage 
+                        ? 'border-indigo-500 bg-indigo-100 text-indigo-700' 
+                        : index < currentStage
+                          ? 'border-green-500 bg-green-100 text-green-700'
+                          : 'border-gray-300 bg-gray-100 text-gray-500'
+                    } text-xs`}
+                  >
+                    {index + 1}
+                  </div>
+                  <div className="text-xs mt-1 whitespace-nowrap text-gray-600">{stage.title}</div>
                 </div>
-                <div className="text-xs mt-1 text-center">{stage.title}</div>
               </div>
             ))}
           </div>
         </div>
-        
-        {/* 阶段内容 */}
+      </div>
+      
+      {/* 主内容区域 */}
+      <div className="flex-1 overflow-auto py-6">
         {renderStageContent()}
       </div>
       
       {/* 底部导航 */}
-      <div className="bg-white shadow-sm py-3 px-4 flex items-center justify-between">
-        <Button 
-          variant="outline" 
-          onClick={handlePrevStage}
-          disabled={currentStage === 0}
-          className="flex items-center gap-1"
-        >
-          <ChevronLeft size={16} />
-          上一步
-        </Button>
-        <Button 
-          onClick={handleNextStage}
-          disabled={currentStage === courseStages.length - 1}
-          className="flex items-center gap-1"
-        >
-          下一步
-          <ChevronRight size={16} />
-        </Button>
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 py-3 px-4">
+        <div className="max-w-screen-xl mx-auto flex justify-between items-center">
+          <Button
+            variant="outline"
+            onClick={handlePrevStage}
+            disabled={currentStage === 0}
+            className="flex items-center gap-1"
+          >
+            <ChevronLeft size={16} />
+            上一步
+          </Button>
+          
+          <div className="text-sm text-gray-500">
+            阶段 {currentStage + 1}/{courseStages.length}: {courseStages[currentStage].title}
+          </div>
+          
+          <Button
+            onClick={handleNextStage}
+            disabled={currentStage === 0 && !allCharactersAnalyzed}
+            className={`flex items-center gap-1 ${
+              currentStage === 0 && !allCharactersAnalyzed ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
+          >
+            下一步
+            <ChevronRight size={16} />
+          </Button>
+        </div>
       </div>
       
-      {/* 添加浮动AI聊天助手 */}
+      {/* 浮动聊天按钮 */}
       <FloatingChatButton 
         characterName={selectedCharacter.name}
         initialMessages={aiResponses}
@@ -739,9 +839,6 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
 
 export default function XiyoujiCourseWithStyle(props: XiyoujiCourseProps) {
   return (
-    <>
-      <GlobalStyle />
-      <XiyoujiCourse {...props} />
-    </>
+    <XiyoujiCourse {...props} />
   );
 } 
