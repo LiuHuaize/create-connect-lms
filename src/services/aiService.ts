@@ -34,16 +34,18 @@ interface ChatCompletionResponse {
 }
 
 // DeepSeek API 配置
-const API_KEY = 'sk-ysF0SA6kJ7C1I2wG2f901fD6Fe8443Df8f75C92a0aF1Ce2b';
-const BASE_URL = 'https://aihubmix.com/v1';
-const MODEL_NAME = 'gpt-4.1-mini';
+// 从环境变量读取API密钥，确保在 .env.local 或类似文件中设置 DEEPSEEK_API_KEY
+// 如果使用 Vite 或 Create React App，可能需要 VITE_ 前缀或 REACT_APP_ 前缀
+const API_KEY = process.env.DEEPSEEK_API_KEY;
+const BASE_URL = 'https://api.deepseek.com'; // 更新为 DeepSeek API 地址
+const MODEL_NAME = 'deepseek-chat'; // 更新为 DeepSeek 模型名称
 
 // 创建 axios 实例
 const aiApi = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${API_KEY}`
+    'Authorization': `Bearer ${API_KEY}` // 使用环境变量中的 API Key
   },
   timeout: 60000 // 设置60秒超时
 });
