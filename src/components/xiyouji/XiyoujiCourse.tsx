@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Sparkles, Info, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -8,6 +8,8 @@ import CharacterStoryWithStyle from './CharacterStory';
 import GlobalStyle from './GlobalStyle';
 import FloatingChatButton from './FloatingChatButton';
 import { sendMessageToAI, formatMessages } from '@/services/aiService';
+import { toast } from '@/components/ui/use-toast';
+import { supabase, getCurrentUser } from '@/lib/supabase';
 
 interface XiyoujiCourseProps {
   onBack: () => void;
@@ -165,7 +167,18 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   const [selectedCharacter, setSelectedCharacter] = useState(characters[0]);
   const [activeTab, setActiveTab] = useState('analysis');
   const [aiResponses, setAiResponses] = useState<ChatMessage[]>([
-    { role: 'ai' as 'ai', content: `你好！我是你的AI助手，可以帮你思考${selectedCharacter.name}的需求。告诉我你的想法吧！` }
+    { 
+      role: 'ai' as 'ai', 
+      content: `你好！我是${selectedCharacter.name}的分析助手。
+
+你的任务是：
+1. 阅读右侧的相关故事，思考这些故事揭示了${selectedCharacter.name}哪些性格特点
+2. 与我讨论你发现的特点，我会帮你分析它们是优点还是缺点
+3. 我会总结讨论结果并显示在"人物特点"页面
+4. 你需要为每个角色至少找出一个优点和一个缺点才能进入下一阶段
+
+请告诉我，从故事中你发现了${selectedCharacter.name}哪些性格特点？` 
+    }
   ]);
   const [showNeeds, setShowNeeds] = useState(false);
   const [characterNeeds, setCharacterNeeds] = useState<string[]>([]);
@@ -194,12 +207,41 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   });
   
   // 添加每个角色的自定义特质
-  const [characterTraits, setCharacterTraits] = useState<{[key: string]: string[]}>({
+  const [characterTraits, setCharacterTraits] = useState<{
+    [key: string]: {
+      strengths: string[],
+      weaknesses: string[]
+    }
+  }>({
+    tangseng: { strengths: [], weaknesses: [] },
+    wukong: { strengths: [], weaknesses: [] },
+    bajie: { strengths: [], weaknesses: [] },
+    wujing: { strengths: [], weaknesses: [] }
+  });
+  
+  // 添加缺失的状态变量
+  const [user, setUser] = useState<any>(null);
+  const [courseId, setCourseId] = useState('default-course-id');
+  
+  // 添加聊天记录的状态
+  const [characterChats, setCharacterChats] = useState<{
+    [key: string]: ChatMessage[]
+  }>({
     tangseng: [],
     wukong: [],
     bajie: [],
     wujing: []
   });
+  
+  // 获取当前用户
+  useEffect(() => {
+    const fetchUser = async () => {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    };
+    
+    fetchUser();
+  }, []);
   
   // 获取分析完成的角色数量
   const getAnalyzedCount = () => {
@@ -209,49 +251,264 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   // 检查是否所有角色都已分析
   const allCharactersAnalyzed = getAnalyzedCount() === 4;
   
-  // 选择角色时的处理函数
+  // 检查一个角色是否有足够的特质被发现
+  const hasEnoughTraits = (characterId: string) => {
+    return characterTraits[characterId].strengths.length > 0 && 
+           characterTraits[characterId].weaknesses.length > 0;
+  };
+  
+  // 保存角色分析到数据库
+  const saveCharacterAnalysis = async (characterId: string, characterName: string) => {
+    if (!user) return;
+    
+    try {
+      const { data: existingAnalysis, error: fetchError } = await supabase
+        .from('character_analysis')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .eq('character_id', characterId)
+        .single();
+      
+      const characterTraitsData = {
+        strengths: characterTraits[characterId].strengths,
+        weaknesses: characterTraits[characterId].weaknesses
+      };
+      
+      if (fetchError || !existingAnalysis) {
+        // 创建新记录
+        const { error } = await supabase
+          .from('character_analysis')
+          .insert({
+            user_id: user.id,
+            course_id: courseId,
+            character_id: characterId,
+            character_name: characterName,
+            character_traits: characterTraitsData,
+            is_analyzed: true,
+            completed_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+      } else {
+        // 更新现有记录
+        const { error } = await supabase
+          .from('character_analysis')
+          .update({
+            character_traits: characterTraitsData,
+            is_analyzed: true,
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingAnalysis.id);
+          
+        if (error) throw error;
+      }
+      
+      console.log(`角色分析已保存: ${characterName}`);
+    } catch (error) {
+      console.error('保存角色分析失败:', error);
+    }
+  };
+  
+  // 初始加载时获取已有聊天记录
+  useEffect(() => {
+    const fetchCharacterChats = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('character_analysis_chats')
+          .select('character_id, messages')
+          .eq('user_id', user.id)
+          .eq('course_id', courseId);
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const chatsByCharacter: {[key: string]: ChatMessage[]} = {
+            tangseng: [],
+            wukong: [],
+            bajie: [],
+            wujing: []
+          };
+          
+          data.forEach(item => {
+            if (item.character_id && item.messages) {
+              // 确保从数据库加载的消息有正确的类型
+              const typedMessages = item.messages.map((msg: any) => ({
+                role: msg.role as 'user' | 'ai',
+                content: msg.content
+              }));
+              chatsByCharacter[item.character_id] = typedMessages;
+            }
+          });
+          
+          setCharacterChats(chatsByCharacter);
+          
+          // 如果当前选择的角色有聊天记录，设置到aiResponses
+          if (selectedCharacter && chatsByCharacter[selectedCharacter.id].length > 0) {
+            setAiResponses(chatsByCharacter[selectedCharacter.id]);
+          }
+        }
+      } catch (error) {
+        console.error('获取聊天记录失败:', error);
+      }
+    };
+    
+    if (user) {
+      fetchCharacterChats();
+    }
+  }, [user, courseId]);
+  
+  // 修改选择角色时的处理函数
   const handleSelectCharacter = (character: typeof characters[0]) => {
     setSelectedCharacter(character);
     // 重置需求显示
     setShowNeeds(false);
     setCharacterNeeds([]);
-    // 重置聊天消息
-    setAiResponses([
-      { role: 'ai' as 'ai', content: `你好！我是你的AI助手，可以帮你思考${character.name}的需求。告诉我你的想法吧！` }
-    ]);
+    
+    // 如果该角色有保存的聊天记录，使用保存的记录
+    if (characterChats[character.id] && characterChats[character.id].length > 0) {
+      setAiResponses(characterChats[character.id]);
+    } else {
+      // 否则使用初始引导消息
+      setAiResponses([
+        { 
+          role: 'ai' as 'ai', 
+          content: `你好！我是${character.name}的分析助手。
+
+你的任务是：
+1. 阅读右侧的相关故事，思考这些故事揭示了${character.name}哪些性格特点
+2. 与我讨论你发现的特点，我会帮你分析它们是优点还是缺点
+3. 我会总结讨论结果并显示在"人物特点"页面
+4. 你需要为每个角色至少找出一个优点和一个缺点才能进入下一阶段
+
+请告诉我，从故事中你发现了${character.name}哪些性格特点？` 
+        }
+      ]);
+    }
+    
+    // 默认切换到故事标签
+    setActiveTab('story');
   };
   
-  // 处理聊天消息发送
+  // 保存聊天记录到数据库
+  const saveCharacterChat = async (characterId: string, messages: ChatMessage[]) => {
+    if (!user) return;
+    
+    try {
+      // 先检查是否已有该角色的聊天记录
+      const { data: existingChat, error: fetchError } = await supabase
+        .from('character_analysis_chats')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('course_id', courseId)
+        .eq('character_id', characterId)
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        // PGRST116是"没有找到结果"的错误，其他错误需要抛出
+        throw fetchError;
+      }
+      
+      if (!existingChat) {
+        // 创建新记录
+        const { error } = await supabase
+          .from('character_analysis_chats')
+          .insert({
+            user_id: user.id,
+            course_id: courseId,
+            character_id: characterId,
+            messages: messages
+          });
+          
+        if (error) throw error;
+      } else {
+        // 更新现有记录
+        const { error } = await supabase
+          .from('character_analysis_chats')
+          .update({
+            messages: messages,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingChat.id);
+          
+        if (error) throw error;
+      }
+      
+      // 更新本地状态
+      setCharacterChats(prev => ({
+        ...prev,
+        [characterId]: messages
+      }));
+      
+      console.log(`聊天记录已保存: ${characterId}`);
+    } catch (error) {
+      console.error('保存聊天记录失败:', error);
+    }
+  };
+  
+  // 修改处理聊天消息发送的函数
   const handleSendMessage = async (message: string) => {
     // 添加用户消息
     const updatedMessages = [...aiResponses, { role: 'user' as 'user', content: message }];
     setAiResponses(updatedMessages);
     
     try {
+      // 准备系统提示，引导AI识别性格特质
+      const systemPrompt = `你是一位西游记专家，正在帮助用户分析${selectedCharacter.name}的性格特点。
+你的主要任务是从用户的描述中识别出${selectedCharacter.name}的优点和缺点。
+
+请遵循以下规则：
+1. 当用户提到角色特点时，判断它是优点还是缺点
+2. 使用[优点:特质名称]或[缺点:特质名称]的格式在回复中标记你识别的特质
+3. 给出简短的解释，说明为什么这是优点或缺点
+4. 鼓励用户继续发现更多特质，直到至少有一个优点和一个缺点
+
+例如，如果用户说"唐僧很慈悲"，你可以回复：
+"[优点:慈悲] 你发现了唐僧的一个重要优点！他的慈悲之心让他对众生充满同情，这是一位修行者的重要品质。你还发现了他的其他特点吗？"
+
+如果用户明显偏离了分析角色特点的话题，温和地将讨论引导回角色分析。`;
+      
       // 准备发送给AI的消息，包括系统提示
       const aiMessages = [
-        { 
-          role: 'system' as const, 
-          content: `你是一位产品设计专家，正在帮助用户分析西游记中${selectedCharacter.name}的特点和需求。
-${selectedCharacter.name}的优点：${selectedCharacter.strengths.join('、')}
-${selectedCharacter.name}的缺点：${selectedCharacter.weaknesses.join('、')}
-
-当前用户正在进行的是西游记课程的第${currentStage + 1}阶段：${courseStages[currentStage].title}。
-${currentStage === 0 ? '这个阶段主要分析人物特点和需求，帮助用户确定适合' + selectedCharacter.name + '的产品功能。' : ''}
-${currentStage === 1 ? '这个阶段主要进行产品创意头脑风暴，确定最适合的产品方向。' : ''}
-${currentStage === 2 ? '这个阶段主要设计产品流程图，帮助用户理清产品使用流程。' : ''}
-${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产品的初步展示。' : ''}
-
-请根据用户的提问提供专业的指导和建议。` 
-        },
+        { role: 'system' as const, content: systemPrompt },
         ...formatMessages(updatedMessages)
       ];
       
       // 调用API获取回复
       const aiResponse = await sendMessageToAI(aiMessages);
       
-      // 添加AI回复
-      setAiResponses(prev => [...prev, { role: 'ai', content: aiResponse }]);
+      // 添加AI回复并确保正确的类型
+      const finalMessages: ChatMessage[] = [
+        ...updatedMessages, 
+        { role: 'ai' as 'ai', content: aiResponse }
+      ];
+      setAiResponses(finalMessages);
+      
+      // 保存聊天记录到数据库
+      saveCharacterChat(selectedCharacter.id, finalMessages);
+      
+      // 从AI回复中提取特质
+      const strengthRegex = /\[优点:(.*?)\]/g;
+      const weaknessRegex = /\[缺点:(.*?)\]/g;
+      
+      let strengthMatch;
+      while ((strengthMatch = strengthRegex.exec(aiResponse)) !== null) {
+        const trait = strengthMatch[1].trim();
+        if (trait) {
+          handleTraitDiscovered(trait, 'strength');
+        }
+      }
+      
+      let weaknessMatch;
+      while ((weaknessMatch = weaknessRegex.exec(aiResponse)) !== null) {
+        const trait = weaknessMatch[1].trim();
+        if (trait) {
+          handleTraitDiscovered(trait, 'weakness');
+        }
+      }
       
       // 如果用户询问需求相关问题，显示需求列表
       if (message.toLowerCase().includes('需求') || message.toLowerCase().includes('功能')) {
@@ -296,8 +553,20 @@ ${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产�
   };
 
   const handleNextStage = () => {
-    // 只有当所有角色都已分析或不在第一阶段时才能进入下一阶段
-    if (currentStage === 0 && !allCharactersAnalyzed) {
+    // 检查是否所有角色都已分析且每个角色都至少有一个优点和一个缺点
+    const allCharactersHaveTraits = Object.keys(characterTraits).every(charId => 
+      hasEnoughTraits(charId)
+    );
+    
+    if (currentStage === 0 && (!allCharactersAnalyzed || !allCharactersHaveTraits)) {
+      // 显示提示消息
+      toast({
+        title: "无法进入下一阶段",
+        description: !allCharactersAnalyzed 
+          ? "请先完成所有四个角色的分析" 
+          : "每个角色至少需要发现一个优点和一个缺点",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -306,20 +575,28 @@ ${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产�
     }
   };
 
-  // 处理发现的新特质
-  const handleTraitDiscovered = (trait: string) => {
+  // 处理发现的新特质 - 现在区分优点和缺点
+  const handleTraitDiscovered = (trait: string, type: 'strength' | 'weakness') => {
     // 将新特质添加到当前角色
     const characterId = selectedCharacter.id;
-    if (!characterTraits[characterId].includes(trait)) {
-      const updatedTraits = {...characterTraits};
-      updatedTraits[characterId] = [...updatedTraits[characterId], trait];
+    
+    // 创建一个更新后的特质对象
+    const updatedTraits = {...characterTraits};
+    const traitsList = type === 'strength' ? 'strengths' : 'weaknesses';
+    
+    // 如果特质还没被添加，则添加到相应类别中
+    if (!updatedTraits[characterId][traitsList].includes(trait)) {
+      updatedTraits[characterId][traitsList] = [...updatedTraits[characterId][traitsList], trait];
       setCharacterTraits(updatedTraits);
       
-      // 如果角色特质达到至少3个，将该角色标记为已分析
-      if (updatedTraits[characterId].length >= 3 && !analyzedCharacters[characterId]) {
+      // 如果角色同时有优点和缺点，将该角色标记为已分析
+      if (hasEnoughTraits(characterId) && !analyzedCharacters[characterId]) {
         const updatedAnalyzed = {...analyzedCharacters};
         updatedAnalyzed[characterId] = true;
         setAnalyzedCharacters(updatedAnalyzed);
+        
+        // 保存到数据库
+        saveCharacterAnalysis(characterId, selectedCharacter.name);
       }
     }
   };
@@ -336,6 +613,15 @@ ${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产�
                 <span className="flex items-center justify-center w-6 h-6 bg-indigo-100 rounded-full text-xs">1</span>
                 选择人物
               </div>
+              
+              {/* 添加任务说明 */}
+              <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg mb-4">
+                <h4 className="text-sm font-medium text-amber-700 mb-1">任务说明</h4>
+                <p className="text-xs text-amber-700">
+                  与AI助手讨论每个角色的性格特点，从故事中发现他们的优点和缺点。每个角色至少需要找出一个优点和一个缺点。完成所有角色分析后，才能进入下一阶段。
+                </p>
+              </div>
+              
               <div className="grid grid-cols-2 gap-3">
                 {characters.map((char) => (
                   <CharacterCard
@@ -347,7 +633,6 @@ ${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产�
                     isSelected={selectedCharacter.id === char.id}
                     onClick={() => handleSelectCharacter(char)}
                     isAnalyzed={analyzedCharacters[char.id]}
-                    customTraits={characterTraits[char.id]}
                   />
                 ))}
               </div>
@@ -374,7 +659,7 @@ ${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产�
             
             {/* 中间区域：人物特点和故事 */}
             <div className="lg:col-span-2">
-              <Tabs defaultValue="analysis" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <Tabs defaultValue="story" value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="w-full bg-white rounded-t-xl overflow-hidden grid grid-cols-2 p-0">
                   <TabsTrigger value="analysis" className="py-3 rounded-none data-[state=active]:bg-indigo-50">
                     人物特点
@@ -388,62 +673,24 @@ ${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产�
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium text-gray-800">{selectedCharacter.name}的特点分析</h3>
                     
-                    {/* 显示自定义特质 */}
-                    {characterTraits[selectedCharacter.id].length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium text-blue-600 mb-2 flex items-center gap-1">
-                          <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</span> 
-                          发现的特质
-                        </h4>
-                        <ul className="grid grid-cols-2 gap-2">
-                          {characterTraits[selectedCharacter.id].map((trait, index) => (
-                            <li 
-                              key={index}
-                              className="bg-blue-50 px-3 py-2 rounded text-sm text-blue-700 flex items-center gap-2"
-                            >
-                              <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</span>
-                              {trait}
-                            </li>
-                          ))}
-                        </ul>
+                    {/* 如果尚未分析，显示引导信息 */}
+                    {!analyzedCharacters[selectedCharacter.id] && characterTraits[selectedCharacter.id].strengths.length === 0 && characterTraits[selectedCharacter.id].weaknesses.length === 0 ? (
+                      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                        <div className="text-gray-500 mb-3">尚未进行分析</div>
+                        <p className="text-sm text-gray-600 mb-3">
+                          请先阅读"相关故事"，然后与AI助手讨论{selectedCharacter.name}的性格特点。
+                          你发现的优点和缺点将会显示在这里。
+                        </p>
+                        <Button 
+                          onClick={() => setActiveTab('story')}
+                          className="bg-indigo-500 hover:bg-indigo-600 text-white"
+                        >
+                          前往阅读故事
+                        </Button>
                       </div>
+                    ) : (
+                      renderCharacterTraits()
                     )}
-                    
-                    <div>
-                      <h4 className="text-sm font-medium text-green-600 mb-2 flex items-center gap-1">
-                        <span className="w-4 h-4 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">+</span> 
-                        优点
-                      </h4>
-                      <ul className="grid grid-cols-2 gap-2">
-                        {selectedCharacter.strengths.map((strength, index) => (
-                          <li 
-                            key={index}
-                            className="bg-green-50 px-3 py-2 rounded text-sm text-green-700 flex items-center gap-2"
-                          >
-                            <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">+</span>
-                            {strength}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    
-                    <div>
-                      <h4 className="text-sm font-medium text-red-500 mb-2 flex items-center gap-1">
-                        <span className="w-4 h-4 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs">-</span>
-                        弱点
-                      </h4>
-                      <ul className="grid grid-cols-2 gap-2">
-                        {selectedCharacter.weaknesses.map((weakness, index) => (
-                          <li 
-                            key={index}
-                            className="bg-red-50 px-3 py-2 rounded text-sm text-red-600 flex items-center gap-2"
-                          >
-                            <span className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs">-</span>
-                            {weakness}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
                     
                     {showNeeds && (
                       <div className="mt-4 animate-fadeIn">
@@ -467,12 +714,31 @@ ${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产�
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="story" className="m-0 bg-white rounded-b-xl shadow-sm p-4">
-                  <CharacterStoryWithStyle 
-                    stories={selectedCharacter.stories} 
-                    characterName={selectedCharacter.name}
-                    onTraitDiscovered={handleTraitDiscovered}
-                  />
+                <TabsContent value="story" className="m-0 bg-white rounded-b-xl shadow-sm">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                    <CharacterStoryWithStyle 
+                      stories={selectedCharacter.stories} 
+                      characterName={selectedCharacter.name}
+                      onTraitDiscovered={handleTraitDiscovered}
+                    />
+                    
+                    {/* 添加AI对话区域到故事页面 */}
+                    <div className="border-l border-gray-200">
+                      <div className="p-3 bg-indigo-50 border-b border-indigo-100">
+                        <h3 className="text-sm font-medium text-indigo-700">与{selectedCharacter.name}分析助手对话</h3>
+                        <p className="text-xs text-gray-600 mt-1">
+                          讨论你从故事中发现的性格特点，AI会帮你分析并总结
+                        </p>
+                      </div>
+                      <AIChatBox 
+                        messages={aiResponses}
+                        onSendMessage={handleSendMessage}
+                        aiName={`${selectedCharacter.name}故事分析助手`}
+                        placeholder={`讨论${selectedCharacter.name}的性格特点...`}
+                        height="500px"
+                      />
+                    </div>
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>
@@ -727,6 +993,61 @@ ${currentStage === 3 ? '这个阶段主要进行网站原型设计，实现产�
       default:
         return null;
     }
+  };
+
+  // 修改渲染特质的部分
+  const renderCharacterTraits = () => {
+    const characterId = selectedCharacter.id;
+    const discoveredStrengths = characterTraits[characterId].strengths;
+    const discoveredWeaknesses = characterTraits[characterId].weaknesses;
+    
+    return (
+      <>
+        {/* 显示自定义特质 */}
+        {(discoveredStrengths.length > 0 || discoveredWeaknesses.length > 0) && (
+          <div className="mb-4">
+            <h4 className="text-sm font-medium text-blue-600 mb-2 flex items-center gap-1">
+              <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</span> 
+              发现的特质
+            </h4>
+            
+            {discoveredStrengths.length > 0 && (
+              <div className="mb-2">
+                <h5 className="text-xs font-medium text-green-600 mb-1 ml-1">优点:</h5>
+                <ul className="grid grid-cols-2 gap-2">
+                  {discoveredStrengths.map((trait, index) => (
+                    <li 
+                      key={`strength-${index}`}
+                      className="bg-green-50 px-3 py-2 rounded text-sm text-green-700 flex items-center gap-2"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">+</span>
+                      {trait}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {discoveredWeaknesses.length > 0 && (
+              <div>
+                <h5 className="text-xs font-medium text-red-600 mb-1 ml-1">缺点:</h5>
+                <ul className="grid grid-cols-2 gap-2">
+                  {discoveredWeaknesses.map((trait, index) => (
+                    <li 
+                      key={`weakness-${index}`}
+                      className="bg-red-50 px-3 py-2 rounded text-sm text-red-600 flex items-center gap-2"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs">-</span>
+                      {trait}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </>
+    );
   };
 
   return (

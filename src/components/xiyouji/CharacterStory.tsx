@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
+import { MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import AIChatBox, { ChatMessage } from './AIChatBox';
+import AIChatBox, { ChatMessage } from '../xiyouji/AIChatBox';
 import { sendMessageToAI, formatMessages } from '@/services/aiService';
 
 interface Story {
@@ -12,7 +12,7 @@ interface Story {
 interface CharacterStoryProps {
   stories: Story[];
   characterName: string;
-  onTraitDiscovered?: (trait: string) => void;
+  onTraitDiscovered?: (trait: string, type: 'strength' | 'weakness') => void;
 }
 
 const CharacterStory: React.FC<CharacterStoryProps> = ({
@@ -22,10 +22,9 @@ const CharacterStory: React.FC<CharacterStoryProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [showChat, setShowChat] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'ai' as 'ai', content: `你好！我是你的AI助手。让我们一起分析《${stories[currentPage]?.title}》中${characterName}表现出的性格特质。你有什么想法？` }
-  ]);
-  const [discoveredTraits, setDiscoveredTraits] = useState<string[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [discoveredStrengths, setDiscoveredStrengths] = useState<string[]>([]);
+  const [discoveredWeaknesses, setDiscoveredWeaknesses] = useState<string[]>([]);
   
   const totalStories = stories.length;
   
@@ -42,6 +41,7 @@ const CharacterStory: React.FC<CharacterStoryProps> = ({
     setChatMessages([
       { role: 'ai' as 'ai', content: `你好！我是你的AI助手。让我们一起分析《${stories[currentPage]?.title}》中${characterName}表现出的性格特质。你有什么想法？` }
     ]);
+    setShowChat(true); // 自动显示聊天框
   }, [currentPage, characterName, stories]);
   
   const handleSendMessage = async (message: string) => {
@@ -58,9 +58,10 @@ const CharacterStory: React.FC<CharacterStoryProps> = ({
 当前正在分析的故事是《${stories[currentPage]?.title}》。
 故事内容：${stories[currentPage]?.content}
 
-请帮助用户分析${characterName}在这个故事中表现出的性格特质。
+请帮助用户分析${characterName}在这个故事中表现出的性格特质，明确区分优点和缺点。
 你的分析应该基于故事中的具体情节和${characterName}的言行。
 如果用户提到了某些特质，就分析这些特质是否在故事中有体现，并给出具体的例子。
+在回答结束时，请总结一句话："在这个故事中，${characterName}展现的优点有：X、Y，缺点有：Z、W"。
 可能的性格特质包括但不限于：勇敢、聪明、忠诚、固执、善良、坚持、谨慎、贪婪、自私、自信、谦虚等。` 
         },
         ...formatMessages(updatedMessages)
@@ -73,17 +74,30 @@ const CharacterStory: React.FC<CharacterStoryProps> = ({
       setChatMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
       
       // 分析AI回复中提到的特质
-      const traits = analyzeTraits(aiResponse);
+      const { strengths, weaknesses } = analyzeTraitsWithCategories(aiResponse);
       
-      // 添加新发现的特质
-      if (traits.length > 0) {
-        const newTraits = traits.filter(trait => !discoveredTraits.includes(trait));
-        if (newTraits.length > 0) {
-          setDiscoveredTraits(prev => [...prev, ...newTraits]);
+      // 添加新发现的优点
+      if (strengths.length > 0) {
+        const newStrengths = strengths.filter(trait => !discoveredStrengths.includes(trait));
+        if (newStrengths.length > 0) {
+          setDiscoveredStrengths(prev => [...prev, ...newStrengths]);
           
-          // 通知父组件有新特质被发现
-          newTraits.forEach(trait => {
-            onTraitDiscovered && onTraitDiscovered(trait);
+          // 通知父组件有新优点被发现
+          newStrengths.forEach(trait => {
+            onTraitDiscovered && onTraitDiscovered(trait, 'strength');
+          });
+        }
+      }
+      
+      // 添加新发现的缺点
+      if (weaknesses.length > 0) {
+        const newWeaknesses = weaknesses.filter(trait => !discoveredWeaknesses.includes(trait));
+        if (newWeaknesses.length > 0) {
+          setDiscoveredWeaknesses(prev => [...prev, ...newWeaknesses]);
+          
+          // 通知父组件有新缺点被发现
+          newWeaknesses.forEach(trait => {
+            onTraitDiscovered && onTraitDiscovered(trait, 'weakness');
           });
         }
       }
@@ -96,18 +110,46 @@ const CharacterStory: React.FC<CharacterStoryProps> = ({
     }
   };
   
-  // 简单分析文本中可能提到的特质
-  const analyzeTraits = (text: string): string[] => {
-    // 预设一些可能的性格特质关键词
-    const possibleTraits = [
-      '勇敢', '聪明', '忠诚', '固执', '善良', '坚持', '谨慎', '贪婪', '自私', 
-      '自信', '谦虚', '正直', '诚实', '谨慎', '冲动', '耐心', '暴躁', '温柔',
-      '机智', '傲慢', '叛逆', '踏实', '负责', '轻信', '多疑', '乐观', '悲观',
-      '贪心', '慷慨', '胆小', '大胆', '坚强', '软弱', '细心', '粗心'
+  // 分析文本中提到的特质并区分优点和缺点
+  const analyzeTraitsWithCategories = (text: string): { strengths: string[], weaknesses: string[] } => {
+    // 预设可能的性格特质关键词
+    const possibleStrengths = [
+      '勇敢', '聪明', '忠诚', '善良', '坚持', '谨慎', '自信', '谦虚', '正直', '诚实', 
+      '耐心', '温柔', '机智', '踏实', '负责', '乐观', '慷慨', '坚强', '细心', '慈悲',
+      '执着', '有信仰', '领导力', '决断力', '包容', '智慧', '有远见'
     ];
     
-    // 在用户输入中查找这些特质
-    return possibleTraits.filter(trait => text.includes(trait));
+    const possibleWeaknesses = [
+      '固执', '贪婪', '自私', '冲动', '暴躁', '傲慢', '叛逆', '多疑', '悲观',
+      '贪心', '胆小', '软弱', '粗心', '轻信', '优柔寡断', '固执己见', '体弱', 
+      '缺乏判断力', '缺乏自保能力', '嫉妒', '懒惰', '害怕', '贪吃', '好色'
+    ];
+    
+    // 在AI回复中查找优点
+    const strengths = possibleStrengths.filter(trait => 
+      text.includes(trait) && (
+        text.includes(`优点有：${trait}`) || 
+        text.includes(`优点包括${trait}`) || 
+        text.includes(`优点是${trait}`) ||
+        text.includes(`展现了${trait}`) ||
+        text.includes(`表现出${trait}`) ||
+        (text.includes(trait) && text.includes('优点') && !text.includes(`缺点有：${trait}`))
+      )
+    );
+    
+    // 在AI回复中查找缺点
+    const weaknesses = possibleWeaknesses.filter(trait => 
+      text.includes(trait) && (
+        text.includes(`缺点有：${trait}`) || 
+        text.includes(`缺点包括${trait}`) || 
+        text.includes(`缺点是${trait}`) ||
+        text.includes(`展现了${trait}的问题`) ||
+        text.includes(`表现出${trait}的一面`) ||
+        (text.includes(trait) && text.includes('缺点') && !text.includes(`优点有：${trait}`))
+      )
+    );
+    
+    return { strengths, weaknesses };
   };
   
   const currentStory = stories[currentPage];
@@ -188,16 +230,33 @@ const CharacterStory: React.FC<CharacterStoryProps> = ({
       </div>
       
       {/* 发现的特质展示 */}
-      {discoveredTraits.length > 0 && (
+      {(discoveredStrengths.length > 0 || discoveredWeaknesses.length > 0) && (
         <div className="p-4 bg-indigo-50 rounded-xl shadow-sm border border-indigo-100">
-          <h4 className="text-sm font-medium text-indigo-800 mb-2">已发现的性格特质:</h4>
-          <div className="flex flex-wrap gap-2">
-            {discoveredTraits.map((trait, index) => (
-              <span key={index} className="px-3 py-1 bg-white text-indigo-700 text-xs rounded-full border border-indigo-200">
-                {trait}
-              </span>
-            ))}
-          </div>
+          {discoveredStrengths.length > 0 && (
+            <div className="mb-3">
+              <h4 className="text-sm font-medium text-green-800 mb-2">已发现的优点:</h4>
+              <div className="flex flex-wrap gap-2">
+                {discoveredStrengths.map((trait, index) => (
+                  <span key={index} className="px-3 py-1 bg-green-50 text-green-700 text-xs rounded-full border border-green-200">
+                    {trait}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {discoveredWeaknesses.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-red-800 mb-2">已发现的缺点:</h4>
+              <div className="flex flex-wrap gap-2">
+                {discoveredWeaknesses.map((trait, index) => (
+                  <span key={index} className="px-3 py-1 bg-red-50 text-red-700 text-xs rounded-full border border-red-200">
+                    {trait}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       
@@ -221,4 +280,4 @@ export default function CharacterStoryWithStyle(props: CharacterStoryProps) {
   return (
     <CharacterStory {...props} />
   );
-} 
+}

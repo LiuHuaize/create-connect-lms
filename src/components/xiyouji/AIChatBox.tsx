@@ -13,6 +13,7 @@ interface AIChatBoxProps {
   placeholder?: string;
   characterName?: string;
   aiName?: string;
+  height?: string;
 }
 
 const AIChatBox: React.FC<AIChatBoxProps> = ({
@@ -20,7 +21,8 @@ const AIChatBox: React.FC<AIChatBoxProps> = ({
   onSendMessage,
   placeholder = '输入你的问题...',
   characterName = '',
-  aiName = 'AI 思考助手'
+  aiName = 'AI 思考助手',
+  height = '400px'
 }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -108,6 +110,7 @@ const AIChatBox: React.FC<AIChatBoxProps> = ({
       <div 
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-3 space-y-4"
+        style={{ height }}
       >
         {messages.map((msg, index) => (
           <div 
