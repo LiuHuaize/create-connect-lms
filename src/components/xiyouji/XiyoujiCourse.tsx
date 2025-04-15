@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Sparkles, Info, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Info, ChevronRight, ChevronLeft, CheckCircle2, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import CharacterCard from './CharacterCard';
@@ -14,6 +14,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface XiyoujiCourseProps {
   onBack: () => void;
@@ -30,27 +32,27 @@ const characters = [
     stories: [
       {
         title: '三打白骨精',
-        content: '唐僧看到白骨精变成的女子主动投怀送抱，哪怕孙悟空说破白骨精的真面目，他依然相信自己眼前所见，甚至为此逐出孙悟空。这个故事展示了唐僧轻信他人、缺乏判断力的特点，也显示了他对佛法的忠诚和坚持。',
+        content: '唐僧看到白骨精变成的女子主动投怀送抱，哪怕孙悟空说破白骨精的真面目，他依然相信自己眼前所见，甚至为此逐出孙悟空。',
       },
       {
         title: '收服八戒',
-        content: '唐僧通过劝说和佛法感化高老庄的猪八戒，让他皈依佛门，做了自己的二徒弟。这个故事展示了唐僧善良、有信仰、以德服人的特点。',
+        content: '唐僧通过劝说和佛法感化高老庄的猪八戒，让他皈依佛门，做了自己的二徒弟。',
       },
       {
         title: '金兜洞受难',
-        content: '唐僧在金兜洞被黄袍怪抓走，坚持不吃肉，宁死不屈。即使在生命危险面前，他依然坚守自己的信仰和戒律，展现了他坚定的信念和对佛法的执着。',
+        content: '唐僧在金兜洞被黄袍怪抓走，坚持不吃肉，宁死不屈。即使在生命危险面前，他依然坚守自己的信仰和戒律。',
       },
       {
         title: '女儿国情缘',
-        content: '唐僧在女儿国遇到国王爱慕，面对女儿国国王的求爱，他坚持修行初心，拒绝了温柔富贵的诱惑。这展示了他对佛法的专注和坚守承诺的品质。',
+        content: '唐僧在女儿国遇到国王爱慕，面对女儿国国王的求爱，他坚持修行初心，拒绝了温柔富贵的诱惑。',
       },
       {
         title: '莲花洞遇险',
-        content: '在莲花洞被蜘蛛精抓住时，唐僧面对死亡威胁仍旧不忘念经，表现出了他在危险时刻的镇定与对佛法的虔诚。尽管他没有能力自救，但心中始终坚定。',
+        content: '在莲花洞被蜘蛛精抓住时，唐僧面对死亡威胁仍旧不忘念经。尽管他没有能力自救，但心中始终坚定。',
       },
       {
         title: '普济寺募捐',
-        content: '唐僧途经普济寺时，看到寺庙年久失修，立即发心募捐重建，并亲自参与劳作。这个故事展示了他慈悲为怀、乐于助人的性格特点。'
+        content: '唐僧途经普济寺时，看到寺庙年久失修，立即发心募捐重建，并亲自参与劳作。'
       }
     ],
     needs: ['安全保障系统', '辨别真伪的AI助手', '身体健康管理APP', '准确的导航系统']
@@ -64,27 +66,27 @@ const characters = [
     stories: [
       {
         title: '大闹天宫',
-        content: '孙悟空因不满自己"弼马温"的职位，大闹天宫，自封为"齐天大圣"。这个故事展示了他叛逆、傲慢、不服管教的性格，同时也显示了他勇敢无惧、追求自由的一面。',
+        content: '孙悟空因不满自己"弼马温"的职位，大闹天宫，自封为"齐天大圣"。',
       },
       {
         title: '火眼金睛',
-        content: '孙悟空用火眼金睛识破妖怪的伪装，保护师父的安全，如三打白骨精的故事。这展示了他的忠心护主、机智聪明，以及超凡的能力。',
+        content: '孙悟空用火眼金睛识破妖怪的伪装，保护师父的安全，如三打白骨精的故事。',
       },
       {
         title: '三借芭蕉扇',
-        content: '为了帮助师父渡过火焰山，孙悟空三次向铁扇公主借芭蕉扇，展现了他不畏困难、勇于尝试的精神，以及为达目的不惜使用各种智谋的特点。',
+        content: '为了帮助师父渡过火焰山，孙悟空三次向铁扇公主借芭蕉扇。',
       },
       {
         title: '大战二郎神',
-        content: '孙悟空与二郎神展开激烈对决，双方各显神通。在这场战斗中，他展示了非凡的战斗技巧和变化能力，但也显露出急躁冲动的一面。',
+        content: '孙悟空与二郎神展开激烈对决，双方各显神通。',
       },
       {
         title: '偷吃人参果',
-        content: '在人参果园，孙悟空耐不住诱惑偷吃仙果，导致五庄观主人前来追究。这个故事展示了他有时冲动任性、不计后果的性格弱点。',
+        content: '在人参果园，孙悟空耐不住诱惑偷吃仙果，导致五庄观主人前来追究。',
       },
       {
         title: '大战红孩儿',
-        content: '面对火云洞的红孩儿，孙悟空初战失利，但不气馁，最终寻求帮助战胜对手。这表明他虽然骄傲，但在关键时刻也懂得寻求援助，有一定的团队意识。'
+        content: '面对火云洞的红孩儿，孙悟空初战失利，但不气馁，最终寻求帮助战胜对手。'
       }
     ],
     needs: ['情绪管理工具', '沟通技巧提升APP', '团队协作系统', '战斗力量监测器']
@@ -98,27 +100,27 @@ const characters = [
     stories: [
       {
         title: '高老庄娶亲',
-        content: '猪八戒变成女婿在高老庄生活，贪图安逸，不愿离开。这展示了他贪图享乐、懒惰的一面，但也说明他重视生活品质。',
+        content: '猪八戒变成女婿在高老庄生活，贪图安逸，不愿离开。',
       },
       {
         title: '偷人参果',
-        content: '在人参果园里，猪八戒经不起美食的诱惑，偷吃人参果导致麻烦。这个故事生动地展示了他贪吃、缺乏自制力的特点。',
+        content: '在人参果园里，猪八戒经不起美食的诱惑，偷吃人参果导致麻烦。',
       },
       {
         title: '八戒浑天河',
-        content: '在浑天河中，猪八戒凭借自己的水性优势，成功渡河并保护唐僧安全。这展示了他虽有缺点，但关键时刻也能发挥特长、保护师父。',
+        content: '在浑天河中，猪八戒凭借自己的水性优势，成功渡河并保护唐僧安全。',
       },
       {
         title: '天竺招亲',
-        content: '在天竺国，猪八戒受到公主青睐，被选为女婿，最终因为取经任务放弃了这场姻缘。这个故事展示了他对美色的向往，但也表明在关键时刻他能够克制自我欲望。',
+        content: '在天竺国，猪八戒受到公主青睐，被选为女婿，最终因为取经任务放弃了这场姻缘。',
       },
       {
         title: '智激美猴王',
-        content: '当孙悟空离开师徒团队后，猪八戒想出计策让唐僧假装遇险，借此唤回孙悟空。这展示了他虽然表面鲁莽，但有时也能动脑筋解决问题。',
+        content: '当孙悟空离开师徒团队后，猪八戒想出计策让唐僧假装遇险，借此唤回孙悟空。',
       },
       {
         title: '黑风山救师',
-        content: '在黑风山，猪八戒虽然害怕黑风怪，但仍与孙悟空一起努力救出师父。在危险面前，他虽然胆小，但不会完全退缩，依然愿意尽自己的责任。'
+        content: '在黑风山，猪八戒虽然害怕黑风怪，但仍与孙悟空一起努力救出师父。'
       }
     ],
     needs: ['饮食管理系统', '意志力训练app', '体能提升工具', '任务提醒器']
@@ -132,27 +134,27 @@ const characters = [
     stories: [
       {
         title: '流沙河收服',
-        content: '沙僧在流沙河吃唐僧肉的传言，实际上是在等待取经人过河，渴望被救赎。这个故事表明他虽有过错，但内心向善，渴望改变。',
+        content: '沙僧在流沙河吃唐僧肉的传言，实际上是在等待取经人过河，渴望被救赎。',
       },
       {
         title: '挑担行李',
-        content: '沙僧一路上默默无闻地挑担行李，尽职尽责地完成自己的任务。这反映了他踏实、负责、甘于奉献的特点。',
+        content: '沙僧一路上默默无闻地挑担行李，尽职尽责地完成自己的任务。',
       },
       {
         title: '沙僧降妖',
-        content: '在青牛精作乱时，沙僧虽战斗力不如孙悟空和猪八戒，但仍然坚守职责，保护唐僧周全。这展示了他忠诚可靠的性格特点。',
+        content: '在青牛精作乱时，沙僧虽战斗力不如孙悟空和猪八戒，但仍然坚守职责，保护唐僧周全。',
       },
       {
         title: '守护师父',
-        content: '多次当孙悟空和猪八戒外出时，沙僧留下保护唐僧，从不抱怨，始终如一地履行职责。这表明他具有坚定的责任感和耐心。',
+        content: '多次当孙悟空和猪八戒外出时，沙僧留下保护唐僧，从不抱怨，始终如一地履行职责。',
       },
       {
         title: '察言观色',
-        content: '沙僧常常在孙悟空和猪八戒争吵时充当和事佬，调解矛盾，使团队能够继续前行。这表明他具有一定的情商和团队意识。',
+        content: '沙僧常常在孙悟空和猪八戒争吵时充当和事佬，调解矛盾，使团队能够继续前行。',
       },
       {
         title: '独守行囊',
-        content: '在师徒遇到危险时，沙僧常常被安排看守行李，虽然任务单调，但他从不抱怨。这表明他能够安于本分，踏实可靠。'
+        content: '在师徒遇到危险时，沙僧常常被安排看守行李，虽然任务单调，但他从不抱怨。'
       }
     ],
     needs: ['个人形象提升系统', '特殊技能培训程序', '团队定位系统', '沟通辅助工具']
@@ -269,6 +271,11 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   
   // 修改或添加相关状态变量
   const [characterAnalyses, setCharacterAnalyses] = useState<any[]>([]);
+  
+  // 添加新状态
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [newStrength, setNewStrength] = useState('');
+  const [newWeakness, setNewWeakness] = useState('');
   
   // 获取当前用户
   useEffect(() => {
@@ -432,22 +439,9 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
     return { strengths: discoveredStrengths, weaknesses: discoveredWeaknesses };
   };
 
-  // 修改处理故事页码变化函数，加入特质识别功能
+  // 修改处理故事页码变化函数
   const handlePageChange = (index: number) => {
     setCurrentPage(index);
-    
-    // 从故事中识别特质
-    const story = selectedCharacter.stories[index];
-    const { strengths, weaknesses } = analyzeStoryForTraits(story.content, selectedCharacter.name);
-    
-    // 自动将识别的特质添加到角色特点中
-    strengths.forEach(trait => {
-      handleTraitDiscovered(trait, 'strength');
-    });
-    
-    weaknesses.forEach(trait => {
-      handleTraitDiscovered(trait, 'weakness');
-    });
   };
   
   // 处理前一个故事
@@ -464,13 +458,14 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
     }
   };
   
-  // 选择角色时也要重置当前页码
+  // 选择角色时也要重置当前页码和输入框
   const handleSelectCharacter = (character: typeof characters[0]) => {
     setSelectedCharacter(character);
-    // 重置需求显示
     setShowNeeds(false);
     setCharacterNeeds([]);
-    setCurrentPage(0); // 重置故事页码
+    setCurrentPage(0);
+    setNewStrength('');
+    setNewWeakness('');
     
     // 如果该角色有保存的聊天记录，使用保存的记录
     if (characterChats[character.id] && characterChats[character.id].length > 0) {
@@ -492,9 +487,6 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
         }
       ]);
     }
-    
-    // 默认切换到故事标签
-    setActiveTab('story');
   };
   
   // 保存聊天记录到数据库
@@ -555,76 +547,64 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   
   // 修改处理聊天消息发送的函数
   const handleSendMessage = async (message: string) => {
-    // 添加用户消息
-    const updatedMessages = [...aiResponses, { role: 'user' as 'user', content: message }];
-    setAiResponses(updatedMessages);
+    const characterId = selectedCharacter.id;
+    const currentMessages = characterChats[characterId] || [];
+
+    // 添加用户消息到当前角色的聊天记录
+    const updatedMessages = [...currentMessages, { role: 'user' as 'user', content: message }];
     
+    // 更新状态以立即显示用户消息
+    setCharacterChats(prev => ({
+        ...prev,
+        [characterId]: updatedMessages
+      }));
+
     try {
-      // 准备系统提示，引导AI识别性格特质
       const systemPrompt = `你是一位西游记专家，正在帮助用户分析${selectedCharacter.name}的性格特点。
-你的主要任务是从用户的描述中识别出${selectedCharacter.name}的优点和缺点。
+用户正在阅读 ${selectedCharacter.name} 的故事: "${selectedCharacter.stories[currentPage].title}"。
+故事内容: "${selectedCharacter.stories[currentPage].content}"
+用户可能对故事内容或 ${selectedCharacter.name} 的性格特点有疑问。请耐心解答，并引导用户思考。
 
-请遵循以下规则：
-1. 当用户提到角色特点时，判断它是优点还是缺点
-2. 使用[优点:特质名称]或[缺点:特质名称]的格式在回复中标记你识别的特质
-3. 给出简短的解释，说明为什么这是优点或缺点
-4. 鼓励用户继续发现更多特质，直到至少有一个优点和一个缺点
+你可以问用户：
+- "关于这个故事，你有什么想法？"
+- "你觉得 ${selectedCharacter.name} 在这个故事里表现怎么样？"
+- "这个故事让你想到了 ${selectedCharacter.name} 的哪些优点或缺点？"
 
-例如，如果用户说"唐僧很慈悲"，你可以回复：
-"[优点:慈悲] 你发现了唐僧的一个重要优点！他的慈悲之心让他对众生充满同情，这是一位修行者的重要品质。你还发现了他的其他特点吗？"
+如果用户直接问某个特点是优点还是缺点，请给出你的分析。`;
 
-如果用户明显偏离了分析角色特点的话题，温和地将讨论引导回角色分析。`;
-      
-      // 准备发送给AI的消息，包括系统提示
       const aiMessages = [
         { role: 'system' as const, content: systemPrompt },
         ...formatMessages(updatedMessages)
       ];
       
-      // 调用API获取回复
       const aiResponse = await sendMessageToAI(aiMessages);
       
-      // 添加AI回复并确保正确的类型
+      // 添加AI回复到当前角色的聊天记录
       const finalMessages: ChatMessage[] = [
         ...updatedMessages, 
         { role: 'ai' as 'ai', content: aiResponse }
       ];
-      setAiResponses(finalMessages);
       
-      // 保存聊天记录到数据库
-      saveCharacterChat(selectedCharacter.id, finalMessages);
+      // 更新状态以显示AI回复
+       setCharacterChats(prev => ({
+        ...prev,
+        [characterId]: finalMessages
+      }));
       
-      // 从AI回复中提取特质
-      const strengthRegex = /\[优点:(.*?)\]/g;
-      const weaknessRegex = /\[缺点:(.*?)\]/g;
+      // 保存完整聊天记录到数据库
+      saveCharacterChat(characterId, finalMessages);
       
-      let strengthMatch;
-      while ((strengthMatch = strengthRegex.exec(aiResponse)) !== null) {
-        const trait = strengthMatch[1].trim();
-        if (trait) {
-          handleTraitDiscovered(trait, 'strength');
-        }
-      }
-      
-      let weaknessMatch;
-      while ((weaknessMatch = weaknessRegex.exec(aiResponse)) !== null) {
-        const trait = weaknessMatch[1].trim();
-        if (trait) {
-          handleTraitDiscovered(trait, 'weakness');
-        }
-      }
-      
-      // 如果用户询问需求相关问题，显示需求列表
-      if (message.toLowerCase().includes('需求') || message.toLowerCase().includes('功能')) {
-        setShowNeeds(true);
-        setCharacterNeeds(selectedCharacter.needs);
-      }
     } catch (error) {
       console.error('获取AI回复失败:', error);
-      setAiResponses(prev => [...prev, { 
+      // 将错误消息添加到当前角色的聊天记录
+      const errorResponse: ChatMessage = { 
         role: 'ai', 
         content: '抱歉，我在处理您的请求时遇到了问题。请稍后再试。' 
-      }]);
+      };
+      setCharacterChats(prev => ({
+        ...prev,
+        [characterId]: [...updatedMessages, errorResponse]
+      }));
     }
   };
 
@@ -679,95 +659,119 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
     }
   };
 
-  // 处理发现的新特质 - 现在区分优点和缺点
+  // 处理发现的新特质 - 现在主要由用户输入触发
   const handleTraitDiscovered = (trait: string, type: 'strength' | 'weakness') => {
-    // 将新特质添加到当前角色
+    if (!trait || !trait.trim()) return;
+
     const characterId = selectedCharacter.id;
-    
-    // 创建一个更新后的特质对象
     const updatedTraits = {...characterTraits};
     const traitsList = type === 'strength' ? 'strengths' : 'weaknesses';
-    
-    // 如果特质还没被添加，则添加到相应类别中
-    if (!updatedTraits[characterId][traitsList].includes(trait)) {
-      updatedTraits[characterId][traitsList] = [...updatedTraits[characterId][traitsList], trait];
+    const trimmedTrait = trait.trim();
+
+    if (!updatedTraits[characterId][traitsList].includes(trimmedTrait)) {
+      updatedTraits[characterId][traitsList] = [...updatedTraits[characterId][traitsList], trimmedTrait];
       setCharacterTraits(updatedTraits);
       
-      // 如果角色同时有优点和缺点，将该角色标记为已分析
       if (hasEnoughTraits(characterId) && !analyzedCharacters[characterId]) {
         const updatedAnalyzed = {...analyzedCharacters};
         updatedAnalyzed[characterId] = true;
         setAnalyzedCharacters(updatedAnalyzed);
-        
-        // 保存到数据库
         saveCharacterAnalysis(characterId, selectedCharacter.name);
       }
     }
   };
+  
+  // 新增：处理添加优点/缺点按钮点击
+  const handleAddTrait = (type: 'strength' | 'weakness') => {
+    const trait = type === 'strength' ? newStrength : newWeakness;
+    handleTraitDiscovered(trait, type);
+    // 清空输入框
+    if (type === 'strength') {
+      setNewStrength('');
+    } else {
+      setNewWeakness('');
+    }
+  };
 
-  // 修改渲染特质的部分
-  const renderCharacterTraits = () => {
+  // 修改渲染特质的部分 - 现在用于右侧面板
+  const renderCharacterTraitsPanel = () => {
     const characterId = selectedCharacter.id;
-    const discoveredStrengths = characterTraits[characterId].strengths;
-    const discoveredWeaknesses = characterTraits[characterId].weaknesses;
-    
+    const discoveredStrengths = characterTraits[characterId]?.strengths || [];
+    const discoveredWeaknesses = characterTraits[characterId]?.weaknesses || [];
+
     return (
-      <>
-        {/* 显示自定义特质 */}
-        {(discoveredStrengths.length > 0 || discoveredWeaknesses.length > 0) && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium text-blue-600 mb-2 flex items-center gap-1">
-              <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">✓</span> 
-              发现的特质
-            </h4>
-            
-            {discoveredStrengths.length > 0 && (
-              <div className="mb-2">
-                <h5 className="text-xs font-medium text-green-600 mb-1 ml-1">优点:</h5>
-                <ul className="grid grid-cols-2 gap-2">
-                  {discoveredStrengths.map((trait, index) => (
-                    <li 
-                      key={`strength-${index}`}
-                      className="bg-green-50 px-3 py-2 rounded text-sm text-green-700 flex items-center gap-2"
-                    >
-                      <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">+</span>
-                      {trait}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {discoveredWeaknesses.length > 0 && (
-              <div>
-                <h5 className="text-xs font-medium text-red-600 mb-1 ml-1">缺点:</h5>
-                <ul className="grid grid-cols-2 gap-2">
-                  {discoveredWeaknesses.map((trait, index) => (
-                    <li 
-                      key={`weakness-${index}`}
-                      className="bg-red-50 px-3 py-2 rounded text-sm text-red-600 flex items-center gap-2"
-                    >
-                      <span className="w-5 h-5 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-xs">-</span>
-                      {trait}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+      <div className="h-full overflow-y-auto p-4 space-y-6 flex flex-col">
+        <div>
+          <h4 className="text-base font-semibold text-green-700 mb-3">优点</h4>
+          <div className="flex flex-wrap gap-2 mb-3 min-h-[40px]">
+            {discoveredStrengths.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">暂无优点</p>
+            ) : (
+              discoveredStrengths.map((trait, index) => (
+                <Badge key={`strength-${index}`} variant="outline" className="bg-green-50 border-green-200 text-green-800">
+                  {trait}
+                </Badge>
+              ))
             )}
           </div>
-        )}
-      </>
+          <div className="flex items-center gap-2">
+            <Input 
+              type="text"
+              placeholder="添加优点..."
+              value={newStrength}
+              onChange={(e) => setNewStrength(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAddTrait('strength'); }}
+              className="h-9 text-sm"
+            />
+            <Button size="sm" variant="outline" onClick={() => handleAddTrait('strength')} className="h-9 px-3">
+              <PlusCircle size={16} />
+            </Button>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-200 pt-6">
+          <h4 className="text-base font-semibold text-red-700 mb-3">缺点</h4>
+          <div className="flex flex-wrap gap-2 mb-3 min-h-[40px]">
+            {discoveredWeaknesses.length === 0 ? (
+               <p className="text-xs text-gray-400 italic">暂无缺点</p>
+            ) : (
+              discoveredWeaknesses.map((trait, index) => (
+                <Badge key={`weakness-${index}`} variant="outline" className="bg-red-50 border-red-200 text-red-800">
+                  {trait}
+                </Badge>
+              ))
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Input 
+              type="text"
+              placeholder="添加缺点..."
+              value={newWeakness}
+              onChange={(e) => setNewWeakness(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAddTrait('weakness'); }}
+              className="h-9 text-sm"
+            />
+             <Button size="sm" variant="outline" onClick={() => handleAddTrait('weakness')} className="h-9 px-3">
+               <PlusCircle size={16} />
+            </Button>
+          </div>
+        </div>
+        
+         <div className="mt-auto pt-4 text-xs text-gray-500 text-center">
+          请根据故事分析人物特点，并在此处添加。
+        </div>
+      </div>
     );
   };
 
-  // 修改渲染特质的部分
+  // 修改渲染阶段内容
   const renderStageContent = () => {
     switch (currentStage) {
-      case 0: // 人物分析
+      case 0: // 人物分析 - 新布局
         return (
           <div className="flex flex-col h-full">
-            <div className="flex-1 grid grid-cols-12 gap-4 h-[calc(100vh-150px)]">
-              {/* 左侧：角色选择（固定） */}
+            <div className="flex-1 grid grid-cols-12 gap-4 h-[calc(100vh-230px)]">
+              {/* 左侧：角色选择 */}
               <div className="col-span-2 h-full overflow-y-auto rounded-lg border border-indigo-100">
                 <div className="p-4 bg-indigo-50 border-b border-indigo-100 font-medium text-indigo-800">
                   选择角色
@@ -779,7 +783,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                       onClick={() => handleSelectCharacter(character)}
                       className={`w-full p-3 text-left transition-colors duration-200 flex items-center gap-2 ${
                         selectedCharacter?.id === character.id
-                          ? "bg-indigo-50 text-indigo-800"
+                          ? "bg-indigo-100 text-indigo-900 font-semibold"
                           : "hover:bg-indigo-50/50"
                       }`}
                     >
@@ -791,19 +795,11 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                       </Avatar>
                       <div>
                         <div className="text-sm font-medium">{character.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {
-                            characterAnalyses.find(
-                              (a) => a.character_id === character.id
-                            )?.is_analyzed
-                              ? "已分析"
-                              : "未分析"
-                          }
+                        <div className={`text-xs ${analyzedCharacters[character.id] ? 'text-green-600' : 'text-gray-500'}`}>
+                          {analyzedCharacters[character.id] ? "已分析" : "未分析"}
                         </div>
                       </div>
-                      {characterAnalyses.find(
-                        (a) => a.character_id === character.id
-                      )?.is_analyzed && (
+                      {analyzedCharacters[character.id] && hasEnoughTraits(character.id) && (
                         <CheckCircle2
                           size={16}
                           className="ml-auto text-green-500"
@@ -830,18 +826,18 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                         </Avatar>
                         {selectedCharacter.name}的故事
                       </div>
-                      <Badge variant="outline" className="text-xs font-normal">
+                      <Badge variant="outline" className="text-xs font-normal bg-white">
                         故事 {currentPage + 1}/{selectedCharacter.stories.length}
                       </Badge>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6">
                       <ScrollArea className="h-full w-full">
-                        <div className="prose prose-indigo max-w-none">
-                          <h3 className="text-lg font-medium mb-4">
+                        <div className="prose prose-sm prose-indigo max-w-none">
+                          <h3 className="text-base font-semibold mb-3">
                             {selectedCharacter.stories[currentPage].title}
                           </h3>
-                          <div className="whitespace-pre-line leading-relaxed">
+                          <div className="whitespace-pre-line leading-relaxed text-gray-700">
                             {selectedCharacter.stories[currentPage].content}
                           </div>
                         </div>
@@ -854,7 +850,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                         size="sm"
                         onClick={handlePrevPage}
                         disabled={currentPage === 0}
-                        className="h-8 flex items-center gap-1 text-xs"
+                        className="h-8 flex items-center gap-1 text-xs bg-white"
                       >
                         <ChevronLeft size={14} />
                         上一个故事
@@ -880,7 +876,7 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                         size="sm"
                         onClick={handleNextPage}
                         disabled={currentPage === selectedCharacter.stories.length - 1}
-                        className="h-8 flex items-center gap-1 text-xs"
+                        className="h-8 flex items-center gap-1 text-xs bg-white"
                       >
                         下一个故事
                         <ChevronRight size={14} />
@@ -890,48 +886,42 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                 )}
               </div>
 
-              {/* 右侧：聊天框（单一） */}
-              <div className="col-span-4 h-full overflow-hidden flex flex-col border border-indigo-100 rounded-lg">
-                <div className="p-4 bg-indigo-50 border-b border-indigo-100 font-medium text-indigo-800 flex items-center justify-between">
-                  <div>与AI角色对话</div>
-                  <Badge variant="outline" className="text-xs font-normal">
-                    讨论角色特点
+              {/* 右侧：特点分析面板 */}
+              <div className="col-span-4 h-full overflow-hidden flex flex-col border border-indigo-100 rounded-lg bg-white">
+                 <div className="p-4 bg-indigo-50 border-b border-indigo-100 font-medium text-indigo-800 flex items-center justify-between">
+                  <div>{selectedCharacter.name} 特点分析</div>
+                   <Badge variant="outline" className="text-xs font-normal bg-white">
+                    手动添加
                   </Badge>
                 </div>
-                
                 {!selectedCharacter ? (
                   <div className="flex-1 flex items-center justify-center text-gray-500">
                     请选择一个角色开始分析
                   </div>
                 ) : (
-                  <AIChatBox
-                    characterName={selectedCharacter.name}
-                    messages={aiResponses[selectedCharacter.id] || []}
-                    onSendMessage={handleSendMessage}
-                    height="calc(100% - 57px)"
-                  />
+                  renderCharacterTraitsPanel()
                 )}
               </div>
             </div>
             
-            {/* 底部按钮 */}
-            <div className="mt-6 p-4 border border-indigo-100 rounded-lg">
+            {/* 底部按钮和进度条 */}
+            <div className="mt-6 p-4 border border-indigo-100 rounded-lg bg-white shadow-sm">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg font-medium text-indigo-800">人物分析进度: {characterAnalyses.filter(a => a.is_analyzed).length}/4</h3>
+                  <h3 className="text-base font-medium text-indigo-800">人物分析进度: {getAnalyzedCount()}/{characters.length}</h3>
                   <p className="text-sm text-gray-500">为每个角色至少发现一个优点和一个缺点</p>
                 </div>
                 <Button
                   onClick={handleNextStage}
-                  disabled={!allCharactersAnalyzed}
-                  variant={allCharactersAnalyzed ? "default" : "outline"}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={!allCharactersAnalyzed || !Object.keys(characterTraits).every(charId => hasEnoughTraits(charId))}
+                  variant={allCharactersAnalyzed && Object.keys(characterTraits).every(charId => hasEnoughTraits(charId)) ? "default" : "secondary"}
+                  className={`${allCharactersAnalyzed && Object.keys(characterTraits).every(charId => hasEnoughTraits(charId)) ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
                 >
                   进入下一阶段
                 </Button>
               </div>
               <Progress
-                value={(characterAnalyses.filter(a => a.is_analyzed).length / 4) * 100}
+                value={(getAnalyzedCount() / characters.length) * 100}
                 max={100}
                 className="h-2 mt-2"
               />
@@ -1113,15 +1103,6 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                 </div>
               </div>
             </div>
-            
-            <div className="bg-white rounded-xl shadow-sm border border-indigo-100/80 p-0 backdrop-blur-sm bg-white/90 mt-4">
-              <AIChatBox 
-                messages={aiResponses}
-                onSendMessage={handleSendMessage}
-                aiName="流程图设计助手"
-                placeholder="询问AI关于流程图设计的问题..."
-              />
-            </div>
           </div>
         );
         
@@ -1171,15 +1152,6 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
                 </p>
               </div>
             </div>
-            
-            <div className="bg-white rounded-xl shadow-sm border border-indigo-100/80 p-0 backdrop-blur-sm bg-white/90 mt-4">
-              <AIChatBox 
-                messages={aiResponses}
-                onSendMessage={handleSendMessage}
-                aiName="网站设计助手"
-                placeholder="询问AI关于网站设计的问题..."
-              />
-            </div>
           </div>
         );
         
@@ -1189,10 +1161,44 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="container py-8 space-y-8">
-      <CourseHeader courseId={courseId} currentModuleIndex={0} />
-      {renderStageContent()}
-    </div>
+    <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
+      <div className="container mx-auto py-6 space-y-6 relative">
+        <CourseHeader courseId={courseId} currentModuleIndex={currentStage} />
+        {renderStageContent()}
+
+        <DialogTrigger asChild>
+           <Button 
+            variant="outline" 
+            className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white p-0 flex items-center justify-center border-2 border-white"
+            aria-label="打开AI助手"
+          >
+              <Sparkles size={24} />
+          </Button>
+        </DialogTrigger>
+      </div>
+
+      <DialogContent className="sm:max-w-[500px] h-[70vh] flex flex-col p-0">
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle className="text-base font-medium text-indigo-800">
+            与 {selectedCharacter?.name || 'AI'} 助手对话
+          </DialogTitle>
+        </DialogHeader>
+        {selectedCharacter ? (
+          <AIChatBox
+            key={selectedCharacter.id}
+            characterName={selectedCharacter.name}
+            messages={characterChats[selectedCharacter.id] || []}
+            onSendMessage={handleSendMessage}
+            height="calc(100% - 65px)"
+            placeholder={`思考${selectedCharacter.name}的需求...`}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-500 p-4">
+            请先在主界面选择一个角色。
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
 
