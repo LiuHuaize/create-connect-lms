@@ -910,25 +910,58 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                         <p className="text-gray-400">还没有任何创意，开始添加你的点子吧！</p>
                       </div>
                     ) : (
-                      productIdeas.map((idea, index) => (
-                        <div 
-                          key={index}
-                          onClick={() => handleToggleIdea(idea)}
-                          className={`p-4 rounded-lg cursor-pointer transition-all transform hover:scale-105 shadow-sm ${
-                            selectedIdeas.includes(idea) 
-                              ? 'bg-gradient-to-br from-indigo-100 to-purple-100 border-2 border-indigo-300' 
-                              : 'bg-gradient-to-br from-yellow-50 to-orange-50 border border-orange-100'
-                          } ${index % 4 === 0 ? 'rotate-1' : index % 4 === 1 ? '-rotate-1' : index % 4 === 2 ? 'rotate-2' : '-rotate-2'}`}
-                          style={{minHeight: '100px'}}
-                        >
-                          {selectedIdeas.includes(idea) && (
-                            <div className="absolute top-2 right-2">
-                              <CheckCircle2 size={16} className="text-green-500" />
+                      productIdeas.map((idea, index) => {
+                        // 为每个卡片随机分配一种颜色主题
+                        const themes = [
+                          'from-pink-300 to-red-300 border-pink-400 text-pink-800',
+                          'from-orange-300 to-amber-300 border-orange-400 text-amber-800',
+                          'from-lime-300 to-green-300 border-lime-400 text-green-800',
+                          'from-cyan-300 to-blue-300 border-cyan-400 text-blue-800',
+                          'from-violet-300 to-purple-300 border-violet-400 text-purple-800',
+                        ];
+                        const theme = themes[index % themes.length];
+                        
+                        // 为每个卡片随机分配一个图标
+                        const icons = [
+                          '🚀', '🌟', '🎮', '🎨', '🎯', '🎪', '🧩', '🔮', '🧸', '🦄', '🦊', '🐉'
+                        ];
+                        const icon = icons[index % icons.length];
+                        
+                        return (
+                          <div 
+                            key={index}
+                            onClick={() => handleToggleIdea(idea)}
+                            className={`relative p-5 rounded-xl cursor-pointer transition-all duration-300 
+                                       transform hover:scale-110 hover:shadow-xl
+                                       ${index % 2 === 0 ? 'rotate-1' : '-rotate-1'}
+                                       ${selectedIdeas.includes(idea) 
+                                         ? 'shadow-md bg-gradient-to-br from-indigo-200 to-purple-200 border-2 border-indigo-400' 
+                                         : `shadow bg-gradient-to-br ${theme} border-2`
+                                       }`}
+                            style={{minHeight: '120px'}}
+                          >
+                            {/* 背景装饰元素 */}
+                            <div className="absolute -bottom-2 -right-2 text-4xl opacity-20">{icon}</div>
+                            
+                            {/* 选中标记 */}
+                            {selectedIdeas.includes(idea) && (
+                              <div className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-1 shadow-lg">
+                                <CheckCircle2 size={18} />
+                              </div>
+                            )}
+                            
+                            {/* 创意内容 */}
+                            <div className="relative z-10">
+                              <div className="text-lg font-bold mb-1">{icon}</div>
+                              <p className="font-medium">{idea}</p>
                             </div>
-                          )}
-                          <p className="font-medium text-gray-800">{idea}</p>
-                        </div>
-                      ))
+                            
+                            {/* 闪光效果 */}
+                            <div className={`absolute top-2 right-2 h-2 w-2 rounded-full bg-white 
+                                            ${selectedIdeas.includes(idea) ? 'animate-pulse' : ''}`}></div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                   
@@ -1010,44 +1043,80 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-semibold text-gray-800">已选择的创意：</h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        {selectedIdeas.map((idea, index) => (
-                          <div key={index} className="p-4 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100">
-                            <h4 className="font-medium text-indigo-800 mb-2">创意 {index + 1}</h4>
-                            <p className="text-gray-700">{idea}</p>
+                    <div className="grid grid-cols-1 gap-6">
+                      {selectedIdeas.map((idea, index) => {
+                        // 为每个卡片随机分配一种颜色主题
+                        const themes = [
+                          'from-pink-300 to-red-300 border-pink-400 text-pink-800',
+                          'from-orange-300 to-amber-300 border-orange-400 text-amber-800',
+                          'from-lime-300 to-green-300 border-lime-400 text-green-800',
+                          'from-cyan-300 to-blue-300 border-cyan-400 text-blue-800',
+                          'from-violet-300 to-purple-300 border-violet-400 text-purple-800',
+                        ];
+                        const theme = themes[index % themes.length];
+                        
+                        // 为每个卡片随机分配一个图标
+                        const icons = [
+                          '🚀', '🌟', '🎮', '🎨', '🎯', '🎪', '🧩', '🔮', '🧸', '🦄', '🦊', '🐉'
+                        ];
+                        const icon = icons[index % icons.length];
+                        
+                        return (
+                          <div 
+                            key={index}
+                            className={`relative p-5 rounded-xl transition-all duration-300 
+                                       transform hover:scale-105 hover:shadow-xl shadow-md
+                                       bg-gradient-to-br ${theme} border-2`}
+                          >
+                            {/* 背景装饰元素 */}
+                            <div className="absolute -bottom-2 -right-2 text-5xl opacity-20">{icon}</div>
+                            
+                            {/* 创意内容 */}
+                            <div className="relative z-10">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="text-2xl">{icon}</div>
+                                <h4 className="font-bold text-lg">创意 {index + 1}</h4>
+                              </div>
+                              <p className="font-medium text-lg">{idea}</p>
+                            </div>
+                            
+                            {/* 闪光效果 */}
+                            <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-white animate-pulse"></div>
                           </div>
-                        ))}
-                      </div>
-                      
-                      <div className="flex justify-center pt-4">
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {selectedIdeas.length > 0 && (
+                    <div className="mt-8 space-y-6">
+                      <div className="flex justify-center">
                         <Button
                           onClick={handleGetAiHelp}
                           disabled={isLoadingAiSuggestion}
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold px-6"
+                          className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg"
                         >
                           {isLoadingAiSuggestion ? (
                             <>
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                              分析中...
+                              <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                              思考创意中...
                             </>
                           ) : (
                             <>
-                              <Sparkles className="mr-2" size={16} />
-                              获取AI创意分析
+                              <Sparkles className="mr-2" size={20} />
+                              获取AI魔法分析
                             </>
                           )}
                         </Button>
                       </div>
                       
                       {aiSuggestion && (
-                        <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                          <h3 className="font-semibold text-purple-700 mb-2 flex items-center">
-                            <Sparkles size={16} className="mr-2" />
-                            创意助手分析
+                        <div className="mt-6 p-6 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200 shadow-lg">
+                          <h3 className="font-bold text-purple-700 mb-4 flex items-center text-xl">
+                            <Sparkles size={24} className="mr-3" />
+                            创意小助手分析
                           </h3>
-                          <div className="text-sm text-gray-700 whitespace-pre-line">
+                          <div className="text-base text-gray-700 whitespace-pre-line leading-relaxed">
                             {aiSuggestion}
                           </div>
                         </div>
