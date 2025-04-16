@@ -64,6 +64,7 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
     "fabric": "^6.6.2",
+    "framer-motion": "^12.7.3",
     "input-otp": "^1.2.4",
     "lexical": "^0.29.0",
     "lucide-react": "^0.462.0",

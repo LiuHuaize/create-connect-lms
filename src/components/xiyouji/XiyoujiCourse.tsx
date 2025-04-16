@@ -663,7 +663,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
       setIsLoadingAiSuggestion(false);
     }
   };
-  
+
   // 修改渲染阶段内容
   const renderStageContent = () => {
     switch (currentStage) {
@@ -831,7 +831,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
         return (
           <div className="flex flex-col space-y-6 mt-4">
             {/* 顶部标题和导航 */}
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
+            <div className="bg-gradient-to-r from-blue-400 to-teal-400 text-white rounded-xl p-4 shadow-lg">
               <h2 className="text-xl font-bold mb-3">产品创意工坊</h2>
               <div className="flex space-x-3">
                 <button
@@ -870,7 +870,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
             {/* 创意头脑风暴区域 - 更吸引儿童的设计 */}
             {activeCreativeTab === 'brainstorm' && (
               <div className="bg-white rounded-xl shadow-lg border-2 border-indigo-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-4">
+                <div className="bg-gradient-to-r from-amber-300 to-yellow-300 p-4">
                   <h2 className="text-xl font-bold text-white flex items-center">
                     <Sparkles className="mr-2" size={20} />
                     创意头脑风暴
@@ -881,36 +881,43 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                 <div className="p-6">
                   <div className="flex gap-3 mb-6">
                     <Input 
-                      type="text" 
+                    type="text" 
                       placeholder="输入你的创意点子..." 
                       className="border-2 border-orange-200 focus:border-orange-400 rounded-full pl-4 text-md"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          const target = e.target as HTMLInputElement;
-                          handleAddIdea(target.value);
-                          target.value = '';
-                        }
-                      }}
-                    />
-                    <Button 
-                      onClick={() => {
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const target = e.target as HTMLInputElement;
+                        handleAddIdea(target.value);
+                        target.value = '';
+                      }
+                    }}
+                  />
+                  <Button 
+                    onClick={() => {
                         const input = document.querySelector('input[placeholder="输入你的创意点子..."]') as HTMLInputElement;
-                        handleAddIdea(input.value);
-                        input.value = '';
-                      }}
-                      className="bg-gradient-to-r from-orange-400 to-pink-500 hover:from-orange-500 hover:to-pink-600 text-white rounded-full font-semibold px-6"
-                    >
+                      handleAddIdea(input.value);
+                      input.value = '';
+                    }}
+                      className="bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white rounded-full font-semibold px-6 shadow-sm"
+                  >
                       <Sparkles className="mr-2" size={16} />
                       添加创意
-                    </Button>
-                  </div>
-                  
+                  </Button>
+                </div>
+                
                   {/* 创意展示墙 - 类似便利贴的样式 */}
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[360px] overflow-y-auto p-2">
-                    {productIdeas.length === 0 ? (
+                  {productIdeas.length === 0 ? (
                       <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-                        <img src="/images/idea-bulb.svg" alt="创意灯泡" className="w-24 h-24 mb-4 opacity-30" />
-                        <p className="text-gray-400">还没有任何创意，开始添加你的点子吧！</p>
+                        <div className="w-24 h-24 mb-4 text-amber-400 opacity-70">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6A4.997 4.997 0 0 1 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/>
+                            <path d="M11.5 9.5L9 12l1.5 1.5L12 12z" fill="currentColor" fillOpacity="0.5"/>
+                            <path d="M12.5 7.5L15 10l-1.5 1.5L12 10z" fill="currentColor" fillOpacity="0.5"/>
+                          </svg>
+                        </div>
+                        <p className="text-amber-800/50 text-lg font-medium">还没有任何创意</p>
+                        <p className="text-amber-700/40 text-sm mt-1">开始添加你的点子吧！</p>
                       </div>
                     ) : (
                       productIdeas.map((idea, index) => {
@@ -931,8 +938,8 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                         const icon = icons[index % icons.length];
                         
                         return (
-                          <div 
-                            key={index}
+                      <div 
+                        key={index}
                             className={`relative p-5 rounded-2xl cursor-pointer transition-all duration-300 
                                        transform hover:scale-105 hover:shadow-xl group
                                        ${index % 2 === 0 ? 'rotate-1' : '-rotate-1'}
@@ -949,7 +956,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                             {selectedIdeas.includes(idea) && (
                               <div className="absolute -top-3 -right-3 bg-green-500 text-white rounded-full p-1 shadow-lg">
                                 <CheckCircle2 size={18} />
-                              </div>
+                      </div>
                             )}
                             
                             {/* 删除按钮 - 更现代化设计 */}
@@ -976,9 +983,9 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                                   <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                                 </svg>
-                              )}
-                            </div>
-                            
+                  )}
+                </div>
+                
                             {/* 创意内容 - 点击这部分可以选择/取消选择创意 */}
                             <div 
                               className="relative z-10 h-full"
@@ -986,7 +993,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                             >
                               <div className="text-lg font-bold mb-1">{icon}</div>
                               <p className="font-medium">{idea}</p>
-                            </div>
+                </div>
                             
                             {/* 闪光效果 */}
                             <div className={`absolute top-2 right-2 h-2 w-2 rounded-full bg-white 
@@ -995,16 +1002,16 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                         );
                       })
                     )}
-                  </div>
-                  
+              </div>
+              
                   <div className="mt-6 flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <span className="text-sm font-medium">已选创意:</span>
                       <div className="text-sm py-1 px-3 bg-indigo-100 text-indigo-800 rounded-full font-bold">
                         {selectedIdeas.length}/3
-                      </div>
-                    </div>
-                    
+              </div>
+            </div>
+            
                     <Button
                       variant="outline"
                       className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
@@ -1042,7 +1049,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                     <div className="bg-white p-2 rounded-full shadow-md">
                       <Sparkles className="text-indigo-500" size={24} />
                     </div>
-                    <div>
+                <div>
                       <h3 className="font-semibold text-indigo-700">创意小助手提示</h3>
                       <p className="text-sm text-gray-600">思考一下师徒四人在旅途中遇到的各种妖怪和困难，他们会需要什么样的帮助呢？孙悟空的神通广大，但也有无法解决的问题！</p>
                     </div>
@@ -1053,7 +1060,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
             
             {activeCreativeTab === 'selected' && (
               <div className="bg-white rounded-xl shadow-lg border-2 border-indigo-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-orange-400 to-pink-500 p-4">
+                <div className="bg-gradient-to-r from-rose-300 to-pink-300 p-4">
                   <h2 className="text-xl font-bold text-white flex items-center">
                     <Sparkles className="mr-2" size={20} />
                     精选创意
@@ -1063,12 +1070,18 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                 
                 <div className="p-6">
                   {selectedIdeas.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <img src="/images/empty-box.svg" alt="空盒子" className="w-24 h-24 mb-4 opacity-30" />
-                      <p className="text-gray-400">尚未选择任何创意，请先在头脑风暴中选择创意</p>
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="w-28 h-28 mb-6 text-indigo-300 opacity-60">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M17.998 10c-.798-4.511-4.495-6.013-5.998-6.013-1.503 0-5.2 1.502-5.998 6.013A5.99 5.99 0 0 0 6 10a6 6 0 1 0 12 0zm-6.998 8.031V20h-2v-2c0-.552.448-1 1-1s1 .448 1 1zm4.243-5.771-2.829 2.828a1.004 1.004 0 0 1-1.414 0 1.004 1.004 0 0 1 0-1.414l2.829-2.829a1.004 1.004 0 0 1 1.414 0 1.003 1.003 0 0 1 0 1.415zM12 18c-.301 0-.595-.034-.881-.09l.909-.91c.968-.968.968-2.547 0-3.515a2.474 2.474 0 0 0-3.515 0l-.91.91A5.97 5.97 0 0 1 6 10c0-3.309 2.691-6 6-6s6 2.691 6 6-2.691 6-6 6z"/>
+                          <path d="M17 8.5a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0z" fill="currentColor" fillOpacity="0.2"/>
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-medium text-indigo-800 mb-2">尚未选择创意</h3>
+                      <p className="text-indigo-600/60 mb-6 max-w-md">请先在头脑风暴阶段选择几个你最喜欢的创意，然后回到这里获取AI分析</p>
                       <Button 
                         variant="outline" 
-                        className="mt-4 border-indigo-300 text-indigo-700"
+                        className="mt-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50 px-6 py-2 rounded-full"
                         onClick={() => setActiveCreativeTab('brainstorm')}
                       >
                         返回头脑风暴
@@ -1126,7 +1139,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                         <Button
                           onClick={handleGetAiHelp}
                           disabled={isLoadingAiSuggestion}
-                          className="bg-gradient-to-r from-indigo-400 to-violet-500 hover:from-indigo-500 hover:to-violet-600 text-white font-medium px-8 py-3 rounded-full shadow-md transition-all duration-300 hover:shadow-lg transform hover:scale-105"
+                          className="bg-gradient-to-r from-rose-400 to-pink-400 hover:from-rose-500 hover:to-pink-500 text-white font-medium px-8 py-3 rounded-full shadow-md transition-all duration-300 hover:shadow-lg transform hover:scale-105"
                         >
                           {isLoadingAiSuggestion ? (
                             <>
@@ -1143,10 +1156,10 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                       </div>
                       
                       {aiSuggestion && (
-                        <div className="mt-6 p-6 bg-gradient-to-r from-violet-50/80 to-indigo-50/80 backdrop-blur-sm rounded-2xl border border-indigo-100 shadow-md">
-                          <h3 className="font-bold text-indigo-700 mb-4 flex items-center text-xl">
-                            <div className="bg-indigo-100 p-2 rounded-lg mr-3">
-                              <Sparkles size={20} className="text-indigo-500" />
+                        <div className="mt-6 p-6 bg-gradient-to-r from-rose-50/80 to-pink-50/80 backdrop-blur-sm rounded-2xl border border-rose-100 shadow-md">
+                          <h3 className="font-bold text-rose-700 mb-4 flex items-center text-xl">
+                            <div className="bg-rose-100 p-2 rounded-lg mr-3">
+                              <Sparkles size={20} className="text-rose-500" />
                             </div>
                             创意小助手分析
                           </h3>
@@ -1162,146 +1175,107 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
             )}
             
             {activeCreativeTab === 'canvas' && (
-              <div className="bg-white rounded-xl shadow-lg border-2 border-green-100 overflow-hidden">
-                <div className="bg-gradient-to-r from-green-400 to-teal-500 p-4">
-                  <h2 className="text-xl font-bold text-white">产品详情设计</h2>
-                  <p className="text-white/80 text-sm">把你的创意变成一个完整的产品！</p>
+              <div className="bg-white rounded-2xl shadow-md border border-indigo-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-sky-400 to-cyan-400 p-5">
+                  <h2 className="text-xl font-bold text-white flex items-center">
+                    <div className="bg-white/20 p-2 rounded-lg mr-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                    </div>
+                    产品详情设计
+                  </h2>
+                  <p className="text-white/90 text-sm mt-2 ml-12">把你的神奇创意变成一个完整的产品！</p>
+                </div>
+                 
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
+                      <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
+                      </span>
+                      产品名称
+                    </label>
+                    <Input 
+                    type="text" 
+                    value={productCanvas.title}
+                    onChange={(e) => handleCanvasChange('title', e.target.value)}
+                      className="border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-lg shadow-sm py-2.5"
+                      placeholder="起个超酷的名字..."
+                  />
                 </div>
                 
-                <div className="bg-white rounded-2xl shadow-md border border-indigo-100 overflow-hidden">
-                  <div className="bg-gradient-to-r from-violet-500 to-indigo-600 p-5">
-                    <h2 className="text-xl font-bold text-white flex items-center">
-                      <div className="bg-white/20 p-2 rounded-lg mr-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-                      </div>
-                      产品详情设计
-                    </h2>
-                    <p className="text-white/90 text-sm mt-2 ml-12">把你的神奇创意变成一个完整的产品！</p>
+                <div>
+                    <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
+                      <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      </span>
+                      用户群体
+                    </label>
+                    <Input 
+                      type="text" 
+                      value={productCanvas.userGroups}
+                      onChange={(e) => handleCanvasChange('userGroups', e.target.value)}
+                      className="border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl shadow-sm py-2.5"
+                      placeholder="唐僧？孙悟空？还是其他人？"
+                    />
                   </div>
                   
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">你的产品叫什么名字？</label>
-                      <Input 
-                        type="text" 
-                        value={productCanvas.title}
-                        onChange={(e) => handleCanvasChange('title', e.target.value)}
-                        className="border-2 border-green-200 focus:border-green-400 rounded-lg text-lg font-medium"
-                        placeholder="给你的产品起个超酷的名字..."
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
-                        <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"/><circle cx="17" cy="7" r="5"/></svg>
-                        </span>
-                        产品名称
-                      </label>
-                      <Input 
-                        type="text" 
-                        value={productCanvas.title}
-                        onChange={(e) => handleCanvasChange('title', e.target.value)}
-                        className="border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-lg shadow-sm py-2.5"
-                        placeholder="起个超酷的名字..."
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">谁会使用这个产品？</label>
-                      <Input 
-                        type="text" 
-                        value={productCanvas.userGroups}
-                        onChange={(e) => handleCanvasChange('userGroups', e.target.value)}
-                        className="border-2 border-green-200 focus:border-green-400 rounded-lg"
-                        placeholder="唐僧？孙悟空？还是其他人？"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
-                        <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </span>
-                        用户群体
-                      </label>
-                      <Input 
-                        type="text" 
-                        value={productCanvas.userGroups}
-                        onChange={(e) => handleCanvasChange('userGroups', e.target.value)}
-                        className="border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl shadow-sm py-2.5"
-                        placeholder="唐僧？孙悟空？还是其他人？"
-                      />
-                    </div>
-                    
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-gray-700 mb-2">这个产品能解决什么问题？</label>
-                      <textarea 
-                        value={productCanvas.problem}
-                        onChange={(e) => handleCanvasChange('problem', e.target.value)}
-                        className="w-full p-3 border-2 border-green-200 focus:border-green-400 rounded-lg text-md min-h-[80px]"
-                        placeholder="西天路上遇到了什么困难？这个产品如何帮助解决？"
-                      />
-                    </div>
-                    
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
-                        <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                        </span>
-                        要解决的问题
-                      </label>
-                      <textarea 
-                        value={productCanvas.problem}
-                        onChange={(e) => handleCanvasChange('problem', e.target.value)}
-                        className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
-                        placeholder="西天路上遇到了什么困难？这个产品如何帮助解决？"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-gray-700 mb-2">产品是如何解决问题的？</label>
-                      <textarea 
-                        value={productCanvas.solution}
-                        onChange={(e) => handleCanvasChange('solution', e.target.value)}
-                        className="w-full p-3 border-2 border-green-200 focus:border-green-400 rounded-lg text-md min-h-[80px]"
-                        placeholder="详细描述一下产品是怎么工作的..."
-                      />
-                    </div>
-                    
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-gray-700 mb-2">这个产品有什么特别之处？</label>
-                      <textarea 
-                        value={productCanvas.uniqueValue}
-                        onChange={(e) => handleCanvasChange('uniqueValue', e.target.value)}
-                        className="w-full p-3 border-2 border-green-200 focus:border-green-400 rounded-lg text-md min-h-[80px]"
-                        placeholder="为什么这个产品与众不同？有什么创新的地方？"
-                      />
-                    </div>
-                    
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-bold text-gray-700 mb-2">产品的主要功能有哪些？</label>
-                      <textarea 
-                        value={productCanvas.keyFeatures}
-                        onChange={(e) => handleCanvasChange('keyFeatures', e.target.value)}
-                        className="w-full p-3 border-2 border-green-200 focus:border-green-400 rounded-lg text-md min-h-[80px]"
-                        placeholder="列出产品的3-5个最重要功能..."
-                      />
-                    </div>
-                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
+                      <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M20 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M20 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M4 16a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M4 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M4 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M18 12h-4"/><path d="M14 6h-4"/><path d="M14 18h-4"/><path d="M6 12h4"/><path d="M6 6h4"/><path d="M6 18h4"/></svg>
+                      </span>
+                      要解决的问题
+                    </label>
+                  <textarea 
+                    value={productCanvas.problem}
+                    onChange={(e) => handleCanvasChange('problem', e.target.value)}
+                      className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
+                      placeholder="西天路上遇到了什么困难？这个产品如何帮助解决？"
+                  />
                 </div>
                 
-                {/* AI助手建议区域 */}
-                <div className="bg-gradient-to-r from-green-50 to-teal-50 p-4 border-t-2 border-green-100">
-                  <div className="flex items-start space-x-3">
-                    <div className="bg-white p-2 rounded-full shadow-md">
-                      <Sparkles className="text-green-500" size={24} />
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
+                      <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </span>
+                      主要功能
+                    </label>
+                  <textarea 
+                      value={productCanvas.keyFeatures}
+                      onChange={(e) => handleCanvasChange('keyFeatures', e.target.value)}
+                      className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
+                      placeholder="列出产品的3-5个最重要功能..."
+                  />
+                </div>
+                
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
+                      <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </span>
+                      独特价值
+                    </label>
+                  <textarea 
+                    value={productCanvas.uniqueValue}
+                    onChange={(e) => handleCanvasChange('uniqueValue', e.target.value)}
+                      className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
+                      placeholder="为什么这个产品与众不同？有什么创新的地方？"
+                  />
+                </div>
+                </div>
+                
+                {/* AI助手建议区域 - 更现代化设计 */}
+                <div className="bg-gradient-to-r from-sky-50 to-cyan-50 p-5 border-t border-sky-100">
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-indigo-100 p-2.5 rounded-lg shadow-sm">
+                      <Sparkles className="text-indigo-500" size={20} />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-green-700">设计小助手提示</h3>
-                      <p className="text-sm text-gray-600">想象一下如果你的产品真的存在，会给唐僧师徒带来什么变化？他们的旅程会变得更轻松吗？</p>
-                    </div>
-                  </div>
+                <div>
+                      <h3 className="font-medium text-indigo-700 mb-1.5">创意小助手提示</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">想象一下如果你的产品真的存在，会给唐僧师徒带来什么变化？他们的旅程会变得更轻松吗？</p>
+                </div>
+              </div>
                 </div>
               </div>
             )}
@@ -1311,7 +1285,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
               <Button
                 onClick={handlePrevStage}
                 variant="outline"
-                className="border border-indigo-200 text-indigo-600 hover:bg-indigo-50 rounded-full px-6 py-2.5 transition-all duration-300 hover:shadow flex items-center"
+                className="border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-full px-6 py-2.5 transition-all duration-300 hover:shadow flex items-center"
               >
                 <ChevronLeft className="mr-2" size={16} />
                 返回上一步
@@ -1319,7 +1293,7 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
               
               <Button
                 onClick={handleNextStage}
-                className="bg-gradient-to-r from-indigo-400 to-violet-500 hover:from-indigo-500 hover:to-violet-600 text-white font-medium rounded-full px-6 py-2.5 shadow-md transition-all duration-300 hover:shadow-lg transform hover:scale-105 flex items-center"
+                className="bg-gradient-to-r from-blue-400 to-teal-400 hover:from-blue-500 hover:to-teal-500 text-white font-medium rounded-full px-6 py-2.5 shadow-md transition-all duration-300 hover:shadow-lg transform hover:scale-105 flex items-center"
               >
                 继续下一步
                 <ChevronRight className="ml-2" size={16} />
