@@ -148,6 +148,35 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   // 添加删除确认状态
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   
+  // 添加角色特点参考面板状态
+  const [showCharacterTraitsPanel, setShowCharacterTraitsPanel] = useState(true);
+  const [selectedCharacterForTraits, setSelectedCharacterForTraits] = useState(characters[0]);
+  
+  // 添加示例特点数据 (dummy data)
+  useEffect(() => {
+    // 只在开发环境或者characterTraits为空时添加示例数据
+    if (Object.values(characterTraits).every(traits => traits.strengths.length === 0 && traits.weaknesses.length === 0)) {
+      setCharacterTraits({
+        tangseng: { 
+          strengths: ['坚持不懈', '慈悲为怀', '意志坚定', '虔诚信仰'], 
+          weaknesses: ['轻信他人', '缺乏判断力', '体弱多病', '执迷不悟'] 
+        },
+        wukong: { 
+          strengths: ['勇敢无畏', '神通广大', '机智聪明', '忠心护主'], 
+          weaknesses: ['暴躁易怒', '傲慢自大', '冲动鲁莽', '好胜心强'] 
+        },
+        bajie: { 
+          strengths: ['力大无穷', '心地善良', '诚实直率', '乐观幽默'], 
+          weaknesses: ['贪吃贪睡', '好色懒惰', '自私自利', '容易怨天尤人'] 
+        },
+        wujing: { 
+          strengths: ['忠诚老实', '任劳任怨', '踏实稳重', '责任感强'], 
+          weaknesses: ['沉默寡言', '缺乏主见', '木讷迟钝', '存在感低'] 
+        }
+      });
+    }
+  }, []);
+  
   // 获取当前用户
   useEffect(() => {
     const fetchUser = async () => {
@@ -879,32 +908,120 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                 </div>
                 
                 <div className="p-6">
+                  {/* 新增: 角色特点参考面板 - 移动到顶部 */}
+                  <div className="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 shadow-sm border border-indigo-100 transition-all duration-300">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-indigo-700">角色特点参考</h3>
+                      <div className="flex gap-1">
+                        {characters.map((character) => (
+                          <button
+                            key={character.id}
+                            onClick={() => setSelectedCharacterForTraits(character)}
+                            className={`relative p-1 rounded-md transition-all ${
+                              selectedCharacterForTraits.id === character.id
+                                ? "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300"
+                                : "hover:bg-indigo-50 text-gray-500"
+                            }`}
+                            title={character.name}
+                          >
+                            <Avatar className="w-7 h-7">
+                              <AvatarImage src={character.avatar} alt={character.name} />
+                              <AvatarFallback>{character.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            {selectedCharacterForTraits.id === character.id && (
+                              <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-green-100">
+                        <h4 className="text-xs font-medium text-green-700 mb-2 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          优点
+                        </h4>
+                        <div className="space-y-1.5">
+                          {characterTraits[selectedCharacterForTraits.id]?.strengths.map((strength, index) => (
+                            <Badge key={index} className="mr-1.5 mb-1.5 font-normal bg-green-50 text-green-700 border-green-100 hover:bg-green-100">
+                              {strength}
+                            </Badge>
+                          ))}
+                          {characterTraits[selectedCharacterForTraits.id]?.strengths.length === 0 && (
+                            <p className="text-xs text-gray-400 italic">暂无数据</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-red-100">
+                        <h4 className="text-xs font-medium text-red-700 mb-2 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          缺点
+                        </h4>
+                        <div className="space-y-1.5">
+                          {characterTraits[selectedCharacterForTraits.id]?.weaknesses.map((weakness, index) => (
+                            <Badge key={index} className="mr-1.5 mb-1.5 font-normal bg-red-50 text-red-700 border-red-100 hover:bg-red-100">
+                              {weakness}
+                            </Badge>
+                          ))}
+                          {characterTraits[selectedCharacterForTraits.id]?.weaknesses.length === 0 && (
+                            <p className="text-xs text-gray-400 italic">暂无数据</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 p-2 bg-white/60 backdrop-blur-sm rounded-lg border border-indigo-50">
+                      <p className="text-xs text-indigo-800 leading-relaxed">
+                        <span className="font-semibold">{selectedCharacterForTraits.name}的特点提示：</span> 
+                        思考这些特质如何影响他在旅途中的需求？可以设计什么工具来弥补缺点或增强优点？
+                      </p>
+                    </div>
+                    
+                    {/* 隐藏/显示按钮移到底部 */}
+                    <div className="flex justify-end mt-3">
+                      <button
+                        onClick={() => setShowCharacterTraitsPanel(!showCharacterTraitsPanel)}
+                        className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 transition-colors"
+                      >
+                        <Info size={12} />
+                        {showCharacterTraitsPanel ? "隐藏角色特点" : "显示角色特点"}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* 创意输入框移至下方 */}
                   <div className="flex gap-3 mb-6">
                     <Input 
-                    type="text" 
+                      type="text" 
                       placeholder="输入你的创意点子..." 
                       className="border-2 border-orange-200 focus:border-orange-400 rounded-full pl-4 text-md"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const target = e.target as HTMLInputElement;
-                        handleAddIdea(target.value);
-                        target.value = '';
-                      }
-                    }}
-                  />
-                  <Button 
-                    onClick={() => {
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const target = e.target as HTMLInputElement;
+                          handleAddIdea(target.value);
+                          target.value = '';
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={() => {
                         const input = document.querySelector('input[placeholder="输入你的创意点子..."]') as HTMLInputElement;
-                      handleAddIdea(input.value);
-                      input.value = '';
-                    }}
+                        handleAddIdea(input.value);
+                        input.value = '';
+                      }}
                       className="bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white rounded-full font-semibold px-6 shadow-sm"
-                  >
+                    >
                       <Sparkles className="mr-2" size={16} />
                       添加创意
-                  </Button>
-                </div>
-                
+                    </Button>
+                  </div>
+                  
                   {/* 创意展示墙 - 类似便利贴的样式 */}
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[360px] overflow-y-auto p-2">
                   {productIdeas.length === 0 ? (
