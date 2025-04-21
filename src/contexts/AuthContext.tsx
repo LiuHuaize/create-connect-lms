@@ -178,19 +178,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Check for existing session
     console.log('检查现有会话');
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      console.log('现有会话检查结果:', currentSession ? '找到会话' : '没有会话');
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      // If user is logged in, fetch their role
-      if (currentSession?.user) {
-        console.log('找到用户会话，获取角色');
-        await fetchUserRole(currentSession.user.id);
-      }
-      
-      setLoading(false);
-    });
+    
+    // 添加延迟来解决Supabase会话加载问题
+    setTimeout(() => {
+      supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+        console.log('现有会话检查结果:', currentSession ? '找到会话' : '没有会话');
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        // If user is logged in, fetch their role
+        if (currentSession?.user) {
+          console.log('找到用户会话，获取角色');
+          await fetchUserRole(currentSession.user.id);
+        }
+        
+        setLoading(false);
+      });
+    }, 100); // 添加100毫秒的延迟，让Supabase有时间初始化
 
     return () => {
       subscription.unsubscribe();

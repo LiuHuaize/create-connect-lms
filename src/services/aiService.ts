@@ -47,7 +47,7 @@ interface ChatCompletionResponse {
 // const API_KEY = import.meta.env.VITE_AIHUBMIX_API_KEY; // Removed environment variable usage
 const API_KEY = 'sk-ysF0SA6kJ7C1I2wG2f901fD6Fe8443Df8f75C92a0aF1Ce2b'; // Directly hardcoded API Key
 const BASE_URL = 'https://aihubmix.com/v1'; // AI Hub Mix API 地址
-const MODEL_NAME = 'kimi-latest'; // 指定的 Gemini 模型名称
+const MODEL_NAME = 'kimi-latest'; // 
 const API_URL = 'https://aihubmix.com/v1/chat/completions';
 
 // 创建 axios 实例

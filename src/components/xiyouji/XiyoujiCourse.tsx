@@ -17,6 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { characters } from './course-components/characterData'; // Import characters data
+import FlowChart from './course-components/FlowChart';
 
 interface XiyoujiCourseProps {
   onBack: () => void;
@@ -151,6 +152,35 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
   // 添加角色特点参考面板状态
   const [showCharacterTraitsPanel, setShowCharacterTraitsPanel] = useState(true);
   const [selectedCharacterForTraits, setSelectedCharacterForTraits] = useState(characters[0]);
+  
+  // 添加AI交互状态
+  const [aiMessage, setAiMessage] = useState<string>("");
+  const [ideaInput, setIdeaInput] = useState<string>("");
+  const [aiIdeaSuggestions, setAiIdeaSuggestions] = useState<string[]>([]);
+  const [isLoadingAiIdeas, setIsLoadingAiIdeas] = useState(false);
+  const [aiAnalysisExpanded, setAiAnalysisExpanded] = useState<{[key: string]: boolean}>({});
+  const [canvasAiHelp, setCanvasAiHelp] = useState<{[key: string]: string}>({
+    title: "",
+    problem: "",
+    userGroups: "",
+    keyFeatures: "",
+    uniqueValue: ""
+  });
+  
+  // 添加创意分析数据缓存
+  const [ideaAnalysisCache, setIdeaAnalysisCache] = useState<{
+    [key: string]: {
+      analysis: {[characterId: string]: string},
+      improvement: {[characterId: string]: string}
+    }
+  }>({});
+  
+  // 添加浮动AI助手状态
+  const [showFloatingAI, setShowFloatingAI] = useState(false);
+  const [floatingAIMinimized, setFloatingAIMinimized] = useState(true);
+  
+  // 添加AI创意建议理由状态
+  const [ideaReasons, setIdeaReasons] = useState<Record<string, string>>({});
   
   // 添加示例特点数据 (dummy data)
   useEffect(() => {
@@ -671,7 +701,11 @@ const XiyoujiCourse: React.FC<XiyoujiCourseProps> = ({ onBack }) => {
       const userMessage = `我选择了这些产品创意，请帮我分析它们的优缺点，并给出如何改进的建议：
 ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
 
-如果你认为这些创意中有一个特别有潜力，请重点分析它，并帮我完善。`;
+${selectedCharacterForTraits ? 
+  `我现在特别关注的是${selectedCharacterForTraits.name}的需求。他的优点是: ${characterTraits[selectedCharacterForTraits.id]?.strengths.join('、')}，缺点是: ${characterTraits[selectedCharacterForTraits.id]?.weaknesses.join('、')}。` 
+  : ''}
+
+如果你认为这些创意中有一个特别有潜力，请重点分析它，并帮我完善。用生动有趣的语言，就像你在和小朋友交流一样。`;
 
       // 构建AI请求消息
       const aiMessages: AppChatMessage[] = [
@@ -691,6 +725,193 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
     } finally {
       setIsLoadingAiSuggestion(false);
     }
+  };
+
+  // 获取AI创意建议
+  const getAiIdeaSuggestions = async () => {
+    setIsLoadingAiIdeas(true);
+    
+    try {
+      // 获取当前选择的角色特点
+      const currentCharacter = selectedCharacterForTraits;
+      const strengths = characterTraits[currentCharacter.id]?.strengths || [];
+      const weaknesses = characterTraits[currentCharacter.id]?.weaknesses || [];
+      
+      const systemPrompt = `你是一位友好的创意助手，正在帮助孩子们进行西游记的课程学习。
+你需要给孩子们提供关于为唐僧师徒四人设计工具和产品的创意灵感。
+请记住：
+1. 提供简短、有趣、容易理解的创意点子
+2. 每个创意不超过15个字
+3. 同时为每个创意提供简短理由(不超过20字)
+4. 保持积极正面，适合儿童
+5. 不要包含过于复杂或现代的技术概念
+6. 创意要契合西游记的故事背景`;
+
+      const userMessage = `请为${currentCharacter.name}提供3个创意产品点子，每个点子附带简短理由。
+
+${currentCharacter.name}的优点: ${strengths.join('、')}
+${currentCharacter.name}的缺点: ${weaknesses.join('、')}
+
+考虑他的这些特点，他在西天取经路上可能会遇到什么困难？需要什么样的工具或产品来帮助他？
+请直接给出3个点子，格式如下：
+1. [创意名称]：[简短理由]
+2. [创意名称]：[简短理由]
+3. [创意名称]：[简短理由]`;
+
+      // 构建AI请求消息
+      const aiMessages: AppChatMessage[] = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ];
+      
+      // 发送请求到AI服务
+      const aiResponse = await sendMessageToAI(aiMessages);
+      
+      // 解析回复，提取创意点和理由
+      const ideaPattern = /\d+\.\s+(.+?)[:：](.+?)(?=\n|$)/g;
+      let match;
+      const ideas: {text: string, reason: string}[] = [];
+      
+      while ((match = ideaPattern.exec(aiResponse)) !== null) {
+        if (match[1] && match[2]) {
+          ideas.push({
+            text: match[1].trim(),
+            reason: match[2].trim()
+          });
+        }
+      }
+      
+      // 如果没有成功解析出创意，使用简单的分割方法
+      if (ideas.length === 0) {
+        const lines = aiResponse.split('\n').filter(line => line.trim() !== '');
+        for (const line of lines) {
+          const parts = line.split(/[:：]/);
+          if (parts.length >= 2) {
+            // 移除可能的序号
+            const text = parts[0].replace(/^\d+\.\s*/, '').trim();
+            const reason = parts[1].trim();
+            if (text && reason) {
+              ideas.push({ text, reason });
+            }
+          }
+        }
+      }
+      
+      // 如果仍然没有创意，使用预设数据
+      if (ideas.length === 0) {
+        ideas.push(
+          { text: "变身护身符", reason: "可以随时变换外形，避开危险" },
+          { text: "驱妖宝扇", reason: "能驱散妖气，保护师徒安全" },
+          { text: "避雨斗篷", reason: "遇到恶劣天气时提供保护" }
+        );
+      }
+      
+      // 只保留文本部分用于显示在按钮上
+      setAiIdeaSuggestions(ideas.map(idea => idea.text));
+      
+      // 保存理由信息到状态
+      setIdeaReasons(ideas.reduce((acc, idea) => {
+        acc[idea.text] = idea.reason;
+        return acc;
+      }, {} as Record<string, string>));
+      
+    } catch (error) {
+      console.error('获取AI创意建议失败:', error);
+      // 使用一些预设的dummy data
+      const dummyIdeas = [
+        { text: "变身护身符", reason: "可以随时变换外形，避开危险" },
+        { text: "驱妖宝扇", reason: "能驱散妖气，保护师徒安全" },
+        { text: "避雨斗篷", reason: "遇到恶劣天气时提供保护" }
+      ];
+      
+      setAiIdeaSuggestions(dummyIdeas.map(idea => idea.text));
+      setIdeaReasons(dummyIdeas.reduce((acc, idea) => {
+        acc[idea.text] = idea.reason;
+        return acc;
+      }, {} as Record<string, string>));
+    } finally {
+      setIsLoadingAiIdeas(false);
+    }
+  };
+  
+  // 获取产品画布AI帮助
+  const getCanvasAiHelp = async (field: string, currentValue: string) => {
+    try {
+      // 获取当前选择的创意
+      const selectedIdea = selectedIdeas.length > 0 ? selectedIdeas[0] : "";
+      if (!selectedIdea) return "";
+      
+      // 获取当前选择的角色特点
+      const currentCharacter = selectedCharacterForTraits;
+      const strengths = characterTraits[currentCharacter.id]?.strengths || [];
+      const weaknesses = characterTraits[currentCharacter.id]?.weaknesses || [];
+      
+      const fieldPrompts: {[key: string]: string} = {
+        title: "为这个产品想一个有趣、吸引人的名字，适合儿童理解，与西游记相关",
+        problem: "描述西天取经路上可能遇到的问题，以及这个产品如何解决这些问题",
+        userGroups: "这个产品主要适合师徒四人中的谁使用？为什么？",
+        keyFeatures: "这个产品应该有哪些有趣的功能？列出3-5个关键功能",
+        uniqueValue: "这个产品有什么独特之处？为什么对唐僧师徒很有价值？"
+      };
+      
+      const systemPrompt = `你是一位友好的创意助手，正在帮助孩子们完成西游记产品设计课程。
+你需要针对孩子提出的问题给出有启发性的建议，帮助他们思考产品设计，但不要直接给出完整答案。
+请记住：
+1. 使用简单友好的语言，适合与儿童交流
+2. 提供启发性的问题和建议，而不是直接答案
+3. 回答要简短，不超过50个字
+4. 保持积极鼓励的态度`;
+
+      const userMessage = `我正在设计一个叫"${selectedIdea}"的产品，需要你帮我思考${fieldPrompts[field]}。
+
+我目前写的是："${currentValue || '还没想好'}"
+
+这个产品主要是为了帮助${currentCharacter.name}，他的优点是${strengths.join('、')}，缺点是${weaknesses.join('、')}。
+
+请给我一些启发性的问题或建议，帮助我思考，但不要直接给我答案。`;
+
+      // 构建AI请求消息
+      const aiMessages: AppChatMessage[] = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ];
+      
+      // 发送请求到AI服务
+      const aiResponse = await sendMessageToAI(aiMessages);
+      
+      // 返回AI回复
+      return aiResponse;
+      
+    } catch (error) {
+      console.error(`获取${field}的AI帮助失败:`, error);
+      // 返回一些预设的dummy data
+      const dummyResponses: {[key: string]: string} = {
+        title: "给你的创意起个有趣的名字，可以和西游记故事或角色有关联吗？",
+        problem: "想想师徒四人旅途中遇到的妖怪，你的产品如何帮助他们解决困难？",
+        userGroups: "这个产品是给唐僧、悟空、八戒还是沙僧用的？他们各自有什么不同需求？",
+        keyFeatures: "如果你是产品的使用者，最希望它有哪些神奇功能？写下3-5个重要功能。",
+        uniqueValue: "为什么这个产品对取经之路很重要？它能解决什么特殊问题？"
+      };
+      return dummyResponses[field] || "思考一下，这个产品有什么特别之处？";
+    }
+  };
+
+  // 在用户输入字段时获取画布帮助
+  const handleCanvasFieldFocus = async (field: keyof typeof productCanvas) => {
+    if (canvasAiHelp[field]) return; // 已经有建议了
+    
+    const help = await getCanvasAiHelp(field, productCanvas[field]);
+    setCanvasAiHelp(prev => ({
+      ...prev,
+      [field]: help
+    }));
+  };
+
+  // 使用AI建议添加创意
+  const handleUseAiIdea = (idea: string) => {
+    handleAddIdea(idea);
+    // 清空AI建议，让用户有机会再次请求
+    setAiIdeaSuggestions([]);
   };
 
   // 修改渲染阶段内容
@@ -908,28 +1129,28 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                 </div>
                 
                 <div className="p-6">
-                  {/* 新增: 角色特点参考面板 - 移动到顶部 */}
-                  <div className="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 shadow-sm border border-indigo-100 transition-all duration-300">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-indigo-700">角色特点参考</h3>
-                      <div className="flex gap-1">
+                  {/* 角色特点参考面板 - 移动到顶部 */}
+                  <div className="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-5 shadow-sm border border-indigo-100 transition-all duration-300">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-indigo-700 text-lg">角色特点参考</h3>
+                      <div className="flex gap-2">
                         {characters.map((character) => (
                           <button
                             key={character.id}
                             onClick={() => setSelectedCharacterForTraits(character)}
-                            className={`relative p-1 rounded-md transition-all ${
+                            className={`relative p-1.5 rounded-md transition-all ${
                               selectedCharacterForTraits.id === character.id
                                 ? "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300"
                                 : "hover:bg-indigo-50 text-gray-500"
                             }`}
                             title={character.name}
                           >
-                            <Avatar className="w-7 h-7">
+                            <Avatar className="w-10 h-10">
                               <AvatarImage src={character.avatar} alt={character.name} />
                               <AvatarFallback>{character.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             {selectedCharacterForTraits.id === character.id && (
-                              <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                              <span className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-indigo-500 rounded-full"></span>
                             )}
                           </button>
                         ))}
@@ -937,16 +1158,16 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-green-100">
-                        <h4 className="text-xs font-medium text-green-700 mb-2 flex items-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+                      <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-green-100">
+                        <h4 className="text-sm font-medium text-green-700 mb-3 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                           优点
                         </h4>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {characterTraits[selectedCharacterForTraits.id]?.strengths.map((strength, index) => (
-                            <Badge key={index} className="mr-1.5 mb-1.5 font-normal bg-green-50 text-green-700 border-green-100 hover:bg-green-100">
+                            <Badge key={index} className="mr-1.5 mb-1.5 font-normal text-sm bg-green-50 text-green-700 border-green-100 hover:bg-green-100 py-1 px-2">
                               {strength}
                             </Badge>
                           ))}
@@ -956,16 +1177,16 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                         </div>
                       </div>
                       
-                      <div className="bg-white/80 backdrop-blur-sm p-3 rounded-lg border border-red-100">
-                        <h4 className="text-xs font-medium text-red-700 mb-2 flex items-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+                      <div className="bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-red-100">
+                        <h4 className="text-sm font-medium text-red-700 mb-3 flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
                           缺点
                         </h4>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {characterTraits[selectedCharacterForTraits.id]?.weaknesses.map((weakness, index) => (
-                            <Badge key={index} className="mr-1.5 mb-1.5 font-normal bg-red-50 text-red-700 border-red-100 hover:bg-red-100">
+                            <Badge key={index} className="mr-1.5 mb-1.5 font-normal text-sm bg-red-50 text-red-700 border-red-100 hover:bg-red-100 py-1 px-2">
                               {weakness}
                             </Badge>
                           ))}
@@ -976,8 +1197,8 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                       </div>
                     </div>
                     
-                    <div className="mt-3 p-2 bg-white/60 backdrop-blur-sm rounded-lg border border-indigo-50">
-                      <p className="text-xs text-indigo-800 leading-relaxed">
+                    <div className="mt-3 p-3 bg-white/60 backdrop-blur-sm rounded-lg border border-indigo-50">
+                      <p className="text-sm text-indigo-800 leading-relaxed">
                         <span className="font-semibold">{selectedCharacterForTraits.name}的特点提示：</span> 
                         思考这些特质如何影响他在旅途中的需求？可以设计什么工具来弥补缺点或增强优点？
                       </p>
@@ -995,25 +1216,119 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                     </div>
                   </div>
                   
+                  {/* 移除页面中的AI创意助手部分，只使用浮动助手 */}
+                  {currentStage === 1 && activeCreativeTab === 'brainstorm' && (
+                    <div className={`fixed ${floatingAIMinimized ? 'bottom-6 right-6' : 'bottom-6 right-6 w-80'} transition-all duration-300 z-50`}>
+                      {floatingAIMinimized ? (
+                        <Button 
+                          variant="outline" 
+                          className="w-14 h-14 rounded-full shadow-lg bg-gradient-to-r from-indigo-400 to-blue-400 hover:from-indigo-500 hover:to-blue-500 text-white p-0 flex items-center justify-center border-2 border-white"
+                          onClick={() => setFloatingAIMinimized(false)}
+                          aria-label="展开AI创意助手"
+                        >
+                          <Sparkles size={24} />
+                        </Button>
+                      ) : (
+                        <div className="bg-white rounded-xl shadow-lg border border-indigo-200 overflow-hidden">
+                          <div className="bg-gradient-to-r from-indigo-400 to-blue-400 p-3 flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-white flex items-center">
+                              <Sparkles size={16} className="mr-2" />
+                              AI创意小助手
+                            </h3>
+                            <div className="flex gap-1">
+                              <button 
+                                className="p-1 rounded-full hover:bg-white/20 text-white"
+                                onClick={() => setFloatingAIMinimized(true)}
+                                aria-label="最小化"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M18 12H6"/>
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="p-4">
+                            {aiIdeaSuggestions.length > 0 ? (
+                              <div className="space-y-3">
+                                <p className="text-sm text-indigo-800">根据{selectedCharacterForTraits.name}的特点，这里有一些创意点子:</p>
+                                <div className="space-y-2">
+                                  {aiIdeaSuggestions.map((idea, index) => (
+                                    <div key={index} className="bg-indigo-50 rounded-lg p-2 border border-indigo-100">
+                                      <Button 
+                                        variant="outline"
+                                        onClick={() => handleUseAiIdea(idea)}
+                                        className="mb-1 bg-white border-indigo-200 hover:bg-indigo-50 text-indigo-700 flex items-center gap-1.5 text-xs w-full justify-start"
+                                        size="sm"
+                                      >
+                                        <PlusCircle size={12} />
+                                        {idea}
+                                      </Button>
+                                      {ideaReasons[idea] && (
+                                        <p className="text-xs text-gray-500 pl-5">{ideaReasons[idea]}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setAiIdeaSuggestions([])}
+                                  className="text-xs text-indigo-600 hover:text-indigo-800"
+                                >
+                                  清除建议
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                <p className="text-sm text-gray-600">需要一些创意灵感吗？我可以根据角色特点给你一些建议。</p>
+                                <Button
+                                  onClick={getAiIdeaSuggestions}
+                                  disabled={isLoadingAiIdeas}
+                                  className="w-full bg-gradient-to-r from-indigo-400 to-blue-400 hover:from-indigo-500 hover:to-blue-500 text-white border-none text-xs"
+                                  size="sm"
+                                >
+                                  {isLoadingAiIdeas ? (
+                                    <>
+                                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                      思考中...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles size={12} className="mr-2" />
+                                      获取创意灵感
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* 创意输入框移至下方 */}
                   <div className="flex gap-3 mb-6">
                     <Input 
                       type="text" 
                       placeholder="输入你的创意点子..." 
                       className="border-2 border-orange-200 focus:border-orange-400 rounded-full pl-4 text-md"
+                      value={ideaInput}
+                      onChange={(e) => setIdeaInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          const target = e.target as HTMLInputElement;
-                          handleAddIdea(target.value);
-                          target.value = '';
+                        if (e.key === 'Enter' && ideaInput.trim()) {
+                          handleAddIdea(ideaInput);
+                          setIdeaInput('');
                         }
                       }}
                     />
                     <Button 
                       onClick={() => {
-                        const input = document.querySelector('input[placeholder="输入你的创意点子..."]') as HTMLInputElement;
-                        handleAddIdea(input.value);
-                        input.value = '';
+                        if (ideaInput.trim()) {
+                          handleAddIdea(ideaInput);
+                          setIdeaInput('');
+                        }
                       }}
                       className="bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white rounded-full font-semibold px-6 shadow-sm"
                     >
@@ -1205,86 +1520,187 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-6">
-                      {selectedIdeas.map((idea, index) => {
-                        // 为每个卡片随机分配一种颜色主题 - 更现代化的调色板
-                        const themes = [
-                          'from-rose-100 to-pink-200 border-rose-200 text-rose-700',
-                          'from-amber-50 to-orange-100 border-amber-200 text-amber-700',
-                          'from-emerald-50 to-teal-100 border-emerald-200 text-emerald-700',
-                          'from-sky-50 to-blue-100 border-sky-200 text-sky-700',
-                          'from-violet-50 to-indigo-100 border-violet-200 text-violet-700',
-                        ];
-                        const theme = themes[index % themes.length];
-                        
-                        // 为每个卡片随机分配一个图标
-                        const icons = [
-                          '🚀', '🌟', '🎮', '🎨', '🎯', '🎪', '🧩', '🔮', '🧸', '🦄', '🦊', '🐉'
-                        ];
-                        const icon = icons[index % icons.length];
-                        
-                        return (
-                          <div 
-                            key={index}
-                            className={`relative p-5 rounded-2xl cursor-pointer transition-all duration-300 
-                                       transform hover:scale-105 hover:shadow-xl shadow-sm
-                                       bg-gradient-to-br ${theme} border`}
-                          >
-                            {/* 背景装饰元素 */}
-                            <div className="absolute -bottom-2 -right-2 text-4xl opacity-20">{icon}</div>
-                            
-                            {/* 创意内容 */}
-                            <div className="relative z-10">
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="text-2xl">{icon}</div>
-                                <h4 className="font-bold text-lg">创意 {index + 1}</h4>
-                              </div>
-                              <p className="font-medium text-lg">{idea}</p>
-                            </div>
-                            
-                            {/* 闪光效果 */}
-                            <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-white animate-pulse"></div>
+                    <div>
+                      {/* 选择角色提示 - 新增 */}
+                      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="bg-blue-100 p-1.5 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                              <path d="M18 6H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h13l4-3.5L18 6Z"/>
+                              <path d="M12 13v8"/>
+                              <path d="M12 3v3"/>
+                            </svg>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  
-                  {selectedIdeas.length > 0 && (
-                    <div className="mt-8 space-y-6">
-                      <div className="flex justify-center">
-                        <Button
-                          onClick={handleGetAiHelp}
-                          disabled={isLoadingAiSuggestion}
-                          className="bg-gradient-to-r from-rose-400 to-pink-400 hover:from-rose-500 hover:to-pink-500 text-white font-medium px-8 py-3 rounded-full shadow-md transition-all duration-300 hover:shadow-lg transform hover:scale-105"
-                        >
-                          {isLoadingAiSuggestion ? (
-                            <>
-                              <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                              思考创意中...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="mr-2" size={20} />
-                              获取AI魔法分析
-                            </>
-                          )}
-                        </Button>
+                          <h3 className="font-medium text-blue-700">为谁分析创意？</h3>
+                        </div>
+                        <p className="text-sm text-blue-800 mb-3">选择一个角色，AI会基于他的特点为你分析创意</p>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          {characters.map(character => (
+                            <button 
+                              key={character.id}
+                              onClick={() => setSelectedCharacterForTraits(character)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-all ${
+                                selectedCharacterForTraits.id === character.id 
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-white text-blue-700 border border-blue-200 hover:border-blue-300'
+                              }`}
+                            >
+                              <Avatar className="w-5 h-5">
+                                <AvatarImage src={character.avatar} alt={character.name} />
+                                <AvatarFallback>{character.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              {character.name}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       
-                      {aiSuggestion && (
-                        <div className="mt-6 p-6 bg-gradient-to-r from-rose-50/80 to-pink-50/80 backdrop-blur-sm rounded-2xl border border-rose-100 shadow-md">
-                          <h3 className="font-bold text-rose-700 mb-4 flex items-center text-xl">
-                            <div className="bg-rose-100 p-2 rounded-lg mr-3">
-                              <Sparkles size={20} className="text-rose-500" />
+                      <div className="grid grid-cols-1 gap-6">
+                        {selectedIdeas.map((idea, index) => {
+                          // 为每个卡片随机分配一种颜色主题 - 更现代化的调色板
+                          const themes = [
+                            'from-rose-100 to-pink-200 border-rose-200 text-rose-700',
+                            'from-amber-50 to-orange-100 border-amber-200 text-amber-700',
+                            'from-emerald-50 to-teal-100 border-emerald-200 text-emerald-700',
+                            'from-sky-50 to-blue-100 border-sky-200 text-sky-700',
+                            'from-violet-50 to-indigo-100 border-violet-200 text-violet-700',
+                          ];
+                          const theme = themes[index % themes.length];
+                          
+                          // 为每个卡片随机分配一个图标
+                          const icons = [
+                            '🚀', '🌟', '🎮', '🎨', '🎯', '🎪', '🧩', '🔮', '🧸', '🦄', '🦊', '🐉'
+                          ];
+                          const icon = icons[index % icons.length];
+                          
+                          return (
+                            <div 
+                              key={index}
+                              className={`relative p-5 rounded-2xl transition-all duration-300 
+                                         transform hover:scale-105 hover:shadow-xl shadow-sm
+                                         bg-gradient-to-br ${theme} border`}
+                            >
+                              {/* 背景装饰元素 */}
+                              <div className="absolute -bottom-2 -right-2 text-4xl opacity-20">{icon}</div>
+                              
+                              {/* 创意内容 */}
+                              <div className="relative z-10">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <div className="text-2xl">{icon}</div>
+                                  <h4 className="font-bold text-lg">创意 {index + 1}</h4>
+                                </div>
+                                <p className="font-medium text-lg">{idea}</p>
+                                
+                                {/* 单个创意AI分析按钮 - 新增 */}
+                                <div className="mt-4">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-white/70 backdrop-blur-sm border-current/20 text-current hover:bg-white/90"
+                                    onClick={() => {
+                                      if (aiAnalysisExpanded[idea]) {
+                                        setAiAnalysisExpanded({...aiAnalysisExpanded, [idea]: false});
+                                      } else {
+                                        setAiAnalysisExpanded({...aiAnalysisExpanded, [idea]: true});
+                                        // 如果还没分析过这个创意，触发AI分析
+                                        if (!aiAnalysisExpanded[idea]) {
+                                          analyzeIdeaForCharacter(idea, selectedCharacterForTraits);
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    {aiAnalysisExpanded[idea] ? 
+                                      '收起分析' : 
+                                      <><Sparkles size={14} className="mr-1.5" /> 获取AI分析</>
+                                    }
+                                  </Button>
+                                </div>
+                              </div>
+                              
+                              {/* 单个创意的AI分析结果 - 新增 */}
+                              {aiAnalysisExpanded[idea] && (
+                                <div className="mt-4 p-3 bg-white/80 backdrop-blur-sm rounded-xl border border-current/10 text-sm">
+                                  <div className="flex items-center gap-1.5 mb-2">
+                                    <Sparkles size={14} className="text-current" />
+                                    <h5 className="font-medium">AI分析</h5>
+                                  </div>
+                                  <div className="text-current/90">
+                                    {isLoadingAiSuggestion ? (
+                                      <div className="flex items-center justify-center py-3">
+                                        <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        <p>
+                                          <span className="font-medium">对{selectedCharacterForTraits.name}的价值：</span> 
+                                          {getIdeaAnalysisForCharacter(idea, selectedCharacterForTraits.id)}
+                                        </p>
+                                        <p>
+                                          <span className="font-medium">改进建议：</span> 
+                                          {getIdeaImprovementForCharacter(idea, selectedCharacterForTraits.id)}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* 闪光效果 */}
+                              <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-white animate-pulse"></div>
                             </div>
-                            创意小助手分析
-                          </h3>
-                          <div className="text-base text-gray-700 whitespace-pre-line leading-relaxed">
-                            {aiSuggestion}
-                          </div>
+                          );
+                        })}
+                      </div>
+                      
+                      <div className="mt-8 space-y-6">
+                        <div className="flex justify-center">
+                          <Button
+                            onClick={handleGetAiHelp}
+                            disabled={isLoadingAiSuggestion}
+                            className="bg-gradient-to-r from-rose-400 to-pink-400 hover:from-rose-500 hover:to-pink-500 text-white font-medium px-8 py-3 rounded-full shadow-md transition-all duration-300 hover:shadow-lg transform hover:scale-105"
+                          >
+                            {isLoadingAiSuggestion ? (
+                              <>
+                                <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                思考创意中...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="mr-2" size={20} />
+                                获取AI魔法分析
+                              </>
+                            )}
+                          </Button>
                         </div>
-                      )}
+                        
+                        {aiSuggestion && (
+                          <div className="mt-6 p-6 bg-gradient-to-r from-rose-50/80 to-pink-50/80 backdrop-blur-sm rounded-2xl border border-rose-100 shadow-md">
+                            <h3 className="font-bold text-rose-700 mb-4 flex items-center text-xl">
+                              <div className="bg-rose-100 p-2 rounded-lg mr-3">
+                                <Sparkles size={20} className="text-rose-500" />
+                              </div>
+                              创意小助手分析
+                            </h3>
+                            <div className="text-base text-gray-700 whitespace-pre-line leading-relaxed">
+                              {aiSuggestion}
+                            </div>
+                            
+                            {/* 进入产品画布按钮 - 新增 */}
+                            <div className="mt-6 flex justify-end">
+                              <Button
+                                onClick={() => setActiveCreativeTab('canvas')}
+                                className="bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                                  <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/>
+                                </svg>
+                                进入产品画布
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1311,29 +1727,51 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                       </span>
                       产品名称
                     </label>
-                    <Input 
-                    type="text" 
-                    value={productCanvas.title}
-                    onChange={(e) => handleCanvasChange('title', e.target.value)}
-                      className="border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-lg shadow-sm py-2.5"
-                      placeholder="起个超酷的名字..."
-                  />
-                </div>
+                    <div className="relative">
+                      <Input 
+                        type="text" 
+                        value={productCanvas.title}
+                        onChange={(e) => handleCanvasChange('title', e.target.value)}
+                        onFocus={() => handleCanvasFieldFocus('title')}
+                        className="border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-lg shadow-sm py-2.5"
+                        placeholder="起个超酷的名字..."
+                      />
+                      {canvasAiHelp.title && (
+                        <div className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg p-2 border border-indigo-100 flex gap-2 items-start">
+                          <div className="mt-0.5">
+                            <Sparkles size={12} className="text-indigo-500" />
+                          </div>
+                          <p>{canvasAiHelp.title}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 
-                <div>
+                  <div>
                     <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
                       <span className="bg-indigo-100 p-1.5 rounded-md mr-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                       </span>
                       用户群体
                     </label>
-                    <Input 
-                      type="text" 
-                      value={productCanvas.userGroups}
-                      onChange={(e) => handleCanvasChange('userGroups', e.target.value)}
-                      className="border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl shadow-sm py-2.5"
-                      placeholder="唐僧？孙悟空？还是其他人？"
-                    />
+                    <div className="relative">
+                      <Input 
+                        type="text" 
+                        value={productCanvas.userGroups}
+                        onChange={(e) => handleCanvasChange('userGroups', e.target.value)}
+                        onFocus={() => handleCanvasFieldFocus('userGroups')}
+                        className="border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl shadow-sm py-2.5"
+                        placeholder="唐僧？孙悟空？还是其他人？"
+                      />
+                      {canvasAiHelp.userGroups && (
+                        <div className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg p-2 border border-indigo-100 flex gap-2 items-start">
+                          <div className="mt-0.5">
+                            <Sparkles size={12} className="text-indigo-500" />
+                          </div>
+                          <p>{canvasAiHelp.userGroups}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="md:col-span-2">
@@ -1343,13 +1781,24 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                       </span>
                       要解决的问题
                     </label>
-                  <textarea 
-                    value={productCanvas.problem}
-                    onChange={(e) => handleCanvasChange('problem', e.target.value)}
-                      className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
-                      placeholder="西天路上遇到了什么困难？这个产品如何帮助解决？"
-                  />
-                </div>
+                    <div className="relative">
+                      <textarea 
+                        value={productCanvas.problem}
+                        onChange={(e) => handleCanvasChange('problem', e.target.value)}
+                        onFocus={() => handleCanvasFieldFocus('problem')}
+                        className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
+                        placeholder="西天路上遇到了什么困难？这个产品如何帮助解决？"
+                      />
+                      {canvasAiHelp.problem && (
+                        <div className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg p-2 border border-indigo-100 flex gap-2 items-start">
+                          <div className="mt-0.5">
+                            <Sparkles size={12} className="text-indigo-500" />
+                          </div>
+                          <p>{canvasAiHelp.problem}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
@@ -1358,13 +1807,24 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                       </span>
                       主要功能
                     </label>
-                  <textarea 
-                      value={productCanvas.keyFeatures}
-                      onChange={(e) => handleCanvasChange('keyFeatures', e.target.value)}
-                      className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
-                      placeholder="列出产品的3-5个最重要功能..."
-                  />
-                </div>
+                    <div className="relative">
+                      <textarea 
+                        value={productCanvas.keyFeatures}
+                        onChange={(e) => handleCanvasChange('keyFeatures', e.target.value)}
+                        onFocus={() => handleCanvasFieldFocus('keyFeatures')}
+                        className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
+                        placeholder="列出产品的3-5个最重要功能..."
+                      />
+                      {canvasAiHelp.keyFeatures && (
+                        <div className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg p-2 border border-indigo-100 flex gap-2 items-start">
+                          <div className="mt-0.5">
+                            <Sparkles size={12} className="text-indigo-500" />
+                          </div>
+                          <p>{canvasAiHelp.keyFeatures}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-indigo-600 mb-2 flex items-center">
@@ -1373,13 +1833,101 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                       </span>
                       独特价值
                     </label>
-                  <textarea 
-                    value={productCanvas.uniqueValue}
-                    onChange={(e) => handleCanvasChange('uniqueValue', e.target.value)}
-                      className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
-                      placeholder="为什么这个产品与众不同？有什么创新的地方？"
-                  />
-                </div>
+                    <div className="relative">
+                      <textarea 
+                        value={productCanvas.uniqueValue}
+                        onChange={(e) => handleCanvasChange('uniqueValue', e.target.value)}
+                        onFocus={() => handleCanvasFieldFocus('uniqueValue')}
+                        className="w-full p-4 border border-indigo-100 focus:border-indigo-300 focus:ring focus:ring-indigo-100 rounded-xl text-md min-h-[100px] shadow-sm"
+                        placeholder="为什么这个产品与众不同？有什么创新的地方？"
+                      />
+                      {canvasAiHelp.uniqueValue && (
+                        <div className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg p-2 border border-indigo-100 flex gap-2 items-start">
+                          <div className="mt-0.5">
+                            <Sparkles size={12} className="text-indigo-500" />
+                          </div>
+                          <p>{canvasAiHelp.uniqueValue}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* AI助手按钮 - 获取综合建议 */}
+                  <div className="md:col-span-2 mt-4">
+                    <Button
+                      onClick={async () => {
+                        setIsLoadingAiSuggestion(true);
+                        try {
+                          // 构建提示信息
+                          const systemPrompt = `你是一位友好的创意助手，正在帮助孩子们完成西游记产品设计课程。
+                          请为他们的产品设计提供整体性的建议和改进方向，但不要完全重写产品内容。
+                          请记住：
+                          1. 使用简单友好的语言，适合与儿童交流
+                          2. 保持积极鼓励的态度，肯定他们的创意
+                          3. 指出产品设计中的亮点和可以改进的地方
+                          4. 建议要具体、实用、有指导性`;
+
+                          const userMessage = `我正在设计一个产品，目前的内容如下：
+
+产品名称：${productCanvas.title || '未填写'}
+用户群体：${productCanvas.userGroups || '未填写'}
+要解决的问题：${productCanvas.problem || '未填写'}
+主要功能：${productCanvas.keyFeatures || '未填写'}
+独特价值：${productCanvas.uniqueValue || '未填写'}
+
+这个产品主要是为了帮助${selectedCharacterForTraits.name}，他的优点是${characterTraits[selectedCharacterForTraits.id]?.strengths.join('、')}，缺点是${characterTraits[selectedCharacterForTraits.id]?.weaknesses.join('、')}。
+
+请给我一些建议，帮助我改进这个产品设计。`;
+
+                          // 构建AI请求消息
+                          const aiMessages: AppChatMessage[] = [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userMessage }
+                          ];
+                          
+                          // 发送请求到AI服务
+                          const aiResponse = await sendMessageToAI(aiMessages);
+                          
+                          // 设置AI回复
+                          setAiSuggestion(aiResponse);
+                        } catch (error) {
+                          console.error('获取AI建议失败:', error);
+                          setAiSuggestion("抱歉，我暂时无法提供产品设计建议。请稍后再试。");
+                        } finally {
+                          setIsLoadingAiSuggestion(false);
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white"
+                      disabled={isLoadingAiSuggestion}
+                    >
+                      {isLoadingAiSuggestion ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          获取产品设计建议中...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2" size={16} />
+                          获取AI产品设计建议
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {/* AI建议显示区域 */}
+                  {aiSuggestion && (
+                    <div className="md:col-span-2 mt-2 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="bg-gradient-to-r from-indigo-400 to-purple-400 text-white p-2 rounded-full">
+                          <Sparkles size={16} />
+                        </div>
+                        <h3 className="font-medium text-indigo-800">AI产品设计建议</h3>
+                      </div>
+                      <div className="text-sm text-gray-700 whitespace-pre-line">
+                        {aiSuggestion}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {/* AI助手建议区域 - 更现代化设计 */}
@@ -1388,11 +1936,11 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
                     <div className="bg-indigo-100 p-2.5 rounded-lg shadow-sm">
                       <Sparkles className="text-indigo-500" size={20} />
                     </div>
-                <div>
+                    <div>
                       <h3 className="font-medium text-indigo-700 mb-1.5">创意小助手提示</h3>
-                      <p className="text-sm text-gray-600 leading-relaxed">想象一下如果你的产品真的存在，会给唐僧师徒带来什么变化？他们的旅程会变得更轻松吗？</p>
-                </div>
-              </div>
+                      <p className="text-sm text-gray-600 leading-relaxed">点击每个输入框，AI助手会给你提供相关提示。完成所有字段后，点击"获取AI产品设计建议"获取整体评价和改进建议。</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1425,37 +1973,37 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
             <div className="bg-white rounded-xl shadow-sm border border-indigo-100/80 p-4 backdrop-blur-sm bg-white/90">
               <h2 className="text-base md:text-lg font-medium text-indigo-700 mb-3">产品流程图</h2>
               
-              <div className="aspect-video bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center mb-4">
-                <div className="text-center p-4">
-                  <p className="text-gray-500 mb-4">在这里使用Excalidraw绘制流程图</p>
-                  <Button className="bg-blue-500 hover:bg-blue-600 text-white border-0">
-                    打开Excalidraw
+              {productCanvas.title ? (
+                <FlowChart productCanvas={productCanvas} />
+              ) : (
+                <div className="p-6 bg-amber-50 border border-amber-100 rounded-lg text-center">
+                  <h3 className="text-amber-800 font-medium mb-2">请先完成产品画布</h3>
+                  <p className="text-sm text-gray-700 mb-4">在创建流程图之前，请先完成产品画布的填写，这样我们才能根据您的产品定制流程图。</p>
+                  <Button 
+                    onClick={() => setCurrentStage(1)} 
+                    className="bg-amber-500 hover:bg-amber-600 text-white"
+                  >
+                    返回产品画布
                   </Button>
                 </div>
-              </div>
+              )}
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
-                  <h3 className="text-sm font-medium text-amber-700 mb-2">流程图步骤：</h3>
-                  <ol className="list-decimal pl-4 text-xs text-gray-700 space-y-1">
-                    <li>确定用户旅程的起点和终点</li>
-                    <li>列出主要功能和交互点</li>
-                    <li>设计页面流程和导航路径</li>
-                    <li>添加决策点和条件分支</li>
-                    <li>注明数据流向和系统响应</li>
-                  </ol>
-                </div>
+              <div className="flex justify-between mt-8">
+                <Button
+                  onClick={handlePrevStage}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center gap-1"
+                >
+                  <ChevronLeft size={16} />
+                  返回上一步
+                </Button>
                 
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                  <h3 className="text-sm font-medium text-blue-700 mb-2">提示与建议：</h3>
-                  <ul className="list-disc pl-4 text-xs text-gray-700 space-y-1">
-                    <li>保持流程简洁清晰</li>
-                    <li>使用一致的符号表示不同元素</li>
-                    <li>标注每个步骤的描述</li>
-                    <li>考虑潜在的错误处理流程</li>
-                    <li>设计直观的用户体验路径</li>
-                  </ul>
-                </div>
+                <Button
+                  onClick={handleNextStage}
+                  className="bg-gradient-to-r from-blue-400 to-teal-400 hover:from-blue-500 hover:to-teal-500 text-white font-medium rounded-full px-6 py-2.5 shadow-md transition-all duration-300 hover:shadow-lg transform hover:scale-105 flex items-center"
+                >
+                  继续下一步
+                  <ChevronRight className="ml-2" size={16} />
+                </Button>
               </div>
             </div>
           </div>
@@ -1540,6 +2088,126 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
     // 重置确认状态
     setDeleteConfirmation(null);
   };
+  
+  // 为指定角色分析创意
+  const analyzeIdeaForCharacter = async (idea: string, character: typeof characters[0]) => {
+    // 检查缓存中是否已有分析结果
+    if (
+      ideaAnalysisCache[idea] && 
+      ideaAnalysisCache[idea].analysis[character.id] && 
+      ideaAnalysisCache[idea].improvement[character.id]
+    ) {
+      return; // 已有缓存，不需要再次分析
+    }
+    
+    setIsLoadingAiSuggestion(true);
+    
+    try {
+      // 构建提示信息
+      const systemPrompt = `你是为孩子们设计的西游记创意助手。你需要分析一个产品创意对特定角色的价值，并提供改进建议。
+      
+请记住：
+1. 使用友好、简洁的语言，适合与儿童交流
+2. 分析要具体指出创意如何匹配角色的特点
+3. 改进建议要简短且有建设性
+4. 分析和建议各不超过50个字`;
+
+      const userMessage = `请分析这个创意"${idea}"对${character.name}的价值，并给出改进建议。
+
+${character.name}的优点: ${characterTraits[character.id]?.strengths.join('、')}
+${character.name}的缺点: ${characterTraits[character.id]?.weaknesses.join('、')}
+
+请分成两部分回答：
+1. 对${character.name}的价值：(50字以内)
+2. 改进建议：(50字以内)`;
+
+      // 构建AI请求消息
+      const aiMessages: AppChatMessage[] = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ];
+      
+      // 发送请求到AI服务
+      const aiResponse = await sendMessageToAI(aiMessages);
+      
+      // 解析回复，提取分析和建议
+      let analysis = "";
+      let improvement = "";
+      
+      if (aiResponse.includes("对") && aiResponse.includes("的价值")) {
+        const valueMatch = aiResponse.match(/对.*的价值[:：](.+?)(?:\n|$)/);
+        if (valueMatch && valueMatch[1]) {
+          analysis = valueMatch[1].trim();
+        }
+      }
+      
+      if (aiResponse.includes("改进建议")) {
+        const improvementMatch = aiResponse.match(/改进建议[:：](.+?)(?:\n|$)/);
+        if (improvementMatch && improvementMatch[1]) {
+          improvement = improvementMatch[1].trim();
+        }
+      }
+      
+      // 如果无法解析，使用默认回复
+      if (!analysis) analysis = "这个创意能帮助" + character.name + "解决一些旅途中的困难。";
+      if (!improvement) improvement = "可以考虑加入更多针对" + character.name + "特点的功能。";
+      
+      // 更新缓存
+      setIdeaAnalysisCache(prev => {
+        const newCache = {...prev};
+        if (!newCache[idea]) {
+          newCache[idea] = {
+            analysis: {},
+            improvement: {}
+          };
+        }
+        newCache[idea].analysis[character.id] = analysis;
+        newCache[idea].improvement[character.id] = improvement;
+        return newCache;
+      });
+      
+    } catch (error) {
+      console.error('获取创意分析失败:', error);
+      
+      // 添加默认分析到缓存
+      setIdeaAnalysisCache(prev => {
+        const newCache = {...prev};
+        if (!newCache[idea]) {
+          newCache[idea] = {
+            analysis: {},
+            improvement: {}
+          };
+        }
+        newCache[idea].analysis[character.id] = "这个创意能很好地配合" + character.name + "的特点。";
+        newCache[idea].improvement[character.id] = "可以考虑如何更好地帮助" + character.name + "发挥优势或弥补缺点。";
+        return newCache;
+      });
+    } finally {
+      setIsLoadingAiSuggestion(false);
+    }
+  };
+  
+  // 获取特定创意对特定角色的分析
+  const getIdeaAnalysisForCharacter = (idea: string, characterId: string): string => {
+    if (
+      ideaAnalysisCache[idea] && 
+      ideaAnalysisCache[idea].analysis[characterId]
+    ) {
+      return ideaAnalysisCache[idea].analysis[characterId];
+    }
+    return "暂无分析数据";
+  };
+  
+  // 获取特定创意对特定角色的改进建议
+  const getIdeaImprovementForCharacter = (idea: string, characterId: string): string => {
+    if (
+      ideaAnalysisCache[idea] && 
+      ideaAnalysisCache[idea].improvement[characterId]
+    ) {
+      return ideaAnalysisCache[idea].improvement[characterId];
+    }
+    return "暂无改进建议";
+  };
 
   return (
     <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
@@ -1547,15 +2215,106 @@ ${selectedIdeas.map((idea, index) => `创意${index + 1}: ${idea}`).join('\n')}
         <CourseHeader courseId={courseId} currentModuleIndex={currentStage} />
         {renderStageContent()}
 
-        <DialogTrigger asChild>
-           <Button 
-            variant="outline" 
-            className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white p-0 flex items-center justify-center border-2 border-white"
-            aria-label="打开AI助手"
-          >
+        {/* 只在人物分析阶段显示聊天按钮 */}
+        {currentStage === 0 && (
+          <DialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white p-0 flex items-center justify-center border-2 border-white"
+              aria-label="打开AI助手"
+            >
               <Sparkles size={24} />
-          </Button>
-        </DialogTrigger>
+            </Button>
+          </DialogTrigger>
+        )}
+        
+        {/* 头脑风暴阶段的浮动AI助手 */}
+        {currentStage === 1 && activeCreativeTab === 'brainstorm' && (
+          <div className={`fixed ${floatingAIMinimized ? 'bottom-6 right-6' : 'bottom-6 right-6 w-80'} transition-all duration-300 z-50`}>
+            {floatingAIMinimized ? (
+              <Button 
+                variant="outline" 
+                className="w-14 h-14 rounded-full shadow-lg bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white p-0 flex items-center justify-center border-2 border-white"
+                onClick={() => setFloatingAIMinimized(false)}
+                aria-label="展开AI创意助手"
+              >
+                <Sparkles size={24} />
+              </Button>
+            ) : (
+              <div className="bg-white rounded-xl shadow-lg border border-purple-200 overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-3 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-white flex items-center">
+                    <Sparkles size={16} className="mr-2" />
+                    AI创意小助手
+                  </h3>
+                  <div className="flex gap-1">
+                    <button 
+                      className="p-1 rounded-full hover:bg-white/20 text-white"
+                      onClick={() => setFloatingAIMinimized(true)}
+                      aria-label="最小化"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 12H6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="p-4">
+                  {aiIdeaSuggestions.length > 0 ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-purple-800">根据{selectedCharacterForTraits.name}的特点，这里有一些创意点子:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {aiIdeaSuggestions.map((idea, index) => (
+                          <Button 
+                            key={index}
+                            variant="outline"
+                            onClick={() => handleUseAiIdea(idea)}
+                            className="bg-white border-purple-200 hover:bg-purple-50 text-purple-700 flex items-center gap-1.5 text-xs"
+                            size="sm"
+                          >
+                            <PlusCircle size={12} />
+                            {idea}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAiIdeaSuggestions([])}
+                        className="text-xs text-purple-600 hover:text-purple-800"
+                      >
+                        清除建议
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600">需要一些创意灵感吗？我可以根据角色特点给你一些建议。</p>
+                      <Button
+                        onClick={getAiIdeaSuggestions}
+                        disabled={isLoadingAiIdeas}
+                        className="w-full bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-500 hover:to-pink-500 text-white border-none text-xs"
+                        size="sm"
+                      >
+                        {isLoadingAiIdeas ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            思考中...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={12} className="mr-2" />
+                            获取创意灵感
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <DialogContent className="sm:max-w-[500px] h-[70vh] flex flex-col p-0">
