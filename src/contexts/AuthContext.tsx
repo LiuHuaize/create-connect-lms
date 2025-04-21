@@ -146,33 +146,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up the auth state listener
     console.log('设置认证状态监听器');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log('认证状态变更:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // 处理用户登录
-        if (currentSession?.user) {
-          console.log('用户已登录，获取角色');
-          await fetchUserRole(currentSession.user.id);
+        // 使用setTimeout避免在回调函数中直接使用异步操作，防止死锁
+        setTimeout(() => {
+          // 处理用户登录
+          if (currentSession?.user) {
+            console.log('用户已登录，获取角色');
+            const userId = currentSession.user.id;
+            
+            // 首先尝试从缓存获取角色
+            const cachedRole = getCachedUserRole(userId);
+            if (cachedRole) {
+              setRole(cachedRole);
+            } else {
+              // 异步获取用户角色
+              fetchUserRole(userId);
+            }
+            
+            // 在登录时预加载数据
+            if (event === 'SIGNED_IN') {
+              queryClient.invalidateQueries({ queryKey: ['enrolledCourses'] });
+              queryClient.invalidateQueries({ queryKey: ['courses'] });
+            }
+          } else {
+            // 用户登出
+            setRole(null);
+            // 清除本地缓存
+            sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
+            // 清除React Query缓存
+            if (event === 'SIGNED_OUT') {
+              queryClient.clear();
+            }
+          }
           
-          // 在登录时预加载数据
-          if (event === 'SIGNED_IN') {
-            queryClient.invalidateQueries({ queryKey: ['enrolledCourses'] });
-            queryClient.invalidateQueries({ queryKey: ['courses'] });
-          }
-        } else {
-          // 用户登出
-          setRole(null);
-          // 清除本地缓存
-          sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
-          // 清除React Query缓存
-          if (event === 'SIGNED_OUT') {
-            queryClient.clear();
-          }
-        }
-        
-        setLoading(false);
+          setLoading(false);
+        }, 0);
       }
     );
     
@@ -181,18 +193,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // 添加延迟来解决Supabase会话加载问题
     setTimeout(() => {
-      supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+      supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
         console.log('现有会话检查结果:', currentSession ? '找到会话' : '没有会话');
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // If user is logged in, fetch their role
-        if (currentSession?.user) {
-          console.log('找到用户会话，获取角色');
-          await fetchUserRole(currentSession.user.id);
-        }
-        
-        setLoading(false);
+        // 使用setTimeout避免可能的死锁问题
+        setTimeout(() => {
+          // If user is logged in, fetch their role
+          if (currentSession?.user) {
+            console.log('找到用户会话，获取角色');
+            fetchUserRole(currentSession.user.id);
+          }
+          
+          setLoading(false);
+        }, 0);
       });
     }, 100); // 添加100毫秒的延迟，让Supabase有时间初始化
 

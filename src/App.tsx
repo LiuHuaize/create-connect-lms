@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import NotFound from "./pages/NotFound";
 import Sidebar from "./components/layout/Sidebar";
 import { Menu } from "lucide-react";
@@ -225,11 +226,13 @@ const App = () => {
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <AuthProvider>
-              <Toaster />
-              <Sonner />
-              <AppRoutes />
-            </AuthProvider>
+            <ThemeProvider>
+              <AuthProvider>
+                <Toaster />
+                <Sonner />
+                <AppRoutes />
+              </AuthProvider>
+            </ThemeProvider>
           </TooltipProvider>
         </QueryClientProvider>
       </BrowserRouter>
