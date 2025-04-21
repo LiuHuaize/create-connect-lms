@@ -1,71 +1,184 @@
-
-import React, { useEffect } from 'react';
-import { Canvas, Image as FabricImage, Rect } from 'fabric';
+import React, { useState, useCallback } from 'react';
+import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui/button';
-import { Crop, ArrowRight, Check, Clock, AlertCircle, Move } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { ImageEditorState, EditorRefs } from './types';
+import { ImageEditorProps } from './types';
 import StepsIndicator from './StepsIndicator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-
-interface ImageEditorProps {
-  isOpen: boolean;
-  onClose: () => void;
-  editorState: ImageEditorState;
-  setEditorState: React.Dispatch<React.SetStateAction<ImageEditorState>>;
-  editorRefs: EditorRefs;
-  onSaveImage: () => Promise<void>;
-  resetEditor: () => void;
-  handleToggleCropMode: () => void;
-  handleApplyCrop: () => void;
-}
+import { Spinner } from '@/components/ui/spinner';
 
 const ImageEditor: React.FC<ImageEditorProps> = ({
   isOpen,
   onClose,
-  editorState,
-  setEditorState,
-  editorRefs,
+  editingImage,
   onSaveImage,
-  resetEditor,
-  handleToggleCropMode,
-  handleApplyCrop
+  aspect = 16 / 9
 }) => {
-  // Description for each step
+  // 状态
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const [currentStep, setCurrentStep] = useState<'edit' | 'preview'>('edit');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 引用
+  const imgRef = React.useRef<HTMLImageElement>(null);
+  const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  // 描述
   const renderStepDescription = () => {
-    switch(editorState.currentStep) {
+    switch (currentStep) {
       case 'edit':
-        return '您可以拖动图片调整位置。需要裁剪吗？点击"进入裁剪模式"按钮继续';
-      case 'crop':
         return '调整蓝色框的位置和大小，框内区域将作为封面图片。完成后点击"应用裁剪"';
       case 'preview':
         return '预览您裁剪后的图片效果。如果满意，点击"保存并使用"完成';
       default:
-        return '您可以通过拖动调整图片位置，使用裁剪工具确保16:9的完美比例';
+        return '您可以通过调整裁剪框确保16:9的完美比例';
     }
   };
 
-  // Close handler with cleanup
+  // 图片加载完成
+  const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    
+    // 创建居中的裁剪区域
+    const newCrop: Crop = {
+      unit: '%',
+      width: 90,
+      height: (90 / aspect) * (width / height),
+      x: 5,
+      y: 5
+    };
+    
+    setCrop(newCrop);
+  }, [aspect]);
+
+  // 将裁剪区域绘制到Canvas
+  const generatePreview = useCallback(async () => {
+    if (
+      completedCrop?.width &&
+      completedCrop?.height &&
+      imgRef.current &&
+      previewCanvasRef.current
+    ) {
+      setIsLoading(true);
+      
+      try {
+        // 计算缩放比例
+        const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+        const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+        
+        // 设置canvas的尺寸
+        const canvas = previewCanvasRef.current;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          throw new Error('无法获取Canvas上下文');
+        }
+        
+        // 使用16:9比例
+        canvas.width = 1280;
+        canvas.height = 720;
+        
+        // 清空canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 绘制裁剪区域
+        ctx.drawImage(
+          imgRef.current,
+          completedCrop.x * scaleX,
+          completedCrop.y * scaleY,
+          completedCrop.width * scaleX,
+          completedCrop.height * scaleY,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+        
+        // 将canvas转换为Blob
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              toast.error('生成预览图片失败');
+              setIsLoading(false);
+              return;
+            }
+            
+            // 创建URL并设置预览
+            const croppedImageUrl = URL.createObjectURL(blob);
+            setPreviewUrl(croppedImageUrl);
+            setPreviewBlob(blob);
+            setCurrentStep('preview');
+            setIsLoading(false);
+            toast.success('图片裁剪成功，请检查预览效果');
+          },
+          'image/png',
+          0.95
+        );
+      } catch (error) {
+        console.error('生成预览图片失败:', error);
+        toast.error('生成预览图片失败');
+        setIsLoading(false);
+      }
+    }
+  }, [completedCrop]);
+
+  // 应用裁剪
+  const handleApplyCrop = () => {
+    if (!completedCrop?.width || !completedCrop?.height) {
+      toast.error('请先选择裁剪区域');
+      return;
+    }
+    
+    generatePreview();
+  };
+
+  // 保存图片
+  const handleSaveImage = async () => {
+    if (!previewBlob) {
+      toast.error('预览图片数据未生成');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      // 不需要再 fetch blob，因为我们已经有了 previewBlob
+      // const res = await fetch(previewUrl);
+      // const blob = await res.blob();
+      // if (!blob || blob.size === 0) { throw new Error('生成的图片数据无效'); }
+      
+      // 调用父组件的保存函数，直接传递 Blob
+      await onSaveImage(previewBlob);
+      
+      // 关闭对话框
+      handleDialogClose(false);
+    } catch (error) {
+      console.error('保存图片失败:', error);
+      toast.error('保存图片失败，请重试');
+      setIsLoading(false);
+    }
+  };
+
+  // 关闭对话框
   const handleDialogClose = (open: boolean) => {
     if (!open) {
-      // 关闭对话框时清理
-      resetEditor();
-      
-      // 仅当是blob URL时释放
-      if (editorState.editingImage && editorState.editingImage.startsWith('blob:')) {
-        URL.revokeObjectURL(editorState.editingImage);
+      // 清理URL
+      if (previewUrl && previewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewUrl);
       }
       
-      if (editorState.cropPreviewURL && editorState.cropPreviewURL.startsWith('blob:')) {
-        URL.revokeObjectURL(editorState.cropPreviewURL);
-      }
-      
-      setEditorState(prev => ({
-        ...prev,
-        editingImage: null,
-        showImageEditor: false
-      }));
+      // 重置状态
+      setCrop(undefined);
+      setCompletedCrop(undefined);
+      setPreviewUrl(null);
+      setPreviewBlob(null);
+      setCurrentStep('edit');
+      setIsLoading(false);
       onClose();
     }
   };
@@ -80,100 +193,60 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <StepsIndicator currentStep={editorState.currentStep} />
+        <StepsIndicator currentStep={currentStep === 'edit' ? 'crop' : 'preview'} />
         
         <div className="p-4">
-          {editorState.currentStep === 'edit' && (
-            <div className="flex justify-center mb-4">
-              <Button 
-                onClick={handleToggleCropMode}
-                disabled={!editorState.canvasInitialized || editorState.showLoader}
-                className="bg-connect-blue hover:bg-blue-600"
-              >
-                <Crop size={16} className="mr-2" /> 进入裁剪模式 <ArrowRight size={16} className="ml-2" />
-              </Button>
-            </div>
+          {currentStep === 'edit' && (
+            <>
+              <div className="border rounded-md overflow-hidden shadow-sm relative min-h-[450px]">
+                {editingImage && (
+                  <ReactCrop
+                    crop={crop}
+                    onChange={(_, percentCrop) => setCrop(percentCrop)}
+                    onComplete={(c) => setCompletedCrop(c)}
+                    aspect={aspect}
+                    ruleOfThirds
+                    className="max-h-[450px] mx-auto"
+                  >
+                    <img
+                      ref={imgRef}
+                      src={editingImage}
+                      alt="编辑图片"
+                      onLoad={onImageLoad}
+                      className="max-h-[450px] mx-auto"
+                      crossOrigin="anonymous"
+                    />
+                  </ReactCrop>
+                )}
+              </div>
+              
+              <div className="flex justify-center mt-4">
+                <Button 
+                  className="bg-connect-blue hover:bg-blue-600"
+                  onClick={handleApplyCrop}
+                  disabled={isLoading || !completedCrop?.width || !completedCrop?.height}
+                >
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <Spinner size="sm" className="mr-2" />
+                      处理中...
+                    </span>
+                  ) : (
+                    <>
+                      <Check size={16} className="mr-2" /> 应用裁剪 <ArrowRight size={16} className="ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
           )}
           
-          {editorState.currentStep === 'crop' && (
-            <div className="flex justify-center gap-3 mb-4">
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditorState(prev => ({...prev, editorMode: 'move', currentStep: 'edit'}));
-                  if (editorRefs.cropRect && editorRefs.fabricCanvasRef.current) {
-                    editorRefs.fabricCanvasRef.current.remove(editorRefs.cropRect);
-                    
-                    // 解锁图片
-                    if (editorRefs.imageRef.current) {
-                      editorRefs.imageRef.current.set({
-                        selectable: true,
-                        evented: true,
-                      });
-                      editorRefs.fabricCanvasRef.current.setActiveObject(editorRefs.imageRef.current);
-                      editorRefs.fabricCanvasRef.current.renderAll();
-                    }
-                  }
-                }}
-                disabled={editorState.showLoader}
-              >
-                返回编辑
-              </Button>
-              
-              <Button 
-                className="bg-connect-blue hover:bg-blue-600"
-                onClick={handleApplyCrop}
-                disabled={!editorRefs.cropRect || editorState.showLoader}
-              >
-                <Check size={16} className="mr-2" /> 应用裁剪 <ArrowRight size={16} className="ml-2" />
-              </Button>
-            </div>
-          )}
-          
-          {(editorState.currentStep === 'edit' || editorState.currentStep === 'crop') && (
-            <div className="border rounded-md overflow-hidden shadow-sm relative min-h-[450px]">
-              <canvas ref={editorRefs.canvasRef} className="w-full h-auto" />
-              
-              {/* 加载和错误状态 */}
-              {(editorState.showLoader || !editorState.canvasInitialized) && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-sm">
-                  <div className="bg-white p-4 rounded-md shadow flex items-center">
-                    <Clock size={16} className="mr-2 animate-spin text-connect-blue" />
-                    <p>正在加载图片编辑器...</p>
-                  </div>
-                </div>
-              )}
-              
-              {editorState.imageLoadError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                  <div className="bg-white p-4 rounded-md shadow text-center max-w-md">
-                    <AlertCircle size={24} className="mx-auto mb-2 text-red-500" />
-                    <p className="font-medium text-red-600 mb-2">图片加载失败</p>
-                    <p className="text-sm text-gray-600 mb-3">无法加载图片进行编辑，可能是图片已损坏或网络问题导致</p>
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        resetEditor();
-                        if (editorState.editingImage) {
-                          setEditorState(prev => ({...prev, currentStep: 'edit'}));
-                        }
-                      }}
-                    >
-                      重试
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {editorState.currentStep === 'preview' && editorState.cropPreviewURL && (
-            <div className="flex flex-col items-center">
-              <div className="border rounded-md overflow-hidden shadow-sm mb-4 max-w-2xl">
+          {currentStep === 'preview' && previewUrl && (
+            <div className="flex flex-col items-center w-full">
+              <div className="border rounded-md overflow-hidden shadow-sm mb-4 w-5/6">
                 <AspectRatio ratio={16 / 9}>
                   <img 
-                    src={editorState.cropPreviewURL} 
+                    src={previewUrl} 
                     alt="裁剪预览" 
                     className="w-full h-full object-cover"
                   />
@@ -184,25 +257,27 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
                 <Button 
                   variant="outline"
                   onClick={() => {
-                    setEditorState(prev => ({
-                      ...prev,
-                      cropPreviewURL: null,
-                      currentStep: 'crop'
-                    }));
+                    // 清理预览URL
+                    if (previewUrl && previewUrl.startsWith('blob:')) {
+                      URL.revokeObjectURL(previewUrl);
+                    }
+                    setPreviewUrl(null);
+                    setPreviewBlob(null);
+                    setCurrentStep('edit');
                   }}
-                  disabled={editorState.isSaving}
+                  disabled={isLoading}
                 >
                   返回裁剪
                 </Button>
                 
                 <Button 
                   className="bg-connect-blue hover:bg-blue-600"
-                  onClick={onSaveImage}
-                  disabled={editorState.isSaving}
+                  onClick={handleSaveImage}
+                  disabled={isLoading}
                 >
-                  {editorState.isSaving ? (
+                  {isLoading ? (
                     <span className="flex items-center">
-                      <Clock size={16} className="mr-2 animate-spin" />
+                      <Spinner size="sm" className="mr-2" />
                       保存中...
                     </span>
                   ) : (
@@ -214,13 +289,23 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
               </div>
             </div>
           )}
+          
+          {/* 隐藏的Canvas用于生成预览 */}
+          <canvas
+            ref={previewCanvasRef}
+            style={{
+              display: 'none',
+              width: 0,
+              height: 0,
+            }}
+          />
         </div>
         
         <DialogFooter>
           <Button 
             variant="outline" 
             onClick={() => handleDialogClose(false)}
-            disabled={editorState.isSaving}
+            disabled={isLoading}
           >
             取消
           </Button>
@@ -230,4 +315,4 @@ const ImageEditor: React.FC<ImageEditorProps> = ({
   );
 };
 
-export default ImageEditor;
+export default ImageEditor; 

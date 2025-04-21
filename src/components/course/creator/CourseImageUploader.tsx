@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { toast } from 'sonner';
 import { Course } from '@/types/course';
@@ -15,15 +14,14 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
   coverImageURL, 
   setCoverImageURL 
 }) => {
-  // Use the custom hook for image editor functionality
+  // 使用图片编辑器功能的自定义钩子
   const { 
     state, 
-    setState, 
-    refs,
+    setState,
     handlers
   } = useImageEditor({ course, setCourse, setCoverImageURL });
 
-  // Handler for editing existing image
+  // 处理编辑现有图片
   const handleEditExistingImage = () => {
     if (coverImageURL || course.cover_image) {
       handlers.resetEditorState();
@@ -64,13 +62,9 @@ const CourseImageUploader: React.FC<CourseImageUploaderProps> = ({
       <ImageEditor 
         isOpen={state.showImageEditor}
         onClose={() => setState(prev => ({ ...prev, showImageEditor: false }))}
-        editorState={state}
-        setEditorState={setState}
-        editorRefs={refs}
+        editingImage={state.editingImage}
         onSaveImage={handlers.handleSaveEditedImage}
-        resetEditor={handlers.resetEditorState}
-        handleToggleCropMode={handlers.handleToggleCropMode}
-        handleApplyCrop={handlers.handleApplyCrop}
+        aspect={16 / 9}
       />
     </div>
   );

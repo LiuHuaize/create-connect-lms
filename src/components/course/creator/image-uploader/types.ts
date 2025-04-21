@@ -1,6 +1,5 @@
-
 import { Course } from '@/types/course';
-import { Rect, Canvas, Image as FabricImage } from 'fabric';
+import { Crop, PixelCrop } from 'react-image-crop';
 
 export interface CourseImageUploaderProps {
   course: Course;
@@ -13,22 +12,21 @@ export interface ImageEditorState {
   isUploading: boolean;
   showImageEditor: boolean;
   editingImage: string | null;
-  canvasInitialized: boolean;
-  showLoader: boolean;
   isSaving: boolean;
   imageSaved: boolean;
-  imageLoadError: boolean;
   currentStep: 'upload' | 'edit' | 'crop' | 'preview';
   cropPreviewURL: string | null;
-  editorMode: 'crop' | 'move';
 }
 
-export interface EditorRefs {
-  canvasRef: React.RefObject<HTMLCanvasElement>;
-  fabricCanvasRef: React.MutableRefObject<Canvas | null>;
-  cropRect: Rect | null;
-  imageRef: React.MutableRefObject<FabricImage | null>;
+export interface CropperRefs {
+  imgRef: React.RefObject<HTMLImageElement>;
   previewCanvasRef: React.RefObject<HTMLCanvasElement>;
-  previewImageRef: React.RefObject<HTMLImageElement>;
-  loadingTimerRef: React.MutableRefObject<number | null>;
+}
+
+export interface ImageEditorProps {
+  isOpen: boolean;
+  onClose: () => void;
+  editingImage: string | null;
+  onSaveImage: (blob: Blob) => Promise<void>;
+  aspect?: number;
 }

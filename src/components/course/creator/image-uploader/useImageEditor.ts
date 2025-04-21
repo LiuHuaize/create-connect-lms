@@ -1,385 +1,206 @@
-
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Canvas, Image as FabricImage, Rect } from 'fabric';
+import { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import { supabase } from '@/integrations/supabase/client';
-import { ImageEditorState, EditorRefs, CourseImageUploaderProps } from './types';
+import { ImageEditorState, CropperRefs, CourseImageUploaderProps } from './types';
+
+// 帮助函数：通过宽高和长宽比创建裁剪
+function createCrop(
+  width: number,
+  height: number,
+  aspect: number = 16 / 9,
+  percentage: number = 90
+): Crop {
+  return makeAspectCrop(
+    {
+      unit: '%',
+      width: percentage,
+    },
+    aspect,
+    width,
+    height
+  );
+}
+
+// 帮助函数：创建居中裁剪
+function createCenteredCrop(
+  width: number,
+  height: number,
+  aspect: number = 16 / 9,
+  percentage: number = 90
+): Crop {
+  const crop = createCrop(width, height, aspect, percentage);
+  return centerCrop(crop, width, height);
+}
+
+// 将裁剪区域画到canvas上
+function cropImageToCanvas(
+  image: HTMLImageElement,
+  crop: PixelCrop,
+  canvas: HTMLCanvasElement,
+  scaleX: number = 1,
+  scaleY: number = 1
+) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('No 2d context');
+  }
+
+  // 设置canvas的尺寸为输出尺寸
+  canvas.width = 1280; // 固定宽度 - 16:9比例
+  canvas.height = 720;
+
+  // 绘制剪裁后的图像
+  ctx.drawImage(
+    image,
+    crop.x * scaleX,
+    crop.y * scaleY,
+    crop.width * scaleX,
+    crop.height * scaleY,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  return canvas;
+}
+
+// 从canvas创建图像URL
+async function canvasToBlob(canvas: HTMLCanvasElement): Promise<string> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('Canvas is empty'));
+          return;
+        }
+        const croppedImageUrl = URL.createObjectURL(blob);
+        resolve(croppedImageUrl);
+      },
+      'image/png',
+      0.95
+    );
+  });
+}
 
 export const useImageEditor = ({
   course, 
   setCourse, 
   setCoverImageURL
 }: Pick<CourseImageUploaderProps, 'course' | 'setCourse' | 'setCoverImageURL'>) => {
-  // Editor state
+  // 状态
   const [state, setState] = useState<ImageEditorState>({
     isUploading: false,
     showImageEditor: false,
     editingImage: null,
-    canvasInitialized: false,
-    showLoader: false,
     isSaving: false,
     imageSaved: false,
-    imageLoadError: false,
     currentStep: 'upload',
-    cropPreviewURL: null,
-    editorMode: 'move'
+    cropPreviewURL: null
   });
 
-  // Refs
-  const refs: EditorRefs = {
-    canvasRef: useRef<HTMLCanvasElement>(null),
-    fabricCanvasRef: useRef<Canvas | null>(null),
-    cropRect: null,
-    imageRef: useRef<FabricImage | null>(null),
-    previewCanvasRef: useRef<HTMLCanvasElement>(document.createElement('canvas')),
-    previewImageRef: useRef<HTMLImageElement>(new Image()),
-    loadingTimerRef: useRef<number | null>(null)
+  // 裁剪状态
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  
+  // ref
+  const refs: CropperRefs = {
+    imgRef: useRef<HTMLImageElement>(null),
+    previewCanvasRef: useRef<HTMLCanvasElement>(null)
   };
 
-  // 预加载图片函数
-  const preloadImage = async (src: string): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      img.onload = () => resolve(img);
-      img.onerror = () => {
-        setState(prev => ({ ...prev, imageLoadError: true }));
-        reject(new Error(`Failed to load image: ${src}`));
-      };
-      
-      img.src = src;
-    });
-  };
-
-  const initializeEditor = async (imageUrl: string) => {
-    if (!refs.canvasRef.current) return;
-    
-    try {
-      setState(prev => ({ ...prev, showLoader: true }));
-      
-      // 设置加载超时保护
-      refs.loadingTimerRef.current = window.setTimeout(() => {
-        setState(prev => {
-          if (!prev.canvasInitialized) {
-            toast.error('图片加载超时，请重试');
-            return { ...prev, imageLoadError: true, showLoader: false };
-          }
-          return prev;
-        });
-      }, 15000); // 15秒超时
-      
-      // 预加载图片
-      try {
-        await preloadImage(imageUrl);
-      } catch (error) {
-        console.error('预加载图片失败:', error);
-        setState(prev => ({ ...prev, imageLoadError: true, showLoader: false }));
-        if (refs.loadingTimerRef.current) {
-          clearTimeout(refs.loadingTimerRef.current);
-        }
-        toast.error('无法加载图片，请重试');
-        return;
-      }
-      
-      // 清理现有画布
-      if (refs.fabricCanvasRef.current) {
-        refs.fabricCanvasRef.current.dispose();
-        refs.fabricCanvasRef.current = null;
-      }
-
-      // 创建新画布并设置尺寸
-      const canvas = new Canvas(refs.canvasRef.current, {
-        width: 800,
-        height: 450, // 16:9 比例
-        backgroundColor: '#f0f0f0',
-        preserveObjectStacking: true,
-      });
-      refs.fabricCanvasRef.current = canvas;
-
-      // 加载并添加图片
-      FabricImage.fromURL(imageUrl, {
-        crossOrigin: 'anonymous'
-      }).then(img => {
-        refs.imageRef.current = img;
-        
-        // 计算图片适应画布的缩放比例
-        const scaleX = canvas.width! / img.width!;
-        const scaleY = canvas.height! / img.height!;
-        const scale = Math.min(scaleX, scaleY) * 0.95; // 使图片稍微小于画布
-        
-        // 设置图片属性
-        img.set({
-          originX: 'center',
-          originY: 'center',
-          left: canvas.width! / 2,
-          top: canvas.height! / 2,
-          scaleX: scale,
-          scaleY: scale,
-          selectable: state.editorMode === 'move',
-          evented: state.editorMode === 'move',
-        });
-        
-        // 添加到画布
-        canvas.add(img);
-        canvas.setActiveObject(img);
-        canvas.renderAll();
-        
-        // 如果初始模式是裁剪，自动添加裁剪框
-        if (state.editorMode === 'crop') {
-          // 给一点时间让图片完全渲染
-          setTimeout(() => {
-            addCropRect();
-          }, 100);
-        }
-        
-        setState(prev => ({
-          ...prev, 
-          canvasInitialized: true, 
-          showLoader: false,
-          imageLoadError: false
-        }));
-        
-        if (refs.loadingTimerRef.current) {
-          clearTimeout(refs.loadingTimerRef.current);
-        }
-      }).catch(err => {
-        console.error('加载图片到编辑器失败:', err);
-        setState(prev => ({ ...prev, imageLoadError: true, showLoader: false }));
-        if (refs.loadingTimerRef.current) {
-          clearTimeout(refs.loadingTimerRef.current);
-        }
-        toast.error('无法加载图片进行编辑');
-      });
-    } catch (error) {
-      console.error('初始化编辑器错误:', error);
-      setState(prev => ({ ...prev, imageLoadError: true, showLoader: false }));
-      if (refs.loadingTimerRef.current) {
-        clearTimeout(refs.loadingTimerRef.current);
-      }
-      toast.error('初始化编辑器失败');
-    }
-  };
-
-  const resetEditorState = () => {
+  // 重置编辑器状态
+  const resetEditorState = useCallback(() => {
     setState(prev => ({
       ...prev,
-      editorMode: 'move',
-      canvasInitialized: false,
-      imageLoadError: false,
-      showLoader: false,
       imageSaved: false,
       cropPreviewURL: null,
       currentStep: 'upload'
     }));
     
-    if (refs.loadingTimerRef.current) {
-      clearTimeout(refs.loadingTimerRef.current);
-      refs.loadingTimerRef.current = null;
-    }
-    
-    if (refs.fabricCanvasRef.current) {
-      refs.fabricCanvasRef.current.dispose();
-      refs.fabricCanvasRef.current = null;
-    }
-    
-    refs.cropRect = null;
-  };
+    setCrop(undefined);
+    setCompletedCrop(undefined);
 
-  const addCropRect = () => {
-    if (!refs.fabricCanvasRef.current || !refs.imageRef.current) return;
-    
-    const canvas = refs.fabricCanvasRef.current;
-    
-    // 移除已有的裁剪矩形
-    if (refs.cropRect) {
-      canvas.remove(refs.cropRect);
-      refs.cropRect = null;
+    // 清理URL
+    if (state.cropPreviewURL && state.cropPreviewURL.startsWith('blob:')) {
+      URL.revokeObjectURL(state.cropPreviewURL);
     }
-    
-    const img = refs.imageRef.current;
-    
-    // 根据16:9比例计算裁剪矩形尺寸
-    const imgWidth = img.getScaledWidth();
-    const imgHeight = img.getScaledHeight();
-    
-    let rectWidth, rectHeight;
-    
-    // 根据图片比例决定裁剪框大小
-    const imgRatio = imgWidth / imgHeight;
-    const targetRatio = 16 / 9;
-    
-    if (imgRatio >= targetRatio) {
-      // 图片更宽，以高度为基准
-      rectHeight = imgHeight * 0.9;
-      rectWidth = rectHeight * targetRatio;
-    } else {
-      // 图片更高，以宽度为基准
-      rectWidth = imgWidth * 0.9;
-      rectHeight = rectWidth / targetRatio;
-    }
-    
-    // 确保裁剪框不超出图片范围
-    rectWidth = Math.min(rectWidth, imgWidth);
-    rectHeight = Math.min(rectHeight, imgHeight);
-    
-    // 创建裁剪矩形
-    const rect = new Rect({
-      left: canvas.width! / 2 - rectWidth / 2,
-      top: canvas.height! / 2 - rectHeight / 2,
-      width: rectWidth,
-      height: rectHeight,
-      fill: 'rgba(0,0,0,0.15)',
-      stroke: '#2563EB', // 边框颜色
-      strokeWidth: 2,
-      strokeUniform: true,
-      strokeDashArray: [5, 5], // 虚线
-      cornerColor: '#2563EB',
-      transparentCorners: false,
-      borderColor: '#2563EB',
-      cornerSize: 10,
-      hasRotatingPoint: false,
-      lockRotation: true,
-      selectable: true,
-      evented: true,
-    });
-    
-    // 锁定图片，使其不可选择
-    if (refs.imageRef.current) {
-      refs.imageRef.current.set({
-        selectable: false,
-        evented: false,
-      });
-    }
-    
-    canvas.add(rect);
-    canvas.setActiveObject(rect);
-    canvas.renderAll();
-    refs.cropRect = rect;
-  };
+  }, [state.cropPreviewURL]);
 
-  const handleToggleCropMode = () => {
+  // 图片加载完成后处理
+  const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    
+    // 默认长宽比16:9
+    const aspect = 16 / 9;
+    
+    // 创建并居中裁剪区域
+    const crop = createCenteredCrop(width, height, aspect);
+    setCrop(crop);
+    
+    // 更新状态为编辑模式
     setState(prev => ({
       ...prev,
-      editorMode: 'crop',
       currentStep: 'crop'
     }));
-    addCropRect();
-  };
+  }, []);
 
-  const handleApplyCrop = () => {
-    if (!refs.fabricCanvasRef.current || !refs.cropRect || !refs.imageRef.current) return;
-    
-    const canvas = refs.fabricCanvasRef.current;
-    const img = refs.imageRef.current;
-    
-    try {
-      setState(prev => ({ ...prev, showLoader: true }));
+  // 生成预览
+  const generatePreview = useCallback(async () => {
+    if (
+      completedCrop?.width &&
+      completedCrop?.height &&
+      refs.imgRef.current &&
+      refs.previewCanvasRef.current
+    ) {
+      // 计算缩放比例
+      const scaleX = refs.imgRef.current.naturalWidth / refs.imgRef.current.width;
+      const scaleY = refs.imgRef.current.naturalHeight / refs.imgRef.current.height;
       
-      // 获取图片和裁剪矩形的位置和尺寸
-      const imgLeft = img.left!;
-      const imgTop = img.top!;
-      const imgWidth = img.getScaledWidth();
-      const imgHeight = img.getScaledHeight();
-      const imgScaleX = img.scaleX!;
-      const imgScaleY = img.scaleY!;
-      
-      const rectLeft = refs.cropRect.left!;
-      const rectTop = refs.cropRect.top!;
-      const rectWidth = refs.cropRect.getScaledWidth();
-      const rectHeight = refs.cropRect.getScaledHeight();
-      
-      // 设置预览canvas大小为裁剪尺寸
-      refs.previewCanvasRef.current.width = 1280; // 输出16:9标准尺寸
-      refs.previewCanvasRef.current.height = 720;
-      
-      const ctx = refs.previewCanvasRef.current.getContext('2d');
-      if (!ctx) {
-        throw new Error('无法获取预览画布的上下文');
-      }
-      
-      // 清空预览画布
-      ctx.clearRect(0, 0, refs.previewCanvasRef.current.width, refs.previewCanvasRef.current.height);
-      
-      // 计算相对裁剪坐标
-      const offsetX = rectLeft - (imgLeft - imgWidth/2);
-      const offsetY = rectTop - (imgTop - imgHeight/2);
-      
-      // 计算源图像的坐标和尺寸
-      const sourceX = (offsetX / imgScaleX);
-      const sourceY = (offsetY / imgScaleY);
-      const sourceWidth = (rectWidth / imgScaleX);
-      const sourceHeight = (rectHeight / imgScaleY);
-      
-      // 获取原始图片
-      const imgElement = img.getElement() as HTMLImageElement;
-      
-      // 在预览画布上绘制
-      ctx.drawImage(
-        imgElement,
-        sourceX, 
-        sourceY, 
-        sourceWidth, 
-        sourceHeight,
-        0, 
-        0, 
-        refs.previewCanvasRef.current.width, 
-        refs.previewCanvasRef.current.height
+      // 生成画布
+      cropImageToCanvas(
+        refs.imgRef.current,
+        completedCrop,
+        refs.previewCanvasRef.current,
+        scaleX,
+        scaleY
       );
       
-      // 转换为数据URL并应用
-      const croppedImageUrl = refs.previewCanvasRef.current.toDataURL('image/png', 0.95);
-      
-      setState(prev => ({
-        ...prev,
-        cropPreviewURL: croppedImageUrl,
-        currentStep: 'preview',
-        showLoader: false
-      }));
-      
-      // 预加载裁剪后的图片确保显示正常
-      refs.previewImageRef.current.src = croppedImageUrl;
-      refs.previewImageRef.current.onload = () => {
+      try {
+        // 从画布获取Blob URL
+        const croppedImageUrl = await canvasToBlob(refs.previewCanvasRef.current);
+        
+        setState(prev => ({
+          ...prev,
+          cropPreviewURL: croppedImageUrl,
+          currentStep: 'preview'
+        }));
+        
         toast.success('图片裁剪成功，请检查预览效果');
-      };
-      
-    } catch (error) {
-      console.error('应用裁剪时出错:', error);
-      setState(prev => ({ ...prev, showLoader: false }));
-      toast.error('裁剪图片时出错');
+      } catch (error) {
+        console.error('生成预览图片失败:', error);
+        toast.error('生成预览图片失败');
+      }
     }
-  };
+  }, [completedCrop]);
 
-  const handleSaveEditedImage = async () => {
+  // 处理裁剪完成
+  const handleApplyCrop = useCallback(() => {
+    if (!completedCrop?.width || !completedCrop?.height) {
+      toast.error('请先选择裁剪区域');
+      return;
+    }
+    
+    generatePreview();
+  }, [completedCrop, generatePreview]);
+
+  // 保存裁剪后的图片
+  const handleSaveEditedImage = useCallback(async (blob: Blob) => {
     try {
       setState(prev => ({ ...prev, isSaving: true }));
       
-      // 使用裁剪后的图像或编辑后的图像
-      let dataUrl;
-      
-      // 如果有裁剪预览，直接使用裁剪后的图像
-      if (state.cropPreviewURL) {
-        dataUrl = state.cropPreviewURL;
-      } else if (refs.fabricCanvasRef.current && refs.imageRef.current) {
-        // 将图片置于画布中心
-        refs.fabricCanvasRef.current.centerObject(refs.imageRef.current);
-        refs.fabricCanvasRef.current.renderAll();
-      
-        // 转换画布为数据URL
-        dataUrl = refs.fabricCanvasRef.current.toDataURL({
-          format: 'png',
-          quality: 0.9,
-          multiplier: 1.5, // 增加导出图像分辨率
-        });
-      } else {
-        throw new Error('编辑器未准备好');
-      }
-      
-      // 将数据URL转换为Blob
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      
-      // 检查blob是否有效
+      // 直接检查传入的 blob
       if (!blob || blob.size === 0) {
         throw new Error('生成的图片数据无效');
       }
@@ -423,12 +244,15 @@ export const useImageEditor = ({
       
     } catch (error) {
       console.error('保存编辑后的图片失败:', error);
-      setState(prev => ({ ...prev, isSaving: false }));
       toast.error('保存图片失败，请重试');
+    } finally {
+      // 确保 isSaving 状态在成功或失败时都被重置
+      setState(prev => ({ ...prev, isSaving: false })); 
     }
-  };
+  }, [setCourse, setCoverImageURL, resetEditorState]);
 
-  const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  // 处理图片上传
+  const handleCoverImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     
@@ -465,52 +289,23 @@ export const useImageEditor = ({
       setState(prev => ({ ...prev, isUploading: false }));
       toast.error('上传图片失败，请重试');
     }
-  };
-
-  // 初始化编辑器
-  useEffect(() => {
-    if (state.showImageEditor && state.editingImage && !state.canvasInitialized && state.currentStep === 'edit') {
-      // 设置短暂延迟让对话框有时间渲染
-      const timerId = setTimeout(() => {
-        initializeEditor(state.editingImage);
-      }, 150);
-      
-      return () => clearTimeout(timerId);
-    }
-  }, [state.showImageEditor, state.editingImage, state.canvasInitialized, state.currentStep]);
-
-  // 清理函数
-  useEffect(() => {
-    return () => {
-      if (refs.fabricCanvasRef.current) {
-        refs.fabricCanvasRef.current.dispose();
-        refs.fabricCanvasRef.current = null;
-      }
-      
-      if (refs.loadingTimerRef.current) {
-        clearTimeout(refs.loadingTimerRef.current);
-      }
-      
-      if (state.editingImage && state.editingImage.startsWith('blob:')) {
-        URL.revokeObjectURL(state.editingImage);
-      }
-      
-      if (state.cropPreviewURL && state.cropPreviewURL.startsWith('blob:')) {
-        URL.revokeObjectURL(state.cropPreviewURL);
-      }
-    };
   }, []);
 
+  // 返回所有需要的状态和处理函数
   return {
     state,
     setState,
+    crop,
+    setCrop,
+    completedCrop,
+    setCompletedCrop,
     refs,
     handlers: {
-      handleCoverImageUpload,
-      handleToggleCropMode,
+      resetEditorState,
+      onImageLoad,
       handleApplyCrop,
       handleSaveEditedImage,
-      resetEditorState
+      handleCoverImageUpload,
     }
   };
-};
+}; 
