@@ -26,7 +26,7 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([
     { 
       role: 'ai', 
-      content: `你好！我是你的${courseName}学习助手，由DeepSeek-V3模型提供支持。有什么问题我可以帮忙解答吗？` 
+      content: `你好！我是你的${courseName}学习助手，由Gemini-2.5-Flash模型提供支持。有什么问题我可以帮忙解答吗？` 
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +89,7 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
             <Sparkles size={18} className="text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="font-medium text-slate-800 dark:text-slate-200 text-sm">DeepSeek-V3 学习助手</h3>
+            <h3 className="font-medium text-slate-800 dark:text-slate-200 text-sm">Gemini-2.5-Flash 学习助手</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">AI驱动的课程辅导</p>
           </div>
         </div>
