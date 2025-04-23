@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Video, FileText, FileQuestion, CheckSquare } from 'lucide-react';
+import { Video, FileText, FileQuestion, CheckSquare, CreditCard } from 'lucide-react';
 import { LessonType } from '@/types/course';
 
 export type LessonTypeInfo = {
@@ -13,7 +12,8 @@ export const LESSON_TYPES: LessonTypeInfo[] = [
   { id: 'video', name: '视频', icon: React.createElement(Video, { size: 16, className: "text-blue-600" }) },
   { id: 'text', name: '文本内容', icon: React.createElement(FileText, { size: 16, className: "text-green-600" }) },
   { id: 'quiz', name: '测验', icon: React.createElement(FileQuestion, { size: 16, className: "text-amber-600" }) },
-  { id: 'assignment', name: '作业', icon: React.createElement(CheckSquare, { size: 16, className: "text-purple-600" }) }
+  { id: 'assignment', name: '作业', icon: React.createElement(CheckSquare, { size: 16, className: "text-purple-600" }) },
+  { id: 'card_creator', name: '卡片创建', icon: React.createElement(CreditCard, { size: 16, className: "text-pink-600" }) }
 ];
 
 export const getLessonTypeInfo = (type: LessonType): LessonTypeInfo | undefined => {
@@ -30,6 +30,12 @@ export const getInitialContentByType = (type: LessonType) => {
       return { questions: [] };
     case 'assignment':
       return { instructions: '', criteria: '' };
+    case 'card_creator':
+      return { 
+        instructions: '',
+        templateType: 'text',
+        templateDescription: ''
+      };
     default:
       return { text: '' };
   }

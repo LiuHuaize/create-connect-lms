@@ -58,6 +58,14 @@ export type CodeLessonContent = {
   language?: string;
 };
 
+// 卡片创建器课程内容类型
+export type CardCreatorLessonContent = {
+  instructions: string;
+  templateType: 'image' | 'text';
+  templateImageUrl?: string;
+  templateDescription?: string;
+};
+
 // AI评分结果类型
 export type AIGradingResult = {
   score: number; // AI给出的分数
@@ -111,7 +119,8 @@ export type LessonContent =
   | TextLessonContent 
   | QuizLessonContent 
   | AssignmentLessonContent
-  | CodeLessonContent;
+  | CodeLessonContent
+  | CardCreatorLessonContent;
 
 // Quiz related types
 export type QuizQuestionType = 'multiple_choice' | 'true_false' | 'short_answer';
@@ -131,7 +140,7 @@ export type QuizQuestion = {
 };
 
 // Lesson type - use string union for better type safety
-export type LessonType = 'video' | 'text' | 'quiz' | 'assignment' | 'code';
+export type LessonType = 'video' | 'text' | 'quiz' | 'assignment' | 'code' | 'card_creator';
 
 // Make sure order_index is included in the Lesson type
 export type Lesson = {

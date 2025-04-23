@@ -24,10 +24,12 @@ import {
   TextLessonContent,
   QuizLessonContent,
   AssignmentLessonContent,
+  CardCreatorLessonContent,
   LessonContent
 } from '@/types/course';
 import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
 import VideoUploader from './creator/VideoUploader';
+import CardCreatorLessonEditor from './CardCreatorLessonEditor';
 import { supabase } from '@/integrations/supabase/client';
 
 // Quiz question types
@@ -73,6 +75,13 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
           criteria: (baseContent as AssignmentLessonContent).criteria || '',
           aiGradingPrompt: (baseContent as AssignmentLessonContent).aiGradingPrompt || ''
         } as AssignmentLessonContent;
+      case 'card_creator':
+        return {
+          instructions: (baseContent as CardCreatorLessonContent).instructions || '',
+          templateType: (baseContent as CardCreatorLessonContent).templateType || 'text',
+          templateDescription: (baseContent as CardCreatorLessonContent).templateDescription || '',
+          templateImageUrl: (baseContent as CardCreatorLessonContent).templateImageUrl || '',
+        } as CardCreatorLessonContent;
       default:
         return baseContent;
     }
@@ -129,6 +138,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         aiGradingPrompt: data.aiGradingPrompt
       } as AssignmentLessonContent;
     }
+    // 卡片创建器内容在自组件内处理，直接使用currentContent
     
     onSave(updatedLesson);
   };
@@ -541,6 +551,16 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
               )}
             />
           </div>
+        )}
+        
+        {lesson.type === 'card_creator' && (
+          <CardCreatorLessonEditor 
+            lesson={lesson}
+            onUpdate={(updatedLesson) => {
+              setCurrentContent(updatedLesson.content);
+              onContentChange(updatedLesson.content);
+            }}
+          />
         )}
         
         <div className="flex justify-end gap-3 pt-4">
