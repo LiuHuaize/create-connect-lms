@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { courseService } from '@/services/courseService';
+import { useCourseData } from '../hooks/useCourseData';
 
 interface LessonNavigationProps {
   courseData: Course & { modules?: CourseModule[] };
@@ -23,6 +24,9 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   const isMobile = useIsMobile();
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // 获取刷新课程数据的方法
+  const { refreshCourseData } = useCourseData(courseData?.id);
   
   // 获取课时的完成状态
   useEffect(() => {
@@ -96,6 +100,11 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
         await courseService.unmarkLessonComplete(selectedLesson.id);
         toast.success('已取消标记完成');
         setIsCompleted(false);
+        
+        // 刷新课程数据和进度
+        if (refreshCourseData) {
+          refreshCourseData();
+        }
       } else {
         // 标记完成
         await courseService.markLessonComplete(
@@ -105,6 +114,11 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
         );
         toast.success('课时已标记为完成');
         setIsCompleted(true);
+        
+        // 刷新课程数据和进度
+        if (refreshCourseData) {
+          refreshCourseData();
+        }
       }
     } catch (error) {
       console.error('更新完成状态失败:', error);

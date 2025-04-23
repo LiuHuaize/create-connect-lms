@@ -398,11 +398,12 @@ export const courseService = {
       // 更新缓存状态
       if (courseId && lessonCompletionCache[courseId]) {
         delete lessonCompletionCache[courseId][lessonId];
+        console.log(`已清除课程 ${courseId} 的完成状态缓存`);
       }
       
       // 触发器会自动更新课程进度
     } catch (error) {
-      console.error('取消标记课时完成失败:', error);
+      console.error('取消标记课时完成过程中出错:', error);
       throw error;
     }
   },
