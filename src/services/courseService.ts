@@ -246,6 +246,8 @@ export const courseService = {
         order_index: lesson.order_index,
         video_file_path: lesson.type === 'video' ? 
           (lesson.video_file_path || (lesson.content as any).videoFilePath || null) : null,
+        bilibili_url: lesson.type === 'video' ? 
+          (lesson.bilibili_url || (lesson.content as any).bilibiliUrl || null) : null,
         updated_at: new Date().toISOString(),
         ...(isUpdate ? {} : { created_at: new Date().toISOString() })
       })

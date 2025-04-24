@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lesson, CourseModule, LessonType, TextLessonContent, AssignmentLessonContent, CardCreatorLessonContent } from '@/types/course';
+import { Lesson, CourseModule, LessonType, TextLessonContent, AssignmentLessonContent, CardCreatorLessonContent, VideoLessonContent } from '@/types/course';
 import { CardCreatorTask } from '@/types/card-creator';
 import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
@@ -222,7 +222,16 @@ const LessonContent: React.FC<LessonContentProps> = ({
       case 'video':
         return (
           <div className="aspect-video bg-gradient-to-br from-gray-900 to-blue-900 rounded-xl flex items-center justify-center mb-6 shadow-lg overflow-hidden">
-            {selectedLesson.video_file_path ? (
+            {(selectedLesson.content as VideoLessonContent).bilibiliUrl ? (
+              <iframe 
+                src={(selectedLesson.content as VideoLessonContent).bilibiliUrl}
+                allowFullScreen
+                className="w-full h-full"
+                scrolling="no" 
+                frameBorder="0"
+                sandbox="allow-same-origin allow-forms allow-scripts"
+              />
+            ) : selectedLesson.video_file_path ? (
               <video 
                 controls 
                 className="w-full h-full"

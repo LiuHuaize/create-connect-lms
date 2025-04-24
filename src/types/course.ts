@@ -36,6 +36,7 @@ export type VideoLessonContent = {
   videoUrl?: string;
   description?: string;
   videoFilePath?: string;
+  bilibiliUrl?: string; // 添加B站视频iframe嵌入URL
 };
 
 export type TextLessonContent = {
@@ -152,5 +153,6 @@ export type Lesson = {
   order_index: number; // This field is required
   created_at?: string;
   updated_at?: string;
-  video_file_path?: string | null; // 添加视频文件路径
+  video_file_path?: string | null; // 视频文件路径
+  bilibili_url?: string | null; // B站嵌入URL
 };

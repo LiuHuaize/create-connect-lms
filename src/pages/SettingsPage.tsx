@@ -250,13 +250,13 @@ const SettingsPage: React.FC = () => {
         {/* 缓存管理卡片 */}
         <Card>
           <CardHeader>
-            <CardTitle>缓存与存储</CardTitle>
+            <CardTitle className="text-base">缓存与存储</CardTitle>
             <CardDescription>管理应用程序的缓存与存储空间</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <div className="mb-4">
-                <h3 className="text-lg font-medium">清除应用缓存</h3>
+                <h3 className="text-base font-medium">清除应用缓存</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   清除缓存可以解决某些页面加载问题或不同端口间的缓存冲突。清除后，您可能需要重新登录。
                 </p>

@@ -56,7 +56,8 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         return { 
           videoUrl: (baseContent as VideoLessonContent).videoUrl || '', 
           description: (baseContent as VideoLessonContent).description || '',
-          videoFilePath: (baseContent as VideoLessonContent).videoFilePath || lesson.video_file_path || ''
+          videoFilePath: (baseContent as VideoLessonContent).videoFilePath || lesson.video_file_path || '',
+          bilibiliUrl: (baseContent as VideoLessonContent).bilibiliUrl || ''
         } as VideoLessonContent;
       case 'text':
         return { 
@@ -119,9 +120,11 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
     if (lesson.type === 'video') {
       updatedLesson.content = { 
         description: data.description,
-        videoFilePath: (currentContent as VideoLessonContent).videoFilePath || ''
+        videoFilePath: (currentContent as VideoLessonContent).videoFilePath || '',
+        bilibiliUrl: data.bilibiliUrl || ''
       } as VideoLessonContent;
       updatedLesson.video_file_path = (currentContent as VideoLessonContent).videoFilePath || null;
+      updatedLesson.bilibili_url = data.bilibiliUrl || null;
     } else if (lesson.type === 'text') {
       updatedLesson.content = { 
         text: data.text 
@@ -288,6 +291,19 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
     }
   };
   
+  // 新增处理B站URL变更的函数
+  const handleBilibiliUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (lesson.type === 'video') {
+      const newContent = {
+        ...(currentContent as VideoLessonContent),
+        bilibiliUrl: event.target.value
+      };
+      setCurrentContent(newContent);
+      form.setValue('bilibiliUrl', event.target.value);
+      onContentChange(newContent);
+    }
+  };
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
@@ -317,6 +333,54 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                 上传视频文件或使用URL。视频文件将存储在我们的服务器上。
               </p>
             </div>
+            
+            <FormField
+              control={form.control}
+              name="bilibiliUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>哔哩哔哩视频嵌入</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="输入B站视频iframe嵌入代码" 
+                      {...field} 
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleBilibiliUrlChange(e);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    例如：https://player.bilibili.com/player.html?aid=xxx&bvid=xxx&cid=xxx&page=1&as_wide=1&high_quality=1&danmaku=0
+                    <br />
+                    <span className="text-xs">
+                      <strong>参数说明</strong>：
+                      aid/bvid(视频ID, 必填) | 
+                      page(第几个视频, 默认1) | 
+                      as_wide(是否宽屏, 1为宽屏) | 
+                      high_quality(是否高清, 1为高清) | 
+                      danmaku(是否显示弹幕, 0为关闭)
+                    </span>
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+            
+            {(currentContent as VideoLessonContent).bilibiliUrl && (
+              <div className="mt-2">
+                <FormLabel className="block text-sm font-medium text-gray-700 mb-2">预览</FormLabel>
+                <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
+                  <iframe 
+                    src={(currentContent as VideoLessonContent).bilibiliUrl}
+                    allowFullScreen
+                    className="w-full h-full"
+                    scrolling="no" 
+                    frameBorder="0"
+                    sandbox="allow-same-origin allow-forms allow-scripts"
+                  />
+                </div>
+              </div>
+            )}
             
             <FormField
               control={form.control}

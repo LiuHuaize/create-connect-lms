@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, Video, FileText, HelpCircle, ArrowLeft } from 'lucide-react';
-import { CourseModule, Lesson, TextLessonContent, QuizLessonContent, CodeLessonContent } from '@/types/course';
+import { CourseModule, Lesson, TextLessonContent, QuizLessonContent, CodeLessonContent, VideoLessonContent } from '@/types/course';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import BlockNoteRenderer from '@/components/editor/BlockNoteRenderer';
 
@@ -71,7 +71,16 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
           
           {lesson.type === 'video' && (
             <div className="aspect-video bg-gray-200 flex items-center justify-center rounded-lg">
-              {lesson.video_file_path ? (
+              {(lesson.content as VideoLessonContent).bilibiliUrl ? (
+                <iframe 
+                  src={(lesson.content as VideoLessonContent).bilibiliUrl}
+                  allowFullScreen
+                  className="w-full h-full rounded-lg"
+                  scrolling="no" 
+                  frameBorder="0"
+                  sandbox="allow-same-origin allow-forms allow-scripts"
+                />
+              ) : lesson.video_file_path ? (
                 <video 
                   controls 
                   className="w-full h-full rounded-lg"

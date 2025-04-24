@@ -138,6 +138,7 @@ export type Database = {
           type: string
           updated_at: string
           video_file_path: string | null
+          bilibili_url: string | null
         }
         Insert: {
           content?: Json
@@ -149,6 +150,7 @@ export type Database = {
           type: string
           updated_at?: string
           video_file_path?: string | null
+          bilibili_url?: string | null
         }
         Update: {
           content?: Json
@@ -160,6 +162,7 @@ export type Database = {
           type?: string
           updated_at?: string
           video_file_path?: string | null
+          bilibili_url?: string | null
         }
         Relationships: [
           {

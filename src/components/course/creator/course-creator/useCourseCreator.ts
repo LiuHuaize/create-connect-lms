@@ -5,6 +5,7 @@ import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/lib/supabase';
 
 export const useCourseCreator = () => {
   const { user } = useAuth();
