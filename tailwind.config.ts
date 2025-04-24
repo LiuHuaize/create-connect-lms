@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -69,6 +68,26 @@ export default {
           lightBlue: "#EBF5FF",
           cream: "#FEF7F0",
           darkBlue: "#1E293B",
+        },
+        ghibli: {
+          cream: "#F5F2E9",
+          parchment: "#FAFAF5",
+          teal: "#6FC5BE",
+          lightTeal: "#D4E5E3",
+          deepTeal: "#386964",
+          sand: "#F7E8CD",
+          brown: "#52483A",
+          lightBrown: "#807668",
+          darkBrown: "#3A342A",
+          rust: "#C94444",
+          sunshine: "#FFDC7C",
+          coral: "#FF8C7C",
+          skyBlue: "#7CD5FF",
+          grassGreen: "#A0D995",
+          lavender: "#D9ABFF",
+          peach: "#FFBEAB",
+          mint: "#A9ECD0",
+          blush: "#FFC0CB",
         },
       },
       borderRadius: {

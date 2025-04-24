@@ -4,83 +4,83 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 43 40% 94%; /* 更亮的米色背景 #F5F2E9 */
+    --foreground: 35 30% 25%; /* 深棕色文字 #52483A */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 43 45% 97%; /* 非常浅的米色卡片 #FAFAF5 */
+    --card-foreground: 35 30% 25%; /* 深棕色文字 #52483A */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 43 45% 97%; /* 非常浅的米色弹出框 #FAFAF5 */
+    --popover-foreground: 35 30% 25%; /* 深棕色文字 #52483A */
 
-    --primary: 210 100% 50%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 174 40% 55%; /* 更明亮的蓝绿色主色 #6FC5BE */
+    --primary-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 33 60% 90%; /* 更亮的浅棕色次要色 #F7E8CD */
+    --secondary-foreground: 35 30% 25%; /* 深棕色文字 #52483A */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 33 50% 93%; /* 柔和的浅米色 #F9F0E2 */
+    --muted-foreground: 35 20% 45%; /* 灰棕色文字 #807668 */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 150 40% 87%; /* 淡绿色强调 #D7F0E2 */
+    --accent-foreground: 150 50% 30%; /* 深绿色文字 #307852 */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 65%; /* 亮红色警告 #F06E6E */
+    --destructive-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 33 30% 84%; /* 边框米色 #E4D8C7 */
+    --input: 33 30% 84%; /* 输入框边框 #E4D8C7 */
+    --ring: 174 40% 55%; /* 蓝绿色环 #6FC5BE */
 
-    --radius: 0.75rem;
+    --radius: 1rem; /* 更圆润的边角，适合儿童界面 */
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 43 45% 95%; /* 浅米色侧边栏 #F7F5EF */
+    --sidebar-foreground: 35 30% 25%; /* 深棕色文字 #52483A */
+    --sidebar-primary: 174 40% 55%; /* 蓝绿色主色 #6FC5BE */
+    --sidebar-primary-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
+    --sidebar-accent: 150 40% 92%; /* 淡绿色强调 #E5F7EE */
+    --sidebar-accent-foreground: 150 50% 30%; /* 深绿色文字 #307852 */
+    --sidebar-border: 33 30% 88%; /* 边框米色 #EDE4D8 */
+    --sidebar-ring: 174 40% 55%; /* 蓝绿色环 #6FC5BE */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 35 25% 18%; /* 深棕色背景 #3A342A */
+    --foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 35 20% 24%; /* 深棕色卡片 #4A4336 */
+    --card-foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 35 20% 24%; /* 深棕色弹出框 #4A4336 */
+    --popover-foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
 
-    --primary: 210 100% 50%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 174 40% 48%; /* 较暗蓝绿色 #5DAEA6 */
+    --primary-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 35 20% 32%; /* 深棕色次要色 #5E5245 */
+    --secondary-foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 35 20% 28%; /* 暗棕色 #534A3D */
+    --muted-foreground: 35 15% 70%; /* 灰棕色文字 #B5AEA4 */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 150 30% 35%; /* 深绿色强调 #4C8062 */
+    --accent-foreground: 150 40% 87%; /* 淡绿色文字 #D7F0E2 */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 65% 50%; /* 深红色警告 #C94444 */
+    --destructive-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 35 20% 32%; /* 边框深棕色 #5E5245 */
+    --input: 35 20% 32%; /* 输入框边框 #5E5245 */
+    --ring: 174 40% 48%; /* 蓝绿色环 #5DAEA6 */
     
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 35 20% 20%; /* 深棕色侧边栏 #403A30 */
+    --sidebar-foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
+    --sidebar-primary: 174 40% 48%; /* 较暗蓝绿色 #5DAEA6 */
+    --sidebar-primary-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
+    --sidebar-accent: 150 30% 30%; /* 深绿色强调 #437055 */
+    --sidebar-accent-foreground: 150 40% 87%; /* 淡绿色文字 #D7F0E2 */
+    --sidebar-border: 35 20% 28%; /* 边框暗棕色 #534A3D */
+    --sidebar-ring: 174 40% 48%; /* 蓝绿色环 #5DAEA6 */
   }
 }
 
@@ -98,61 +98,139 @@
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
   }
 
+  /* 更新玻璃卡片样式，使用更友好的阴影和边框 */
   .glass-card {
-    @apply bg-white/90 backdrop-blur-md border border-white/20 shadow-sm;
+    @apply bg-ghibli-parchment/95 backdrop-blur-md border-2 border-ghibli-teal/30 shadow-md rounded-2xl;
   }
   
+  /* 更新高级模糊效果 */
   .premium-blur {
-    @apply backdrop-blur-lg bg-white/10 border border-white/20 rounded-xl;
+    @apply backdrop-blur-lg bg-ghibli-parchment/30 border-2 border-ghibli-teal/20 rounded-2xl;
   }
   
+  /* 更新文本渐变 */
   .text-gradient {
-    @apply bg-gradient-to-r from-connect-blue to-connect-purple bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-ghibli-teal to-ghibli-deepTeal bg-clip-text text-transparent;
   }
   
+  /* 更新悬停缩放效果 */
   .hover-scale {
-    @apply transition-transform duration-300 hover:scale-[1.02];
+    @apply transition-all duration-300 hover:scale-[1.03] hover:shadow-md;
   }
   
+  /* 更新侧边栏链接样式 */
   .sidebar-link {
-    @apply flex items-center gap-3 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200;
+    @apply flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200;
   }
   
   .sidebar-link.active {
-    @apply bg-connect-lightBlue text-connect-blue;
+    @apply bg-ghibli-lightTeal text-ghibli-deepTeal;
   }
   
   .sidebar-link:not(.active) {
-    @apply text-gray-600 hover:bg-gray-100;
+    @apply text-ghibli-brown hover:bg-ghibli-sand;
   }
   
-  /* 新增课程页面样式 */
+  /* 更新课程页面样式 */
   .course-card {
-    @apply bg-white rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-all duration-300;
+    @apply bg-ghibli-parchment rounded-2xl shadow-md border-2 border-ghibli-sand hover:shadow-lg hover:border-ghibli-teal/50 transition-all duration-300;
   }
   
   .course-section-header {
-    @apply bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 px-6 py-4 rounded-t-lg;
+    @apply bg-gradient-to-r from-ghibli-lightTeal to-ghibli-sand border-b-2 border-ghibli-teal/30 px-6 py-4 rounded-t-xl;
   }
   
   .lesson-item {
-    @apply transition-all duration-200 hover:bg-blue-50;
+    @apply transition-all duration-200 hover:bg-ghibli-lightTeal/50;
   }
   
   .lesson-item.active {
-    @apply bg-blue-50 border-l-4 border-blue-500;
+    @apply bg-ghibli-lightTeal/50 border-l-4 border-ghibli-teal;
   }
   
   .quiz-container {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6;
+    @apply bg-ghibli-parchment rounded-2xl shadow-md border-2 border-ghibli-sand p-6 mb-6;
   }
   
   .quiz-option {
-    @apply flex items-center p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 cursor-pointer mb-3;
+    @apply flex items-center p-3 rounded-xl border-2 border-ghibli-sand hover:border-ghibli-teal hover:bg-ghibli-lightTeal/50 transition-all duration-200 cursor-pointer mb-3;
   }
   
   .interactive-container {
-    @apply bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8 mb-6 flex items-center justify-center;
+    @apply bg-gradient-to-br from-ghibli-lightTeal to-ghibli-sand rounded-2xl p-8 mb-6 flex items-center justify-center border-2 border-ghibli-teal/30;
+  }
+
+  /* 为小朋友添加一些有趣的按钮样式 */
+  .btn-kids {
+    @apply rounded-full bg-ghibli-teal text-white py-3 px-6 font-medium shadow-md 
+    hover:bg-ghibli-skyBlue hover:shadow-lg hover:scale-105 transition-all duration-300 
+    border-2 border-ghibli-teal/80;
+  }
+
+  /* 添加可爱的卡片样式 */
+  .card-kids {
+    @apply bg-ghibli-parchment rounded-3xl shadow-md border-2 border-ghibli-sand
+    hover:shadow-lg hover:border-ghibli-teal/50 transition-all duration-300 
+    overflow-hidden relative p-6;
+  }
+
+  /* 添加有趣的进度条样式 */
+  .progress-kids {
+    @apply h-4 bg-ghibli-sand rounded-full overflow-hidden border border-ghibli-teal/30;
+  }
+  
+  .progress-kids-fill {
+    @apply h-full bg-gradient-to-r from-ghibli-teal to-ghibli-skyBlue 
+    transition-all duration-700 ease-in-out rounded-full;
+  }
+
+  /* 儿童友好的彩色选项卡 */
+  .tab-kids {
+    @apply bg-ghibli-sand px-4 py-2 rounded-t-xl font-medium border-2 border-b-0
+    border-ghibli-teal/30 transition-all duration-200;
+  }
+  
+  .tab-kids.active {
+    @apply bg-ghibli-parchment border-ghibli-teal/50 text-ghibli-deepTeal;
+  }
+  
+  /* 儿童友好的导航菜单 */
+  .nav-kids {
+    @apply flex gap-2 p-2 bg-ghibli-cream rounded-2xl border-2 border-ghibli-teal/30 shadow-md;
+  }
+  
+  .nav-item-kids {
+    @apply px-4 py-2 rounded-xl font-medium transition-all duration-200
+    hover:bg-ghibli-sunshine hover:text-ghibli-brown;
+  }
+  
+  .nav-item-kids.active {
+    @apply bg-ghibli-mint text-ghibli-deepTeal;
+  }
+  
+  /* 彩虹边框效果 */
+  .rainbow-border-kids {
+    @apply relative p-1 rounded-2xl;
+    background: linear-gradient(45deg, 
+      var(--tw-gradient-stops));
+    --tw-gradient-from: #6FC5BE var(--tw-gradient-from-position);
+    --tw-gradient-to: #7CD5FF var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), #FFDC7C, #FF8C7C, #A0D995, var(--tw-gradient-to);
+  }
+  
+  .rainbow-border-kids > * {
+    @apply bg-ghibli-parchment rounded-2xl relative z-10;
+  }
+  
+  /* 可爱的阴影效果 */
+  .shadow-kids {
+    box-shadow: 4px 8px 0 rgba(82, 72, 58, 0.2);
+    @apply transition-all duration-200;
+  }
+  
+  .shadow-kids:hover {
+    box-shadow: 6px 12px 0 rgba(82, 72, 58, 0.15);
+    @apply -translate-y-1;
   }
 }
 

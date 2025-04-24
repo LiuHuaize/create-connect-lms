@@ -18,12 +18,18 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        kids: "bg-ghibli-teal text-white border-2 border-ghibli-teal/80 hover:bg-ghibli-skyBlue hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(82,72,58,0.2)] hover:shadow-[6px_8px_0_rgba(82,72,58,0.15)] hover:-translate-y-0.5",
+        kidsOutline: "bg-ghibli-parchment text-ghibli-deepTeal border-2 border-ghibli-teal hover:bg-ghibli-mint hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(82,72,58,0.2)] hover:shadow-[6px_8px_0_rgba(82,72,58,0.15)] hover:-translate-y-0.5",
+        kidsSunshine: "bg-ghibli-sunshine text-ghibli-brown border-2 border-ghibli-sunshine/80 hover:bg-ghibli-peach hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(82,72,58,0.2)] hover:shadow-[6px_8px_0_rgba(82,72,58,0.15)] hover:-translate-y-0.5",
       },
       size: {
         default: "h-10 px-4 py-2",
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",
+        kidsDefault: "h-12 px-6 py-3 rounded-full text-base",
+        kidsLg: "h-14 px-8 py-4 rounded-full text-lg",
+        kidsSm: "h-10 px-4 py-2 rounded-full text-sm",
       },
     },
     defaultVariants: {

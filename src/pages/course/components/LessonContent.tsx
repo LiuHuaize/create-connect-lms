@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Play, Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lesson, CourseModule, LessonType, TextLessonContent, AssignmentLessonContent } from '@/types/course';
+import { Lesson, CourseModule, LessonType, TextLessonContent, AssignmentLessonContent, CardCreatorLessonContent } from '@/types/course';
+import { CardCreatorTask } from '@/types/card-creator';
 import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
 import BlockNoteRenderer from '@/components/editor/BlockNoteRenderer';
 import { courseService } from '@/services/courseService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { CardCreatorStudent } from '@/components/course/card-creator/CardCreatorStudent';
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
@@ -30,6 +32,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [quizResult, setQuizResult] = useState<{score: number, totalQuestions: number} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCompletionLoading, setIsCompletionLoading] = useState(false);
+  const [showCardCreator, setShowCardCreator] = useState(true);
   
   // 在组件挂载和课程ID/课时ID变化时，加载测验状态
   useEffect(() => {
@@ -411,6 +414,110 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 提交后，您的作业将被AI自动评分，老师也会对您的作业进行审核。
               </p>
             </div>
+          </div>
+        );
+      case 'card_creator':
+        // 获取卡片创建器内容
+        const cardCreatorContent = selectedLesson.content as CardCreatorLessonContent;
+        
+        // 从API获取用户ID
+        const userId = enrollmentId?.split('_')?.[0] || '';
+        
+        // 将课时内容转换为卡片任务格式
+        const cardTask: CardCreatorTask = {
+          id: selectedLesson.id,
+          course_id: courseData?.id || '',
+          title: selectedLesson.title,
+          instructions: cardCreatorContent.instructions || '',
+          template_type: cardCreatorContent.templateType || 'text',
+          template_image_url: cardCreatorContent.templateImageUrl,
+          template_description: cardCreatorContent.templateDescription
+        };
+        
+        return (
+          <div className="space-y-6">
+            {!showCardCreator ? (
+              <div className="space-y-6">
+                <div className="interactive-container text-center py-10">
+                  <h3 className="text-xl font-bold text-blue-700 mb-4">互动内容区域</h3>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setShowCardCreator(true)}
+                  >
+                    开始互动
+                  </Button>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">学习目标</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        <li className="flex items-start">
+                          <div className="mr-2 mt-0.5 text-blue-500">
+                            <Check size={16} />
+                          </div>
+                          <span>理解基本概念</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="mr-2 mt-0.5 text-blue-500">
+                            <Check size={16} />
+                          </div>
+                          <span>应用所学知识解决简单问题</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="mr-2 mt-0.5 text-blue-500">
+                            <Check size={16} />
+                          </div>
+                          <span>通过互动加深理解</span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">说明</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-700">
+                        跟随指示完成互动练习。你可以随时暂停并返回。
+                        如果遇到困难，可以点击右下角的帮助按钮获取提示。
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            ) : (
+              <div className="card-creator-container mt-4">
+                <Button 
+                  variant="outline" 
+                  className="mb-6" 
+                  onClick={() => setShowCardCreator(false)}
+                >
+                  返回说明
+                </Button>
+                
+                <CardCreatorStudent
+                  taskId={selectedLesson.id}
+                  studentId={userId}
+                  task={cardTask}
+                  onSubmit={(submission) => {
+                    console.log('卡片已提交:', submission);
+                    // 这里可以添加卡片提交后的操作，如标记课时为已完成
+                    if (enrollmentId && selectedLesson.id && courseData?.id) {
+                      courseService.markLessonComplete(
+                        selectedLesson.id,
+                        courseData.id,
+                        enrollmentId
+                      );
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
         );
       // Handle other types with a default case

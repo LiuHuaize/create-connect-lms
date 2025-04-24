@@ -108,8 +108,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
 
   // Sidebar content component
   const SidebarContent = () => (
-    <div className="h-full w-full flex flex-col bg-white">
-      <div className="p-4 border-b">
+    <div className="h-full w-full flex flex-col bg-sidebar">
+      <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center">
           <Logo variant="default" />
           {isMobile && (
@@ -135,8 +135,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
                 className={cn(
                   "flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium",
                   isActive(link.href)
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 )}
                 onClick={isMobile ? onClose : undefined}
               >
@@ -148,7 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
 
           {(role === "teacher" || role === "admin") && (
             <div className="space-y-1">
-              <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="px-3 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
                 教学管理
               </div>
               {teacherLinks.map((link) => (
@@ -158,8 +158,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
                   className={cn(
                     "flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium",
                     isActive(link.href)
-                      ? "bg-gray-100 text-gray-900"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                   )}
                   onClick={isMobile ? onClose : undefined}
                 >
@@ -172,7 +172,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
 
           {role === "admin" && (
             <div className="space-y-1">
-              <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="px-3 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
                 管理员
               </div>
               {adminLinks.map((link) => (
@@ -182,8 +182,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
                   className={cn(
                     "flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium",
                     isActive(link.href)
-                      ? "bg-gray-100 text-gray-900"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                   )}
                   onClick={isMobile ? onClose : undefined}
                 >
@@ -195,7 +195,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
           )}
 
           <div className="space-y-1">
-            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="px-3 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
               个人
             </div>
             {profileLinks.map((link) => (
@@ -205,8 +205,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
                 className={cn(
                   "flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium",
                   isActive(link.href)
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 )}
                 onClick={isMobile ? onClose : undefined}
               >
@@ -218,7 +218,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
         </nav>
       </div>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t border-sidebar-border">
         <UserProfile />
         <Button
           variant="outline"
@@ -249,37 +249,49 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
     );
   }
 
-  if (isCollapsed && !isMobile) {
-    return (
-      <div className="relative">
-        <div className="fixed top-4 left-0 z-30">
-          <Button
-            variant="ghost"
-            size="sm"
+  return (
+    <>
+      {isCollapsed ? (
+        <div className="w-16 border-r border-sidebar-border h-full bg-sidebar relative flex-shrink-0">
+          <button
             onClick={() => setIsCollapsed(false)}
-            className="ml-2 bg-white hover:bg-gray-100 border shadow-sm rounded-full p-2 h-8 w-8"
+            className="absolute top-4 right-0 transform translate-x-1/2 z-20 bg-sidebar hover:bg-sidebar-accent border border-sidebar-border shadow-sm rounded-full p-2 h-8 w-8"
           >
             <ChevronRight className="h-4 w-4" />
-          </Button>
+          </button>
+          <div className="p-4 flex justify-center">
+            <Logo variant="icon" />
+          </div>
+          <div className="flex flex-col items-center space-y-4 mt-8">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  "p-2 rounded-md",
+                  isActive(link.href)
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                )}
+                title={link.label}
+              >
+                {link.icon}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="hidden md:block w-64 border-r h-full bg-white relative">
-      {!isCoursePage && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsCollapsed(true)}
-          className="absolute top-4 right-0 transform translate-x-1/2 z-10 bg-white hover:bg-gray-100 border shadow-sm rounded-full p-2 h-8 w-8"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+      ) : (
+        <div className="hidden md:block w-64 border-r border-sidebar-border h-full bg-sidebar relative">
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="absolute top-4 right-0 transform translate-x-1/2 z-20 bg-sidebar hover:bg-sidebar-accent border border-sidebar-border shadow-sm rounded-full p-2 h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <SidebarContent />
+        </div>
       )}
-      <SidebarContent />
-    </div>
+    </>
   );
 };
 

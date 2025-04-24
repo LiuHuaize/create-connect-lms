@@ -76,4 +76,56 @@ const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+// 新增适合儿童的卡片组件
+const KidsCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "bg-ghibli-parchment rounded-3xl shadow-md border-2 border-ghibli-sand hover:shadow-lg hover:border-ghibli-teal/50 transition-all duration-300 overflow-hidden relative",
+      "shadow-[4px_8px_0_rgba(82,72,58,0.2)] hover:shadow-[6px_12px_0_rgba(82,72,58,0.15)] hover:-translate-y-1",
+      className
+    )}
+    {...props}
+  />
+))
+KidsCard.displayName = "KidsCard"
+
+// 彩虹边框卡片
+const RainbowBorderCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { innerClassName?: string }
+>(({ className, innerClassName, children, ...props }, ref) => (
+  <div
+    className={cn(
+      "relative p-1 rounded-2xl",
+      "bg-gradient-to-r from-ghibli-teal via-ghibli-sunshine via-ghibli-coral via-ghibli-grassGreen to-ghibli-skyBlue",
+      className
+    )}
+    {...props}
+  >
+    <div
+      ref={ref}
+      className={cn(
+        "bg-ghibli-parchment rounded-xl p-6 relative z-10",
+        innerClassName
+      )}
+    >
+      {children}
+    </div>
+  </div>
+))
+RainbowBorderCard.displayName = "RainbowBorderCard"
+
+export { 
+  Card, 
+  CardHeader, 
+  CardFooter, 
+  CardTitle, 
+  CardDescription, 
+  CardContent,
+  KidsCard,
+  RainbowBorderCard
+}

@@ -301,6 +301,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_card_submission: {
+        Args: {
+          p_task_id: string
+          p_student_id: string
+          p_content: string
+          p_card_image_url: string
+        }
+        Returns: void
+      }
     }
     Enums: {
       user_role: "student" | "teacher" | "admin"

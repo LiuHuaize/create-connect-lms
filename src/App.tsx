@@ -135,19 +135,19 @@ const AppRoutes = () => {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         {isMobile && !editorFullscreen && user && !isCoursePage && (
-          <div className="bg-white border-b border-gray-200 p-4 flex items-center">
+          <div className="bg-sidebar border-b border-sidebar-border p-4 flex items-center">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-1 rounded-md hover:bg-gray-100"
+              className="p-1 rounded-md hover:bg-sidebar-accent/50"
               aria-label="打开菜单"
             >
               <Menu size={24} />
             </button>
-            <div className="ml-4 text-lg font-semibold">亿小步</div>
+            <div className="ml-4 text-lg font-semibold text-sidebar-foreground">菜单</div>
           </div>
         )}
         
-        <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="flex-1 overflow-y-auto bg-background">
           <Routes>
             <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/auth" />} />
             <Route path="/auth" element={<Auth />} />
