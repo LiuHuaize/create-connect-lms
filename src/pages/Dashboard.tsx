@@ -1,15 +1,19 @@
-
 import React, { useEffect } from 'react';
-import { ChevronDown, Activity, Calendar, BookOpen, Star, Cpu } from 'lucide-react';
+import { ChevronDown, Activity, Calendar, BookOpen, Star, Cpu, MessageSquare, CheckCircle } from 'lucide-react';
 import CourseCard from '@/components/ui/CourseCard';
 import FeatureCard from '@/components/ui/FeatureCard';
-import { MessageSquare, CheckCircle } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { useCoursesData, EnrolledCourse } from '@/hooks/useCoursesData';
 import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -185,13 +189,11 @@ const Dashboard = () => {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-0">为你推荐</h1>
-          <div className="flex flex-wrap items-center gap-1 text-sm text-gray-500 mt-2">
-            <span>相关主题:</span>
-            <button className="text-connect-blue hover:underline">商业规划</button>
-            <span>|</span>
-            <button className="text-connect-blue hover:underline">游戏设计</button>
-            <span>|</span>
-            <button className="text-connect-blue hover:underline">产品开发</button>
+          <div className="flex flex-wrap items-center gap-2 text-sm mt-2">
+            <span className="text-gray-500">相关主题:</span>
+            <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer">商业规划</Badge>
+            <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-pointer">游戏设计</Badge>
+            <Badge className="bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer">产品开发</Badge>
           </div>
         </div>
       </div>

@@ -24,7 +24,9 @@ export function CardCreatorTeacher({ courseId, onSave, onCancel }: CardCreatorTe
   });
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
+  // Supabase存储桶名称
+  const STORAGE_BUCKET = 'course-assets';
+  
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setTask(prev => ({ ...prev, [name]: value }));
@@ -39,25 +41,46 @@ export function CardCreatorTeacher({ courseId, onSave, onCancel }: CardCreatorTe
     
     setIsUploading(true);
     try {
+      console.log('开始上传图片，课程ID:', courseId);
+      
+      // 验证课程ID
+      if (!courseId) {
+        throw new Error('课程ID不存在');
+      }
+      
+      // 获取文件扩展名并生成安全的文件名（不含中文字符）
+      const fileExtension = file.name.split('.').pop() || 'jpg';
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 10);
+      const safeFileName = `${timestamp}_${randomString}.${fileExtension}`;
+      
       // 生成唯一的文件路径
-      const filePath = `courses/${courseId}/card-templates/${Date.now()}_${file.name}`;
+      const filePath = `courses/${courseId}/card-templates/${safeFileName}`;
+      console.log('文件路径:', filePath);
+      console.log('使用存储桶:', STORAGE_BUCKET);
       
       // 上传到Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('course-assets')
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
         .upload(filePath, file);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Supabase上传错误详情:', JSON.stringify(uploadError));
+        throw uploadError;
+      }
+      
+      console.log('上传成功:', uploadData);
       
       // 获取公开URL
       const { data: urlData } = supabase.storage
-        .from('course-assets')
+        .from(STORAGE_BUCKET)
         .getPublicUrl(filePath);
       
+      console.log('获取到的公共URL:', urlData.publicUrl);
       setTask(prev => ({ ...prev, template_image_url: urlData.publicUrl }));
     } catch (error) {
       console.error('模板图片上传失败:', error);
-      alert('模板图片上传失败，请重试');
+      alert(`模板图片上传失败，请重试。错误: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsUploading(false);
     }
@@ -83,15 +106,17 @@ export function CardCreatorTeacher({ courseId, onSave, onCancel }: CardCreatorTe
 
     setIsSaving(true);
     try {
+      console.log('保存任务，数据:', JSON.stringify(task));
       const createdTask = await CardCreatorService.createTask(task as CardCreatorTask);
       if (createdTask) {
+        console.log('任务创建成功:', createdTask);
         onSave?.(createdTask);
       } else {
-        throw new Error('创建任务失败');
+        throw new Error('创建任务失败，服务返回空数据');
       }
     } catch (error) {
       console.error('保存卡片任务失败:', error);
-      alert('保存失败，请重试');
+      alert(`保存失败，请重试。错误: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsSaving(false);
     }

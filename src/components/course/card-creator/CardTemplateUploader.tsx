@@ -10,7 +10,8 @@ interface CardTemplateUploaderProps {
 
 /**
  * 卡片模板上传组件
- * 允许教师上传图片作为卡片模板
+ * 允许教师直接上传图片文件作为卡片模板
+ * 支持拖放和点击上传功能
  */
 export function CardTemplateUploader({ onUpload, previewUrl, isUploading }: CardTemplateUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
