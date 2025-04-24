@@ -92,13 +92,6 @@ export default function CardCreatorTaskPage({
     <CourseLayout courseId={courseId} courseTitle={courseTitle}>
       <div className="container py-6 space-y-8">
         <div className="flex items-center space-x-4">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={goBack}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <h1 className="text-3xl font-bold">{task.title}</h1>
         </div>
         

@@ -9,19 +9,19 @@ interface ContentTypeIconProps {
 const ContentTypeIcon: React.FC<ContentTypeIconProps> = ({ type, size = 18 }) => {
   switch (type) {
     case 'video':
-      return <Video size={size} className="mr-2 text-blue-500" />;
+      return <Video size={size} className="mr-2 text-ghibli-skyBlue" />;
     case 'quiz':
-      return <HelpCircle size={size} className="mr-2 text-purple-500" />;
+      return <HelpCircle size={size} className="mr-2 text-ghibli-sunshine" />;
     case 'interactive':
-      return <Play size={size} className="mr-2 text-green-500" />;
+      return <Play size={size} className="mr-2 text-ghibli-grassGreen" />;
     case 'game':
-      return <Play size={size} className="mr-2 text-orange-500" />;
+      return <Play size={size} className="mr-2 text-ghibli-coral" />;
     case 'activity':
-      return <FileText size={size} className="mr-2 text-indigo-500" />;
+      return <FileText size={size} className="mr-2 text-ghibli-lavender" />;
     case 'text':
-      return <BookOpen size={size} className="mr-2 text-gray-500" />;
+      return <BookOpen size={size} className="mr-2 text-ghibli-teal" />;
     default:
-      return <BookOpen size={size} className="mr-2 text-gray-500" />;
+      return <BookOpen size={size} className="mr-2 text-ghibli-brown" />;
   }
 };
 

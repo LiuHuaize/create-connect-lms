@@ -129,11 +129,11 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   };
 
   return (
-    <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">
+    <div className="flex justify-between items-center mt-8 pt-6 border-t border-ghibli-sand/30">
       <Button 
         variant="outline" 
-        size={isMobile ? "sm" : "lg"} 
-        className="flex items-center shadow-sm hover:shadow-md transition-all"
+        size={isMobile ? "sm" : "default"} 
+        className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
         onClick={() => prevLesson && navigate(`/course/${courseData?.id}/lesson/${prevLesson.id}`)}
         disabled={!prevLesson}
       >
@@ -144,9 +144,9 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
       <HoverCard>
         <HoverCardTrigger asChild>
           <Button 
-            className={`shadow-md hover:shadow-lg transition-all ${isCompleted 
-              ? 'bg-amber-500 hover:bg-amber-600' 
-              : 'bg-green-600 hover:bg-green-700'
+            className={`transition-all ${isCompleted 
+              ? 'bg-ghibli-peach hover:bg-ghibli-coral text-ghibli-brown' 
+              : 'bg-ghibli-teal hover:bg-ghibli-deepTeal text-white'
             }`}
             size={isMobile ? "sm" : "default"}
             onClick={handleToggleComplete}
@@ -162,12 +162,12 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
             )}
           </Button>
         </HoverCardTrigger>
-        <HoverCardContent className="w-80">
+        <HoverCardContent className="w-80 border-ghibli-sand bg-ghibli-parchment">
           <div className="text-sm">
-            <h4 className="font-medium mb-2">
+            <h4 className="font-medium mb-2 text-ghibli-deepTeal">
               {isCompleted ? '取消完成标记' : '完成课时'}
             </h4>
-            <p>
+            <p className="text-ghibli-brown">
               {isCompleted 
                 ? '取消此课时的完成标记，这将影响您的学习进度。' 
                 : '标记此课时为已完成后，会更新您的学习进度，并解锁下一节课程。'
@@ -179,8 +179,8 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
       
       <Button 
         variant="outline" 
-        size={isMobile ? "sm" : "lg"} 
-        className="flex items-center shadow-sm hover:shadow-md transition-all"
+        size={isMobile ? "sm" : "default"} 
+        className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
         onClick={() => nextLesson && navigate(`/course/${courseData?.id}/lesson/${nextLesson.id}`)}
         disabled={!nextLesson}
       >

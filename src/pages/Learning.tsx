@@ -61,7 +61,7 @@ const Learning = () => {
     <div className="animate-fade-in p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">我的学习</h1>
-        <Button asChild className="bg-connect-blue hover:bg-blue-600">
+        <Button asChild>
           <Link to="/explore-courses">
             <Search className="mr-2 h-4 w-4" /> 探索更多课程
           </Link>
@@ -83,12 +83,12 @@ const Learning = () => {
           ) : inProgressCourses.length > 0 ? (
             // 显示用户已加入的课程
             inProgressCourses.map((course) => (
-              <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div key={course.id} className="course-card">
                 <div className="p-6">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="bg-connect-lightBlue text-connect-blue inline-block px-3 py-1 rounded-full text-xs font-medium">
+                        <div className="bg-ghibli-lightTeal text-ghibli-deepTeal inline-block px-3 py-1 rounded-full text-xs font-medium">
                           {course.category || '未分类'}
                         </div>
                         
@@ -117,7 +117,7 @@ const Learning = () => {
                     
                     {course.isAvailable !== false ? (
                       <Link to={`/course/${course.id}`}>
-                        <button className="bg-connect-blue text-white p-3 rounded-full hover:bg-blue-600 transition-colors">
+                        <button className="bg-ghibli-teal text-white p-3 rounded-full hover:bg-ghibli-deepTeal transition-colors">
                           <Play size={20} fill="white" />
                         </button>
                       </Link>
@@ -133,11 +133,11 @@ const Learning = () => {
                       <span className="text-sm font-medium">进度</span>
                       <span className="text-sm text-gray-500">{course.progress}%</span>
                     </div>
-                    <Progress value={course.progress} className="h-2" />
+                    <Progress value={course.progress} className="h-2 progress-kids" />
                   </div>
                 </div>
                 
-                <div className="border-t border-gray-200 bg-gray-50 p-4">
+                <div className="border-t border-ghibli-sand bg-ghibli-parchment p-4 rounded-b-xl">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">继续学习</h4>
@@ -146,7 +146,7 @@ const Learning = () => {
                     
                     {course.isAvailable !== false ? (
                       <Link to={`/course/${course.id}`}>
-                        <button className="py-2 px-4 bg-connect-blue text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                        <button className="event-register-btn">
                           继续
                         </button>
                       </Link>
@@ -162,7 +162,7 @@ const Learning = () => {
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">您还没有加入任何课程</p>
-              <Button asChild className="bg-connect-blue hover:bg-blue-600">
+              <Button asChild>
                 <Link to="/explore-courses">浏览课程</Link>
               </Button>
             </div>
@@ -177,11 +177,11 @@ const Learning = () => {
           ) : completedCourses.length > 0 ? (
             // 显示已完成的课程
             completedCourses.map((course) => (
-              <div key={course.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-6">
+              <div key={course.id} className="course-card p-6">
                 <div className="flex justify-between items-center">
                   <div>
                     <div className="flex items-center mb-3">
-                      <div className="bg-green-100 text-green-700 inline-block px-3 py-1 rounded-full text-xs font-medium mr-3">
+                      <div className="bg-ghibli-lightTeal text-ghibli-deepTeal inline-block px-3 py-1 rounded-full text-xs font-medium mr-3">
                         {course.category || '未分类'}
                       </div>
                       <div className="flex items-center text-amber-500">
@@ -202,7 +202,7 @@ const Learning = () => {
                   <div className="flex items-center gap-3">
                     {course.isAvailable !== false ? (
                       <Link to={`/course/${course.id}`}>
-                        <button className="py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                        <button className="py-2 px-4 border border-ghibli-teal/50 text-ghibli-deepTeal rounded-lg hover:bg-ghibli-lightTeal/30 transition-colors text-sm">
                           回顾
                         </button>
                       </Link>
@@ -218,7 +218,7 @@ const Learning = () => {
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">您还没有完成任何课程</p>
-              <Button asChild className="bg-connect-blue hover:bg-blue-600">
+              <Button asChild>
                 <Link to="/explore-courses">浏览课程</Link>
               </Button>
             </div>
@@ -228,7 +228,7 @@ const Learning = () => {
         <TabsContent value="saved">
           <div className="text-center py-12">
             <p className="text-gray-500 mb-4">您尚未保存任何课程</p>
-            <Button asChild className="bg-connect-blue hover:bg-blue-600">
+            <Button asChild>
               <Link to="/explore-courses">浏览课程</Link>
             </Button>
           </div>

@@ -7,6 +7,9 @@ import { CardTaskList } from '@/components/course/card-creator/CardTaskList';
 import { CardCreatorTask } from '@/types/card-creator';
 import { CourseLayout } from '@/components/layout/CourseLayout';
 import { supabase } from '@/integrations/supabase/client';
+import Link from 'next/link';
+import { WandSparkles } from 'lucide-react';
+import { GeneralLayout } from '@/components/layout/GeneralLayout';
 
 interface CardCreatorPageProps {
   courseId: string;
@@ -14,7 +17,7 @@ interface CardCreatorPageProps {
   userRole: 'student' | 'teacher' | 'admin';
 }
 
-export default function CardCreatorPage({ courseId, courseTitle, userRole }: CardCreatorPageProps) {
+const CardCreatorPage = ({ courseId, courseTitle, userRole }: CardCreatorPageProps) => {
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [editingTask, setEditingTask] = useState<CardCreatorTask | null>(null);
   const { user } = useUser();
@@ -32,31 +35,55 @@ export default function CardCreatorPage({ courseId, courseTitle, userRole }: Car
     setIsCreatingTask(true);
   };
 
-  return (
-    <CourseLayout courseId={courseId} courseTitle={courseTitle}>
-      <div className="container py-6 space-y-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">卡片制作</h1>
-        </div>
-        
-        {isCreatingTask ? (
-          <CardCreatorTeacher 
-            courseId={courseId} 
-            onSave={handleTaskCreated}
-            onCancel={() => setIsCreatingTask(false)}
-          />
-        ) : (
-          <CardTaskList 
-            courseId={courseId}
-            isTeacher={isTeacher}
-            onCreateTask={() => setIsCreatingTask(true)}
-            onEditTask={handleEditTask}
-          />
-        )}
+  const pageContent = (
+    <div className="container py-6 space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">卡片制作</h1>
       </div>
-    </CourseLayout>
+      
+      {isCreatingTask ? (
+        <CardCreatorTeacher 
+          courseId={courseId} 
+          onSave={handleTaskCreated}
+          onCancel={() => setIsCreatingTask(false)}
+        />
+      ) : (
+        <CardTaskList 
+          courseId={courseId}
+          isTeacher={isTeacher}
+          onCreateTask={() => setIsCreatingTask(true)}
+          onEditTask={handleEditTask}
+        />
+      )}
+    </div>
   );
-}
+
+  return (
+    <GeneralLayout>
+      <div className="min-h-screen bg-gradient-to-br from-ghibli-parchment to-ghibli-cream">
+        <div className="container max-w-5xl px-4 py-8">
+          
+          <div className="bg-white rounded-xl shadow-md overflow-hidden border border-ghibli-teal/20">
+            <div className="bg-gradient-to-r from-ghibli-lightTeal to-ghibli-sand p-5 border-b border-ghibli-teal/20">
+              <h1 className="text-2xl font-bold text-ghibli-deepTeal flex items-center">
+                <WandSparkles className="mr-2 h-6 w-6 text-ghibli-teal" />
+                创意卡片制作
+              </h1>
+              <p className="text-ghibli-brown mt-2">
+                在这里，你可以根据课程内容创建你的专属创意卡片。发挥想象力，创造属于你的精彩作品！
+              </p>
+            </div>
+            <div className="p-5">
+              {pageContent}
+            </div>
+          </div>
+        </div>
+      </div>
+    </GeneralLayout>
+  );
+};
+
+export default CardCreatorPage;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const { courseId } = context.params || {};

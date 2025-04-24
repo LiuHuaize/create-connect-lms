@@ -12,12 +12,14 @@ interface CardPreviewProps {
 export function CardPreview({ imageUrl, className = '' }: CardPreviewProps) {
   return (
     <div className={`card-preview ${className}`}>
-      <div className="relative aspect-video w-full rounded-md overflow-hidden border border-gray-200 shadow-sm">
-        <img
-          src={imageUrl}
-          alt="生成的卡片"
-          className="object-contain w-full h-full"
-        />
+      <div className="relative bg-white rounded-xl overflow-hidden border border-gray-200 shadow-md">
+        <div className="flex justify-center items-center p-4">
+          <img
+            src={imageUrl}
+            alt="生成的卡片"
+            className="object-contain max-h-[500px] rounded-lg"
+          />
+        </div>
       </div>
     </div>
   );

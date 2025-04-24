@@ -4,83 +4,83 @@
 
 @layer base {
   :root {
-    --background: 43 40% 94%; /* 更亮的米色背景 #F5F2E9 */
-    --foreground: 35 30% 25%; /* 深棕色文字 #52483A */
+    --background: 43 40% 94%; /* 更亮的米色背景 #F5F2E9 - Ghibli风格的奶油色 */
+    --foreground: 30 20% 20%; /* 深棕色文字 #403933 - 适合Ghibli风格的深棕色 */
 
-    --card: 43 45% 97%; /* 非常浅的米色卡片 #FAFAF5 */
-    --card-foreground: 35 30% 25%; /* 深棕色文字 #52483A */
+    --card: 48 39% 96%; /* 非常浅的米色卡片 #F2EFE6 - UI中标注的颜色 */
+    --card-foreground: 30 20% 20%; /* 深棕色文字 #403933 */
 
-    --popover: 43 45% 97%; /* 非常浅的米色弹出框 #FAFAF5 */
-    --popover-foreground: 35 30% 25%; /* 深棕色文字 #52483A */
+    --popover: 48 39% 96%; /* 非常浅的米色弹出框 #F2EFE6 */
+    --popover-foreground: 30 20% 20%; /* 深棕色文字 #403933 */
 
-    --primary: 174 40% 55%; /* 更明亮的蓝绿色主色 #6FC5BE */
-    --primary-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
+    --primary: 176 47% 61%; /* 蓝绿色主色 #6FC5BE - 图片中按钮和活跃元素的颜色 */
+    --primary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --secondary: 33 60% 90%; /* 更亮的浅棕色次要色 #F7E8CD */
-    --secondary-foreground: 35 30% 25%; /* 深棕色文字 #52483A */
+    --secondary: 27 62% 87%; /* 浅棕色次要色 #F7E8CD - Ghibli风格的沙色 */
+    --secondary-foreground: 30 20% 20%; /* 深棕色文字 #403933 */
 
-    --muted: 33 50% 93%; /* 柔和的浅米色 #F9F0E2 */
-    --muted-foreground: 35 20% 45%; /* 灰棕色文字 #807668 */
+    --muted: 27 50% 93%; /* 柔和的浅米色 #F9F0E2 */
+    --muted-foreground: 30 10% 40%; /* 灰棕色文字 #706B65 */
 
-    --accent: 150 40% 87%; /* 淡绿色强调 #D7F0E2 */
-    --accent-foreground: 150 50% 30%; /* 深绿色文字 #307852 */
+    --accent: 173 30% 82%; /* 淡蓝绿色强调 #D4E5E3 - 图片中的淡蓝绿色 */
+    --accent-foreground: 176 47% 30%; /* 深蓝绿色文字 #386964 */
 
-    --destructive: 0 70% 65%; /* 亮红色警告 #F06E6E */
-    --destructive-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
+    --destructive: 0 65% 50%; /* 亮红色警告 #C94444 - Ghibli风格的红色 */
+    --destructive-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --border: 33 30% 84%; /* 边框米色 #E4D8C7 */
-    --input: 33 30% 84%; /* 输入框边框 #E4D8C7 */
-    --ring: 174 40% 55%; /* 蓝绿色环 #6FC5BE */
+    --border: 27 30% 87%; /* 边框米色 #E9DED0 */
+    --input: 27 30% 87%; /* 输入框边框 #E9DED0 */
+    --ring: 176 47% 61%; /* 蓝绿色环 #6FC5BE */
 
-    --radius: 1rem; /* 更圆润的边角，适合儿童界面 */
+    --radius: 0.8rem; /* 适合Ghibli风格的圆角 */
 
-    --sidebar-background: 43 45% 95%; /* 浅米色侧边栏 #F7F5EF */
-    --sidebar-foreground: 35 30% 25%; /* 深棕色文字 #52483A */
-    --sidebar-primary: 174 40% 55%; /* 蓝绿色主色 #6FC5BE */
-    --sidebar-primary-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
-    --sidebar-accent: 150 40% 92%; /* 淡绿色强调 #E5F7EE */
-    --sidebar-accent-foreground: 150 50% 30%; /* 深绿色文字 #307852 */
-    --sidebar-border: 33 30% 88%; /* 边框米色 #EDE4D8 */
-    --sidebar-ring: 174 40% 55%; /* 蓝绿色环 #6FC5BE */
+    --sidebar-background: 48 39% 96%; /* 浅米色侧边栏 #F2EFE6 */
+    --sidebar-foreground: 30 20% 20%; /* 深棕色文字 #403933 */
+    --sidebar-primary: 176 47% 61%; /* 蓝绿色主色 #6FC5BE */
+    --sidebar-primary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
+    --sidebar-accent: 173 30% 82%; /* 淡蓝绿色强调 #D4E5E3 */
+    --sidebar-accent-foreground: 176 47% 30%; /* 深蓝绿色文字 #386964 */
+    --sidebar-border: 27 30% 87%; /* 边框米色 #E9DED0 */
+    --sidebar-ring: 176 47% 61%; /* 蓝绿色环 #6FC5BE */
   }
 
   .dark {
-    --background: 35 25% 18%; /* 深棕色背景 #3A342A */
-    --foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
+    --background: 30 20% 20%; /* 深棕色背景 #403933 - Ghibli风格的深棕色 */
+    --foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
 
-    --card: 35 20% 24%; /* 深棕色卡片 #4A4336 */
-    --card-foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
+    --card: 30 20% 25%; /* 深棕色卡片 #4D4439 */
+    --card-foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
 
-    --popover: 35 20% 24%; /* 深棕色弹出框 #4A4336 */
-    --popover-foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
+    --popover: 30 20% 25%; /* 深棕色弹出框 #4D4439 */
+    --popover-foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
 
-    --primary: 174 40% 48%; /* 较暗蓝绿色 #5DAEA6 */
-    --primary-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
+    --primary: 176 47% 50%; /* 较暗蓝绿色 #50B3AB */
+    --primary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --secondary: 35 20% 32%; /* 深棕色次要色 #5E5245 */
-    --secondary-foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
+    --secondary: 30 20% 30%; /* 深棕色次要色 #59504A */
+    --secondary-foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
 
-    --muted: 35 20% 28%; /* 暗棕色 #534A3D */
-    --muted-foreground: 35 15% 70%; /* 灰棕色文字 #B5AEA4 */
+    --muted: 30 20% 28%; /* 暗棕色 #534A3F */
+    --muted-foreground: 30 15% 70%; /* 灰棕色文字 #B5ADA3 */
 
-    --accent: 150 30% 35%; /* 深绿色强调 #4C8062 */
-    --accent-foreground: 150 40% 87%; /* 淡绿色文字 #D7F0E2 */
+    --accent: 176 47% 35%; /* 深蓝绿色强调 #386964 */
+    --accent-foreground: 173 30% 82%; /* 淡蓝绿色文字 #D4E5E3 */
 
     --destructive: 0 65% 50%; /* 深红色警告 #C94444 */
-    --destructive-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
+    --destructive-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --border: 35 20% 32%; /* 边框深棕色 #5E5245 */
-    --input: 35 20% 32%; /* 输入框边框 #5E5245 */
-    --ring: 174 40% 48%; /* 蓝绿色环 #5DAEA6 */
+    --border: 30 20% 30%; /* 边框深棕色 #59504A */
+    --input: 30 20% 30%; /* 输入框边框 #59504A */
+    --ring: 176 47% 50%; /* 蓝绿色环 #50B3AB */
     
-    --sidebar-background: 35 20% 20%; /* 深棕色侧边栏 #403A30 */
-    --sidebar-foreground: 43 38% 92%; /* 浅米色文字 #F2EFE6 */
-    --sidebar-primary: 174 40% 48%; /* 较暗蓝绿色 #5DAEA6 */
-    --sidebar-primary-foreground: 43 45% 98%; /* 接近白色 #FDFCF9 */
-    --sidebar-accent: 150 30% 30%; /* 深绿色强调 #437055 */
-    --sidebar-accent-foreground: 150 40% 87%; /* 淡绿色文字 #D7F0E2 */
-    --sidebar-border: 35 20% 28%; /* 边框暗棕色 #534A3D */
-    --sidebar-ring: 174 40% 48%; /* 蓝绿色环 #5DAEA6 */
+    --sidebar-background: 30 20% 18%; /* 深棕色侧边栏 #3A3329 */
+    --sidebar-foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
+    --sidebar-primary: 176 47% 50%; /* 较暗蓝绿色 #50B3AB */
+    --sidebar-primary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
+    --sidebar-accent: 176 47% 30%; /* 深蓝绿色强调 #306964 */
+    --sidebar-accent-foreground: 173 30% 82%; /* 淡蓝绿色文字 #D4E5E3 */
+    --sidebar-border: 30 20% 28%; /* 边框暗棕色 #534A3F */
+    --sidebar-ring: 176 47% 50%; /* 蓝绿色环 #50B3AB */
   }
 }
 
@@ -231,6 +231,27 @@
   .shadow-kids:hover {
     box-shadow: 6px 12px 0 rgba(82, 72, 58, 0.15);
     @apply -translate-y-1;
+  }
+
+  /* 添加活动页面特定样式 */
+  .event-date-block {
+    @apply bg-ghibli-teal text-white rounded-lg overflow-hidden;
+  }
+
+  .event-tag {
+    @apply inline-block bg-ghibli-lightTeal text-ghibli-deepTeal px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .event-card {
+    @apply bg-ghibli-parchment rounded-xl p-4 hover:shadow-md transition-all duration-200 border border-ghibli-sand;
+  }
+  
+  .event-register-btn {
+    @apply bg-ghibli-teal text-white px-4 py-2 rounded-full font-medium shadow-sm hover:shadow-md hover:bg-ghibli-deepTeal transition-all duration-200;
+  }
+
+  .month-nav-btn {
+    @apply p-2 rounded-full hover:bg-ghibli-lightTeal transition-all duration-200;
   }
 }
 

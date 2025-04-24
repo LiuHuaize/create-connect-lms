@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Check } from 'lucide-react';
+import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lesson, CourseModule, LessonType, TextLessonContent, AssignmentLessonContent, CardCreatorLessonContent } from '@/types/course';
@@ -244,32 +244,42 @@ const LessonContent: React.FC<LessonContentProps> = ({
         const quizContent = selectedLesson.content as any;
         return (
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
-              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
+            <div className="bg-ghibli-lightTeal/20 border border-ghibli-teal/30 rounded-xl p-5">
+              <h3 className="font-medium text-ghibli-deepTeal mb-2 flex items-center">
                 <Check size={18} className="mr-2" /> 测验说明
               </h3>
-              <p className="text-blue-700 text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
+              <p className="text-ghibli-brown text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
             </div>
             
             {quizSubmitted && quizResult && (
-              <div className={`p-4 rounded-lg mb-4 ${quizResult.score >= 60 ? 'bg-green-50 border border-green-100' : 'bg-yellow-50 border border-yellow-100'}`}>
+              <div className={`p-4 rounded-lg mb-4 ${quizResult.score >= 60 ? 'bg-ghibli-mint/30 border border-ghibli-teal/30' : 'bg-ghibli-peach/20 border border-ghibli-coral/20'}`}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className={`font-medium mb-2 ${quizResult.score >= 60 ? 'text-green-800' : 'text-yellow-800'}`}>
+                    <h3 className={`font-medium mb-2 ${quizResult.score >= 60 ? 'text-ghibli-deepTeal' : 'text-ghibli-brown'}`}>
                       测验结果
                     </h3>
-                    <p className={quizResult.score >= 60 ? 'text-green-700' : 'text-yellow-700'}>
+                    <p className={quizResult.score >= 60 ? 'text-ghibli-deepTeal font-medium' : 'text-ghibli-brown font-medium'}>
                       你的得分: {quizResult.score}% ({Math.round(quizResult.score * quizResult.totalQuestions / 100)}/{quizResult.totalQuestions} 题正确)
                     </p>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="text-amber-600 border-amber-200 hover:bg-amber-50"
+                    className="border-ghibli-peach/40 text-ghibli-brown hover:bg-ghibli-sand/30"
                     onClick={handleUnmarkComplete}
                     disabled={isCompletionLoading}
                   >
-                    {isCompletionLoading ? '取消中...' : '取消标记'}
+                    {isCompletionLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        处理中...
+                      </>
+                    ) : (
+                      <>
+                        <X className="mr-2 h-4 w-4" />
+                        取消完成标记
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -294,7 +304,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
                             />
                             <span>{option.text}</span>
                             {quizSubmitted && option.id === question.correctOption && (
-                              <span className="ml-2 text-green-600 text-sm">(正确答案)</span>
+                              <span className="ml-2 text-ghibli-grassGreen/70 text-sm">(正确答案)</span>
                             )}
                           </label>
                         ))}
@@ -319,7 +329,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 <div className="flex justify-end">
                   {!quizSubmitted ? (
                     <Button 
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
                       onClick={handleQuizSubmit}
                       disabled={isLoading}
                     >
@@ -327,7 +337,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
                     </Button>
                   ) : (
                     <Button 
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
                       onClick={() => navigate('/learning')}
                     >
                       返回课程
@@ -356,7 +366,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 
                 <div className="flex justify-end">
                   <Button 
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
                     onClick={handleQuizSubmit}
                   >
                     提交答案
@@ -441,48 +451,51 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 <div className="interactive-container text-center py-10">
                   <h3 className="text-xl font-bold text-blue-700 mb-4">互动内容区域</h3>
                   <Button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm"
                     onClick={() => setShowCardCreator(true)}
                   >
-                    开始互动
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 4V20M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    点击生成我的卡片
                   </Button>
                 </div>
                 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">学习目标</CardTitle>
+                <div className="flex flex-row gap-6 mb-6">
+                  <Card className="flex-1 border border-ghibli-teal/30 bg-ghibli-parchment shadow-sm">
+                    <CardHeader className="bg-gradient-to-r from-ghibli-mint/30 to-ghibli-lightTeal/20 pb-3">
+                      <CardTitle className="text-lg text-ghibli-deepTeal">学习目标</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-4">
                       <ul className="space-y-2">
                         <li className="flex items-start">
-                          <div className="mr-2 mt-0.5 text-blue-500">
+                          <div className="mr-2 mt-0.5 text-ghibli-teal">
                             <Check size={16} />
                           </div>
-                          <span>理解基本概念</span>
+                          <span className="text-ghibli-brown">理解基本概念</span>
                         </li>
                         <li className="flex items-start">
-                          <div className="mr-2 mt-0.5 text-blue-500">
+                          <div className="mr-2 mt-0.5 text-ghibli-teal">
                             <Check size={16} />
                           </div>
-                          <span>应用所学知识解决简单问题</span>
+                          <span className="text-ghibli-brown">应用所学知识解决简单问题</span>
                         </li>
                         <li className="flex items-start">
-                          <div className="mr-2 mt-0.5 text-blue-500">
+                          <div className="mr-2 mt-0.5 text-ghibli-teal">
                             <Check size={16} />
                           </div>
-                          <span>通过互动加深理解</span>
+                          <span className="text-ghibli-brown">通过互动加深理解</span>
                         </li>
                       </ul>
                     </CardContent>
                   </Card>
                   
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">说明</CardTitle>
+                  <Card className="flex-1 border border-ghibli-teal/30 bg-ghibli-parchment shadow-sm">
+                    <CardHeader className="bg-gradient-to-r from-ghibli-mint/30 to-ghibli-lightTeal/20 pb-3">
+                      <CardTitle className="text-lg text-ghibli-deepTeal">说明</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700">
+                    <CardContent className="pt-4">
+                      <p className="text-ghibli-brown">
                         跟随指示完成互动练习。你可以随时暂停并返回。
                         如果遇到困难，可以点击右下角的帮助按钮获取提示。
                       </p>
@@ -527,47 +540,50 @@ const LessonContent: React.FC<LessonContentProps> = ({
             <div className="interactive-container">
               <div className="text-center">
                 <h3 className="text-xl font-bold text-blue-700 mb-4">互动内容区域</h3>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  开始互动
+                <Button 
+                  className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  标记为已完成
                 </Button>
               </div>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">学习目标</CardTitle>
+            <div className="flex flex-row gap-6 mb-6">
+              <Card className="flex-1 border border-ghibli-teal/30 bg-ghibli-parchment shadow-sm">
+                <CardHeader className="bg-gradient-to-r from-ghibli-mint/30 to-ghibli-lightTeal/20 pb-3">
+                  <CardTitle className="text-lg text-ghibli-deepTeal">学习目标</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-4">
                   <ul className="space-y-2">
                     <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-blue-500">
+                      <div className="mr-2 mt-0.5 text-ghibli-teal">
                         <Check size={16} />
                       </div>
-                      <span>理解基本概念</span>
+                      <span className="text-ghibli-brown">理解基本概念</span>
                     </li>
                     <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-blue-500">
+                      <div className="mr-2 mt-0.5 text-ghibli-teal">
                         <Check size={16} />
                       </div>
-                      <span>应用所学知识解决简单问题</span>
+                      <span className="text-ghibli-brown">应用所学知识解决简单问题</span>
                     </li>
                     <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-blue-500">
+                      <div className="mr-2 mt-0.5 text-ghibli-teal">
                         <Check size={16} />
                       </div>
-                      <span>通过互动加深理解</span>
+                      <span className="text-ghibli-brown">通过互动加深理解</span>
                     </li>
                   </ul>
                 </CardContent>
               </Card>
               
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">说明</CardTitle>
+              <Card className="flex-1 border border-ghibli-teal/30 bg-ghibli-parchment shadow-sm">
+                <CardHeader className="bg-gradient-to-r from-ghibli-mint/30 to-ghibli-lightTeal/20 pb-3">
+                  <CardTitle className="text-lg text-ghibli-deepTeal">说明</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700">
+                <CardContent className="pt-4">
+                  <p className="text-ghibli-brown">
                     跟随指示完成互动练习。你可以随时暂停并返回。
                     如果遇到困难，可以点击右下角的帮助按钮获取提示。
                   </p>
@@ -584,11 +600,11 @@ const LessonContent: React.FC<LessonContentProps> = ({
       {selectedLesson && selectedUnit ? (
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <Card className="border-none shadow-md overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100 py-4">
-              <div className="flex items-center text-xs sm:text-sm text-gray-600 mb-1">
+            <CardHeader className="bg-gradient-to-r from-ghibli-cream to-ghibli-lightTeal/20 border-b border-ghibli-sand py-4">
+              <div className="flex items-center text-xs sm:text-sm text-ghibli-brown mb-1 pr-24">
                 <span className="truncate">{selectedUnit.title} / {selectedLesson.title}</span>
               </div>
-              <CardTitle className="text-xl sm:text-2xl">{selectedLesson.title}</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl text-ghibli-deepTeal pr-24 max-w-[80%]">{selectedLesson.title}</CardTitle>
             </CardHeader>
             
             <CardContent className="p-4 sm:p-6">
@@ -607,13 +623,14 @@ const LessonContent: React.FC<LessonContentProps> = ({
           <Card>
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col items-center justify-center py-6">
-                <div className="bg-blue-50 p-4 rounded-full mb-4">
-                  <Check className="h-8 w-8 sm:h-12 sm:w-12 text-blue-500" />
+                <div className="bg-ghibli-lightTeal/30 p-4 rounded-full mb-4">
+                  <Check className="h-8 w-8 sm:h-12 sm:w-12 text-ghibli-deepTeal" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">暂无课时内容</h3>
-                <p className="text-gray-500 mb-4 text-sm sm:text-base">此课程暂未添加课时内容，请稍后再查看</p>
+                <h3 className="text-lg font-semibold mb-2 text-ghibli-deepTeal">暂无课时内容</h3>
+                <p className="text-ghibli-brown mb-4 text-sm sm:text-base">此课程暂未添加课时内容，请稍后再查看</p>
                 <Button
                   onClick={() => navigate('/learning')}
+                  className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
                 >
                   返回课程列表
                 </Button>

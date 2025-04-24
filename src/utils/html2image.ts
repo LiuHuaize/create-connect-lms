@@ -1,5 +1,20 @@
 import html2canvas from 'html2canvas';
 
+// 用于记录日志的函数
+function logInfo(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [HTML2Image-INFO] ${message}`);
+  if (data) {
+    console.log(JSON.stringify(data, null, 2));
+  }
+}
+
+function logError(message: string, error: any) {
+  const timestamp = new Date().toISOString();
+  console.error(`[${timestamp}] [HTML2Image-ERROR] ${message}`);
+  console.error(error);
+}
+
 /**
  * 将HTML字符串转换为canvas，然后转换为数据URL
  * @param htmlString HTML字符串
@@ -12,6 +27,8 @@ export async function htmlToImage(
   width: number = 1024,
   options: Partial<html2canvas.Options> = {}
 ): Promise<string> {
+  logInfo("开始将HTML转换为图像", { htmlLength: htmlString.length });
+  
   return new Promise((resolve, reject) => {
     try {
       // 创建一个临时容器
@@ -32,18 +49,34 @@ export async function htmlToImage(
       // 延迟一点时间以确保所有资源（字体、图片等）已加载
       setTimeout(async () => {
         try {
+          logInfo("开始动态导入html2canvas");
+          const importStartTime = Date.now();
+          // 动态导入html2canvas
+          const html2canvas = (await import('html2canvas')).default;
+          const importTime = Date.now() - importStartTime;
+          logInfo(`html2canvas导入完成，耗时${importTime}ms`);
+          
           // 使用html2canvas将DOM元素转换为canvas
+          logInfo("开始执行html2canvas渲染");
+          const renderStartTime = Date.now();
           const canvas = await html2canvas(container, {
             allowTaint: true, // 允许跨域图像
             useCORS: true,    // 使用CORS加载跨域图像
             scale: 2,         // 2x缩放以获得更高质量
             backgroundColor: null, // 透明背景
-            logging: false,   // 关闭日志
+            logging: true,   // 开启html2canvas自身的日志
             ...options        // 合并用户自定义选项
+          });
+          const renderTime = Date.now() - renderStartTime;
+          logInfo(`html2canvas渲染完成，耗时${renderTime}ms`, {
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height
           });
           
           // 将canvas转换为数据URL
+          logInfo("开始将canvas转换为dataURL");
           const dataUrl = canvas.toDataURL('image/png');
+          logInfo("dataURL生成完成", { dataUrlLength: dataUrl.length });
           
           // 从DOM中移除临时容器
           document.body.removeChild(container);
@@ -52,11 +85,13 @@ export async function htmlToImage(
           resolve(dataUrl);
         } catch (error) {
           document.body.removeChild(container);
-          reject(new Error(`HTML转换为图像失败: ${error.message}`));
+          logError("HTML转换为图像失败", error);
+          reject(new Error(`HTML转换为图像失败: ${error instanceof Error ? error.message : '未知错误'}`));
         }
       }, 500); // 给资源加载500ms的时间
     } catch (error) {
-      reject(new Error(`创建HTML渲染容器失败: ${error.message}`));
+      logError("创建HTML渲染容器失败", error);
+      reject(new Error(`创建HTML渲染容器失败: ${error instanceof Error ? error.message : '未知错误'}`));
     }
   });
 }
@@ -89,12 +124,25 @@ export async function htmlToBlob(
  * 下载HTML生成的图像
  */
 export function downloadHtmlImage(dataUrl: string, filename: string = 'card.png'): void {
-  const link = document.createElement('a');
-  link.href = dataUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  logInfo("开始下载图像", { filename });
+  
+  try {
+    // 创建一个临时链接并触发下载
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    
+    logInfo("创建了下载链接，准备触发点击");
+    a.click();
+    
+    // 清理
+    logInfo("移除临时下载链接");
+    document.body.removeChild(a);
+  } catch (error) {
+    logError("下载图像过程中发生错误", error);
+    console.error("Error downloading image:", error);
+  }
 }
 
 /**
