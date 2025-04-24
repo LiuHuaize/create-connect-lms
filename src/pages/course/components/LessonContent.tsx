@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X } from 'lucide-react';
+import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lesson, CourseModule, LessonType, TextLessonContent, AssignmentLessonContent, CardCreatorLessonContent, VideoLessonContent } from '@/types/course';
@@ -33,6 +33,12 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isCompletionLoading, setIsCompletionLoading] = useState(false);
   const [showCardCreator, setShowCardCreator] = useState(true);
+  
+  // 新增状态来跟踪错误尝试次数和是否显示提示
+  const [attemptCounts, setAttemptCounts] = useState<{[key: string]: number}>({});
+  const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState<{[key: string]: boolean}>({});
+  const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string}>({});
   
   // 在组件挂载和课程ID/课时ID变化时，加载测验状态
   useEffect(() => {
@@ -88,6 +94,62 @@ const LessonContent: React.FC<LessonContentProps> = ({
       ...prev,
       [questionId]: optionId
     }));
+    
+    // 记录用户选择的答案，但还没有提交
+    setSelectedAnswer(prev => ({
+      ...prev,
+      [questionId]: optionId
+    }));
+  };
+  
+  // 检查单个问题答案并显示提示
+  const checkAnswer = (questionId: string, correctOptionId: string) => {
+    const userAnswer = selectedAnswer[questionId];
+    
+    if (userAnswer !== correctOptionId) {
+      // 更新尝试次数
+      const currentAttempts = attemptCounts[questionId] || 0;
+      const newAttempts = currentAttempts + 1;
+      
+      setAttemptCounts(prev => ({
+        ...prev,
+        [questionId]: newAttempts
+      }));
+      
+      // 根据尝试次数决定是显示提示还是正确答案
+      if (newAttempts === 1) {
+        // 第一次错误：显示提示
+        setShowHints(prev => ({
+          ...prev,
+          [questionId]: true
+        }));
+        return false;
+      } else {
+        // 第二次错误：直接显示正确答案，不再显示提示
+        setShowHints(prev => ({
+          ...prev,
+          [questionId]: false // 隐藏提示
+        }));
+        setShowCorrectAnswers(prev => ({
+          ...prev,
+          [questionId]: true
+        }));
+        return false;
+      }
+    } else {
+      // 答案正确，直接标记为正确
+      setUserAnswers(prev => ({
+        ...prev,
+        [questionId]: userAnswer // 确保用户答案被记录
+      }));
+      
+      // 添加这一部分来显示正确答案的反馈
+      setShowCorrectAnswers(prev => ({
+        ...prev,
+        [questionId]: true
+      }));
+      return true;
+    }
   };
   
   // 处理测验提交
@@ -144,6 +206,11 @@ const LessonContent: React.FC<LessonContentProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 处理单个问题答案的检查
+  const handleCheckSingleAnswer = (questionId: string, correctOptionId: string) => {
+    checkAnswer(questionId, correctOptionId);
   };
 
   // 取消完成标记
@@ -328,24 +395,72 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 {quizContent.questions.map((question: any, qIndex: number) => (
                   <div key={question.id || `q-${qIndex}`} className="quiz-container">
                     <h4 className="font-medium text-lg mb-4">问题 {qIndex + 1}: {question.text || '未命名问题'}</h4>
+                    
+                    {/* 显示第一次错误后的提示 */}
+                    {showHints[question.id] && question.hint && !showCorrectAnswers[question.id] && (
+                      <div className="mb-4 p-3 bg-ghibli-sunshine/20 border border-ghibli-sunshine/50 rounded-lg flex items-start">
+                        <InfoIcon className="text-ghibli-orange h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-ghibli-brown font-medium mb-1">提示：</p>
+                          <p className="text-ghibli-brown">{question.hint}</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* 当显示正确答案时的提示（针对答错情况） */}
+                    {showCorrectAnswers[question.id] && userAnswers[question.id] !== question.correctOption && (
+                      <div className="mb-4 p-3 bg-ghibli-mint/20 border border-ghibli-teal/30 rounded-lg flex items-start">
+                        <CheckCircle className="text-ghibli-teal h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-ghibli-deepTeal font-medium">已显示正确答案</p>
+                        </div>
+                      </div>
+                    )}
+                    
                     {question.options && (
                       <div className="space-y-3">
-                        {question.options.map((option: any, oIndex: number) => (
-                          <label key={option.id || `opt-${oIndex}`} className="quiz-option flex items-start">
-                            <input 
-                              type="radio" 
-                              name={`q-${question.id || qIndex}`} 
-                              className="mr-3 h-4 w-4 accent-blue-500 mt-1" 
-                              checked={userAnswers[question.id] === option.id}
-                              onChange={() => handleAnswerSelect(question.id, option.id)}
-                              disabled={quizSubmitted}
-                            />
-                            <span>{option.text}</span>
-                            {quizSubmitted && option.id === question.correctOption && (
-                              <span className="ml-2 text-ghibli-grassGreen/70 text-sm">(正确答案)</span>
-                            )}
-                          </label>
-                        ))}
+                        {question.options.map((option: any, oIndex: number) => {
+                          // 高亮显示选择但错误的答案
+                          const isSelected = selectedAnswer[question.id] === option.id;
+                          const isCorrect = option.id === question.correctOption;
+                          const shouldHighlightCorrect = (quizSubmitted || showCorrectAnswers[question.id]) && isCorrect;
+                          const shouldHighlightWrong = isSelected && !isCorrect && (attemptCounts[question.id] > 0) && !showCorrectAnswers[question.id];
+                          
+                          return (
+                            <label 
+                              key={option.id || `opt-${oIndex}`} 
+                              className={`quiz-option flex items-start p-3 rounded-lg border ${
+                                shouldHighlightCorrect 
+                                  ? 'bg-ghibli-mint/20 border-ghibli-teal/50' 
+                                  : shouldHighlightWrong 
+                                    ? 'bg-ghibli-peach/20 border-ghibli-coral/50' 
+                                    : 'border-gray-200 hover:bg-gray-50'
+                              }`}
+                            >
+                              <input 
+                                type="radio" 
+                                name={`q-${question.id || qIndex}`} 
+                                className="mr-3 h-4 w-4 accent-blue-500 mt-1" 
+                                checked={userAnswers[question.id] === option.id}
+                                onChange={() => handleAnswerSelect(question.id, option.id)}
+                                disabled={quizSubmitted || showCorrectAnswers[question.id]}
+                              />
+                              <span className={`${shouldHighlightCorrect ? 'text-ghibli-deepTeal font-medium' : shouldHighlightWrong ? 'text-ghibli-brown' : ''}`}>
+                                {option.text}
+                              </span>
+                              {shouldHighlightCorrect && (
+                                <span className="ml-2 text-ghibli-grassGreen/70 text-sm flex items-center">
+                                  <CheckCircle className="h-4 w-4 mr-1" /> 正确答案
+                                </span>
+                              )}
+                              {shouldHighlightWrong && (
+                                <span className="ml-2 text-ghibli-coral/70 text-sm flex items-center">
+                                  <X className="h-4 w-4 mr-1" /> 不正确
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
                       </div>
                     )}
                     
@@ -357,8 +472,22 @@ const LessonContent: React.FC<LessonContentProps> = ({
                           placeholder="在此输入您的答案..."
                           value={userAnswers[question.id] || ''}
                           onChange={(e) => handleAnswerSelect(question.id, e.target.value)}
-                          disabled={quizSubmitted}
+                          disabled={quizSubmitted || showCorrectAnswers[question.id]}
                         ></textarea>
+                      </div>
+                    )}
+                    
+                    {/* 添加检查单个答案的按钮 */}
+                    {!quizSubmitted && (
+                      <div className="flex justify-end mt-3">
+                        <Button 
+                          variant="outline"
+                          className="text-ghibli-brown border-ghibli-sand hover:bg-ghibli-cream/50"
+                          onClick={() => handleCheckSingleAnswer(question.id, question.correctOption)}
+                          disabled={!selectedAnswer[question.id]}
+                        >
+                          检查答案
+                        </Button>
                       </div>
                     )}
                   </div>

@@ -1,10 +1,11 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Course } from '@/types/course';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface CourseDetailsFormProps {
   course: Course;
@@ -16,10 +17,65 @@ const COURSE_CATEGORIES = [
   { value: 'game_design', label: '游戏设计' },
   { value: 'product_development', label: '产品开发' },
   { value: 'marketing', label: '市场营销' },
-  { value: 'project_management', label: '项目管理' }
+  { value: 'project_management', label: '项目管理' },
+  { value: 'custom', label: '自定义分类...' }
 ];
 
 const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse }) => {
+  const [customCategoryOpen, setCustomCategoryOpen] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
+  const [selectedCategoryDisplay, setSelectedCategoryDisplay] = useState<string>('');
+
+  // 更新分类显示值
+  useEffect(() => {
+    if (!course.category) {
+      setSelectedCategoryDisplay('business_planning');
+      return;
+    }
+    
+    // 如果是预设分类，显示预设值，否则直接显示自定义分类值
+    const categoryItem = COURSE_CATEGORIES.find(cat => cat.value === course.category);
+    if (categoryItem) {
+      setSelectedCategoryDisplay(categoryItem.value);
+    } else {
+      // 这是自定义分类
+      setSelectedCategoryDisplay(course.category);
+    }
+  }, [course.category]);
+
+  const handleCategoryChange = (value: string) => {
+    try {
+      if (value === 'custom') {
+        setCustomCategoryOpen(true);
+      } else {
+        setCourse(prev => ({ ...prev, category: value }));
+      }
+    } catch (error) {
+      console.error('处理分类变更时出错:', error);
+    }
+  };
+
+  const handleCustomCategorySubmit = () => {
+    try {
+      if (customCategory.trim()) {
+        const trimmedCategory = customCategory.trim();
+        console.log('提交自定义分类:', trimmedCategory);
+        
+        setCourse(prev => {
+          const updatedCourse = { ...prev, category: trimmedCategory };
+          console.log('更新后的课程对象:', updatedCourse);
+          return updatedCourse;
+        });
+        
+        // 关闭对话框并重置输入
+        setCustomCategoryOpen(false);
+        setCustomCategory('');
+      }
+    } catch (error) {
+      console.error('提交自定义分类时出错:', error);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
       <h2 className="text-xl font-bold text-gray-900 mb-4">课程基本信息</h2>
@@ -61,11 +117,15 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
         <div>
           <Label htmlFor="category" className="text-sm font-medium text-gray-700 mb-2">分类</Label>
           <Select
-            value={course.category || 'business_planning'}
-            onValueChange={(value) => setCourse(prev => ({ ...prev, category: value }))}
+            value={selectedCategoryDisplay}
+            onValueChange={handleCategoryChange}
           >
             <SelectTrigger id="category" className="focus:ring-2 focus:ring-connect-blue/20">
-              <SelectValue placeholder="选择课程分类" />
+              <SelectValue placeholder="选择课程分类">
+                {course.category && !COURSE_CATEGORIES.some(c => c.value === course.category) 
+                  ? course.category 
+                  : undefined}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {COURSE_CATEGORIES.map((category) => (
@@ -77,6 +137,33 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
           </Select>
         </div>
       </div>
+
+      <Dialog open={customCategoryOpen} onOpenChange={setCustomCategoryOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>添加自定义分类</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder="输入新分类名称"
+              value={customCategory}
+              onChange={(e) => setCustomCategory(e.target.value)}
+              className="w-full"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCustomCategorySubmit();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustomCategoryOpen(false)}>取消</Button>
+            <Button onClick={handleCustomCategorySubmit}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

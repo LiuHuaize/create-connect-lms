@@ -138,6 +138,7 @@ export type QuizQuestion = {
   options?: QuizOption[];
   correctOption?: string;
   sampleAnswer?: string;
+  hint?: string;
 };
 
 // Lesson type - use string union for better type safety

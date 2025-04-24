@@ -188,7 +188,8 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         { id: `o${Date.now()}-1`, text: '选项1' },
         { id: `o${Date.now()}-2`, text: '选项2' }
       ],
-      correctOption: ''
+      correctOption: '',
+      hint: ''
     };
     
     const updatedQuestions = [...questions, newQuestion];
@@ -573,6 +574,19 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                           <p className="text-xs text-gray-500 mt-1">选择正确答案</p>
                         </div>
                       )}
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          提示信息（答错时显示）
+                        </label>
+                        <Textarea
+                          placeholder="输入当学生答错时显示的提示信息"
+                          rows={2}
+                          value={question.hint || ''}
+                          onChange={(e) => updateQuestion(question.id, 'hint', e.target.value)}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">给学生的提示，帮助他们思考正确答案</p>
+                      </div>
                       
                       {question.type === 'short_answer' && (
                         <div>

@@ -8,6 +8,7 @@ import { useCoursesData, EnrolledCourse } from '@/hooks/useCoursesData';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
+import { getCategoryDisplayName } from '@/utils/courseUtils';
 
 const Learning = () => {
   const { user } = useAuth();
@@ -89,7 +90,7 @@ const Learning = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="bg-ghibli-lightTeal text-ghibli-deepTeal inline-block px-3 py-1 rounded-full text-xs font-medium">
-                          {course.category || '未分类'}
+                          {getCategoryDisplayName(course.category)}
                         </div>
                         
                         {course.isAvailable === false && (
@@ -182,7 +183,7 @@ const Learning = () => {
                   <div>
                     <div className="flex items-center mb-3">
                       <div className="bg-ghibli-lightTeal text-ghibli-deepTeal inline-block px-3 py-1 rounded-full text-xs font-medium mr-3">
-                        {course.category || '未分类'}
+                        {getCategoryDisplayName(course.category)}
                       </div>
                       <div className="flex items-center text-amber-500">
                         <Award size={16} className="mr-1" />

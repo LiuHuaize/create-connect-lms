@@ -7,6 +7,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 
+// 最大历史记录数量
+const MAX_HISTORY_LENGTH = 50;
+
+// 定义历史状态类型
+interface HistoryState {
+  course: Course;
+  modules: CourseModule[];
+}
+
 export const useCourseCreator = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -40,6 +49,11 @@ export const useCourseCreator = () => {
   // 保存课程的前一个状态，用于比较是否有变更
   const previousCourseRef = useRef<Course | null>(null);
   const previousModulesRef = useRef<CourseModule[] | null>(null);
+
+  // 添加历史记录状态
+  const [history, setHistory] = useState<HistoryState[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isUndoRedoOperation, setIsUndoRedoOperation] = useState(false);
 
   useEffect(() => {
     const loadCourseBasicInfo = async () => {
@@ -76,6 +90,14 @@ export const useCourseCreator = () => {
           previousCourseRef.current = { ...courseDetails };
           previousModulesRef.current = [...(courseDetails.modules || [])];
           setLastSaved(new Date());
+
+          // 初始化历史记录
+          const initialState: HistoryState = {
+            course: { ...courseDetails },
+            modules: [...(courseDetails.modules || [])]
+          };
+          setHistory([initialState]);
+          setHistoryIndex(0);
         }, 100);
       } catch (error) {
         console.error('加载课程失败:', error);
@@ -97,6 +119,36 @@ export const useCourseCreator = () => {
 
   useEffect(() => {
     calculateCompletionPercentage();
+  }, [course, modules]);
+
+  // 添加课程变更的历史记录
+  useEffect(() => {
+    // 如果课程未加载完成或是撤销重做操作，不添加历史记录
+    if (isLoading || !moduleDataLoaded || isUndoRedoOperation) return;
+
+    // 当课程或模块变化时，添加新的历史记录
+    const hasChanged = checkForChanges();
+
+    if (hasChanged) {
+      const newState: HistoryState = {
+        course: JSON.parse(JSON.stringify(course)),
+        modules: JSON.parse(JSON.stringify(modules))
+      };
+
+      // 如果处于历史记录中间位置进行了修改，需要删除该位置之后的记录
+      if (historyIndex >= 0 && historyIndex < history.length - 1) {
+        setHistory(prevHistory => {
+          const newHistory = prevHistory.slice(0, historyIndex + 1);
+          return [...newHistory, newState].slice(-MAX_HISTORY_LENGTH);
+        });
+      } else {
+        // 正常添加历史记录
+        setHistory(prevHistory => [...prevHistory, newState].slice(-MAX_HISTORY_LENGTH));
+      }
+      
+      // 更新索引指向最新记录
+      setHistoryIndex(prevIndex => Math.min(prevIndex + 1, MAX_HISTORY_LENGTH - 1));
+    }
   }, [course, modules]);
 
   // 检测课程内容变更并触发自动保存
@@ -250,6 +302,46 @@ export const useCourseCreator = () => {
       }, 60000);
     } finally {
       setIsAutoSaving(false);
+    }
+  };
+
+  // 撤销操作
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setIsUndoRedoOperation(true);
+      const prevState = history[historyIndex - 1];
+      setCourse(JSON.parse(JSON.stringify(prevState.course)));
+      setModules(JSON.parse(JSON.stringify(prevState.modules)));
+      setHistoryIndex(historyIndex - 1);
+      
+      // 使用setTimeout确保状态更新后再重置isUndoRedoOperation
+      setTimeout(() => {
+        setIsUndoRedoOperation(false);
+      }, 0);
+      
+      toast.info('已撤销上次操作', { duration: 1500 });
+    } else {
+      toast.info('没有可撤销的操作', { duration: 1500 });
+    }
+  };
+
+  // 重做操作
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setIsUndoRedoOperation(true);
+      const nextState = history[historyIndex + 1];
+      setCourse(JSON.parse(JSON.stringify(nextState.course)));
+      setModules(JSON.parse(JSON.stringify(nextState.modules)));
+      setHistoryIndex(historyIndex + 1);
+      
+      // 使用setTimeout确保状态更新后再重置isUndoRedoOperation
+      setTimeout(() => {
+        setIsUndoRedoOperation(false);
+      }, 0);
+      
+      toast.info('已重做操作', { duration: 1500 });
+    } else {
+      toast.info('没有可重做的操作', { duration: 1500 });
     }
   };
 
@@ -514,6 +606,11 @@ export const useCourseCreator = () => {
     handleBackToSelection,
     // 导出自动保存相关状态
     isAutoSaving,
-    lastSaved
+    lastSaved,
+    // 导出撤销重做功能
+    canUndo: historyIndex > 0,
+    canRedo: historyIndex < history.length - 1,
+    handleUndo,
+    handleRedo
   };
 };

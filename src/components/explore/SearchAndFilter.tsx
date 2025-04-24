@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -26,36 +25,58 @@ const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
   const [visibleCategories, setVisibleCategories] = useState<CourseCategory[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 记录分类变化
+  useEffect(() => {
+    console.log('SearchAndFilter - 接收到分类列表:', categories);
+    console.log('SearchAndFilter - 当前选择的分类:', selectedCategory);
+  }, [categories, selectedCategory]);
+
   // 自适应显示类别数量
   useEffect(() => {
-    if (isMobile) {
-      // 移动设备只显示前3个类别
-      setVisibleCategories(showAllCategories ? categories : categories.slice(0, 3));
-    } else {
-      // 桌面设备根据容器宽度计算可显示数量
-      const calculateVisibleCategories = () => {
-        if (!containerRef.current) return;
+    try {
+      if (isMobile) {
+        // 移动设备只显示前3个类别
+        const visibleCats = showAllCategories ? categories : categories.slice(0, 3);
+        console.log('移动设备可见分类:', visibleCats);
+        setVisibleCategories(visibleCats);
+      } else {
+        // 桌面设备根据容器宽度计算可显示数量
+        const calculateVisibleCategories = () => {
+          if (!containerRef.current) return;
+          
+          const containerWidth = containerRef.current.offsetWidth;
+          const averageBadgeWidth = 100; // 估计每个标签的平均宽度(包括间距)
+          const visibleCount = Math.floor(containerWidth / averageBadgeWidth);
+          
+          const visibleCats = showAllCategories 
+            ? categories 
+            : categories.slice(0, Math.max(3, visibleCount));
+            
+          console.log('桌面设备可见分类:', visibleCats);
+          setVisibleCategories(visibleCats);
+        };
         
-        const containerWidth = containerRef.current.offsetWidth;
-        const averageBadgeWidth = 100; // 估计每个标签的平均宽度(包括间距)
-        const visibleCount = Math.floor(containerWidth / averageBadgeWidth);
+        calculateVisibleCategories();
         
-        setVisibleCategories(
-          showAllCategories ? categories : categories.slice(0, Math.max(3, visibleCount))
-        );
-      };
-      
-      calculateVisibleCategories();
-      
-      // 窗口大小改变时重新计算
-      window.addEventListener('resize', calculateVisibleCategories);
-      return () => window.removeEventListener('resize', calculateVisibleCategories);
+        // 窗口大小改变时重新计算
+        window.addEventListener('resize', calculateVisibleCategories);
+        return () => window.removeEventListener('resize', calculateVisibleCategories);
+      }
+    } catch (error) {
+      console.error('计算可见分类时出错:', error);
+      setVisibleCategories(categories.slice(0, 3)); // 出错时默认显示前3个
     }
   }, [categories, isMobile, showAllCategories]);
 
   // 清除搜索
   const handleClearSearch = () => {
     setSearchQuery('');
+  };
+
+  // 处理分类选择
+  const handleCategoryClick = (category: CourseCategory) => {
+    console.log('用户选择了分类:', category);
+    setSelectedCategory(category);
   };
 
   return (
@@ -84,7 +105,7 @@ const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
             key={category}
             variant={selectedCategory === category ? "default" : "outline"}
             className="cursor-pointer transition-all hover:shadow-sm"
-            onClick={() => setSelectedCategory(category)}
+            onClick={() => handleCategoryClick(category)}
           >
             {category}
           </Badge>

@@ -1,6 +1,5 @@
-
 import { Course } from '@/types/course';
-import { CourseCategory } from '@/types/course-enrollment';
+import { CourseCategory, getCategoryDisplayName } from '@/types/course-enrollment';
 
 // 过滤课程的逻辑
 export const filterCourses = (
@@ -8,17 +7,56 @@ export const filterCourses = (
   searchQuery: string, 
   selectedCategory: CourseCategory
 ): Course[] => {
-  return courses.filter(course => {
-    const matchesSearch = 
-      (course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
-      (course.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
-      (course.short_description?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
-    
-    // 如果选择了"全部"分类，则显示所有课程
-    // 否则，检查课程的类别是否与所选类别匹配
-    const matchesCategory = selectedCategory === '全部' || 
-      (course.category && course.category.includes(selectedCategory.toLowerCase()));
-    
-    return matchesSearch && matchesCategory;
-  });
+  try {
+    return courses.filter(course => {
+      // 标题、描述和简短描述的搜索匹配
+      const matchesSearch = 
+        (course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
+        (course.description?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+        (course.short_description?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
+      
+      // 如果选择了"全部"分类，则显示所有满足搜索条件的课程
+      if (selectedCategory === '全部') {
+        return matchesSearch;
+      }
+      
+      // 分类匹配逻辑
+      if (course.category) {
+        // 获取课程分类的显示名称
+        const categoryDisplayName = getCategoryDisplayName(course.category);
+        
+        // 记录分类匹配过程以便调试
+        console.log(`课程: ${course.title}, 分类: ${course.category}, 显示名称: ${categoryDisplayName}, 选择的分类: ${selectedCategory}`);
+        
+        // 匹配显示名称或原始分类值（不区分大小写）
+        const matchesCategory = 
+          categoryDisplayName === selectedCategory || 
+          course.category === selectedCategory ||
+          categoryDisplayName.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+          course.category.toLowerCase().includes(selectedCategory.toLowerCase());
+        
+        return matchesSearch && matchesCategory;
+      }
+      
+      return false; // 如果课程没有分类，则不匹配任何特定分类
+    });
+  } catch (error) {
+    console.error('过滤课程时出错:', error);
+    return courses; // 出错时返回所有课程
+  }
+};
+
+// 课程分类映射 - 将英文代码转换为中文显示名称
+export const CATEGORY_MAP: Record<string, string> = {
+  'business_planning': '商业规划',
+  'game_design': '游戏设计',
+  'product_development': '产品开发',
+  'marketing': '市场营销',
+  'project_management': '项目管理'
+};
+
+// 获取分类的显示名称
+export const getCategoryDisplayName = (categoryCode: string | null | undefined): string => {
+  if (!categoryCode) return '未分类';
+  return CATEGORY_MAP[categoryCode] || categoryCode; // 如果找不到映射，返回原始代码
 };

@@ -30,7 +30,11 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     handleSaveCourse,
     handleBackToSelection,
     isAutoSaving,
-    lastSaved
+    lastSaved,
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo
   } = useCourseCreator();
 
   if (isLoading && !moduleDataLoaded) {
@@ -52,6 +56,10 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
         isAutoSaving={isAutoSaving}
         lastSaved={lastSaved}
         setCourse={setCourse}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        handleUndo={handleUndo}
+        handleRedo={handleRedo}
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

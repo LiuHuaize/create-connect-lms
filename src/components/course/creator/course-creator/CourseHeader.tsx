@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye, Loader2, Check, Clock, Archive } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Check, Clock, Archive, Undo, Redo } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
@@ -15,6 +15,10 @@ interface CourseHeaderProps {
   isAutoSaving?: boolean;
   lastSaved?: Date | null;
   setCourse?: React.Dispatch<React.SetStateAction<Course>>;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  handleUndo?: () => void;
+  handleRedo?: () => void;
 }
 
 const CourseHeader: React.FC<CourseHeaderProps> = ({
@@ -24,7 +28,11 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   handleSaveCourse,
   isAutoSaving = false,
   lastSaved = null,
-  setCourse
+  setCourse,
+  canUndo = false,
+  canRedo = false,
+  handleUndo = () => {},
+  handleRedo = () => {}
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -206,6 +214,30 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         </div>
         
         <div className="flex items-center gap-3">
+          {/* 撤销和重做按钮 */}
+          <div className="flex items-center gap-1 mr-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleUndo}
+              disabled={!canUndo || isSaving || isPublishing || isUnpublishing}
+              title="撤销"
+              className="h-8 w-8 rounded-full"
+            >
+              <Undo className={`h-4 w-4 ${canUndo ? 'text-gray-700' : 'text-gray-400'}`} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRedo}
+              disabled={!canRedo || isSaving || isPublishing || isUnpublishing}
+              title="重做"
+              className="h-8 w-8 rounded-full"
+            >
+              <Redo className={`h-4 w-4 ${canRedo ? 'text-gray-700' : 'text-gray-400'}`} />
+            </Button>
+          </div>
+
           {/* 自动保存状态指示器 */}
           {course.id && (
             <div className="flex items-center mr-3 text-sm text-gray-500">

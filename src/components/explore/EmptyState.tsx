@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SearchX, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,14 +16,14 @@ const EmptyState: React.FC = () => {
         当前没有可供选择的课程，或者您的搜索条件没有匹配的结果
       </p>
       <div className="space-y-4">
-        <div className="inline-flex gap-2 text-sm bg-blue-50 text-blue-600 px-4 py-2 rounded-full">
+        <div className="inline-flex gap-2 text-sm bg-white text-gray-600 px-4 py-2 rounded-full border border-gray-200">
           <span>提示:</span>
           <span>尝试清除搜索条件或选择"全部"分类</span>
         </div>
         <div>
           <Button 
             variant="outline" 
-            className="mt-4 border-blue-200 hover:bg-blue-50 hover:text-blue-700" 
+            className="mt-4 border-gray-200 hover:bg-gray-50 hover:text-gray-700" 
             onClick={() => {
               // 重置搜索条件并刷新页面
               navigate('/explore-courses');
