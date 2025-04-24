@@ -4,6 +4,7 @@ import { BookOpen, ChevronLeft, ChevronRight, Loader2, MessageSquare, X, AlertCi
 import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Import components
 import CourseHeader from './components/CourseHeader';
@@ -109,15 +110,24 @@ const CoursePage = () => {
               {!sidebarCollapsed && (
                 <h3 className="font-medium text-ghibli-deepTeal">课程大纲</h3>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className={`text-ghibli-teal hover:text-ghibli-deepTeal ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-colors`}
-                aria-label={sidebarCollapsed ? "展开大纲" : "收起大纲"}
-              >
-                {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                      className={`text-ghibli-teal hover:text-ghibli-deepTeal ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-colors`}
+                      aria-label={sidebarCollapsed ? "展开大纲" : "收起大纲"}
+                    >
+                      {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             
             {/* 侧边栏内容区域（可滚动） */}

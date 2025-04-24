@@ -70,28 +70,57 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
           )}
           
           {lesson.type === 'video' && (
-            <div className="aspect-video bg-gray-200 flex items-center justify-center rounded-lg">
-              {(lesson.content as VideoLessonContent).bilibiliUrl ? (
-                <iframe 
-                  src={(lesson.content as VideoLessonContent).bilibiliUrl}
-                  allowFullScreen
-                  className="w-full h-full rounded-lg"
-                  scrolling="no" 
-                  frameBorder="0"
-                  sandbox="allow-same-origin allow-forms allow-scripts"
-                />
-              ) : lesson.video_file_path ? (
-                <video 
-                  controls 
-                  className="w-full h-full rounded-lg"
-                  src={lesson.video_file_path}
-                >
-                  您的浏览器不支持视频播放
-                </video>
-              ) : (
-                <div className="text-center">
-                  <Video className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">视频内容未上传</p>
+            <div className="space-y-4">
+              <div className="aspect-video bg-gray-200 flex items-center justify-center rounded-lg">
+                {(lesson.content as VideoLessonContent).bilibiliUrl ? (
+                  <iframe 
+                    src={(function() {
+                      const url = (lesson.content as VideoLessonContent).bilibiliUrl || '';
+                      // 确保添加as_wide=1参数
+                      if (url.includes('as_wide=1')) {
+                        return url;
+                      } else if (url.includes('?')) {
+                        return `${url}&as_wide=1&high_quality=1`;
+                      } else {
+                        return `${url}?as_wide=1&high_quality=1`;
+                      }
+                    })()}
+                    allowFullScreen={true}
+                    className="w-full h-full rounded-lg"
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      aspectRatio: '16/9', 
+                      border: 'none',
+                      display: 'block'
+                    }}
+                    scrolling="no" 
+                    frameBorder="0"
+                    sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
+                  />
+                ) : lesson.video_file_path ? (
+                  <video 
+                    controls 
+                    className="w-full h-full rounded-lg"
+                    src={lesson.video_file_path}
+                  >
+                    您的浏览器不支持视频播放
+                  </video>
+                ) : (
+                  <div className="text-center">
+                    <Video className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500">视频内容未上传</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* 视频描述部分 */}
+              {(lesson.content as VideoLessonContent).description && (
+                <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-md font-medium text-gray-700 mb-2">视频说明</h3>
+                  <p className="text-gray-600 whitespace-pre-wrap">
+                    {(lesson.content as VideoLessonContent).description}
+                  </p>
                 </div>
               )}
             </div>

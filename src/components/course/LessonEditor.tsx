@@ -31,6 +31,7 @@ import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
 import VideoUploader from './creator/VideoUploader';
 import CardCreatorLessonEditor from './CardCreatorLessonEditor';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
@@ -294,12 +295,33 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
   // 新增处理B站URL变更的函数
   const handleBilibiliUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (lesson.type === 'video') {
+      let url = event.target.value;
+      
+      // 检测是否是普通B站视频链接（非嵌入式链接）
+      const biliRegex = /https?:\/\/(www\.)?bilibili\.com\/video\/(BV[\w]+)(\?.*)?/;
+      const match = url.match(biliRegex);
+      
+      if (match) {
+        // 获取BV号
+        const bvid = match[2];
+        // 转换为嵌入式链接
+        url = `https://player.bilibili.com/player.html?bvid=${bvid}&page=1&as_wide=1&high_quality=1&danmaku=0`;
+        // 通知用户链接已转换
+        toast.success('B站链接已自动转换为嵌入格式并设置为宽屏模式');
+      } else if (url.includes('player.bilibili.com') && !url.includes('as_wide=1')) {
+        // 如果是嵌入式链接但没有as_wide参数，添加该参数
+        url = url.includes('?') ? 
+          `${url}&as_wide=1` : 
+          `${url}?as_wide=1`;
+        toast.success('已自动添加宽屏模式参数');
+      }
+      
       const newContent = {
         ...(currentContent as VideoLessonContent),
-        bilibiliUrl: event.target.value
+        bilibiliUrl: url
       };
       setCurrentContent(newContent);
-      form.setValue('bilibiliUrl', event.target.value);
+      form.setValue('bilibiliUrl', url);
       onContentChange(newContent);
     }
   };
@@ -371,12 +393,29 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                 <FormLabel className="block text-sm font-medium text-gray-700 mb-2">预览</FormLabel>
                 <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
                   <iframe 
-                    src={(currentContent as VideoLessonContent).bilibiliUrl}
-                    allowFullScreen
+                    src={(function() {
+                      const url = (currentContent as VideoLessonContent).bilibiliUrl || '';
+                      // 确保添加as_wide=1参数
+                      if (url.includes('as_wide=1')) {
+                        return url;
+                      } else if (url.includes('?')) {
+                        return `${url}&as_wide=1&high_quality=1`;
+                      } else {
+                        return `${url}?as_wide=1&high_quality=1`;
+                      }
+                    })()}
+                    allowFullScreen={true}
                     className="w-full h-full"
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      aspectRatio: '16/9', 
+                      border: 'none',
+                      display: 'block'
+                    }}
                     scrolling="no" 
                     frameBorder="0"
-                    sandbox="allow-same-origin allow-forms allow-scripts"
+                    sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
                   />
                 </div>
               </div>
