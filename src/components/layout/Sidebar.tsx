@@ -260,7 +260,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
             <ChevronRight className="h-4 w-4" />
           </button>
           <div className="p-4 flex justify-center">
-            <Logo variant="icon" />
+            <Logo variant="compact" />
           </div>
           <div className="flex flex-col items-center space-y-4 mt-8">
             {links.map((link) => (
