@@ -98,12 +98,13 @@ export async function generateCardHtml(params: CardGeneratorParams): Promise<Gen
       - 这只是一个模板，不要在生成的卡片中包含"示例"、"照示例"、"档案示例"等文字
       - 图像提示应该简洁直接，只需描述要生成什么内容，例如"friendly husky dog"
       - 如果决定生成图片，请确保图片提示与学生输入的内容相关
-      - 你生成的图片是为了辅助你做卡片，而不是说去生成卡片，比如一个狗狗卡片你用html无法画一只狗上去，因此你需要ai去画一只狗，而不是喊他生成完整的卡片
+      - 你生成的图片是为了辅助你做卡片，而不是说去生成卡片，比如模版中的一个狗狗卡片你用html无法画一只狗上去，因此你需要ai去画一只狗，而不是喊他生成完整的卡片
+      -你设计的结构需要有图片的话，就需要去调用图片生成
 
       你的回复必须是一个有效的JSON对象，格式如下：
       {
         "html": "完整的HTML代码，如果需要图片请使用__IMAGE_PLACEHOLDER__作为图片URL占位符",
-        "imagePrompt": "如果需要生成图片，提供简洁的图像生成提示；如不需要则设为null"
+        "imagePrompt": "假如需要生成图片，提供简洁的图像生成提示；不需要的话则设为null"
       }
       
       HTML代码应该是独立的，包含内联样式，能够正确显示为卡片。布局和设计应参考提供的模板风格。
@@ -209,7 +210,12 @@ export async function generateCardHtml(params: CardGeneratorParams): Promise<Gen
     // 解析JSON响应
     try {
       logInfo("尝试解析JSON响应");
-      const contentObj = JSON.parse(contentString);
+      // 修复：清除JSON字符串中可能存在的不可见控制字符
+      const cleanedContent = contentString
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // 移除所有控制字符
+        .replace(/\n/g, '\\n'); // 正确处理换行符
+      
+      const contentObj = JSON.parse(cleanedContent);
       
       // 验证返回的对象是否包含所需的字段
       if (!contentObj.html) {

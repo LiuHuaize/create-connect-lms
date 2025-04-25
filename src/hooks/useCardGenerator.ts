@@ -88,8 +88,16 @@ export function useCardGenerator() {
         needsImageGeneration: hasImageGeneration
       });
       
+      // 修复：处理不需要图像时可能存在的占位符
+      let finalHtml = html;
+      if (!imageUrl && finalHtml.includes('__IMAGE_PLACEHOLDER__')) {
+        // 如果没有图像URL但HTML中有占位符，替换为空或默认图像
+        finalHtml = finalHtml.replace('__IMAGE_PLACEHOLDER__', '');
+        logInfo("useCardGenerator: 已移除HTML中的图像占位符，因为没有生成图像");
+      }
+      
       // 保存HTML内容
-      setResult(prev => ({ ...prev, htmlContent: html, imageUrl }));
+      setResult(prev => ({ ...prev, htmlContent: finalHtml, imageUrl }));
       logInfo("useCardGenerator: HTML内容已保存到状态");
       
       // 2. 将HTML转换为图像
@@ -97,7 +105,7 @@ export function useCardGenerator() {
       onProgress?.('rendering_html', 85);
       
       const htmlToImageStartTime = Date.now();
-      const imageDataUrl = await htmlToImage(html);
+      const imageDataUrl = await htmlToImage(finalHtml);
       const htmlToImageTime = Date.now() - htmlToImageStartTime;
       logInfo(`useCardGenerator: HTML转图像完成，耗时${htmlToImageTime}ms`, {
         imageDataUrlLength: imageDataUrl.length

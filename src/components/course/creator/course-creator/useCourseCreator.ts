@@ -397,6 +397,27 @@ export const useCourseCreator = () => {
         id: savedCourse.id 
       }));
       
+      // 准备模块数据 - 预处理模块以减少数据库请求
+      const modulesToProcess = modules.map(module => {
+        const moduleToSave = { ...module };
+        
+        // 确保使用保存后的课程ID
+        if (savedCourse.id) {
+          moduleToSave.course_id = savedCourse.id;
+        }
+        
+        // 确保模块ID是有效的UUID
+        if (!moduleToSave.id || moduleToSave.id.startsWith('m')) {
+          moduleToSave.id = uuidv4();
+        }
+        
+        return moduleToSave;
+      });
+      
+      // 收集需要删除的模块和课时ID
+      let deletedModuleIds: string[] = [];
+      let deletedLessonIdsMap: Record<string, string[]> = {};
+      
       // 如果是之前加载的课程，跟踪已删除的模块
       if (courseId && previousModulesRef.current) {
         // 获取所有之前存在但现在已删除的模块ID
@@ -408,134 +429,180 @@ export const useCourseCreator = () => {
         
         // 获取当前存在的模块ID
         const currentModuleIds = new Set(
-          modules
+          modulesToProcess
             .filter(m => m.id && typeof m.id === 'string')
             .map(m => m.id as string)
         );
         
         // 找出已删除的模块ID（之前有，现在没有）
-        const deletedModuleIds = Array.from(previousModuleIds)
+        deletedModuleIds = Array.from(previousModuleIds)
           .filter(id => !currentModuleIds.has(id));
         
         if (deletedModuleIds.length > 0) {
-          console.log(`检测到 ${deletedModuleIds.length} 个已删除的模块，确保从数据库中删除`);
-          
-          // 删除这些模块
-          await Promise.all(
-            deletedModuleIds.map(async moduleId => {
-              try {
-                await courseService.deleteModule(moduleId);
-                console.log(`已从数据库删除模块: ${moduleId}`);
-              } catch (error) {
-                console.error(`删除模块 ${moduleId} 失败:`, error);
-                // 继续处理其他模块，不中断整个保存过程
+          console.log(`检测到 ${deletedModuleIds.length} 个已删除的模块，待删除`);
+        }
+        
+        // 预处理每个模块的已删除课时
+        modulesToProcess.forEach(module => {
+          if (module.id && previousModulesRef.current) {
+            const previousModule = previousModulesRef.current.find(m => m.id === module.id);
+            if (previousModule && previousModule.lessons) {
+              // 获取所有之前存在但现在已删除的课时ID
+              const previousLessonIds = new Set(
+                previousModule.lessons
+                  .filter(l => l.id && typeof l.id === 'string' && !l.id.startsWith('l'))
+                  .map(l => l.id as string)
+              );
+              
+              // 获取当前存在的课时ID
+              const currentLessonIds = new Set(
+                (module.lessons || [])
+                  .filter(l => l.id && typeof l.id === 'string')
+                  .map(l => l.id as string)
+              );
+              
+              // 找出已删除的课时ID（之前有，现在没有）
+              const deletedLessonIds = Array.from(previousLessonIds)
+                .filter(id => !currentLessonIds.has(id));
+              
+              if (deletedLessonIds.length > 0) {
+                console.log(`模块 ${module.id}: 检测到 ${deletedLessonIds.length} 个已删除的课时`);
+                deletedLessonIdsMap[module.id] = deletedLessonIds;
               }
-            })
-          );
+            }
+          }
+        });
+      }
+      
+      // 2. 批量删除已移除的课时
+      const allDeletedLessonIds = Object.values(deletedLessonIdsMap).flat();
+      if (allDeletedLessonIds.length > 0) {
+        console.log(`开始批量删除 ${allDeletedLessonIds.length} 个课时`);
+        try {
+          // 批量删除所有课时，而不是一个一个删除
+          for (let i = 0; i < allDeletedLessonIds.length; i += 20) {
+            const batch = allDeletedLessonIds.slice(i, i + 20);
+            const { error } = await supabase
+              .from("lessons")
+              .delete()
+              .in("id", batch);
+              
+            if (error) {
+              console.error('批量删除课时失败:', error);
+              // 继续执行不中断
+            }
+          }
+          console.log('已删除课时批处理完成');
+        } catch (error) {
+          console.error('批量删除课时过程中出错:', error);
+          // 继续执行不中断
         }
       }
       
-      // 2. 保存所有模块和课时
-      console.log('开始保存课程模块，数量:', modules.length);
-      const savedModules = await Promise.all(
-        modules.map(async (module, index) => {
-          console.log(`开始保存模块 #${index + 1}:`, module.title);
-          const moduleToSave = { ...module };
-          
-          // 确保使用保存后的课程ID
-          if (savedCourse.id) {
-            moduleToSave.course_id = savedCourse.id;
+      // 3. 批量删除已移除的模块
+      if (deletedModuleIds.length > 0) {
+        console.log(`开始批量删除 ${deletedModuleIds.length} 个模块`);
+        try {
+          // 批量删除所有模块，而不是一个一个删除
+          for (let i = 0; i < deletedModuleIds.length; i += 20) {
+            const batch = deletedModuleIds.slice(i, i + 20);
+            const { error } = await supabase
+              .from("course_modules")
+              .delete()
+              .in("id", batch);
+              
+            if (error) {
+              console.error('批量删除模块失败:', error);
+              // 继续执行不中断
+            }
           }
+          console.log('已删除模块批处理完成');
+        } catch (error) {
+          console.error('批量删除模块过程中出错:', error);
+          // 继续执行不中断
+        }
+      }
+      
+      // 4. 保存所有模块 - 批量处理模块
+      console.log('开始保存课程模块，数量:', modulesToProcess.length);
+      const savedModulesMap: Record<string, CourseModule> = {};
+      
+      // 每次最多处理10个模块
+      for (let i = 0; i < modulesToProcess.length; i += 10) {
+        const moduleBatch = modulesToProcess.slice(i, i + 10);
+        
+        try {
+          const modulePromises = moduleBatch.map(async moduleToSave => {
+            try {
+              const savedModule = await courseService.addCourseModule(moduleToSave);
+              console.log(`模块 ${moduleToSave.title} 保存成功:`, savedModule.id);
+              savedModulesMap[moduleToSave.id] = savedModule;
+              return savedModule;
+            } catch (error) {
+              console.error(`保存模块 ${moduleToSave.title} 失败:`, error);
+              throw error;
+            }
+          });
           
-          // 确保模块ID是有效的UUID
-          if (!moduleToSave.id || moduleToSave.id.startsWith('m')) {
-            moduleToSave.id = uuidv4();
-          }
+          await Promise.all(modulePromises);
+        } catch (error) {
+          console.error(`批量保存模块失败:`, error);
+          // 继续处理其他批次
+        }
+      }
+      
+      // 5. 处理所有课时 - 按模块分批保存
+      const savedModulesWithLessons: CourseModule[] = [];
+      
+      for (const module of modulesToProcess) {
+        const savedModule = savedModulesMap[module.id];
+        
+        if (!savedModule) {
+          console.error(`模块 ${module.id} 保存失败，跳过其课时保存`);
+          continue;
+        }
+        
+        const moduleWithLessons = { ...savedModule, lessons: [] };
+        
+        if (module.lessons && module.lessons.length > 0) {
+          console.log(`开始保存模块 ${savedModule.id} 的 ${module.lessons.length} 个课时`);
           
-          try {
-            const savedModule = await courseService.addCourseModule(moduleToSave);
-            console.log(`模块 #${index + 1} 保存成功:`, savedModule.id);
-
-            // 跟踪可能已删除的课时
-            if (module.id && previousModulesRef.current) {
-              const previousModule = previousModulesRef.current.find(m => m.id === module.id);
-              if (previousModule && previousModule.lessons) {
-                // 获取所有之前存在但现在已删除的课时ID
-                const previousLessonIds = new Set(
-                  previousModule.lessons
-                    .filter(l => l.id && typeof l.id === 'string' && !l.id.startsWith('l'))
-                    .map(l => l.id as string)
-                );
-                
-                // 获取当前存在的课时ID
-                const currentLessonIds = new Set(
-                  (module.lessons || [])
-                    .filter(l => l.id && typeof l.id === 'string')
-                    .map(l => l.id as string)
-                );
-                
-                // 找出已删除的课时ID（之前有，现在没有）
-                const deletedLessonIds = Array.from(previousLessonIds)
-                  .filter(id => !currentLessonIds.has(id));
-                
-                if (deletedLessonIds.length > 0) {
-                  console.log(`模块 #${index + 1}: 检测到 ${deletedLessonIds.length} 个已删除的课时`);
-                  
-                  // 删除这些课时
-                  await Promise.all(
-                    deletedLessonIds.map(async lessonId => {
-                      try {
-                        await courseService.deleteLesson(lessonId);
-                        console.log(`已从数据库删除课时: ${lessonId}`);
-                      } catch (error) {
-                        console.error(`删除课时 ${lessonId} 失败:`, error);
-                        // 继续处理其他课时，不中断整个保存过程
-                      }
-                    })
-                  );
+          // 每次最多处理20个课时
+          for (let i = 0; i < module.lessons.length; i += 20) {
+            const lessonBatch = module.lessons.slice(i, i + 20);
+            
+            try {
+              const lessonPromises = lessonBatch.map(async (lesson, lessonIndex) => {
+                // 确保课时的ID是有效的UUID
+                const lessonToSave = { ...lesson };
+                if (!lessonToSave.id || lessonToSave.id.startsWith('l')) {
+                  lessonToSave.id = uuidv4();
                 }
-              }
+                
+                try {
+                  const savedLesson = await courseService.addLesson({
+                    ...lessonToSave,
+                    module_id: savedModule.id
+                  });
+                  console.log(`课时 ${lessonToSave.title} 保存成功:`, savedLesson.id);
+                  return savedLesson;
+                } catch (error) {
+                  console.error(`保存课时 ${lessonToSave.title} 失败:`, error);
+                  throw error;
+                }
+              });
+              
+              const savedLessonsBatch = await Promise.all(lessonPromises);
+              moduleWithLessons.lessons = [...moduleWithLessons.lessons, ...savedLessonsBatch];
+            } catch (error) {
+              console.error(`批量保存课时失败:`, error);
+              // 继续处理其他批次
             }
-
-            // 保存模块下的所有课时
-            if (module.lessons && module.lessons.length > 0) {
-              console.log(`开始保存模块 #${index + 1} 的 ${module.lessons.length} 个课时`);
-              const savedLessons = await Promise.all(
-                module.lessons.map(async (lesson, lessonIndex) => {
-                  // 确保课时的ID是有效的UUID
-                  const lessonToSave = { ...lesson };
-                  if (!lessonToSave.id || lessonToSave.id.startsWith('l')) {
-                    lessonToSave.id = uuidv4();
-                  }
-                  
-                  try {
-                    const savedLesson = await courseService.addLesson({
-                      ...lessonToSave,
-                      module_id: savedModule.id!
-                    });
-                    console.log(`课时 #${lessonIndex + 1} 保存成功:`, savedLesson.id);
-                    return savedLesson;
-                  } catch (error) {
-                    console.error(`保存课时 #${lessonIndex + 1} 失败:`, error);
-                    throw error;
-                  }
-                })
-              );
-              console.log(`模块 #${index + 1} 的所有课时保存完成`);
-              // 返回模块和已保存的课时
-              return {
-                ...savedModule,
-                lessons: savedLessons
-              };
-            }
-
-            return savedModule;
-          } catch (error) {
-            console.error(`保存模块 #${index + 1} 失败:`, error);
-            throw error;
           }
-        })
-      );
+        }
+        
+        savedModulesWithLessons.push(moduleWithLessons);
+      }
 
       // 如果是新课程，重定向到带有ID的课程编辑页面
       if (!courseId && savedCourse.id) {
@@ -551,22 +618,11 @@ export const useCourseCreator = () => {
       }
       
       // 更新模块数据，确保所有模块和课时都有正确的ID
-      // 这里的关键是保留原有课时的内容，同时更新ID
-      const updatedModules = savedModules.map((savedModule, index) => {
-        const originalModule = modules[index];
-        return {
-          ...savedModule,
-          // 如果savedModule已经包含正确的lessons，直接使用它
-          // 否则使用原始模块的lessons
-          lessons: savedModule.lessons || originalModule.lessons || []
-        };
-      });
-      
-      setModules(updatedModules);
+      setModules(savedModulesWithLessons);
       
       // 更新引用值，用于下次比较
       previousCourseRef.current = { ...course, id: savedCourse.id };
-      previousModulesRef.current = [...updatedModules];
+      previousModulesRef.current = [...savedModulesWithLessons];
       
       return savedCourse.id;
     } catch (error) {
