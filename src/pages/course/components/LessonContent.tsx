@@ -2,58 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lesson, CourseModule, LessonType, TextLessonContent, AssignmentLessonContent, CardCreatorLessonContent, VideoLessonContent } from '@/types/course';
+import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent } from '@/types/course';
 import { CardCreatorTask } from '@/types/card-creator';
 import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
-import BlockNoteRenderer from '@/components/editor/BlockNoteRenderer';
 import { courseService } from '@/services/courseService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CardCreatorStudent } from '@/components/course/card-creator/CardCreatorStudent';
-import ReactMarkdown from 'react-markdown';
-
-// 自定义渲染器，用于保持样式一致性
-const MarkdownRenderer = ({ children }: { children: string }) => {
-  return (
-    <div className="markdown-content">
-      <ReactMarkdown 
-        components={{
-          // 自定义渲染h1-h6，保持与当前设计一致的样式
-          h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold text-ghibli-deepTeal mb-3" {...props} />,
-          h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold text-ghibli-deepTeal mb-3" {...props} />,
-          h3: ({ node, ...props }: any) => <h3 className="text-lg font-bold text-ghibli-deepTeal mb-2" {...props} />,
-          h4: ({ node, ...props }: any) => <h4 className="text-md font-bold text-ghibli-deepTeal mb-2" {...props} />,
-          h5: ({ node, ...props }: any) => <h5 className="text-base font-bold text-ghibli-deepTeal mb-2" {...props} />,
-          h6: ({ node, ...props }: any) => <h6 className="text-sm font-bold text-ghibli-deepTeal mb-2" {...props} />,
-          // 段落、列表等
-          p: ({ node, ...props }: any) => <p className="mb-3 text-ghibli-brown" {...props} />,
-          ul: ({ node, ...props }: any) => <ul className="list-disc pl-5 mb-3 text-ghibli-brown" {...props} />,
-          ol: ({ node, ...props }: any) => <ol className="list-decimal pl-5 mb-3 text-ghibli-brown" {...props} />,
-          li: ({ node, ...props }: any) => <li className="mb-1" {...props} />,
-          // 代码块和内联代码
-          code: ({ node, inline, className, children, ...props }: any) => {
-            return inline ? 
-              <code className="px-1 py-0.5 bg-gray-100 rounded text-ghibli-brown font-mono text-sm" {...props}>{children}</code> : 
-              <pre className="p-3 bg-gray-100 rounded-md overflow-auto mb-3">
-                <code className="text-ghibli-brown font-mono text-sm" {...props}>{children}</code>
-              </pre>
-          },
-          // 其他元素
-          blockquote: ({ node, ...props }: any) => <blockquote className="pl-4 border-l-4 border-ghibli-sand italic text-ghibli-brown mb-3" {...props} />,
-          a: ({ node, ...props }: any) => <a className="text-ghibli-teal hover:underline" {...props} />,
-          hr: ({ node, ...props }: any) => <hr className="my-5 border-ghibli-sand/40" {...props} />,
-          img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded my-3" {...props} alt={props.alt || ''} />,
-          table: ({ node, ...props }: any) => <div className="overflow-x-auto mb-3"><table className="min-w-full border-collapse" {...props} /></div>,
-          th: ({ node, ...props }: any) => <th className="px-3 py-2 border border-ghibli-sand bg-ghibli-cream/40 text-ghibli-deepTeal font-medium" {...props} />,
-          td: ({ node, ...props }: any) => <td className="px-3 py-2 border border-ghibli-sand text-ghibli-brown" {...props} />,
-        }}
-      >
-        {children}
-      </ReactMarkdown>
-    </div>
-  );
-};
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import TextLessonContent from '@/components/course/lessons/TextLessonContent';
+import VideoLessonContent from '@/components/course/lessons/VideoLessonContent';
+import QuizLessonContent from '@/components/course/lessons/quiz/QuizLessonContent';
+import DragSortExercise from '@/components/course/components/drag-sort/DragSortExercise';
+import { containsMarkdown } from '@/utils/markdownUtils';
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
@@ -62,25 +24,6 @@ interface LessonContentProps {
   enrollmentId: string | null;
   navigate: NavigateFunction;
 }
-
-// 检测文本是否包含markdown语法的函数
-const containsMarkdown = (text: string): boolean => {
-  // 检查常见的markdown标记
-  const markdownPatterns = [
-    /[*_]{1,2}[^*_]+[*_]{1,2}/,  // 斜体或粗体
-    /^#+\s/m,                    // 标题
-    /!\[.*?\]\(.*?\)/,           // 图片
-    /\[.*?\]\(.*?\)/,            // 链接
-    /^-\s/m,                     // 无序列表
-    /^[0-9]+\.\s/m,              // 有序列表
-    /`{1,3}[^`]+`{1,3}/,         // 代码块或内联代码
-    /^>\s/m,                     // 引用
-    /^---+$/m,                   // 水平线
-    /\|(.+\|)+/                  // 表格
-  ];
-  
-  return markdownPatterns.some(pattern => pattern.test(text));
-};
 
 const LessonContent: React.FC<LessonContentProps> = ({
   selectedLesson,
@@ -303,328 +246,42 @@ const LessonContent: React.FC<LessonContentProps> = ({
     
     switch (selectedLesson.type) {
       case 'text':
-        const textContent = selectedLesson.content as TextLessonContent;
-        return (
-          <div className="prose max-w-none">
-            {textContent?.text ? (
-              (() => {
-                try {
-                  const text = textContent.text;
-                  
-                  // 检查是否可能是BlockNote格式
-                  if (text.trim().startsWith('[')) {
-                    try {
-                      // 尝试使用专用渲染组件
-                      return <BlockNoteRenderer content={text} />;
-                    } catch (error) {
-                      console.error('BlockNote渲染失败:', error);
-                    }
-                  }
-                  
-                  // 如果不是BlockNote格式或渲染失败，尝试其他格式解析
-                  try {
-                    // 尝试解析文本内容
-                    const parsed = JSON.parse(text);
-                    // 检查是否是数组
-                    if (Array.isArray(parsed)) {
-                      return parsed.map((block: any) => {
-                        if (block.type === 'paragraph' && block.content && Array.isArray(block.content)) {
-                          return `<p>${block.content.map((item: any) => item.text || '').join('')}</p>`;
-                        }
-                        return '';
-                      }).join('');
-                    } else {
-                      // 如果不是预期的格式，直接显示文本
-                      return <p>{text}</p>;
-                    }
-                  } catch (error) {
-                    // 解析失败时,直接显示原始文本
-                    console.error('解析文本内容失败:', error);
-                    return <p>{text}</p>;
-                  }
-                } catch (error) {
-                  console.error('处理课程内容失败:', error);
-                  return <p>内容无法显示</p>;
-                }
-              })()
-            ) : (
-              <p>此课时暂无内容</p>
-            )}
-          </div>
-        );
+        return <TextLessonContent content={selectedLesson.content as any} />;
+      
       case 'video':
         return (
-          <div className="space-y-4">
-            <div className="aspect-video bg-gradient-to-br from-gray-900 to-blue-900 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-              {(selectedLesson.content as VideoLessonContent).bilibiliUrl ? (
-                <iframe 
-                  src={(function() {
-                    const url = (selectedLesson.content as VideoLessonContent).bilibiliUrl || '';
-                    // 确保添加as_wide=1参数
-                    if (url.includes('as_wide=1')) {
-                      return url;
-                    } else if (url.includes('?')) {
-                      return `${url}&as_wide=1&high_quality=1`;
-                    } else {
-                      return `${url}?as_wide=1&high_quality=1`;
-                    }
-                  })()}
-                  allowFullScreen={true}
-                  className="w-full h-full"
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    aspectRatio: '16/9', 
-                    border: 'none',
-                    display: 'block'
-                  }}
-                  scrolling="no" 
-                  frameBorder="0"
-                  sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
-                />
-              ) : selectedLesson.video_file_path ? (
-                <video 
-                  controls 
-                  className="w-full h-full"
-                  src={selectedLesson.video_file_path}
-                >
-                  您的浏览器不支持视频播放
-                </video>
-              ) : (
-                <div className="text-center">
-                  <div className="p-4 rounded-full bg-white/20 backdrop-blur-md inline-block mb-4 cursor-pointer hover:bg-white/30 transition-all">
-                    <Play size={48} className="text-white" />
-                  </div>
-                  <p className="text-white font-medium">暂无视频内容</p>
-                </div>
-              )}
-            </div>
-            
-            {/* 视频描述部分 */}
-            {(selectedLesson.content as VideoLessonContent).description && (
-              <div className="mt-4 bg-ghibli-cream/20 border border-ghibli-sand/40 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-ghibli-deepTeal mb-2">视频说明</h3>
-                <p className="text-ghibli-brown whitespace-pre-wrap">
-                  {(selectedLesson.content as VideoLessonContent).description}
-                </p>
-              </div>
-            )}
-          </div>
+          <VideoLessonContent 
+            content={selectedLesson.content as any} 
+            videoFilePath={selectedLesson.video_file_path} 
+          />
         );
+      
       case 'quiz':
-        const quizContent = selectedLesson.content as any;
         return (
-          <div className="space-y-6">
-            <div className="bg-ghibli-lightTeal/20 border border-ghibli-teal/30 rounded-xl p-5">
-              <h3 className="font-medium text-ghibli-deepTeal mb-2 flex items-center">
-                <Check size={18} className="mr-2" /> 测验说明
-              </h3>
-              <p className="text-ghibli-brown text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
-            </div>
-            
-            {quizSubmitted && quizResult && (
-              <div className={`p-4 rounded-lg mb-4 ${quizResult.score >= 60 ? 'bg-ghibli-mint/30 border border-ghibli-teal/30' : 'bg-ghibli-peach/20 border border-ghibli-coral/20'}`}>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className={`font-medium mb-2 ${quizResult.score >= 60 ? 'text-ghibli-deepTeal' : 'text-ghibli-brown'}`}>
-                      测验结果
-                    </h3>
-                    <p className={quizResult.score >= 60 ? 'text-ghibli-deepTeal font-medium' : 'text-ghibli-brown font-medium'}>
-                      你的得分: {quizResult.score}% ({Math.round(quizResult.score * quizResult.totalQuestions / 100)}/{quizResult.totalQuestions} 题正确)
-                    </p>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="border-ghibli-peach/40 text-ghibli-brown hover:bg-ghibli-sand/30"
-                    onClick={handleUnmarkComplete}
-                    disabled={isCompletionLoading}
-                  >
-                    {isCompletionLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        处理中...
-                      </>
-                    ) : (
-                      <>
-                        <X className="mr-2 h-4 w-4" />
-                        取消完成标记
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            {quizContent?.questions && quizContent.questions.length > 0 ? (
-              <div className="space-y-6">
-                {quizContent.questions.map((question: any, qIndex: number) => (
-                  <div key={question.id || `q-${qIndex}`} className="quiz-container">
-                    <h4 className="font-medium text-lg mb-4">问题 {qIndex + 1}: 
-                      {question.text && containsMarkdown(question.text) ? (
-                        <MarkdownRenderer>{question.text}</MarkdownRenderer>
-                      ) : (
-                        <span>{question.text || '未命名问题'}</span>
-                      )}
-                    </h4>
-                    
-                    {/* 显示第一次错误后的提示 */}
-                    {showHints[question.id] && question.hint && !showCorrectAnswers[question.id] && (
-                      <div className="mb-4 p-3 bg-ghibli-sunshine/20 border border-ghibli-sunshine/50 rounded-lg flex items-start">
-                        <InfoIcon className="text-ghibli-orange h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-ghibli-brown font-medium mb-1">提示：</p>
-                          {containsMarkdown(question.hint) ? (
-                            <MarkdownRenderer>{question.hint}</MarkdownRenderer>
-                          ) : (
-                            <p className="text-ghibli-brown">{question.hint}</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* 当显示正确答案时的提示（针对答错情况） */}
-                    {showCorrectAnswers[question.id] && userAnswers[question.id] !== question.correctOption && (
-                      <div className="mb-4 p-3 bg-ghibli-mint/20 border border-ghibli-teal/30 rounded-lg flex items-start">
-                        <CheckCircle className="text-ghibli-teal h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-ghibli-deepTeal font-medium">已显示正确答案</p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {question.options && (
-                      <div className="space-y-3">
-                        {question.options.map((option: any, oIndex: number) => {
-                          // 高亮显示选择但错误的答案
-                          const isSelected = selectedAnswer[question.id] === option.id;
-                          const isCorrect = option.id === question.correctOption;
-                          const shouldHighlightCorrect = (quizSubmitted || showCorrectAnswers[question.id]) && isCorrect;
-                          const shouldHighlightWrong = isSelected && !isCorrect && (attemptCounts[question.id] > 0) && !showCorrectAnswers[question.id];
-                          
-                          return (
-                            <label 
-                              key={option.id || `opt-${oIndex}`} 
-                              className={`quiz-option flex items-start p-3 rounded-lg border ${
-                                shouldHighlightCorrect 
-                                  ? 'bg-ghibli-mint/20 border-ghibli-teal/50' 
-                                  : shouldHighlightWrong 
-                                    ? 'bg-ghibli-peach/20 border-ghibli-coral/50' 
-                                    : 'border-gray-200 hover:bg-gray-50'
-                              }`}
-                            >
-                              <input 
-                                type="radio" 
-                                name={`q-${question.id || qIndex}`} 
-                                className="mr-3 h-4 w-4 accent-blue-500 mt-1" 
-                                checked={userAnswers[question.id] === option.id}
-                                onChange={() => handleAnswerSelect(question.id, option.id)}
-                                disabled={quizSubmitted || showCorrectAnswers[question.id]}
-                              />
-                              <div className={`flex-1 ${shouldHighlightCorrect ? 'text-ghibli-deepTeal font-medium' : shouldHighlightWrong ? 'text-ghibli-brown' : ''}`}>
-                                {option.text && containsMarkdown(option.text) ? (
-                                  <MarkdownRenderer>{option.text}</MarkdownRenderer>
-                                ) : (
-                                  <span>{option.text}</span>
-                                )}
-                              </div>
-                              {shouldHighlightCorrect && (
-                                <span className="ml-2 text-ghibli-grassGreen/70 text-sm flex items-center">
-                                  <CheckCircle className="h-4 w-4 mr-1" /> 正确答案
-                                </span>
-                              )}
-                              {shouldHighlightWrong && (
-                                <span className="ml-2 text-ghibli-coral/70 text-sm flex items-center">
-                                  <X className="h-4 w-4 mr-1" /> 不正确
-                                </span>
-                              )}
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
-                    
-                    {question.type === 'short_answer' && (
-                      <div className="mt-4">
-                        <textarea 
-                          className="w-full p-3 border border-gray-300 rounded-md" 
-                          rows={4}
-                          placeholder="在此输入您的答案..."
-                          value={userAnswers[question.id] || ''}
-                          onChange={(e) => handleAnswerSelect(question.id, e.target.value)}
-                          disabled={quizSubmitted || showCorrectAnswers[question.id]}
-                        ></textarea>
-                      </div>
-                    )}
-                    
-                    {/* 添加检查单个答案的按钮 */}
-                    {!quizSubmitted && (
-                      <div className="flex justify-end mt-3">
-                        <Button 
-                          variant="outline"
-                          className="text-ghibli-brown border-ghibli-sand hover:bg-ghibli-cream/50"
-                          onClick={() => handleCheckSingleAnswer(question.id, question.correctOption)}
-                          disabled={!selectedAnswer[question.id]}
-                        >
-                          检查答案
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                <div className="flex justify-end">
-                  {!quizSubmitted ? (
-                    <Button 
-                      className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
-                      onClick={handleQuizSubmit}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? '提交中...' : '提交答案'}
-                    </Button>
-                  ) : (
-                    <Button 
-                      className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
-                      onClick={() => navigate('/learning')}
-                    >
-                      返回课程
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="quiz-container">
-                  <h4 className="font-medium text-lg mb-4">问题 1: 新问题</h4>
-                  <div className="space-y-3">
-                    {['选项1', '选项2'].map((option, index) => (
-                      <label key={index} className="quiz-option">
-                        <input 
-                          type="radio" 
-                          name="q1" 
-                          className="mr-3 h-4 w-4 accent-blue-500" 
-                          disabled={quizSubmitted}
-                        />
-                        <span>{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="flex justify-end">
-                  <Button 
-                    className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
-                    onClick={handleQuizSubmit}
-                  >
-                    提交答案
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          <QuizLessonContent
+            lessonId={selectedLesson.id}
+            courseId={courseData?.id || ''}
+            enrollmentId={enrollmentId}
+            content={selectedLesson.content}
+            quizSubmitted={quizSubmitted}
+            quizResult={quizResult}
+            userAnswers={userAnswers}
+            navigate={navigate}
+            onQuizSubmit={handleQuizSubmit}
+            onAnswerSelect={handleAnswerSelect}
+            onCheckSingleAnswer={handleCheckSingleAnswer}
+            onUnmarkComplete={handleUnmarkComplete}
+            isLoading={isLoading}
+            isCompletionLoading={isCompletionLoading}
+            attemptCounts={attemptCounts}
+            showHints={showHints}
+            showCorrectAnswers={showCorrectAnswers}
+            selectedAnswer={selectedAnswer}
+          />
         );
+
       case 'assignment':
-        const assignmentContent = selectedLesson.content as AssignmentLessonContent;
+        const assignmentContent = selectedLesson.content as AssignmentLessonContentType;
         return (
           <div className="space-y-6">
             <div className="bg-amber-50 border border-amber-100 rounded-xl p-5">
@@ -673,9 +330,10 @@ const LessonContent: React.FC<LessonContentProps> = ({
             </div>
           </div>
         );
+        
       case 'card_creator':
         // 获取卡片创建器内容
-        const cardCreatorContent = selectedLesson.content as CardCreatorLessonContent;
+        const cardCreatorContent = selectedLesson.content as CardCreatorLessonContentType;
         
         // 从API获取用户ID
         const userId = enrollmentId?.split('_')?.[0] || '';
@@ -778,6 +436,28 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 />
               </div>
             )}
+          </div>
+        );
+      case 'drag_sort':
+        return (
+          <div className="w-full mt-2 max-w-[1000px] mx-auto">
+            <DragSortExercise 
+              lesson={selectedLesson}
+              onComplete={(isCorrect, mappings) => {
+                if (isCorrect && selectedLesson && courseData && enrollmentId) {
+                  courseService.markLessonComplete(
+                    selectedLesson.id,
+                    courseData.id,
+                    enrollmentId,
+                    isCorrect ? 100 : 0,
+                    {
+                      isCorrect,
+                      mappings
+                    }
+                  );
+                }
+              }}
+            />
           </div>
         );
       // Handle other types with a default case

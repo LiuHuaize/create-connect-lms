@@ -4,110 +4,16 @@ import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useAuth } from '@/contexts/AuthContext';
-
-// 本地存储缓存辅助函数
-const LOCAL_STORAGE_PREFIX = 'connect-lms-cache-';
-const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 修改为5分钟缓存时间，平衡性能和数据新鲜度
-
-// 从本地存储获取缓存数据
-const getFromLocalCache = (key: string) => {
-  try {
-    const cachedItem = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}${key}`);
-    if (!cachedItem) return null;
-    
-    const { data, timestamp } = JSON.parse(cachedItem);
-    
-    // 检查缓存是否过期
-    if (Date.now() - timestamp > CACHE_EXPIRY_TIME) {
-      localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}${key}`);
-      return null;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('从本地缓存获取数据失败:', error);
-    // 如果解析失败，删除可能的损坏缓存
-    try {
-      localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}${key}`);
-    } catch (e) {
-      // 忽略清理错误
-    }
-    return null;
-  }
-};
-
-// 保存数据到本地存储
-const saveToLocalCache = (key: string, data: any) => {
-  try {
-    const cacheItem = {
-      data,
-      timestamp: Date.now()
-    };
-    localStorage.setItem(`${LOCAL_STORAGE_PREFIX}${key}`, JSON.stringify(cacheItem));
-  } catch (error) {
-    console.error('保存数据到本地缓存失败:', error);
-    // 如果存储失败，尝试清理其他缓存以释放空间
-    try {
-      // 清理旧的缓存项
-      const keys = Object.keys(localStorage);
-      const cacheKeys = keys.filter(k => k.startsWith(LOCAL_STORAGE_PREFIX));
-      if (cacheKeys.length > 10) { // 如果缓存项过多
-        // 清除最旧的一半缓存
-        const keysToRemove = cacheKeys
-          .map(k => {
-            try {
-              const item = localStorage.getItem(k);
-              if (!item) return { key: k, timestamp: 0 };
-              const { timestamp } = JSON.parse(item);
-              return { key: k, timestamp };
-            } catch (e) {
-              return { key: k, timestamp: 0 };
-            }
-          })
-          .sort((a, b) => a.timestamp - b.timestamp)
-          .slice(0, Math.floor(cacheKeys.length / 2))
-          .map(item => item.key);
-        
-        keysToRemove.forEach(k => localStorage.removeItem(k));
-        
-        // 再次尝试保存
-        localStorage.setItem(`${LOCAL_STORAGE_PREFIX}${key}`, JSON.stringify(cacheItem));
-      }
-    } catch (e) {
-      // 如果清理失败，忽略
-    }
-  }
-};
-
-// 清除指定课程的所有缓存
-const clearCourseCache = (courseId: string) => {
-  try {
-    // 清除课程详情缓存
-    localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}course-details-${courseId}`);
-    
-    // 清除课程注册相关缓存
-    const keys = Object.keys(localStorage);
-    keys.forEach(key => {
-      if (key.startsWith(`${LOCAL_STORAGE_PREFIX}enrollment-${courseId}`)) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    console.log('已清除课程相关缓存:', courseId);
-  } catch (error) {
-    console.error('清除课程缓存失败:', error);
-  }
-};
+import indexedDBCache from '@/lib/indexedDBCache';
 
 // 带重试机制的获取课程注册信息
 const fetchEnrollmentInfo = async (courseId: string, userId: string) => {
   if (!courseId || !userId) return null;
   
-  // 尝试从本地缓存获取
-  const cacheKey = `enrollment-${courseId}-${userId}`;
-  const cachedData = getFromLocalCache(cacheKey);
+  // 尝试从IndexedDB缓存获取
+  const cachedData = await indexedDBCache.getEnrollment(courseId, userId);
   if (cachedData) {
-    console.log('从本地缓存返回课程注册信息');
+    console.log('从IndexedDB缓存返回课程注册信息');
     return cachedData;
   }
   
@@ -135,9 +41,9 @@ const fetchEnrollmentInfo = async (courseId: string, userId: string) => {
         throw error;
       }
       
-      // 保存到本地缓存
+      // 保存到IndexedDB缓存
       if (enrollments) {
-        saveToLocalCache(cacheKey, enrollments);
+        await indexedDBCache.saveEnrollment(courseId, userId, enrollments);
       }
       
       return enrollments;
@@ -156,11 +62,10 @@ const fetchCourseDetails = async (courseId: string | undefined) => {
   
   console.log('正在获取课程详情:', courseId);
   
-  // 尝试从本地缓存获取
-  const cacheKey = `course-details-${courseId}`;
-  const cachedData = getFromLocalCache(cacheKey);
+  // 尝试从IndexedDB缓存获取
+  const cachedData = await indexedDBCache.getCourseDetails(courseId);
   if (cachedData) {
-    console.log('从本地缓存返回课程详情');
+    console.log('从IndexedDB缓存返回课程详情');
     return cachedData;
   }
   
@@ -169,27 +74,14 @@ const fetchCourseDetails = async (courseId: string | undefined) => {
     const courseDetails = await courseService.getCourseDetails(courseId);
     console.timeEnd('fetchCourseDetails');
     
-    // 保存到本地缓存
+    // 保存到IndexedDB缓存
     if (courseDetails) {
-      saveToLocalCache(cacheKey, courseDetails);
+      await indexedDBCache.saveCourseDetails(courseId, courseDetails);
     }
     
     return courseDetails;
   } catch (error) {
     console.error('获取课程详情失败:', error);
-    // 如果失败，尝试返回过期的缓存数据作为后备
-    try {
-      const expiredCacheItem = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}${cacheKey}`);
-      if (expiredCacheItem) {
-        const { data } = JSON.parse(expiredCacheItem);
-        console.log('使用过期缓存作为后备');
-        // 通知用户数据可能过期
-        toast.warning('课程数据可能不是最新的，请尝试刷新页面');
-        return data;
-      }
-    } catch (e) {
-      // 忽略读取过期缓存的错误
-    }
     throw error;
   }
 };
@@ -231,14 +123,17 @@ export const useCourseData = (courseId: string | undefined) => {
   });
   
   // 强制刷新课程数据，清除缓存并重新获取
-  const refreshCourseData = () => {
+  const refreshCourseData = async () => {
     if (courseId) {
-      clearCourseCache(courseId);
+      // 清除IndexedDB缓存
+      await indexedDBCache.clearCourseCache(courseId);
+      
       // 使用 React Query 的 invalidateQueries 使缓存失效
       queryClient.invalidateQueries({ queryKey: ['courseDetails', courseId] });
       if (user?.id) {
         queryClient.invalidateQueries({ queryKey: ['enrollment', courseId, user.id] });
       }
+      
       // 手动触发重新获取
       refetchCourseData();
       if (user?.id) {
@@ -311,6 +206,6 @@ export const useCourseData = (courseId: string | undefined) => {
     enrollmentStatus: enrollmentData?.status,
     findCurrentLesson,
     refreshCourseData,
-    clearCourseCache
+    clearCourseCache: (courseId: string) => indexedDBCache.clearCourseCache(courseId)
   };
 };
