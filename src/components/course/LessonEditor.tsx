@@ -25,11 +25,13 @@ import {
   QuizLessonContent,
   AssignmentLessonContent,
   CardCreatorLessonContent,
+  DragSortContent,
   LessonContent
 } from '@/types/course';
 import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
 import VideoUploader from './creator/VideoUploader';
 import CardCreatorLessonEditor from './CardCreatorLessonEditor';
+import DragSortEditor from './creator/drag-sort/DragSortEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -84,6 +86,13 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
           templateDescription: (baseContent as CardCreatorLessonContent).templateDescription || '',
           templateImageUrl: (baseContent as CardCreatorLessonContent).templateImageUrl || '',
         } as CardCreatorLessonContent;
+      case 'drag_sort':
+        return {
+          introduction: (baseContent as DragSortContent)?.introduction || '将下面的项目拖拽到正确的分类中',
+          items: (baseContent as DragSortContent)?.items || [],
+          categories: (baseContent as DragSortContent)?.categories || [],
+          correctMappings: (baseContent as DragSortContent)?.correctMappings || []
+        } as DragSortContent;
       default:
         return baseContent;
     }
@@ -142,7 +151,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         aiGradingPrompt: data.aiGradingPrompt
       } as AssignmentLessonContent;
     }
-    // 卡片创建器内容在自组件内处理，直接使用currentContent
+    // 卡片创建器和拖拽分类内容在子组件内处理，直接使用currentContent
     
     onSave(updatedLesson);
   };
@@ -676,6 +685,16 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
             onUpdate={(updatedLesson) => {
               setCurrentContent(updatedLesson.content);
               onContentChange(updatedLesson.content);
+            }}
+          />
+        )}
+        
+        {lesson.type === 'drag_sort' && (
+          <DragSortEditor 
+            lesson={lesson}
+            onSave={(content) => {
+              setCurrentContent(content);
+              onContentChange(content);
             }}
           />
         )}

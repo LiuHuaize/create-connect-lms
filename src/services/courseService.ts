@@ -76,49 +76,75 @@ export const courseService = {
 
   // 获取单个课程详情（包括模块和课时）
   async getCourseDetails(courseId: string): Promise<Course & { modules?: CourseModule[] }> {
-    // 获取课程基本信息
-    const { data: courseData, error: courseError } = await supabase
-      .from("courses")
-      .select("*")
-      .eq("id", courseId)
-      .single();
+    try {
+      console.time('getCourseDetails'); // 性能计时开始
+      
+      // 获取课程基本信息
+      const { data: courseData, error: courseError } = await supabase
+        .from("courses")
+        .select("*")
+        .eq("id", courseId)
+        .single();
 
-    if (courseError) {
-      console.error('获取课程详情失败:', courseError);
-      throw courseError;
-    }
+      if (courseError) {
+        console.error('获取课程详情失败:', courseError);
+        throw courseError;
+      }
 
-    // 获取课程模块和课时
-    const { data: modulesData, error: modulesError } = await supabase
-      .from("course_modules")
-      .select(`
-        *,
-        lessons:lessons(*)
-      `)
-      .eq("course_id", courseId)
-      .order("order_index");
+      // 获取课程模块 - 不包含课时，先获取模块结构
+      const { data: modulesData, error: modulesError } = await supabase
+        .from("course_modules")
+        .select("*")
+        .eq("course_id", courseId)
+        .order("order_index");
 
-    if (modulesError) {
-      console.error('获取课程模块失败:', modulesError);
-      throw modulesError;
-    }
+      if (modulesError) {
+        console.error('获取课程模块失败:', modulesError);
+        throw modulesError;
+      }
 
-    // 转换课时内容
-    const modulesWithConvertedLessons = (modulesData || []).map((module: any) => {
+      // 如果没有模块，直接返回课程信息
+      if (!modulesData || modulesData.length === 0) {
+        console.timeEnd('getCourseDetails');
+        return {
+          ...(courseData as Course),
+          modules: []
+        };
+      }
+
+      // 获取每个模块的课时 - 分批处理，避免一次加载过多数据
+      const modulesWithLessons = await Promise.all(modulesData.map(async (module) => {
+        const { data: lessonsData, error: lessonsError } = await supabase
+          .from("lessons")
+          .select("*")
+          .eq("module_id", module.id)
+          .order("order_index");
+          
+        if (lessonsError) {
+          console.error(`获取模块 ${module.id} 的课时失败:`, lessonsError);
+          return { ...module, lessons: [] };
+        }
+        
+        const convertedLessons = lessonsData 
+          ? lessonsData.map(convertDbLessonToLesson).sort((a, b) => a.order_index - b.order_index)
+          : [];
+          
+        return {
+          ...module,
+          lessons: convertedLessons
+        };
+      }));
+
+      console.timeEnd('getCourseDetails'); // 性能计时结束
+      
       return {
-        ...module,
-        lessons: module.lessons ? module.lessons
-          .map(convertDbLessonToLesson)
-          // 对课时按照order_index排序
-          .sort((a: Lesson, b: Lesson) => a.order_index - b.order_index) 
-          : []
+        ...(courseData as Course),
+        modules: modulesWithLessons as CourseModule[]
       };
-    });
-
-    return {
-      ...(courseData as Course),
-      modules: modulesWithConvertedLessons as CourseModule[]
-    };
+    } catch (error) {
+      console.error('获取课程详情时出错:', error);
+      throw error;
+    }
   },
 
   // 更新课程状态（发布/草稿/存档）

@@ -121,7 +121,8 @@ export type LessonContent =
   | QuizLessonContent 
   | AssignmentLessonContent
   | CodeLessonContent
-  | CardCreatorLessonContent;
+  | CardCreatorLessonContent
+  | DragSortContent;
 
 // Quiz related types
 export type QuizQuestionType = 'multiple_choice' | 'true_false' | 'short_answer';
@@ -142,7 +143,7 @@ export type QuizQuestion = {
 };
 
 // Lesson type - use string union for better type safety
-export type LessonType = 'video' | 'text' | 'quiz' | 'assignment' | 'code' | 'card_creator';
+export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort';
 
 // Make sure order_index is included in the Lesson type
 export type Lesson = {
@@ -157,3 +158,37 @@ export type Lesson = {
   video_file_path?: string | null; // 视频文件路径
   bilibili_url?: string | null; // B站嵌入URL
 };
+
+// 拖拽分类练习的数据结构
+export interface DragSortContent {
+  introduction: string;       // 介绍文字
+  items: DragSortItem[];      // 可拖拽的项目
+  categories: DragSortCategory[];  // 分类区域
+  correctMappings: DragSortMapping[];  // 正确的映射关系
+}
+
+// 可拖拽项目
+export interface DragSortItem {
+  id: string;
+  text: string;
+  description?: string;
+}
+
+// 分类区域
+export interface DragSortCategory {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+// 项目与分类的映射关系
+export interface DragSortMapping {
+  itemId: string;
+  categoryId: string;
+}
+
+// 用户提交的答案
+export interface DragSortSubmission {
+  mappings: DragSortMapping[];
+  isCorrect: boolean;
+}

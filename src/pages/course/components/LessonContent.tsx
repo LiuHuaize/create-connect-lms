@@ -11,6 +11,49 @@ import { courseService } from '@/services/courseService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CardCreatorStudent } from '@/components/course/card-creator/CardCreatorStudent';
+import ReactMarkdown from 'react-markdown';
+
+// 自定义渲染器，用于保持样式一致性
+const MarkdownRenderer = ({ children }: { children: string }) => {
+  return (
+    <div className="markdown-content">
+      <ReactMarkdown 
+        components={{
+          // 自定义渲染h1-h6，保持与当前设计一致的样式
+          h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold text-ghibli-deepTeal mb-3" {...props} />,
+          h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold text-ghibli-deepTeal mb-3" {...props} />,
+          h3: ({ node, ...props }: any) => <h3 className="text-lg font-bold text-ghibli-deepTeal mb-2" {...props} />,
+          h4: ({ node, ...props }: any) => <h4 className="text-md font-bold text-ghibli-deepTeal mb-2" {...props} />,
+          h5: ({ node, ...props }: any) => <h5 className="text-base font-bold text-ghibli-deepTeal mb-2" {...props} />,
+          h6: ({ node, ...props }: any) => <h6 className="text-sm font-bold text-ghibli-deepTeal mb-2" {...props} />,
+          // 段落、列表等
+          p: ({ node, ...props }: any) => <p className="mb-3 text-ghibli-brown" {...props} />,
+          ul: ({ node, ...props }: any) => <ul className="list-disc pl-5 mb-3 text-ghibli-brown" {...props} />,
+          ol: ({ node, ...props }: any) => <ol className="list-decimal pl-5 mb-3 text-ghibli-brown" {...props} />,
+          li: ({ node, ...props }: any) => <li className="mb-1" {...props} />,
+          // 代码块和内联代码
+          code: ({ node, inline, className, children, ...props }: any) => {
+            return inline ? 
+              <code className="px-1 py-0.5 bg-gray-100 rounded text-ghibli-brown font-mono text-sm" {...props}>{children}</code> : 
+              <pre className="p-3 bg-gray-100 rounded-md overflow-auto mb-3">
+                <code className="text-ghibli-brown font-mono text-sm" {...props}>{children}</code>
+              </pre>
+          },
+          // 其他元素
+          blockquote: ({ node, ...props }: any) => <blockquote className="pl-4 border-l-4 border-ghibli-sand italic text-ghibli-brown mb-3" {...props} />,
+          a: ({ node, ...props }: any) => <a className="text-ghibli-teal hover:underline" {...props} />,
+          hr: ({ node, ...props }: any) => <hr className="my-5 border-ghibli-sand/40" {...props} />,
+          img: ({ node, ...props }: any) => <img className="max-w-full h-auto rounded my-3" {...props} alt={props.alt || ''} />,
+          table: ({ node, ...props }: any) => <div className="overflow-x-auto mb-3"><table className="min-w-full border-collapse" {...props} /></div>,
+          th: ({ node, ...props }: any) => <th className="px-3 py-2 border border-ghibli-sand bg-ghibli-cream/40 text-ghibli-deepTeal font-medium" {...props} />,
+          td: ({ node, ...props }: any) => <td className="px-3 py-2 border border-ghibli-sand text-ghibli-brown" {...props} />,
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
+  );
+};
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
@@ -19,6 +62,25 @@ interface LessonContentProps {
   enrollmentId: string | null;
   navigate: NavigateFunction;
 }
+
+// 检测文本是否包含markdown语法的函数
+const containsMarkdown = (text: string): boolean => {
+  // 检查常见的markdown标记
+  const markdownPatterns = [
+    /[*_]{1,2}[^*_]+[*_]{1,2}/,  // 斜体或粗体
+    /^#+\s/m,                    // 标题
+    /!\[.*?\]\(.*?\)/,           // 图片
+    /\[.*?\]\(.*?\)/,            // 链接
+    /^-\s/m,                     // 无序列表
+    /^[0-9]+\.\s/m,              // 有序列表
+    /`{1,3}[^`]+`{1,3}/,         // 代码块或内联代码
+    /^>\s/m,                     // 引用
+    /^---+$/m,                   // 水平线
+    /\|(.+\|)+/                  // 表格
+  ];
+  
+  return markdownPatterns.some(pattern => pattern.test(text));
+};
 
 const LessonContent: React.FC<LessonContentProps> = ({
   selectedLesson,
@@ -73,14 +135,18 @@ const LessonContent: React.FC<LessonContentProps> = ({
       // 如果已完成，恢复测验状态
       if (completionData) {
         setQuizSubmitted(true);
+        
+        // 使用类型断言确保可以访问data中的属性
+        const quizData = completionData.data as Record<string, any>;
+        
         setQuizResult({
           score: completionData.score || 0,
-          totalQuestions: completionData.data?.totalQuestions || 0
+          totalQuestions: quizData?.totalQuestions || 0
         });
         
         // 恢复用户答案
-        if (completionData.data?.userAnswers) {
-          setUserAnswers(completionData.data.userAnswers);
+        if (quizData?.userAnswers) {
+          setUserAnswers(quizData.userAnswers as Record<string, string>);
         }
       }
     } catch (error) {
@@ -394,7 +460,13 @@ const LessonContent: React.FC<LessonContentProps> = ({
               <div className="space-y-6">
                 {quizContent.questions.map((question: any, qIndex: number) => (
                   <div key={question.id || `q-${qIndex}`} className="quiz-container">
-                    <h4 className="font-medium text-lg mb-4">问题 {qIndex + 1}: {question.text || '未命名问题'}</h4>
+                    <h4 className="font-medium text-lg mb-4">问题 {qIndex + 1}: 
+                      {question.text && containsMarkdown(question.text) ? (
+                        <MarkdownRenderer>{question.text}</MarkdownRenderer>
+                      ) : (
+                        <span>{question.text || '未命名问题'}</span>
+                      )}
+                    </h4>
                     
                     {/* 显示第一次错误后的提示 */}
                     {showHints[question.id] && question.hint && !showCorrectAnswers[question.id] && (
@@ -402,7 +474,11 @@ const LessonContent: React.FC<LessonContentProps> = ({
                         <InfoIcon className="text-ghibli-orange h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
                         <div>
                           <p className="text-ghibli-brown font-medium mb-1">提示：</p>
-                          <p className="text-ghibli-brown">{question.hint}</p>
+                          {containsMarkdown(question.hint) ? (
+                            <MarkdownRenderer>{question.hint}</MarkdownRenderer>
+                          ) : (
+                            <p className="text-ghibli-brown">{question.hint}</p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -445,9 +521,13 @@ const LessonContent: React.FC<LessonContentProps> = ({
                                 onChange={() => handleAnswerSelect(question.id, option.id)}
                                 disabled={quizSubmitted || showCorrectAnswers[question.id]}
                               />
-                              <span className={`${shouldHighlightCorrect ? 'text-ghibli-deepTeal font-medium' : shouldHighlightWrong ? 'text-ghibli-brown' : ''}`}>
-                                {option.text}
-                              </span>
+                              <div className={`flex-1 ${shouldHighlightCorrect ? 'text-ghibli-deepTeal font-medium' : shouldHighlightWrong ? 'text-ghibli-brown' : ''}`}>
+                                {option.text && containsMarkdown(option.text) ? (
+                                  <MarkdownRenderer>{option.text}</MarkdownRenderer>
+                                ) : (
+                                  <span>{option.text}</span>
+                                )}
+                              </div>
                               {shouldHighlightCorrect && (
                                 <span className="ml-2 text-ghibli-grassGreen/70 text-sm flex items-center">
                                   <CheckCircle className="h-4 w-4 mr-1" /> 正确答案
