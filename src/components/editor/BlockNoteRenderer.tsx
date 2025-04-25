@@ -15,6 +15,41 @@ interface BlockNoteRendererProps {
  * 用于将BlockNote格式的JSON字符串渲染为富文本视图
  */
 const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, className }) => {
+  // 自定义主题
+  const customTheme = {
+    colors: {
+      editor: {
+        text: "#2d3748", // 深灰色文本
+        background: "#f8f5f0", // 米色纸张效果背景
+      },
+      menu: {
+        text: "#ffffff",
+        background: "#515151",
+      },
+      tooltip: {
+        text: "#ffffff",
+        background: "#515151",
+      },
+      hovered: {
+        text: "#222222",
+        background: "#eeeeee",
+      },
+      selected: {
+        text: "#ffffff",
+        background: "#6a994e", // 淡雅绿色选中效果
+      },
+      disabled: {
+        text: "#cdcdcd",
+        background: "#f8f5f0",
+      },
+      shadow: "#8f8f8f",
+      border: "#e2d9c8", // 稍微带点米色的边框
+      sideMenu: "#515151",
+    },
+    borderRadius: 6,
+    fontFamily: "Inter, system-ui, sans-serif",
+  };
+
   // 解析内容
   const parsedContent = useMemo(() => {
     try {
@@ -44,6 +79,11 @@ const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, classNam
         container: {
           className: 'bg-white border border-gray-200 dark:border-gray-700 preview-code-container'
         }
+      },
+      editor: {
+        root: {
+          className: 'custom-editor-root rounded-lg shadow-sm'
+        }
       }
     },
     // 确保内容是只读的
@@ -65,7 +105,7 @@ const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, classNam
       <BlockNoteView 
         editor={editor} 
         editable={false}
-        theme="light"
+        theme={customTheme}
       />
     </div>
   );

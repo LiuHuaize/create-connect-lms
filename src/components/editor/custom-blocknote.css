@@ -44,4 +44,34 @@
 .preview-mode .bn-floating-menu,
 .preview-mode .bn-formatting-toolbar {
   display: none !important;
+}
+
+/* 自定义编辑器根元素样式 */
+.custom-editor-root {
+  background-color: #f8f5f0 !important; /* 米色纸张效果背景 */
+  border: 1px solid #e2d9c8 !important; /* 淡色边框 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important; /* 轻微阴影 */
+  padding: 1rem !important;
+  /* 纸张纹理效果 */
+  background-image: linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+}
+
+/* 自定义段落样式 */
+.custom-editor-root [data-content-type="paragraph"] {
+  color: #2d3748 !important; /* 深灰色文本 */
+  line-height: 1.6 !important;
+}
+
+/* 自定义标题样式 */
+.custom-editor-root [data-content-type="heading"] {
+  color: #36635b !important; /* 深青色 */
+  font-weight: 600 !important;
+}
+
+/* 增强列表样式 */
+.custom-editor-root [data-content-type="bulletListItem"],
+.custom-editor-root [data-content-type="numberedListItem"] {
+  margin-left: 0.5rem !important;
 } 
