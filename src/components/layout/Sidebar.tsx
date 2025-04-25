@@ -14,6 +14,7 @@ import {
   MenuIcon,
   ChevronRight,
   ChevronLeft,
+  Trash2,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -98,6 +99,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
       label: "个人资料",
       icon: <User className="h-5 w-5" />,
       href: "/profile",
+    },
+    {
+      label: "回收站",
+      icon: <Trash2 className="h-5 w-5" />,
+      href: "/trash",
     },
     {
       label: "设置",

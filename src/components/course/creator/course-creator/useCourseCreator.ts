@@ -46,6 +46,8 @@ export const useCourseCreator = () => {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 默认禁用自动保存
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   // 保存课程的前一个状态，用于比较是否有变更
   const previousCourseRef = useRef<Course | null>(null);
   const previousModulesRef = useRef<CourseModule[] | null>(null);
@@ -153,6 +155,9 @@ export const useCourseCreator = () => {
 
   // 检测课程内容变更并触发自动保存
   useEffect(() => {
+    // 如果自动保存被禁用，则不执行任何操作
+    if (!autoSaveEnabled) return;
+    
     // 如果课程未加载完成，不执行自动保存
     if (isLoading || !moduleDataLoaded) return;
 
@@ -168,10 +173,10 @@ export const useCourseCreator = () => {
         clearTimeout(autoSaveTimeoutRef.current);
       }
 
-      // 设置新的定时器，延迟2秒自动保存，避免频繁保存
+      // 延长自动保存时间到10秒，减少API调用频率
       autoSaveTimeoutRef.current = setTimeout(() => {
         handleAutoSave();
-      }, 2000);
+      }, 10000); // 从2000ms改为10000ms
     }
 
     // 组件卸载时清除定时器
@@ -180,7 +185,7 @@ export const useCourseCreator = () => {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [course, modules]);
+  }, [course, modules, autoSaveEnabled]);
 
   // 检查课程和模块是否有变化
   const checkForChanges = () => {
@@ -285,21 +290,20 @@ export const useCourseCreator = () => {
       // 更新视觉反馈 - 保存成功
       toast.success('自动保存成功', {
         id: toastId,
-        duration: 1500, // 1.5秒后自动消失
+        duration: 1500,
       });
     } catch (error) {
       console.error('自动保存失败:', error);
-      // 自动保存失败显示一个短暂的错误提示
       toast.error('自动保存失败，将稍后重试', {
         duration: 3000,
       });
       
-      // 如果自动保存失败，1分钟后重试
+      // 如果自动保存失败，2分钟后重试，增加延迟以减少API调用
       setTimeout(() => {
         if (checkForChanges()) {
           handleAutoSave();
         }
-      }, 60000);
+      }, 120000); // 从60000ms改为120000ms
     } finally {
       setIsAutoSaving(false);
     }
@@ -663,6 +667,9 @@ export const useCourseCreator = () => {
     // 导出自动保存相关状态
     isAutoSaving,
     lastSaved,
+    // 导出自动保存开关控制
+    autoSaveEnabled,
+    setAutoSaveEnabled,
     // 导出撤销重做功能
     canUndo: historyIndex > 0,
     canRedo: historyIndex < history.length - 1,

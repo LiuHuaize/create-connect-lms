@@ -31,6 +31,8 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
     handleBackToSelection,
     isAutoSaving,
     lastSaved,
+    autoSaveEnabled,
+    setAutoSaveEnabled,
     canUndo,
     canRedo,
     handleUndo,
@@ -60,6 +62,8 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
         canRedo={canRedo}
         handleUndo={handleUndo}
         handleRedo={handleRedo}
+        autoSaveEnabled={autoSaveEnabled}
+        setAutoSaveEnabled={setAutoSaveEnabled}
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

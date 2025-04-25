@@ -64,6 +64,7 @@ export const courseService = {
       .from("courses")
       .select("*")
       .eq("author_id", userId)
+      .is("deleted_at", null) // 只获取未删除的课程
       .order('updated_at', { ascending: false });
 
     if (error) {
@@ -84,6 +85,7 @@ export const courseService = {
         .from("courses")
         .select("*")
         .eq("id", courseId)
+        .is("deleted_at", null) // 只获取未删除的课程
         .single();
 
       if (courseError) {
@@ -96,6 +98,7 @@ export const courseService = {
         .from("course_modules")
         .select("*")
         .eq("course_id", courseId)
+        .is("deleted_at", null) // 只获取未删除的模块
         .order("order_index");
 
       if (modulesError) {
@@ -118,6 +121,7 @@ export const courseService = {
           .from("lessons")
           .select("*")
           .eq("module_id", module.id)
+          .is("deleted_at", null) // 只获取未删除的课时
           .order("order_index");
           
         if (lessonsError) {
@@ -205,49 +209,118 @@ export const courseService = {
     return data as unknown as CourseModule;
   },
 
-  // 删除课程模块
+  // 软删除课程模块
   async deleteModule(moduleId: string): Promise<void> {
-    console.log(`开始删除模块: ${moduleId}`);
+    console.log(`开始软删除模块: ${moduleId}`);
     try {
-      // 先删除该模块下的所有课时
+      // 获取当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      // 获取模块信息，用于存储到回收站
+      const { data: moduleData, error: moduleError } = await supabase
+        .from("course_modules")
+        .select("title, course_id")
+        .eq("id", moduleId)
+        .single();
+      
+      if (moduleError) {
+        console.error('获取模块信息失败:', moduleError);
+        throw moduleError;
+      }
+      
+      // 先获取该模块下的所有课时
       const { data: lessonsData, error: lessonsError } = await supabase
         .from("lessons")
-        .select("id")
-        .eq("module_id", moduleId);
+        .select("id, title")
+        .eq("module_id", moduleId)
+        .is("deleted_at", null);
       
       if (lessonsError) {
         console.error('获取模块课时失败:', lessonsError);
         throw lessonsError;
       }
       
+      // 如果有课时需要软删除
       if (lessonsData && lessonsData.length > 0) {
-        console.log(`删除模块 ${moduleId} 下的 ${lessonsData.length} 个课时`);
-        // 有课时需要删除
-        const { error: deleteLessonsError } = await supabase
-          .from("lessons")
-          .delete()
-          .eq("module_id", moduleId);
+        console.log(`软删除模块 ${moduleId} 下的 ${lessonsData.length} 个课时`);
         
-        if (deleteLessonsError) {
-          console.error('删除模块课时失败:', deleteLessonsError);
-          throw deleteLessonsError;
+        const now = new Date().toISOString();
+        
+        // 对每个课时进行软删除
+        for (const lesson of lessonsData) {
+          // 更新课时为软删除状态
+          const { error: updateError } = await supabase
+            .from("lessons")
+            .update({
+              deleted_at: now,
+              deleted_by: user.id
+            })
+            .eq("id", lesson.id);
+            
+          if (updateError) {
+            console.error(`软删除课时 ${lesson.id} 失败:`, updateError);
+            continue;
+          }
+          
+          // 添加到回收站
+          const { error: trashError } = await supabase
+            .from("trash_items")
+            .insert({
+              item_id: lesson.id,
+              item_type: 'lesson',
+              item_name: lesson.title,
+              deleted_by: user.id,
+              course_id: moduleData.course_id,
+              metadata: {
+                module_id: moduleId,
+                module_title: moduleData.title
+              }
+            });
+            
+          if (trashError) {
+            console.error(`将课时 ${lesson.id} 添加到回收站失败:`, trashError);
+          }
         }
       }
       
-      // 然后删除模块本身
-      const { error: deleteModuleError } = await supabase
+      // 软删除模块本身
+      const { error: updateModuleError } = await supabase
         .from("course_modules")
-        .delete()
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id
+        })
         .eq("id", moduleId);
       
-      if (deleteModuleError) {
-        console.error('删除模块失败:', deleteModuleError);
-        throw deleteModuleError;
+      if (updateModuleError) {
+        console.error('软删除模块失败:', updateModuleError);
+        throw updateModuleError;
       }
       
-      console.log(`模块 ${moduleId} 及其课时已成功删除`);
+      // 添加模块到回收站
+      const { error: trashError } = await supabase
+        .from("trash_items")
+        .insert({
+          item_id: moduleId,
+          item_type: 'module',
+          item_name: moduleData.title,
+          deleted_by: user.id,
+          course_id: moduleData.course_id,
+          metadata: {
+            lessons_count: lessonsData ? lessonsData.length : 0
+          }
+        });
+        
+      if (trashError) {
+        console.error(`将模块 ${moduleId} 添加到回收站失败:`, trashError);
+      }
+      
+      console.log(`模块 ${moduleId} 及其课时已成功软删除`);
     } catch (error) {
-      console.error('删除模块过程中出错:', error);
+      console.error('软删除模块过程中出错:', error);
       throw error;
     }
   },
@@ -288,23 +361,189 @@ export const courseService = {
     return convertDbLessonToLesson(data);
   },
 
-  // 删除课时
+  // 软删除课时
   async deleteLesson(lessonId: string): Promise<void> {
-    console.log(`开始删除课时: ${lessonId}`);
+    console.log(`开始软删除课时: ${lessonId}`);
     try {
-      const { error } = await supabase
+      // 获取当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      // 获取课时信息，用于存储到回收站
+      const { data: lessonData, error: lessonError } = await supabase
         .from("lessons")
-        .delete()
+        .select("title, module_id")
+        .eq("id", lessonId)
+        .single();
+      
+      if (lessonError) {
+        console.error('获取课时信息失败:', lessonError);
+        throw lessonError;
+      }
+      
+      // 获取模块和课程信息
+      const { data: moduleData, error: moduleError } = await supabase
+        .from("course_modules")
+        .select("title, course_id")
+        .eq("id", lessonData.module_id)
+        .single();
+      
+      if (moduleError) {
+        console.error('获取模块信息失败:', moduleError);
+        throw moduleError;
+      }
+      
+      // 软删除课时
+      const { error: updateError } = await supabase
+        .from("lessons")
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id
+        })
         .eq("id", lessonId);
       
+      if (updateError) {
+        console.error('软删除课时失败:', updateError);
+        throw updateError;
+      }
+      
+      // 添加到回收站
+      const { error: trashError } = await supabase
+        .from("trash_items")
+        .insert({
+          item_id: lessonId,
+          item_type: 'lesson',
+          item_name: lessonData.title,
+          deleted_by: user.id,
+          course_id: moduleData.course_id,
+          metadata: {
+            module_id: lessonData.module_id,
+            module_title: moduleData.title
+          }
+        });
+        
+      if (trashError) {
+        console.error(`将课时 ${lessonId} 添加到回收站失败:`, trashError);
+      }
+      
+      console.log(`课时 ${lessonId} 已成功软删除`);
+    } catch (error) {
+      console.error('软删除课时过程中出错:', error);
+      throw error;
+    }
+  },
+  
+  // 从回收站恢复项目
+  async restoreItem(itemId: string): Promise<string> {
+    try {
+      // 获取当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      // 调用数据库函数进行恢复
+      const { data, error } = await supabase
+        .rpc('restore_deleted_item', {
+          p_item_id: itemId
+        });
+      
       if (error) {
-        console.error('删除课时失败:', error);
+        console.error('恢复项目失败:', error);
         throw error;
       }
       
-      console.log(`课时 ${lessonId} 已成功删除`);
+      return data || '项目已成功恢复';
     } catch (error) {
-      console.error('删除课时过程中出错:', error);
+      console.error('恢复项目过程中出错:', error);
+      throw error;
+    }
+  },
+  
+  // 获取回收站项目列表
+  async getTrashItems(userId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from("trash_items")
+        .select("*")
+        .eq("deleted_by", userId)
+        .order("deleted_at", { ascending: false });
+      
+      if (error) {
+        console.error('获取回收站项目失败:', error);
+        throw error;
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('获取回收站项目过程中出错:', error);
+      throw error;
+    }
+  },
+  
+  // 永久删除回收站中的项目（提前删除，不等待过期）
+  async permanentlyDeleteItem(itemId: string): Promise<void> {
+    try {
+      // 获取当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      // 获取回收站项目信息
+      const { data: trashItem, error: trashError } = await supabase
+        .from("trash_items")
+        .select("item_id, item_type")
+        .eq("item_id", itemId)
+        .single();
+      
+      if (trashError) {
+        console.error('获取回收站项目失败:', trashError);
+        throw trashError;
+      }
+      
+      // 根据项目类型执行永久删除
+      let deleteError;
+      
+      if (trashItem.item_type === 'course') {
+        const { error } = await supabase
+          .from("courses")
+          .delete()
+          .eq("id", trashItem.item_id);
+        deleteError = error;
+      } else if (trashItem.item_type === 'module') {
+        const { error } = await supabase
+          .from("course_modules")
+          .delete()
+          .eq("id", trashItem.item_id);
+        deleteError = error;
+      } else if (trashItem.item_type === 'lesson') {
+        const { error } = await supabase
+          .from("lessons")
+          .delete()
+          .eq("id", trashItem.item_id);
+        deleteError = error;
+      }
+      
+      if (deleteError) {
+        console.error('永久删除项目失败:', deleteError);
+        throw deleteError;
+      }
+      
+      // 从回收站中删除
+      const { error: removeError } = await supabase
+        .from("trash_items")
+        .delete()
+        .eq("item_id", itemId);
+      
+      if (removeError) {
+        console.error('从回收站删除项目失败:', removeError);
+        throw removeError;
+      }
+    } catch (error) {
+      console.error('永久删除项目过程中出错:', error);
       throw error;
     }
   },

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye, Loader2, Check, Clock, Archive, Undo, Redo } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Check, Clock, Archive, Undo, Redo, Save } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
 import CoursePreview from '../CoursePreview';
 import { clearAllCoursesCache } from '@/hooks/useCoursesData';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface CourseHeaderProps {
   course: Course;
@@ -19,6 +21,8 @@ interface CourseHeaderProps {
   canRedo?: boolean;
   handleUndo?: () => void;
   handleRedo?: () => void;
+  autoSaveEnabled?: boolean;
+  setAutoSaveEnabled?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const CourseHeader: React.FC<CourseHeaderProps> = ({
@@ -32,7 +36,9 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   canUndo = false,
   canRedo = false,
   handleUndo = () => {},
-  handleRedo = () => {}
+  handleRedo = () => {},
+  autoSaveEnabled = false,
+  setAutoSaveEnabled
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -238,6 +244,20 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
             </Button>
           </div>
 
+          {/* 自动保存开关 */}
+          {setAutoSaveEnabled && (
+            <div className="flex items-center space-x-2 mr-3">
+              <Switch
+                id="auto-save"
+                checked={autoSaveEnabled}
+                onCheckedChange={setAutoSaveEnabled}
+              />
+              <Label htmlFor="auto-save" className="text-sm cursor-pointer">
+                自动保存
+              </Label>
+            </div>
+          )}
+
           {/* 自动保存状态指示器 */}
           {course.id && (
             <div className="flex items-center mr-3 text-sm text-gray-500">
@@ -273,13 +293,19 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
             variant="outline" 
             onClick={handleSave}
             disabled={isSaving || isPublishing || isUnpublishing}
+            className="gap-2"
           >
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 保存中...
               </>
-            ) : '保存草稿'}
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-1" />
+                保存
+              </>
+            )}
           </Button>
           
           {isPublished ? (

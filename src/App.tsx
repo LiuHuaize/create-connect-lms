@@ -30,6 +30,7 @@ import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
 import ExploreCourses from "./pages/ExploreCourses";
 import ModelTestComponent from "./components/ModelTestComponent";
+import TrashPage from "./pages/trash";
 
 // 创建QueryClient并配置默认缓存策略
 const queryClient = new QueryClient({
@@ -204,6 +205,11 @@ const AppRoutes = () => {
             <Route path="/settings" element={
               <ProtectedRoute>
                 <SettingsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/trash" element={
+              <ProtectedRoute>
+                <TrashPage />
               </ProtectedRoute>
             } />
             <Route path="/editor-test" element={
