@@ -444,17 +444,39 @@ const LessonContent: React.FC<LessonContentProps> = ({
             <DragSortExercise 
               lesson={selectedLesson}
               onComplete={(isCorrect, mappings) => {
+                console.log('拖拽练习完成回调被触发', { isCorrect, mappingsCount: mappings.length });
+                
                 if (isCorrect && selectedLesson && courseData && enrollmentId) {
-                  courseService.markLessonComplete(
-                    selectedLesson.id,
-                    courseData.id,
-                    enrollmentId,
-                    isCorrect ? 100 : 0,
-                    {
-                      isCorrect,
-                      mappings
-                    }
-                  );
+                  console.log('开始标记课时完成...');
+                  
+                  // 使用try-catch并显示toast消息
+                  try {
+                    toast.loading('正在保存结果...');
+                    
+                    courseService.markLessonComplete(
+                      selectedLesson.id,
+                      courseData.id,
+                      enrollmentId,
+                      isCorrect ? 100 : 0,
+                      {
+                        isCorrect,
+                        mappings
+                      }
+                    )
+                    .then(() => {
+                      console.log('课时标记完成成功');
+                      toast.success('练习结果已保存');
+                    })
+                    .catch(error => {
+                      console.error('课时标记完成失败:', error);
+                      toast.error('保存结果时出错，请稍后再试');
+                    });
+                  } catch (error) {
+                    console.error('保存练习结果时出错:', error);
+                    toast.error('保存结果时出错，请稍后再试');
+                  }
+                } else {
+                  console.log('未能标记课时完成', { isCorrect, selectedLesson: !!selectedLesson, courseData: !!courseData, enrollmentId });
                 }
               }}
             />

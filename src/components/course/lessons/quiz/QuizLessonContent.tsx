@@ -55,40 +55,6 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
         <p className="text-ghibli-brown text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
       </div>
       
-      {quizSubmitted && quizResult && (
-        <div className={`p-4 rounded-lg mb-4 ${quizResult.score >= 60 ? 'bg-ghibli-mint/30 border border-ghibli-teal/30' : 'bg-ghibli-peach/20 border border-ghibli-coral/20'}`}>
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className={`font-medium mb-2 ${quizResult.score >= 60 ? 'text-ghibli-deepTeal' : 'text-ghibli-brown'}`}>
-                测验结果
-              </h3>
-              <p className={quizResult.score >= 60 ? 'text-ghibli-deepTeal font-medium' : 'text-ghibli-brown font-medium'}>
-                你的得分: {quizResult.score}% ({Math.round(quizResult.score * quizResult.totalQuestions / 100)}/{quizResult.totalQuestions} 题正确)
-              </p>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="border-ghibli-peach/40 text-ghibli-brown hover:bg-ghibli-sand/30"
-              onClick={onUnmarkComplete}
-              disabled={isCompletionLoading}
-            >
-              {isCompletionLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  处理中...
-                </>
-              ) : (
-                <>
-                  <X className="mr-2 h-4 w-4" />
-                  取消完成标记
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
-      
       {content?.questions && content.questions.length > 0 ? (
         <div className="space-y-6">
           {content.questions.map((question: any, qIndex: number) => (

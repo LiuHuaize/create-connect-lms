@@ -9,6 +9,8 @@ import { useCardGenerator } from '@/hooks/useCardGenerator';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Star, Wand2, Download, Send, Check, Clock, Brain, Image as ImageIcon, Code, Lightbulb } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { containsMarkdown } from '@/utils/markdownUtils';
 
 interface CardCreatorStudentProps {
   taskId: string;
@@ -300,7 +302,13 @@ export function CardCreatorStudent({ taskId, studentId, task, onSubmit }: CardCr
           <Star className="h-6 w-6 text-ghibli-sunshine mr-2" />
           <h3 className="text-xl font-bold text-ghibli-deepTeal">{task.title}</h3>
         </div>
-        <p className="text-ghibli-brown text-base leading-relaxed">{task.instructions}</p>
+        <p className="text-ghibli-brown text-base leading-relaxed">
+          {containsMarkdown(task.instructions) ? (
+            <MarkdownRenderer>{task.instructions}</MarkdownRenderer>
+          ) : (
+            task.instructions
+          )}
+        </p>
         
         {task.template_type === 'image' && task.template_image_url && (
           <motion.div 
@@ -332,9 +340,13 @@ export function CardCreatorStudent({ taskId, studentId, task, onSubmit }: CardCr
             <p className="text-sm font-medium mb-2 text-ghibli-deepTeal flex items-center">
               <Sparkles className="h-4 w-4 mr-1 text-ghibli-teal" /> 模板描述
             </p>
-            <p className="text-ghibli-brown italic text-base bg-white/70 backdrop-blur-sm p-3 rounded-lg border border-ghibli-teal/30 shadow-sm">
-              {task.template_description}
-            </p>
+            <div className="bg-white/70 backdrop-blur-sm p-3 rounded-lg border border-ghibli-teal/30 shadow-sm">
+              {containsMarkdown(task.template_description) ? (
+                <MarkdownRenderer>{task.template_description}</MarkdownRenderer>
+              ) : (
+                <p className="text-ghibli-brown italic text-base">{task.template_description}</p>
+              )}
+            </div>
           </motion.div>
         )}
       </motion.div>

@@ -1,10 +1,12 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { DragSortCategory, DragSortItem } from '@/types/course';
+import { CheckCircle, X } from 'lucide-react';
 
 interface CategoryDropZoneProps {
   category: DragSortCategory;
-  items: DragSortItem[]; // 当前放置在此分类中的项目
+  items: (DragSortItem & { isCorrect?: boolean | null })[];  // 添加isCorrect属性
+  showCorrectness?: boolean;  // 是否显示正确性标记
 }
 
 // 吉卜力风格的柔和色调
@@ -24,7 +26,11 @@ const getHashCode = (str: string) => {
   return Math.abs(hash);
 };
 
-const CategoryDropZone: React.FC<CategoryDropZoneProps> = ({ category, items }) => {
+const CategoryDropZone: React.FC<CategoryDropZoneProps> = ({ 
+  category, 
+  items, 
+  showCorrectness = false 
+}) => {
   const { isOver, setNodeRef } = useDroppable({
     id: category.id,
   });
@@ -67,12 +73,32 @@ const CategoryDropZone: React.FC<CategoryDropZoneProps> = ({ category, items }) 
                 className={`
                   p-2.5 bg-white border rounded-md transition-all
                   hover:shadow-sm ${theme.border} hover:${theme.bg}
+                  ${showCorrectness && item.isCorrect !== null ? 
+                    item.isCorrect === true ? 
+                      'border-green-300 bg-green-50' : 
+                      'border-red-300 bg-red-50' 
+                    : ''}
                 `}
               >
-                <div className={`text-sm font-medium ${theme.text}`}>{item.text}</div>
-                {item.description && (
-                  <div className="text-xs text-gray-500 mt-1">{item.description}</div>
-                )}
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className={`text-sm font-medium ${theme.text}`}>{item.text}</div>
+                    {item.description && (
+                      <div className="text-xs text-gray-500 mt-1">{item.description}</div>
+                    )}
+                  </div>
+                  
+                  {/* 正确性标记 */}
+                  {showCorrectness && item.isCorrect !== null && (
+                    <div className="ml-2 flex-shrink-0">
+                      {item.isCorrect ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <X className="h-5 w-5 text-red-500" />
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
