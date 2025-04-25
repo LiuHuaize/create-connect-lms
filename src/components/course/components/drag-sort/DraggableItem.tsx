@@ -15,9 +15,9 @@ const DraggableItem: React.FC<DraggableItemProps> = ({ item, isPlaced }) => {
     disabled: isPlaced,
   });
   
-  const style = {
-    transform: CSS.Transform.toString(transform),
-  };
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
 
   return (
     <div
@@ -26,29 +26,27 @@ const DraggableItem: React.FC<DraggableItemProps> = ({ item, isPlaced }) => {
       {...listeners}
       {...attributes}
       className={`
-        p-3 border rounded-md relative
-        ${isDragging ? 'shadow-md border-blue-300 bg-blue-50 z-10' : ''} 
-        ${isPlaced ? 'opacity-40 bg-gray-100 cursor-not-allowed' : 'bg-white cursor-grab hover:border-blue-300 hover:bg-blue-50/50 hover:shadow-sm'}
-        transition-all duration-200 group
+        p-3 border-2 rounded-lg relative flex items-start
+        ${isDragging ? 'shadow-lg border-[#b3c596] bg-[#edf5e1] z-10' : ''} 
+        ${isPlaced ? 'opacity-35 bg-gray-50 cursor-not-allowed border-gray-200' : 'bg-white cursor-grab hover:border-[#c3d5a6] hover:bg-[#f7f9f2] hover:shadow-sm border-[#e4ebd5]'}
+        transition-all duration-150 group
       `}
     >
-      <div className="flex items-start">
-        <div className="flex-1">
-          <div className="text-sm font-medium text-gray-700">{item.text}</div>
-          {item.description && (
-            <div className="text-xs text-gray-500 mt-1">{item.description}</div>
-          )}
-        </div>
-        
-        {!isPlaced && (
-          <div className={`
-            text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity
-            ${isDragging ? 'opacity-100' : ''}
-          `}>
-            <GripVertical size={16} className="ml-2" />
-          </div>
+      <div className="flex-1">
+        <div className={`text-sm font-medium ${isPlaced ? 'text-gray-400' : 'text-[#5c7744]'}`}>{item.text}</div>
+        {item.description && (
+          <div className="text-xs text-gray-500 mt-1">{item.description}</div>
         )}
       </div>
+      
+      {!isPlaced && (
+        <div className={`
+          text-[#8aad6a] opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0
+          ${isDragging ? 'opacity-100' : ''}
+        `}>
+          <GripVertical size={16} />
+        </div>
+      )}
     </div>
   );
 };

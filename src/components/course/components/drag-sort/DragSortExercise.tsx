@@ -70,90 +70,97 @@ const DragSortExercise: React.FC<DragSortExerciseProps> = ({
       return [...filtered, { itemId, categoryId }];
     });
   };
-  
+
   // 撤销上一步操作
   const handleUndo = () => {
-    if (history.length === 0) {
-      toast.info('没有可撤销的操作');
-      return;
-    }
+    if (history.length === 0) return;
     
+    // 获取最近的历史状态
     const lastState = history[history.length - 1];
+    
+    // 恢复到历史状态
     setCurrentMappings(lastState);
+    
+    // 从历史记录中移除该状态
     setHistory(prev => prev.slice(0, -1));
-    toast.success('已撤销上一步操作');
   };
 
-  // 检查答案是否正确
+  // 重置所有分类
+  const handleReset = () => {
+    setCurrentMappings([]);
+    setHistory([]);
+  };
+
+  // 检查答案并完成练习
   const checkAnswer = () => {
-    // 首先检查是否所有项目都已放置
-    if (currentMappings.length !== content.items.length) {
-      toast.error('请将所有项目拖放到相应的分类中');
+    // 如果没有完成所有分类，则提示用户
+    if (content.items.some(item => !isItemPlaced(item.id))) {
+      toast.warning('请先完成所有项目的分类');
       return;
     }
     
-    // 检查每个映射是否正确
-    const isAllCorrect = content.correctMappings.every(correctMapping => {
-      return currentMappings.some(
-        userMapping => 
-          userMapping.itemId === correctMapping.itemId && 
-          userMapping.categoryId === correctMapping.categoryId
+    // 判断每个项目的分类是否正确
+    const correctCount = currentMappings.filter(mapping => {
+      // 从正确答案中查找
+      const correctMapping = content.correctMappings.find(correct => 
+        correct.itemId === mapping.itemId
       );
-    });
+      
+      // 验证此项目的分类是否正确
+      return correctMapping && correctMapping.categoryId === mapping.categoryId;
+    }).length;
     
-    if (isAllCorrect) {
+    // 计算正确率
+    const accuracy = correctCount / content.items.length;
+    
+    // 根据正确率显示不同的消息
+    if (accuracy === 1) {
       toast.success('恭喜！所有分类都正确！');
+    } else if (accuracy >= 0.8) {
+      toast.success(`做得不错！你有 ${correctCount} 个分类是正确的，共 ${content.items.length} 个。`);
+    } else if (accuracy >= 0.6) {
+      toast.info(`有 ${correctCount} 个分类是正确的，共 ${content.items.length} 个。再试一次吧！`);
     } else {
-      toast.error('有些分类不正确，请再试一次');
+      toast.error(`只有 ${correctCount} 个分类是正确的，共 ${content.items.length} 个。请检查并再试一次。`);
     }
     
-    // 如果有回调函数，则调用它
+    // 触发完成回调
     if (onComplete) {
-      onComplete(isAllCorrect, currentMappings);
+      onComplete(accuracy === 1, currentMappings);
     }
-  };
-
-  // 重置操作
-  const handleReset = () => {
-    // 保存当前状态到历史记录
-    if (currentMappings.length > 0) {
-      setHistory(prev => [...prev, [...currentMappings]]);
-    }
-    setCurrentMappings([]);
-    toast.info('已重置所有分类');
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 bg-white rounded-lg shadow-sm">
+    <div className="w-full max-w-5xl mx-auto p-4 bg-gradient-to-b from-white to-[#f2f7e9] rounded-xl shadow-sm">
       {/* 介绍文字和操作说明 */}
       <div className="mb-6">
         <div className="flex justify-between items-start">
-          <h3 className="text-xl font-semibold mb-2">分类练习</h3>
+          <h3 className="text-xl font-semibold mb-2 text-[#5c7744]">分类练习</h3>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="px-2">
+                <Button variant="ghost" size="sm" className="px-2 text-[#5c7744]">
                   <HelpCircle size={18} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>拖动左侧项目到右侧对应分类中。如需撤销操作，点击右上角的撤销按钮。</p>
+                <p>将上方项目拖动到下方对应的分类中。如需撤销操作，点击右上角的撤销按钮。</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className="text-gray-700 bg-gray-50 p-3 rounded-md border border-gray-100">
+        <div className="text-gray-700 bg-white p-4 rounded-lg border border-[#d5e0c0] shadow-sm">
           {content.introduction}
         </div>
       </div>
       
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* 可拖拽项目区域 */}
-          <div className="w-full md:w-1/2">
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 h-full">
+        <div className="flex flex-col gap-6">
+          {/* 可拖拽项目区域 - 上方 */}
+          <div className="w-full">
+            <div className="bg-white p-4 rounded-lg border-2 border-[#d5e0c0] shadow-sm">
               <div className="flex justify-between items-center mb-3">
-                <h4 className="font-medium text-gray-700">待分类项目</h4>
+                <h4 className="font-medium text-[#5c7744]">待分类项目</h4>
                 {currentMappings.length > 0 && (
                   <TooltipProvider>
                     <Tooltip>
@@ -163,7 +170,7 @@ const DragSortExercise: React.FC<DragSortExerciseProps> = ({
                           size="sm" 
                           onClick={handleUndo} 
                           disabled={history.length === 0}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 border-[#d5e0c0] text-[#5c7744]"
                         >
                           <CornerUpLeft size={16} />
                         </Button>
@@ -175,7 +182,7 @@ const DragSortExercise: React.FC<DragSortExerciseProps> = ({
                   </TooltipProvider>
                 )}
               </div>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {content.items.map(item => (
                   <DraggableItem 
                     key={item.id} 
@@ -185,18 +192,18 @@ const DragSortExercise: React.FC<DragSortExerciseProps> = ({
                 ))}
               </div>
               {content.items.length > 0 && content.items.every(item => isItemPlaced(item.id)) && (
-                <div className="mt-4 text-center text-sm text-gray-500">
-                  所有项目已放置完成
+                <div className="mt-4 text-center text-sm text-[#5c7744] font-medium">
+                  所有项目已放置完成 ✓
                 </div>
               )}
             </div>
           </div>
           
-          {/* 分类区域 */}
-          <div className="w-full md:w-1/2">
-            <div className="h-full">
-              <h4 className="font-medium mb-3 text-gray-700">分类区域</h4>
-              <div className="space-y-4">
+          {/* 分类区域 - 下方 */}
+          <div className="w-full">
+            <div>
+              <h4 className="font-medium mb-3 text-[#5c7744]">分类区域</h4>
+              <div className="flex flex-wrap gap-4 justify-center">
                 {content.categories.map(category => (
                   <CategoryDropZone 
                     key={category.id} 
@@ -215,10 +222,10 @@ const DragSortExercise: React.FC<DragSortExerciseProps> = ({
       {/* 控制按钮 */}
       {!isPreview && (
         <div className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={handleReset} className="text-gray-600">
+          <Button variant="outline" onClick={handleReset} className="border-[#d5e0c0] text-[#5c7744] hover:bg-[#f2f7e9]">
             重置
           </Button>
-          <Button onClick={checkAnswer} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button onClick={checkAnswer} className="bg-[#7d9d60] hover:bg-[#6c8a52] text-white">
             提交答案
           </Button>
         </div>

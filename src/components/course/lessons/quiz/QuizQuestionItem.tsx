@@ -79,7 +79,7 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             const isSelected = selectedAnswer === option.id;
             const isCorrect = option.id === question.correctOption;
             const shouldHighlightCorrect = (quizSubmitted || showCorrectAnswer) && isCorrect;
-            const shouldHighlightWrong = isSelected && !isCorrect && !showCorrectAnswer;
+            const shouldHighlightWrong = isSelected && !isCorrect && showCorrectAnswer;
             
             return (
               <label 
@@ -89,14 +89,16 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
                     ? 'bg-ghibli-mint/20 border-ghibli-teal/50' 
                     : shouldHighlightWrong 
                       ? 'bg-ghibli-peach/20 border-ghibli-coral/50' 
-                      : 'border-gray-200 hover:bg-gray-50'
+                      : isSelected
+                        ? 'bg-gray-100 border-gray-300'
+                        : 'border-gray-200'
                 }`}
               >
                 <input 
                   type="radio" 
                   name={`q-${question.id}`} 
                   className="mr-3 h-4 w-4 accent-blue-500 mt-1" 
-                  checked={userAnswer === option.id}
+                  checked={selectedAnswer === option.id}
                   onChange={() => onAnswerSelect(question.id, option.id)}
                   disabled={quizSubmitted || showCorrectAnswer}
                 />
