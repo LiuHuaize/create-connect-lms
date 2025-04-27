@@ -7,19 +7,31 @@ import { Database } from '@/types/database.types';
 // 全局课程完成状态缓存
 export const lessonCompletionCache: Record<string, Record<string, boolean>> = {};
 
-// 辅助函数：将Json转换为LessonContent
-const convertJsonToLessonContent = (content: Json): LessonContent => {
-  // 由于我们知道Json是从LessonContent序列化而来，可以安全地转换回来
-  return content as unknown as LessonContent;
-};
-
-// 辅助函数：将数据库中的课时转换为前端所需的Lesson类型
-const convertDbLessonToLesson = (dbLesson: any): Lesson => {
-  return {
-    ...dbLesson,
-    content: convertJsonToLessonContent(dbLesson.content)
-  } as Lesson;
-};
+// 提取 lesson 数据库记录转换为应用模型的函数
+export function convertDbLessonToLesson(dbLesson: any): Lesson {
+  try {
+    // 如果 content 是字符串，尝试解析为对象
+    let parsedContent = dbLesson.content;
+    if (typeof dbLesson.content === 'string' && dbLesson.content) {
+      try {
+        parsedContent = JSON.parse(dbLesson.content);
+      } catch (e) {
+        console.error('解析课时内容失败:', e);
+      }
+    } else if (typeof dbLesson.content === 'object' && dbLesson.content !== null) {
+      // 已经是对象，直接使用
+      parsedContent = dbLesson.content;
+    }
+    
+    return {
+      ...dbLesson,
+      content: parsedContent
+    };
+  } catch (error) {
+    console.error('转换课时数据失败:', error);
+    return dbLesson;
+  }
+}
 
 export const courseService = {
   // 创建或更新课程
@@ -75,80 +87,141 @@ export const courseService = {
     return data as Course[] || [];
   },
 
-  // 获取单个课程详情（包括模块和课时）
+  // 获取课程基本信息（不包括模块和课时）
+  async getCourseBasicInfo(courseId: string): Promise<Course> {
+    const { data, error } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("id", courseId)
+      .is("deleted_at", null) // 只获取未删除的课程
+      .single();
+
+    if (error) {
+      console.error('获取课程基本信息失败:', error);
+      throw error;
+    }
+    
+    return data as Course;
+  },
+
+  // 获取课程的所有模块（不包括课时）
+  async getCourseModules(courseId: string): Promise<CourseModule[]> {
+    const { data, error } = await supabase
+      .from("course_modules")
+      .select("*")
+      .eq("course_id", courseId)
+      .is("deleted_at", null) // 只获取未删除的模块
+      .order("order_index");
+
+    if (error) {
+      console.error('获取课程模块失败:', error);
+      throw error;
+    }
+    
+    return data as CourseModule[] || [];
+  },
+
+  // 获取单个模块的所有课时
+  async getModuleLessons(moduleId: string): Promise<Lesson[]> {
+    const { data, error } = await supabase
+      .from("lessons")
+      .select("*")
+      .eq("module_id", moduleId)
+      .is("deleted_at", null) // 只获取未删除的课时
+      .order("order_index");
+      
+    if (error) {
+      console.error(`获取模块 ${moduleId} 的课时失败:`, error);
+      throw error;
+    }
+    
+    // 转换课时内容格式
+    const convertedLessons = data 
+      ? data.map(convertDbLessonToLesson).sort((a, b) => a.order_index - b.order_index)
+      : [];
+      
+    return convertedLessons;
+  },
+
+  // 获取单个课程详情（包括模块和课时）- 原始完整加载方法
   async getCourseDetails(courseId: string): Promise<Course & { modules?: CourseModule[] }> {
     try {
       console.time('getCourseDetails'); // 性能计时开始
       
       // 获取课程基本信息
-      const { data: courseData, error: courseError } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("id", courseId)
-        .is("deleted_at", null) // 只获取未删除的课程
-        .single();
-
-      if (courseError) {
-        console.error('获取课程详情失败:', courseError);
-        throw courseError;
-      }
-
+      const courseData = await this.getCourseBasicInfo(courseId);
+      
       // 获取课程模块 - 不包含课时，先获取模块结构
-      const { data: modulesData, error: modulesError } = await supabase
-        .from("course_modules")
-        .select("*")
-        .eq("course_id", courseId)
-        .is("deleted_at", null) // 只获取未删除的模块
-        .order("order_index");
-
-      if (modulesError) {
-        console.error('获取课程模块失败:', modulesError);
-        throw modulesError;
-      }
+      const modulesData = await this.getCourseModules(courseId);
 
       // 如果没有模块，直接返回课程信息
       if (!modulesData || modulesData.length === 0) {
         console.timeEnd('getCourseDetails');
         return {
-          ...(courseData as Course),
+          ...courseData,
           modules: []
         };
       }
 
-      // 获取每个模块的课时 - 分批处理，避免一次加载过多数据
-      const modulesWithLessons = await Promise.all(modulesData.map(async (module) => {
-        const { data: lessonsData, error: lessonsError } = await supabase
-          .from("lessons")
-          .select("*")
-          .eq("module_id", module.id)
-          .is("deleted_at", null) // 只获取未删除的课时
-          .order("order_index");
-          
-        if (lessonsError) {
-          console.error(`获取模块 ${module.id} 的课时失败:`, lessonsError);
-          return { ...module, lessons: [] };
-        }
-        
-        const convertedLessons = lessonsData 
-          ? lessonsData.map(convertDbLessonToLesson).sort((a, b) => a.order_index - b.order_index)
-          : [];
-          
-        return {
-          ...module,
-          lessons: convertedLessons
-        };
-      }));
+      // 获取每个模块的课时
+      const modulesWithLessons = await Promise.all(
+        modulesData.map(async (module) => {
+          const lessonsData = await this.getModuleLessons(module.id);
+          return {
+            ...module,
+            lessons: lessonsData
+          };
+        })
+      );
 
       console.timeEnd('getCourseDetails'); // 性能计时结束
       
       return {
-        ...(courseData as Course),
+        ...courseData,
         modules: modulesWithLessons as CourseModule[]
       };
     } catch (error) {
       console.error('获取课程详情时出错:', error);
       throw error;
     }
+  },
+
+  // 优化版本：批量获取模块的课时
+  async getModuleLessonsBatch(moduleIds: string[]): Promise<Record<string, Lesson[]>> {
+    if (!moduleIds.length) return {};
+    
+    const { data, error } = await supabase
+      .from("lessons")
+      .select("*")
+      .in("module_id", moduleIds)
+      .is("deleted_at", null) // 只获取未删除的课时
+      .order("order_index");
+      
+    if (error) {
+      console.error(`批量获取模块课时失败:`, error);
+      throw error;
+    }
+    
+    // 按模块ID组织课时
+    const lessonsByModule: Record<string, Lesson[]> = {};
+    moduleIds.forEach(id => lessonsByModule[id] = []);
+    
+    // 转换并分组课时
+    if (data && data.length > 0) {
+      data.forEach(lesson => {
+        const moduleId = lesson.module_id;
+        if (moduleId && lessonsByModule[moduleId]) {
+          lessonsByModule[moduleId].push(convertDbLessonToLesson(lesson));
+        }
+      });
+      
+      // 确保每个模块的课时都按顺序排列
+      Object.keys(lessonsByModule).forEach(moduleId => {
+        lessonsByModule[moduleId].sort((a, b) => a.order_index - b.order_index);
+      });
+    }
+    
+    return lessonsByModule;
   },
 
   // 更新课程状态（发布/草稿/存档）
@@ -725,6 +798,45 @@ export const courseService = {
     } catch (error) {
       console.error('获取课时完成状态失败:', error);
       return {};
+    }
+  },
+
+  // 优化的批量保存课时功能
+  async saveLessonsInBatch(lessons: Lesson[], moduleId: string): Promise<Lesson[]> {
+    if (!lessons || lessons.length === 0) {
+      return [];
+    }
+    
+    try {
+      console.log(`批量保存 ${lessons.length} 个课时到模块 ${moduleId}`);
+      
+      // 准备批量保存数据，确保每个课时都有正确的模块ID
+      const lessonsToSave = lessons.map(lesson => ({
+        ...lesson,
+        module_id: moduleId,
+        content: typeof lesson.content === 'object' ? lesson.content : {},
+        updated_at: new Date().toISOString()
+      }));
+      
+      // 批量保存课时
+      const { data, error } = await supabase
+        .from("lessons")
+        .upsert(lessonsToSave)
+        .select("*");
+        
+      if (error) {
+        console.error('批量保存课时失败:', error);
+        throw error;
+      }
+      
+      // 转换返回的课时数据
+      const savedLessons = data ? data.map(convertDbLessonToLesson) : [];
+      console.log(`成功批量保存了 ${savedLessons.length} 个课时`);
+      
+      return savedLessons;
+    } catch (error) {
+      console.error('批量保存课时出错:', error);
+      throw error;
     }
   }
 };

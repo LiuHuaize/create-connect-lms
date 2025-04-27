@@ -22,7 +22,7 @@ interface RecommendedCoursesProps {
 }
 
 const RecommendedCourses: React.FC<RecommendedCoursesProps> = ({ 
-  recommendedCourses, 
+  recommendedCourses = [],
   loadingRecommended 
 }) => {
   return (
@@ -48,7 +48,7 @@ const RecommendedCourses: React.FC<RecommendedCoursesProps> = ({
           <div className="text-center py-12 col-span-full">
             <p className="text-gray-500">正在加载推荐课程...</p>
           </div>
-        ) : recommendedCourses.length > 0 ? (
+        ) : recommendedCourses && recommendedCourses.length > 0 ? (
           recommendedCourses.map((course) => (
             <CourseCard
               key={course.id}

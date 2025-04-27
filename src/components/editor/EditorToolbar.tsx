@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
@@ -27,8 +26,63 @@ import {
   AlignLeft, AlignCenter, AlignRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { type BlockNoteEditor } from '@blocknote/core';
+import { BiFullscreen, BiExitFullscreen } from 'react-icons/bi';
+import clsx from 'clsx';
 
-const EditorToolbar: React.FC = () => {
+interface EditorToolbarProps {
+  editor: BlockNoteEditor | null;
+  isFullscreen: boolean;
+  isMobile: boolean;
+  toggleFullscreen: () => void;
+}
+
+export const EditorToolbar: React.FC<EditorToolbarProps> = ({
+  editor,
+  isFullscreen,
+  isMobile,
+  toggleFullscreen
+}) => {
+  if (!editor) return null;
+  
+  // 处理全屏按钮点击，阻止默认行为和冒泡
+  const handleFullscreenClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFullscreen();
+  };
+
+  return (
+    <div className={clsx(
+      "flex items-center border-b border-gray-200 dark:border-gray-700",
+      "justify-between p-1 bg-white dark:bg-gray-800",
+      isFullscreen ? "sticky top-0 z-10" : ""
+    )}>
+      {/* 工具栏区域 - 不再直接渲染editor.formattingToolbar */}
+      <div className="flex flex-1" />
+      
+      {/* 右侧工具按钮 */}
+      <div className="flex items-center">
+        {/* 全屏按钮 */}
+        <button
+          type="button"
+          className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          onClick={handleFullscreenClick}
+          aria-label={isFullscreen ? '退出全屏' : '全屏编辑'}
+          title={isFullscreen ? '退出全屏' : '全屏编辑'}
+        >
+          {isFullscreen ? (
+            <BiExitFullscreen className="w-5 h-5" />
+          ) : (
+            <BiFullscreen className="w-5 h-5" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const EditorToolbarOld: React.FC = () => {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
@@ -306,4 +360,4 @@ const EditorToolbar: React.FC = () => {
   );
 };
 
-export default EditorToolbar;
+export default EditorToolbarOld;
