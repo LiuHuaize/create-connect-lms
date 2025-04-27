@@ -195,121 +195,119 @@ const ModuleList: React.FC<ModuleListProps> = ({
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    // 重置光标样式
     if (typeof document !== 'undefined') {
       document.body.style.cursor = '';
     }
-    
-    // 重置activeId
     setActiveId(null);
     
     const { active, over } = event;
     
-    if (!over) return;
+    if (!over || active.id === over.id) {
+      return;
+    }
     
     const activeId = active.id as string;
     const overId = over.id as string;
-    
-    // 如果没有移动位置，不做任何处理
-    if (activeId === overId) return;
-    
-    // 源数据
     const activeData = active.data.current;
-    const activeModuleId = activeData?.moduleId;
-    
-    // 目标数据
     const overData = over.data.current;
-    const overModuleId = overData?.moduleId;
-    
-    // 如果over是模块ID而不是课时ID，说明将课时拖到了模块上
+    const activeModuleId = activeData?.moduleId as string | undefined;
+    const overModuleId = overData?.moduleId as string | undefined;
     const overIsModule = !overData || overData.moduleId === overId;
     
-    // 更新状态前先复制一份
-    const updatedModules = [...modules];
-    
-    // 找到源模块
-    const sourceModuleIndex = updatedModules.findIndex(m => m.id === activeModuleId);
-    if (sourceModuleIndex === -1) return;
-    
-    const sourceModule = updatedModules[sourceModuleIndex];
-    const sourceLessons = [...(sourceModule.lessons || [])];
-    
-    // 找到被拖拽的课时
-    const lessonIndex = sourceLessons.findIndex(l => l.id === activeId);
-    if (lessonIndex === -1) return;
-    
-    const movedLesson = sourceLessons[lessonIndex];
-    
-    // 如果是在同一个模块内拖拽
-    if (activeModuleId === overModuleId && !overIsModule) {
-      // 找到目标课时的索引
-      const overLessonIndex = sourceLessons.findIndex(l => l.id === overId);
-      if (overLessonIndex === -1) return;
-      
-      // 移动课时并更新order_index
-      const newLessons = arrayMove(sourceLessons, lessonIndex, overLessonIndex);
-      newLessons.forEach((lesson, idx) => {
-        lesson.order_index = idx;
-      });
-      
-      updatedModules[sourceModuleIndex] = {
-        ...sourceModule,
-        lessons: newLessons
-      };
-    } 
-    // 如果是跨模块拖拽
-    else if (activeModuleId !== overModuleId || overIsModule) {
-      // 从源模块删除课时
-      sourceLessons.splice(lessonIndex, 1);
-      sourceLessons.forEach((lesson, idx) => {
-        lesson.order_index = idx;
-      });
-      
-      updatedModules[sourceModuleIndex] = {
-        ...sourceModule,
-        lessons: sourceLessons
-      };
-      
-      // 将课时添加到目标模块
-      const targetModuleIndex = updatedModules.findIndex(m => overIsModule ? m.id === overId : m.id === overModuleId);
-      
-      if (targetModuleIndex !== -1) {
-        const targetModule = updatedModules[targetModuleIndex];
-        const targetLessons = [...(targetModule.lessons || [])];
-        
-        // 更新被移动课时的模块ID
-        const updatedMovedLesson = {
-          ...movedLesson,
-          module_id: targetModule.id
-        };
-        
-        // 如果拖到了模块上，则添加到末尾
-        if (overIsModule) {
-          updatedMovedLesson.order_index = targetLessons.length;
-          targetLessons.push(updatedMovedLesson);
-        } 
-        // 否则找到目标位置插入
-        else {
-          const overLessonIndex = targetLessons.findIndex(l => l.id === overId);
-          if (overLessonIndex !== -1) {
-            targetLessons.splice(overLessonIndex, 0, updatedMovedLesson);
-            targetLessons.forEach((lesson, idx) => {
-              lesson.order_index = idx;
-            });
-          } else {
-            updatedMovedLesson.order_index = targetLessons.length;
-            targetLessons.push(updatedMovedLesson);
-          }
-        }
-        
-        updatedModules[targetModuleIndex] = {
-          ...targetModule,
-          lessons: targetLessons
-        };
+    // --- Module Reordering --- 
+    if (activeData?.type === 'module') {
+      const activeIndex = modules.findIndex((m) => m.id === activeId);
+      const overModuleTargetId = overIsModule ? overId : overModuleId;
+      const overIndex = modules.findIndex((m) => m.id === overModuleTargetId);
+
+      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+        setModules((prevModules) => {
+          const reordered = arrayMove(prevModules, activeIndex, overIndex);
+          return reordered.map((module, index) => ({ ...module, order_index: index }));
+        });
       }
+      return;
     }
-    
-    setModules(updatedModules);
+
+    // --- Lesson Reordering --- 
+    if (activeData?.type !== 'module' && activeModuleId) {
+      setModules((prevModules) => {
+        const sourceModuleIndex = prevModules.findIndex(m => m.id === activeModuleId);
+        if (sourceModuleIndex === -1) return prevModules; // Source module not found
+
+        const sourceModule = prevModules[sourceModuleIndex];
+        const sourceLessons = sourceModule.lessons || [];
+        const lessonIndex = sourceLessons.findIndex(l => l.id === activeId);
+        if (lessonIndex === -1) return prevModules; // Lesson not found
+
+        const movedLesson = sourceLessons[lessonIndex];
+
+        // Scenario 1: Same Module Drag
+        if (!overIsModule && activeModuleId === overModuleId) {
+          const overLessonIndex = sourceLessons.findIndex(l => l.id === overId);
+          if (overLessonIndex === -1 || lessonIndex === overLessonIndex) return prevModules; // Target not found or no move
+
+          const newSourceLessons = arrayMove(sourceLessons, lessonIndex, overLessonIndex)
+            .map((lesson, index) => ({ ...lesson, order_index: index }));
+            
+          // Return new modules array with updated source module
+          return prevModules.map((mod, index) => 
+            index === sourceModuleIndex ? { ...sourceModule, lessons: newSourceLessons } : mod
+          );
+        }
+        // Scenario 2: Cross-Module Drag (or drop onto module)
+        else {
+          const targetModuleId = overIsModule ? overId : overModuleId;
+          const targetModuleIndex = prevModules.findIndex(m => m.id === targetModuleId);
+          if (targetModuleIndex === -1) return prevModules; // Target module not found
+
+          const targetModule = prevModules[targetModuleIndex];
+          const targetLessons = targetModule.lessons || [];
+
+          // Create new source lessons array (filter out moved lesson)
+          const finalSourceLessons = sourceLessons
+            .filter(l => l.id !== activeId)
+            .map((lesson, index) => ({ ...lesson, order_index: index }));
+
+          // Create new target lessons array
+          let finalTargetLessons: Lesson[];
+          const lessonToInsert = { ...movedLesson, module_id: targetModule.id }; // Update module_id
+
+          if (overIsModule) {
+            // Add to end if dropped onto module
+            finalTargetLessons = [...targetLessons, lessonToInsert];
+          } else {
+            // Insert at specific position
+            const overLessonIndex = targetLessons.findIndex(l => l.id === overId);
+            if (overLessonIndex !== -1) {
+              finalTargetLessons = [
+                ...targetLessons.slice(0, overLessonIndex),
+                lessonToInsert,
+                ...targetLessons.slice(overLessonIndex)
+              ];
+            } else {
+              // Fallback: add to end if target lesson somehow not found
+              finalTargetLessons = [...targetLessons, lessonToInsert]; 
+            }
+          }
+          
+          // Recalculate order_index for the final target array
+          const finalRecalculatedTargetLessons = finalTargetLessons
+            .map((lesson, index) => ({ ...lesson, order_index: index }));
+
+          // Return new modules array with updated source and target modules
+          return prevModules.map((mod, index) => {
+            if (index === sourceModuleIndex) {
+              return { ...sourceModule, lessons: finalSourceLessons };
+            }
+            if (index === targetModuleIndex) {
+              return { ...targetModule, lessons: finalRecalculatedTargetLessons };
+            }
+            return mod;
+          });
+        }
+      });
+    }
   };
 
   return (

@@ -1,73 +1,21 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
-// Define role type
-type UserRole = 'student' | 'teacher' | 'admin';
+// 导入新的类型定义
+import { AuthContextType, UserRole } from '@/types/auth';
 
-type AuthContextType = {
-  session: Session | null;
-  user: User | null;
-  role: UserRole | null;
-  signIn: (username: string, password: string) => Promise<{ error: any }>;
-  signUp: (username: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
-  loading: boolean;
-  refreshUserRole: () => Promise<void>;
-};
+// 导入认证服务和缓存工具
+import { authService } from '@/services/authService';
+import { clearUserRoleCache } from '@/utils/authCache';
 
+// 创建认证上下文
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 本地缓存用户角色
-const USER_ROLE_CACHE_KEY = 'user-role-cache';
-
-// 保存角色到本地存储
-const cacheUserRole = (userId: string, role: UserRole | null) => {
-  try {
-    const cacheData = {
-      userId,
-      role,
-      timestamp: Date.now()
-    };
-    
-    // 使用sessionStorage代替localStorage，这样仅限于当前会话
-    sessionStorage.setItem(USER_ROLE_CACHE_KEY, JSON.stringify(cacheData));
-    console.log('用户角色已缓存:', role);
-  } catch (error) {
-    console.error('缓存用户角色失败:', error);
-  }
-};
-
-// 从本地存储获取角色
-const getCachedUserRole = (userId: string): UserRole | null => {
-  try {
-    // 尝试从sessionStorage获取
-    const cachedData = sessionStorage.getItem(USER_ROLE_CACHE_KEY);
-    if (!cachedData) return null;
-    
-    const { userId: cachedUserId, role, timestamp } = JSON.parse(cachedData);
-    
-    // 检查是否为当前用户以及缓存是否在2小时内（减少时间）
-    const isValid = 
-      cachedUserId === userId && 
-      Date.now() - timestamp < 2 * 60 * 60 * 1000;
-    
-    if (isValid) {
-      console.log('从缓存读取用户角色:', role);
-      return role;
-    }
-    
-    // 如果无效则清除
-    sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
-    return null;
-  } catch (error) {
-    console.error('读取缓存用户角色失败:', error);
-    return null;
-  }
-};
-
+/**
+ * 认证提供者组件
+ * 提供认证状态和相关方法给应用的其他组件
+ */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -75,66 +23,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<UserRole | null>(null);
   const queryClient = useQueryClient();
   
-  // Function to fetch user's role
-  const fetchUserRole = async (userId: string) => {
-    try {
-      console.log('正在获取用户角色:', userId);
-      
-      // 首先尝试从缓存获取角色
-      const cachedRole = getCachedUserRole(userId);
-      if (cachedRole) {
-        setRole(cachedRole);
-        return;
-      }
-      
-      // Check for admin role
-      const { data: isAdmin, error: adminError } = await supabase
-        .rpc('has_role', { user_id: userId, role: 'admin' });
-
-      if (adminError) {
-        console.error('检查管理员角色失败:', adminError);
-        return;
-      }
-
-      if (isAdmin === true) {
-        console.log('用户拥有管理员角色');
-        setRole('admin');
-        cacheUserRole(userId, 'admin');
-        return;
-      }
-
-      // Check for teacher role
-      const { data: isTeacher, error: teacherError } = await supabase
-        .rpc('has_role', { user_id: userId, role: 'teacher' });
-
-      if (teacherError) {
-        console.error('检查教师角色失败:', teacherError);
-        return;
-      }
-
-      if (isTeacher === true) {
-        console.log('用户拥有教师角色');
-        setRole('teacher');
-        cacheUserRole(userId, 'teacher');
-        return;
-      }
-
-      // Default to student
-      console.log('用户拥有学生角色');
-      setRole('student');
-      cacheUserRole(userId, 'student');
-    } catch (error) {
-      console.error('获取用户角色过程中出错:', error);
-    }
+  // 更新用户角色
+  const updateUserRole = async (userId: string) => {
+    const fetchedRole = await authService.fetchUserRole(userId);
+    setRole(fetchedRole);
   };
 
-  // Function to refresh user role - useful for when roles change
+  // 刷新用户角色
   const refreshUserRole = async () => {
     if (user) {
       console.log('刷新用户角色:', user.id);
-      // 清除本地缓存
-      sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
-      await fetchUserRole(user.id);
+      // 清除本地缓存，强制重新获取角色
+      clearUserRoleCache();
+      await updateUserRole(user.id);
       
       // 重置相关查询的缓存
       queryClient.invalidateQueries({ queryKey: ['enrolledCourses'] });
@@ -143,9 +44,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Set up the auth state listener
+    // 设置认证状态监听器
     console.log('设置认证状态监听器');
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = authService.onAuthStateChange(
       (event, currentSession) => {
         console.log('认证状态变更:', event);
         setSession(currentSession);
@@ -158,14 +59,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('用户已登录，获取角色');
             const userId = currentSession.user.id;
             
-            // 首先尝试从缓存获取角色
-            const cachedRole = getCachedUserRole(userId);
-            if (cachedRole) {
-              setRole(cachedRole);
-            } else {
-              // 异步获取用户角色
-              fetchUserRole(userId);
-            }
+            // 异步获取用户角色
+            updateUserRole(userId);
             
             // 在登录时预加载数据
             if (event === 'SIGNED_IN') {
@@ -176,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // 用户登出
             setRole(null);
             // 清除本地缓存
-            sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
+            clearUserRoleCache();
             // 清除React Query缓存
             if (event === 'SIGNED_OUT') {
               queryClient.clear();
@@ -188,12 +83,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
     
-    // Check for existing session
+    // 检查现有会话
     console.log('检查现有会话');
     
     // 添加延迟来解决Supabase会话加载问题
     setTimeout(() => {
-      supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      authService.getSession().then(({ data: { session: currentSession } }) => {
         console.log('现有会话检查结果:', currentSession ? '找到会话' : '没有会话');
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -203,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // If user is logged in, fetch their role
           if (currentSession?.user) {
             console.log('找到用户会话，获取角色');
-            fetchUserRole(currentSession.user.id);
+            updateUserRole(currentSession.user.id);
           }
           
           setLoading(false);
@@ -216,49 +111,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [queryClient]); 
 
+  // 使用认证服务提供的方法
   const signIn = async (username: string, password: string) => {
-    // For username-password auth, we use the email field but with a standard domain
-    const email = `${username}@user.internal`;
-    console.log('使用邮箱登录:', email);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error) {
-      console.log('登录成功');
-    } else {
-      console.error('登录错误:', error);
-    }
-    return { error };
+    return await authService.signIn(username, password);
   };
 
   const signUp = async (username: string, password: string) => {
-    // For username-password auth, we use the email field but with a standard domain
-    const email = `${username}@user.internal`;
-    console.log('使用邮箱注册:', email);
-    const { error } = await supabase.auth.signUp({ 
-      email, 
-      password,
-      options: {
-        data: {
-          username: username
-        }
-      }
-    });
-    if (!error) {
-      console.log('注册成功');
-    } else {
-      console.error('注册错误:', error);
-    }
-    return { error };
+    return await authService.signUp(username, password);
   };
 
   const signOut = async () => {
-    console.log('正在退出登录');
-    // 清理本地缓存和React Query缓存
-    sessionStorage.removeItem(USER_ROLE_CACHE_KEY);
+    // 清理React Query缓存
     queryClient.clear();
-    await supabase.auth.signOut();
+    await authService.signOut();
   };
 
-  const value = {
+  // 提供给上下文的值
+  const contextValue: AuthContextType = {
     session,
     user,
     role,
@@ -269,9 +138,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUserRole
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
+/**
+ * 认证钩子 - 用于在组件中访问认证上下文
+ * 
+ * @returns 认证上下文
+ * @throws 如果在AuthProvider外部使用会抛出错误
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

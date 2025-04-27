@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import SignInForm from '@/components/auth/SignInForm';
 import SignUpForm from '@/components/auth/SignUpForm';
+import AuthLayout from '@/components/layout/AuthLayout';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 
@@ -58,44 +59,46 @@ const Auth = () => {
     return <Navigate to="/dashboard" />;
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md">
-        {authError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{authError}</AlertDescription>
-          </Alert>
-        )}
+  // Auth content to be rendered inside the layout
+  const authContent = (
+    <>
+      {authError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{authError}</AlertDescription>
+        </Alert>
+      )}
 
-        {loading ? (
-          <div className="bg-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center">
-            <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-4" />
-            <p className="text-gray-600">正在加载验证系统...</p>
-            
-            {hasAttemptedAuth && (
-              <div className="mt-4 text-center">
-                <p className="text-sm text-gray-500 mb-2">加载时间过长？</p>
-                <button 
-                  onClick={handleRetry}
-                  className="text-blue-500 hover:text-blue-700 text-sm font-medium"
-                >
-                  点击重试
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            {isSignIn ? (
-              <SignInForm onToggle={() => setIsSignIn(false)} />
-            ) : (
-              <SignUpForm onToggle={() => setIsSignIn(true)} />
-            )}
-          </>
-        )}
-      </div>
-    </div>
+      {loading ? (
+        <div className="p-6 flex flex-col items-center justify-center">
+          <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-4" />
+          <p className="text-gray-600">正在加载验证系统...</p>
+          
+          {hasAttemptedAuth && (
+            <div className="mt-4 text-center">
+              <p className="text-sm text-gray-500 mb-2">加载时间过长？</p>
+              <button 
+                onClick={handleRetry}
+                className="text-blue-500 hover:text-blue-700 text-sm font-medium"
+              >
+                点击重试
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {isSignIn ? (
+            <SignInForm onToggle={() => setIsSignIn(false)} />
+          ) : (
+            <SignUpForm onToggle={() => setIsSignIn(true)} />
+          )}
+        </>
+      )}
+    </>
   );
+
+  // Use AuthLayout for the page
+  return <AuthLayout>{authContent}</AuthLayout>;
 };
 
 export default Auth;

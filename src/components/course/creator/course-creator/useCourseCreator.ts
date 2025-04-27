@@ -418,6 +418,8 @@ export const useCourseCreator = () => {
         return moduleToSave;
       });
       
+      // --- MODIFICATION: Comment out implicit deletion logic --- 
+      /*
       // 收集需要删除的模块和课时ID
       let deletedModuleIds: string[] = [];
       let deletedLessonIdsMap: Record<string, string[]> = {};
@@ -526,6 +528,8 @@ export const useCourseCreator = () => {
           // 继续执行不中断
         }
       }
+      */
+      // --- END MODIFICATION ---
       
       // 4. 保存所有模块 - 批量处理模块
       console.log('开始保存课程模块，数量:', modulesToProcess.length);
@@ -624,9 +628,13 @@ export const useCourseCreator = () => {
       // 更新模块数据，确保所有模块和课时都有正确的ID
       setModules(savedModulesWithLessons);
       
-      // 更新引用值，用于下次比较
-      previousCourseRef.current = { ...course, id: savedCourse.id };
-      previousModulesRef.current = [...savedModulesWithLessons];
+      // Update reference values after successful manual save
+      previousCourseRef.current = JSON.parse(JSON.stringify(savedCourse)); 
+      previousModulesRef.current = JSON.parse(JSON.stringify(savedModulesWithLessons));
+      setLastSaved(new Date()); // Also update last saved time
+
+      console.log('课程及其所有模块和课时已成功保存。');
+      toast.success('课程已保存');
       
       return savedCourse.id;
     } catch (error) {

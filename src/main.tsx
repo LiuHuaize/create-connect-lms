@@ -45,15 +45,18 @@ window.clearCaches = clearAllCaches;
 
 // 添加Service Worker检测刷新的功能
 let refreshing = false;
-navigator.serviceWorker.addEventListener('controllerchange', () => {
-  if (refreshing) return;
-  refreshing = true;
-  console.log('Service Worker 已更新，刷新页面...');
-  window.location.reload();
-});
+// Check if serviceWorker is supported and available in the current context
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    console.log('Service Worker 已更新，刷新页面...');
+    window.location.reload();
+  });
+}
 
 // 注册Service Worker以优化缓存
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && navigator.serviceWorker) { // Also check navigator.serviceWorker here
   // 延迟注册Service Worker，确保页面完全加载
   window.addEventListener('load', () => {
     // 检查URL参数，如果有clear-cache参数，清除所有缓存
@@ -70,7 +73,7 @@ if ('serviceWorker' in navigator) {
     }
 
     // 先检查是否已有Service Worker
-    navigator.serviceWorker.getRegistrations().then(registrations => {
+    navigator.serviceWorker.getRegistrations().then(registrations => { // Safe to call now due to the outer check
       // 如果已经有注册的Service Worker，强制更新
       if (registrations.length > 0) {
         console.log('更新已存在的Service Worker');
@@ -105,7 +108,7 @@ if ('serviceWorker' in navigator) {
   });
 
   // 添加消息监听器，处理Service Worker消息
-  navigator.serviceWorker.addEventListener('message', (event) => {
+  navigator.serviceWorker.addEventListener('message', (event) => { // Safe to call now due to the outer check
     if (event.data && event.data.type === 'SW_ACTIVATED') {
       console.log('Service Worker已激活，版本:', event.data.version);
     } else if (event.data && event.data.type === 'CACHE_UPDATED') {

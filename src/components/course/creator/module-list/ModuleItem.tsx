@@ -5,7 +5,8 @@ import LessonItem from './LessonItem';
 import LessonTypeButton from './LessonTypeButton';
 import { LESSON_TYPES } from './lessonTypeUtils';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ModuleItemProps {
   module: CourseModule;
@@ -30,15 +31,43 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
 }) => {
   const isExpanded = expandedModule === module.id;
   
-  const { setNodeRef, isOver } = useDroppable({
+  const { setNodeRef: setDroppableNodeRef, isOver } = useDroppable({
     id: module.id!,
     data: {
-      moduleId: module.id
+      moduleId: module.id,
+      accepts: ['lesson']
     }
   });
 
+  const { 
+    attributes,
+    listeners,
+    setNodeRef: setSortableNodeRef, 
+    transform,
+    transition,
+    isDragging
+  } = useSortable({
+    id: module.id!,
+    data: { 
+      type: 'module',
+      moduleId: module.id 
+    }
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+    position: 'relative' as 'relative'
+  };
+
   return (
-    <div className="border border-gray-200 rounded-lg">
+    <div 
+      ref={setSortableNodeRef} 
+      style={style} 
+      className="border border-gray-200 rounded-lg bg-white shadow-sm mb-4"
+    >
       <ModuleHeader 
         moduleId={module.id!}
         title={module.title}
@@ -46,13 +75,15 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
         onToggleExpand={onToggleExpand}
         onUpdateTitle={onUpdateModuleTitle}
         onDeleteModule={onDeleteModule}
+        attributes={attributes}
+        listeners={listeners}
       />
       
       {isExpanded && (
         <div className="p-4 pt-0 border-t border-gray-200">
           <div 
-            className={`space-y-2 mb-4 rounded-md p-2 ${isOver ? 'bg-blue-50 border border-dashed border-blue-300' : ''}`}
-            ref={setNodeRef}
+            className={`space-y-2 mb-4 rounded-md p-2 min-h-[50px] ${isOver ? 'bg-blue-50 border border-dashed border-blue-300' : ''}`}
+            ref={setDroppableNodeRef}
           >
             {module.lessons && module.lessons.length > 0 ? (
               <SortableContext 
