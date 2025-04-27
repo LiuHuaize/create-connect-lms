@@ -1,65 +1,85 @@
-import { useState, useEffect, useRef } from 'react';
-import { Course, CourseModule, Lesson } from '@/types/course';
+import { useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import { v4 as uuidv4 } from 'uuid';
 
-// 引入拆分后的钩子
+// 导入拆分后的钩子
 import { useCourseHistory } from './useCourseHistory';
 import { useCourseSave } from './useCourseSave';
 import { useCourseAutoSave } from './useCourseAutoSave';
 import { useLocalBackup } from './useLocalBackup';
+import { useCourseBasics } from './useCourseBasics';
+import { useCourseModules } from './useCourseModules';
+import { useAuth } from '@/contexts/AuthContext';
 
+/**
+ * 课程创建器主Hook - 组合多个专门Hook提供完整的课程创建功能
+ * 
+ * 这是一个高级Hook，负责协调多个专门Hook的交互，提供统一的API
+ */
 export const useCourseCreator = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const courseId = new URLSearchParams(location.search).get('id');
   
-  // 基本状态
-  const [course, setCourse] = useState<Course>({
-    title: '',
-    description: '',
-    short_description: '',
-    author_id: user?.id || '',
-    status: 'draft',
-    price: null,
-    tags: [],
-    category: null
-  });
-
-  const [modules, setModules] = useState<CourseModule[]>([]);
-  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
-  const [expandedModule, setExpandedModule] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [coverImageURL, setCoverImageURL] = useState<string | null>(null);
-  const [completionPercentage, setCompletionPercentage] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [moduleDataLoaded, setModuleDataLoaded] = useState(true);
-  
   // 前一个状态的引用，用于状态比较
-  const previousCourseRef = useRef<Course | null>(null);
-  const previousModulesRef = useRef<CourseModule[] | null>(null);
-
-  // 使用钩子管理不同功能
+  const previousCourseRef = useRef(null);
+  const previousModulesRef = useRef(null);
+  
+  // 使用课程基本信息Hook
+  const {
+    course,
+    setCourse,
+    coverImageURL,
+    setCoverImageURL,
+    completionPercentage,
+    // 其他方法...
+  } = useCourseBasics({
+    onCourseChange: (updatedCourse) => {
+      // 更新到历史记录钩子
+      historyCourse(updatedCourse);
+    }
+  });
+  
+  // 使用课程模块Hook
+  const {
+    modules,
+    setModules,
+    currentLesson,
+    setCurrentLesson,
+    expandedModule,
+    setExpandedModule,
+    createModule,
+    updateModule,
+    deleteModule,
+    createLesson,
+    updateLesson,
+    deleteLesson,
+    // 其他方法...
+  } = useCourseModules({
+    onModulesChange: (updatedModules) => {
+      // 更新到历史记录钩子
+      historyModules(updatedModules);
+    }
+  });
+  
+  // 使用历史记录Hook
   const {
     canUndo,
     canRedo,
-    handleUndo,
-    handleRedo,
+    handleUndo: undo,
+    handleRedo: redo,
     setCourse: historyCourse,
     setModules: historyModules,
     isUndoRedoOperation
   } = useCourseHistory({
     course,
     modules,
-    isLoading,
-    moduleDataLoaded
+    isLoading: false,
+    moduleDataLoaded: true
   });
-
+  
+  // 使用课程保存Hook
   const {
     isSaving,
     handleSaveCourse: saveCourse,
@@ -72,241 +92,169 @@ export const useCourseCreator = () => {
     previousModulesRef,
     onCourseSaved: (savedCourse, savedModules) => {
       if (!course.id && savedCourse.id) {
-        setCourse(prev => ({ ...prev, id: savedCourse.id }));
+        setCourse({ ...course, id: savedCourse.id });
       }
     }
   });
-
+  
+  // 使用自动保存Hook
   const {
     isAutoSaving,
     lastSaved,
     autoSaveEnabled,
-    setAutoSaveEnabled
+    setAutoSaveEnabled,
+    autoSaveStatus,
+    retryCount,
+    timeUntilNextSave
   } = useCourseAutoSave({
     courseId,
     course,
     modules,
     previousCourseRef,
     previousModulesRef,
-    isLoading,
-    moduleDataLoaded,
+    isLoading: false,
+    moduleDataLoaded: true,
     saveCourse,
     enabled: false // 默认关闭自动保存
   });
-
+  
+  // 使用本地备份Hook (只提供API，不使用其内部状态，因为我们已在其他Hook中使用)
   const {
     hasBackup,
     saveLocalBackup,
-    restoreFromBackup,
     clearBackup,
     backupTimestamp
   } = useLocalBackup({
     courseId,
     course,
     modules,
-    isLoading,
-    moduleDataLoaded
+    isLoading: false, 
+    moduleDataLoaded: true
   });
-
-  // 包装历史记录钩子的状态更新函数
-  const updateCourse = (newCourse: Course | ((prev: Course) => Course)) => {
-    if (typeof newCourse === 'function') {
-      setCourse(prev => {
-        const result = newCourse(prev);
-        historyCourse(result);
-        return result;
-      });
-    } else {
-      setCourse(newCourse);
-      historyCourse(newCourse);
-    }
+  
+  // 当用户重新加载页面或离开页面时，保存备份
+  window.addEventListener('beforeunload', () => {
+    saveLocalBackup();
+  });
+  
+  // 导航到创建新课程页面
+  const handleCreateNewCourse = () => {
+    navigate('/course-creator');
   };
-
-  const updateModules = (newModules: CourseModule[] | ((prev: CourseModule[]) => CourseModule[])) => {
-    if (typeof newModules === 'function') {
-      setModules(prev => {
-        const result = newModules(prev);
-        historyModules(result);
-        return result;
-      });
-    } else {
-      setModules(newModules);
-      historyModules(newModules);
-    }
-  };
-
-  // 加载课程数据
-  useEffect(() => {
-    const loadCourseBasicInfo = async () => {
-      if (!courseId) {
-        setLoadingDetails(false);
-        setIsLoading(false);
-        setModuleDataLoaded(true);
-        return;
-      }
-      
-      try {
-        setIsLoading(true);
-        setLoadingDetails(true);
-        setModuleDataLoaded(false);
-        
-        const courseDetails = await courseService.getCourseDetails(courseId);
-        
-        setCourse(courseDetails);
-        historyCourse(courseDetails);
-        setCoverImageURL(courseDetails.cover_image || null);
-        setLoadingDetails(false);
-        
-        setTimeout(async () => {
-          if (courseDetails.modules) {
-            setModules(courseDetails.modules);
-            historyModules(courseDetails.modules);
-            // 如果有模块，将第一个模块设置为展开状态
-            if (courseDetails.modules.length > 0) {
-              setExpandedModule(courseDetails.modules[0].id);
-            }
-          }
-          setModuleDataLoaded(true);
-          setIsLoading(false);
-          
-          // 加载完成后，设置初始的引用状态
-          previousCourseRef.current = { ...courseDetails };
-          previousModulesRef.current = [...(courseDetails.modules || [])];
-          
-          // 检查是否有本地备份，如果有且比服务器数据新，提示恢复
-          if (hasBackup && backupTimestamp) {
-            const serverUpdateTime = new Date(courseDetails.updated_at || 0).getTime();
-            if (backupTimestamp > serverUpdateTime) {
-              const shouldRestore = window.confirm(
-                `发现比服务器更新的本地备份 (${new Date(backupTimestamp).toLocaleString()})，是否恢复？`
-              );
-              
-              if (shouldRestore) {
-                const backupData = restoreFromBackup();
-                if (backupData) {
-                  updateCourse(backupData.course);
-                  updateModules(backupData.modules);
-                  toast.success('已从本地备份恢复数据');
-                }
-              } else {
-                // 用户选择不恢复，清除旧备份
-                clearBackup();
-              }
-            } else {
-              // 备份较旧，清除它
-              clearBackup();
-            }
-          }
-        }, 100);
-      } catch (error) {
-        console.error('加载课程失败:', error);
-        toast.error('加载课程失败，请重试');
-        setLoadingDetails(false);
-        setIsLoading(false);
-        setModuleDataLoaded(true);
-        
-        // 如果有本地备份，尝试从备份恢复
-        if (hasBackup) {
-          const shouldRestore = window.confirm('加载服务器数据失败，是否从本地备份恢复？');
-          if (shouldRestore) {
-            const backupData = restoreFromBackup();
-            if (backupData) {
-              updateCourse(backupData.course);
-              updateModules(backupData.modules);
-              toast.success('已从本地备份恢复数据');
-              setLoadingDetails(false);
-              setIsLoading(false);
-              setModuleDataLoaded(true);
-            }
-          }
-        }
-      }
-    };
-
-    loadCourseBasicInfo();
-  }, [courseId]);
-
-  // 确保用户ID总是最新的
-  useEffect(() => {
-    if (user?.id) {
-      updateCourse(prev => ({ ...prev, author_id: user.id }));
-    }
-  }, [user]);
-
-  // 计算完成度百分比
-  useEffect(() => {
-    calculateCompletionPercentage();
-  }, [course, modules]);
-
-  // 计算课程完成度
-  const calculateCompletionPercentage = () => {
-    let totalPoints = 0;
-    let earnedPoints = 0;
-    
-    totalPoints += 1;
-    if (course.title?.trim()) earnedPoints += 1;
-    
-    totalPoints += 1;
-    if (coverImageURL || course.cover_image) earnedPoints += 1;
-    
-    totalPoints += 1;
-    if (modules.length > 0) earnedPoints += 1;
-    
-    totalPoints += 1;
-    const hasLessons = modules.some(module => module.lessons && module.lessons.length > 0);
-    if (hasLessons) earnedPoints += 0.5;
-    
-    if (course.description?.trim()) earnedPoints += 0.5;
-    if (course.short_description?.trim()) earnedPoints += 0.5;
-    
-    const percentage = Math.min(100, Math.round((earnedPoints / totalPoints) * 100));
-    setCompletionPercentage(percentage);
-  };
-
-  // 返回课程选择页面
+  
+  // 导航到课程选择页面
   const handleBackToSelection = () => {
     navigate('/course-selection');
   };
-
+  
+  // 发布课程
+  const handlePublishCourse = async () => {
+    if (!course.title.trim()) {
+      toast.error('发布前请输入课程标题');
+      return;
+    }
+    
+    if (!course.id) {
+      // 先保存课程，获取ID
+      await saveCourse();
+      if (!course.id) {
+        toast.error('发布失败，请先保存课程');
+        return;
+      }
+    }
+    
+    // 更新课程状态
+    setCourse({ ...course, status: 'published' });
+    await saveCourse();
+    toast.success('课程已发布');
+  };
+  
+  // 预览课程
+  const handlePreviewCourse = () => {
+    if (!course.id) {
+      toast.error('预览前请先保存课程');
+      return;
+    }
+    
+    // 打开预览窗口
+    window.open(`/course/${course.id}?preview=true`, '_blank');
+  };
+  
+  // 检查是否有未保存的更改
+  const hasUnsavedChanges = () => {
+    if (!previousCourseRef.current || !previousModulesRef.current) return false;
+    
+    // 这里简化了比较逻辑
+    return JSON.stringify(course) !== JSON.stringify(previousCourseRef.current) ||
+           JSON.stringify(modules) !== JSON.stringify(previousModulesRef.current);
+  };
+  
+  // 更新引用，用于比较是否有更改
+  if (course && modules) {
+    previousCourseRef.current = { ...course };
+    previousModulesRef.current = [...modules];
+  }
+  
   return {
     // 基本状态
+    user,
+    courseId,
     course,
-    setCourse: updateCourse,
     modules,
-    setModules: updateModules,
     currentLesson,
-    setCurrentLesson,
     expandedModule,
-    setExpandedModule,
     coverImageURL,
-    setCoverImageURL,
     completionPercentage,
-    isLoading,
-    loadingDetails,
-    moduleDataLoaded,
     
-    // 保存相关
+    // 加载和保存状态
     isSaving,
-    handleSaveCourse: saveCourse,
     saveCourseStatus,
-    handleBackToSelection,
+    lastSavedTime,
     
-    // 自动保存相关
+    // 历史记录状态和方法
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    
+    // 自动保存状态和方法
     isAutoSaving,
     lastSaved,
     autoSaveEnabled,
     setAutoSaveEnabled,
+    autoSaveStatus,
+    retryCount,
+    timeUntilNextSave,
     
-    // 历史记录相关
-    canUndo,
-    canRedo,
-    handleUndo,
-    handleRedo,
-    
-    // 本地备份相关
+    // 本地备份状态和方法
     hasBackup,
     saveLocalBackup,
-    restoreFromBackup,
-    clearBackup
+    clearBackup,
+    backupTimestamp,
+    
+    // 设置方法
+    setCourse,
+    setModules,
+    setCurrentLesson,
+    setExpandedModule,
+    setCoverImageURL,
+    
+    // 课程模块操作方法
+    createModule,
+    updateModule,
+    deleteModule,
+    
+    // 课时操作方法
+    createLesson,
+    updateLesson,
+    deleteLesson,
+    
+    // 高级操作方法
+    handleCreateNewCourse,
+    handleBackToSelection,
+    handlePublishCourse,
+    handlePreviewCourse,
+    saveCourse,
+    hasUnsavedChanges
   };
 }; 

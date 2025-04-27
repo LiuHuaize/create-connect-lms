@@ -12,17 +12,16 @@ import AppRoutes from "./routes"; // Import the new AppRoutes
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
-// 创建QueryClient并配置默认缓存策略
-// Moved QueryClient creation inside the App component to avoid potential issues with HMR
-// Or keep it here if it needs to be accessed globally before App mounts
+// 创建QueryClient并配置优化后的缓存策略
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5分钟内数据视为新鲜
-      gcTime: 30 * 60 * 1000, // 30分钟内保留缓存数据
-      refetchOnWindowFocus: false, // 窗口获取焦点时不重新获取数据
-      refetchOnMount: false, // 组件挂载时不重新获取数据
-      retry: 1, // 失败时最多重试1次
+      // 优化缓存策略，根据不同数据类型设置差异化配置
+      staleTime: 3 * 60 * 1000,  // 默认3分钟标记为过期(原为5分钟)
+      gcTime: 15 * 60 * 1000,    // 默认15分钟内保留缓存数据(原为30分钟)
+      refetchOnWindowFocus: true, // 窗口获取焦点时自动重新获取数据(改为true)
+      refetchOnMount: true,      // 组件挂载时重新获取数据(改为true)
+      retry: 1,                  // 失败时最多重试1次
     },
   },
 });

@@ -86,11 +86,29 @@ const fetchCourseDetails = async (courseId: string | undefined) => {
   }
 };
 
+// 定义不同类型数据的缓存配置常量
+const CACHE_CONFIG = {
+  // 课程详情 - 长时间缓存，因为不频繁更新
+  courseDetails: {
+    staleTime: 10 * 60 * 1000,  // 10分钟内保持新鲜(原为2分钟)
+    gcTime: 60 * 60 * 1000,     // 1小时内保留缓存(原为10分钟)
+    retry: 2,
+    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 10000),
+  },
+  // 课程注册信息 - 短时间缓存，因为会随用户进度变化
+  enrollment: {
+    staleTime: 1 * 60 * 1000,   // 1分钟内保持新鲜(原为2分钟)
+    gcTime: 5 * 60 * 1000,      // 5分钟内保留缓存(原为10分钟)
+    retry: 2,
+    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 10000),
+  }
+};
+
 export const useCourseData = (courseId: string | undefined) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // 获取课程详情
+  // 获取课程详情 - 使用优化后的缓存配置
   const { 
     data: courseData, 
     isLoading: isLoadingCourse,
@@ -100,13 +118,10 @@ export const useCourseData = (courseId: string | undefined) => {
     queryKey: ['courseDetails', courseId],
     queryFn: () => fetchCourseDetails(courseId),
     enabled: !!courseId,
-    staleTime: 2 * 60 * 1000, // 2分钟后标记为过期
-    gcTime: 10 * 60 * 1000,   // 10分钟后从缓存中移除
-    retry: 2,                 // 最多重试2次
-    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 10000), // 指数退避重试策略
+    ...CACHE_CONFIG.courseDetails
   });
   
-  // 获取用户的课程注册信息
+  // 获取用户的课程注册信息 - 使用优化后的缓存配置
   const {
     data: enrollmentData,
     isLoading: isLoadingEnrollment,
@@ -116,10 +131,10 @@ export const useCourseData = (courseId: string | undefined) => {
     queryKey: ['enrollment', courseId, user?.id],
     queryFn: () => fetchEnrollmentInfo(courseId || '', user?.id || ''),
     enabled: !!courseId && !!user?.id,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2,
-    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 10000),
+    ...CACHE_CONFIG.enrollment,
+    // 针对课程注册信息添加自动刷新功能
+    refetchInterval: user?.id ? 3 * 60 * 1000 : false,  // 每3分钟自动刷新一次
+    refetchOnWindowFocus: true,  // 页面获得焦点时刷新
   });
   
   // 强制刷新课程数据，清除缓存并重新获取
