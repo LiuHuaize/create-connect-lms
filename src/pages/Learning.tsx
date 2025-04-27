@@ -1,14 +1,16 @@
 import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from '@/components/ui/progress';
-import { BookOpen, Play, Clock, Award, Search, AlertCircle } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useCoursesData, EnrolledCourse } from '@/hooks/useCoursesData';
+import { useCoursesData } from '@/hooks/useCoursesData';
 import { useAuth } from '@/contexts/AuthContext';
-import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
-import { getCategoryDisplayName } from '@/utils/courseUtils';
+
+// 导入拆分的组件
+import InProgressCourses from '@/components/learning/InProgressCourses';
+import CompletedCourses from '@/components/learning/CompletedCourses';
+import SavedCourses from '@/components/learning/SavedCourses';
 
 const Learning = () => {
   const { user } = useAuth();
@@ -76,163 +78,22 @@ const Learning = () => {
           <TabsTrigger value="saved">已保存</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="inProgress" className="space-y-6">
-          {loadingEnrolled ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">正在加载课程...</p>
-            </div>
-          ) : inProgressCourses.length > 0 ? (
-            // 显示用户已加入的课程
-            inProgressCourses.map((course) => (
-              <div key={course.id} className="course-card">
-                <div className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="bg-ghibli-lightTeal text-ghibli-deepTeal inline-block px-3 py-1 rounded-full text-xs font-medium">
-                          {getCategoryDisplayName(course.category)}
-                        </div>
-                        
-                        {course.isAvailable === false && (
-                          <div className="bg-amber-100 text-amber-700 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium">
-                            <AlertCircle size={12} className="mr-1" /> 课程暂不可用
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-xl mb-2">{course.title}</h3>
-                      <p className="text-gray-600 mb-4">{course.short_description || '暂无描述'}</p>
-                      
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="flex items-center text-gray-500">
-                          <BookOpen size={16} className="mr-1" />
-                          <span className="text-sm">进行中</span>
-                        </div>
-                        <div className="flex items-center text-gray-500">
-                          <Clock size={16} className="mr-1" />
-                          <span className="text-sm">
-                            加入于 {course.enrolledAt ? format(new Date(course.enrolledAt), 'yyyy-MM-dd') : '未知'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {course.isAvailable !== false ? (
-                      <Link to={`/course/${course.id}`}>
-                        <button className="bg-ghibli-teal text-white p-3 rounded-full hover:bg-ghibli-deepTeal transition-colors">
-                          <Play size={20} fill="white" />
-                        </button>
-                      </Link>
-                    ) : (
-                      <button disabled className="bg-gray-300 text-white p-3 rounded-full cursor-not-allowed opacity-50">
-                        <Play size={20} fill="white" />
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="mt-2">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium">进度</span>
-                      <span className="text-sm text-gray-500">{course.progress}%</span>
-                    </div>
-                    <Progress value={course.progress} className="h-2 progress-kids" />
-                  </div>
-                </div>
-                
-                <div className="border-t border-ghibli-sand bg-ghibli-parchment p-4 rounded-b-xl">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">继续学习</h4>
-                      <p className="text-sm text-gray-500">{course.title}</p>
-                    </div>
-                    
-                    {course.isAvailable !== false ? (
-                      <Link to={`/course/${course.id}`}>
-                        <button className="event-register-btn">
-                          继续
-                        </button>
-                      </Link>
-                    ) : (
-                      <div className="py-2 px-4 text-gray-500 text-sm">
-                        教师已暂时取消此课程的发布
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">您还没有加入任何课程</p>
-              <Button asChild>
-                <Link to="/explore-courses">浏览课程</Link>
-              </Button>
-            </div>
-          )}
+        <TabsContent value="inProgress">
+          <InProgressCourses 
+            courses={inProgressCourses} 
+            loading={loadingEnrolled} 
+          />
         </TabsContent>
         
-        <TabsContent value="completed" className="space-y-6">
-          {loadingEnrolled ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">正在加载课程...</p>
-            </div>
-          ) : completedCourses.length > 0 ? (
-            // 显示已完成的课程
-            completedCourses.map((course) => (
-              <div key={course.id} className="course-card p-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center mb-3">
-                      <div className="bg-ghibli-lightTeal text-ghibli-deepTeal inline-block px-3 py-1 rounded-full text-xs font-medium mr-3">
-                        {getCategoryDisplayName(course.category)}
-                      </div>
-                      <div className="flex items-center text-amber-500">
-                        <Award size={16} className="mr-1" />
-                        <span className="text-xs font-medium">已完成</span>
-                      </div>
-                      
-                      {course.isAvailable === false && (
-                        <div className="ml-3 bg-amber-100 text-amber-700 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium">
-                          <AlertCircle size={12} className="mr-1" /> 课程暂不可用
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-xl mb-2">{course.title}</h3>
-                    <p className="text-gray-600">{course.short_description || '暂无描述'}</p>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    {course.isAvailable !== false ? (
-                      <Link to={`/course/${course.id}`}>
-                        <button className="py-2 px-4 border border-ghibli-teal/50 text-ghibli-deepTeal rounded-lg hover:bg-ghibli-lightTeal/30 transition-colors text-sm">
-                          回顾
-                        </button>
-                      </Link>
-                    ) : (
-                      <button disabled className="py-2 px-4 border border-gray-300 text-gray-400 rounded-lg cursor-not-allowed opacity-50 text-sm">
-                        暂不可用
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">您还没有完成任何课程</p>
-              <Button asChild>
-                <Link to="/explore-courses">浏览课程</Link>
-              </Button>
-            </div>
-          )}
+        <TabsContent value="completed">
+          <CompletedCourses 
+            courses={completedCourses} 
+            loading={loadingEnrolled} 
+          />
         </TabsContent>
         
         <TabsContent value="saved">
-          <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">您尚未保存任何课程</p>
-            <Button asChild>
-              <Link to="/explore-courses">浏览课程</Link>
-            </Button>
-          </div>
+          <SavedCourses />
         </TabsContent>
       </Tabs>
     </div>
