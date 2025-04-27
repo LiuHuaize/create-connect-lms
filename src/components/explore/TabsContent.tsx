@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TabsContent } from "@/components/ui/tabs";
 import CourseList from '@/components/explore/CourseList';
@@ -10,7 +9,7 @@ interface TabsContentProps {
   activeTab: string;
   loading: boolean;
   filteredCourses: Course[];
-  onEnroll: (courseId: string) => void;
+  handleEnrollCourse: (courseId: string) => void;
   loadingEnrollment: boolean;
 }
 
@@ -18,7 +17,7 @@ const ExploreTabsContent: React.FC<TabsContentProps> = ({
   activeTab,
   loading,
   filteredCourses,
-  onEnroll,
+  handleEnrollCourse,
   loadingEnrollment
 }) => {
   return (
@@ -31,7 +30,7 @@ const ExploreTabsContent: React.FC<TabsContentProps> = ({
         ) : (
           <CourseList 
             courses={filteredCourses} 
-            onEnroll={onEnroll}
+            onEnroll={handleEnrollCourse}
             loadingEnrollment={loadingEnrollment}
           />
         )}
@@ -47,7 +46,7 @@ const ExploreTabsContent: React.FC<TabsContentProps> = ({
         )}
       </TabsContent>
       
-      <TabsContent value="new" className="mt-6">
+      <TabsContent value="latest" className="mt-6">
         {loading ? (
           <LoadingCourses />
         ) : (
