@@ -34,8 +34,15 @@ const CoursePage = () => {
     localStorage.setItem('course_sidebar_collapsed', JSON.stringify(sidebarCollapsed));
   }, [sidebarCollapsed]);
   
-  const { loading, courseData, progress, enrollmentId, findCurrentLesson } = useCourseData(courseId);
+  const { loading, courseData, progress, enrollmentId, findCurrentLesson, refreshCourseData } = useCourseData(courseId);
   const { selectedLesson, selectedUnit } = findCurrentLesson(lessonId);
+  
+  // 确保当lessonId变化时刷新课程数据，解决内容不更新问题
+  useEffect(() => {
+    if (lessonId) {
+      refreshCourseData();
+    }
+  }, [lessonId, refreshCourseData]);
   
   // 添加进度加载状态
   const [isProgressLoading, setIsProgressLoading] = useState(true);

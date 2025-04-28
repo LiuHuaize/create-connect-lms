@@ -53,15 +53,19 @@ const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, classNam
   // 解析内容
   const parsedContent = useMemo(() => {
     try {
+      console.log('BlockNoteRenderer - 尝试解析内容，长度:', content?.length);
+      console.log('BlockNoteRenderer - 内容开始部分:', content?.substring(0, 50) + '...');
+      
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed)) {
-        console.log("成功解析内容为JSON:", typeof parsed, Array.isArray(parsed));
+        console.log("BlockNoteRenderer - 成功解析内容为JSON数组, 项目数:", parsed.length);
         return parsed;
       }
-      console.warn("内容不是BlockNote期望的数组格式:", parsed);
+      console.warn("BlockNoteRenderer - 内容不是BlockNote期望的数组格式:", typeof parsed);
       return null;
     } catch (e) {
-      console.warn("内容不是有效的JSON:", e);
+      console.warn("BlockNoteRenderer - 内容不是有效的JSON:", e);
+      console.warn("BlockNoteRenderer - 内容预览:", content?.substring(0, 100));
       return null;
     }
   }, [content]);

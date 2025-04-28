@@ -298,11 +298,12 @@ const LessonContent: React.FC<LessonContentProps> = ({
     
     switch (selectedLesson.type) {
       case 'text':
-        return <TextLessonContent content={selectedLesson.content as any} />;
+        return <TextLessonContent key={selectedLesson.id} content={selectedLesson.content as any} />;
       
       case 'video':
         return (
           <VideoLessonContent 
+            key={selectedLesson.id}
             content={selectedLesson.content as any} 
             videoFilePath={selectedLesson.video_file_path} 
           />
@@ -311,6 +312,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
       case 'quiz':
         return (
           <QuizLessonContent
+            key={selectedLesson.id}
             lessonId={selectedLesson.id}
             courseId={courseData?.id || ''}
             enrollmentId={enrollmentId}
