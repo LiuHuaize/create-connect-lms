@@ -54,7 +54,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
   return (
     <div className={clsx(
-      "flex items-center border-b border-gray-200 dark:border-gray-700",
+      "flex items-center",
       "justify-between p-1 bg-white dark:bg-gray-800",
       isFullscreen ? "sticky top-0 z-10" : ""
     )}>
