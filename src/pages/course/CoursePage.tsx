@@ -54,6 +54,38 @@ const CoursePage = () => {
     }
   }, [loading, progress]);
   
+  const [pageContent, setPageContent] = useState<string>('');
+
+  useEffect(() => {
+    // 当选中的课时更改时，尝试提取页面内容
+    if (selectedLesson) {
+      let content = '';
+      
+      // 根据课时类型提取内容
+      if (selectedLesson.type === 'text' && selectedLesson.content) {
+        // 文本课时 - 提取文本内容
+        const textContent = selectedLesson.content as import('@/types/course').TextLessonContent;
+        content = textContent.text || '';
+      } else if (selectedLesson.type === 'quiz' && selectedLesson.content) {
+        // 测验课时 - 提取所有题目
+        const quizContent = selectedLesson.content as import('@/types/course').QuizLessonContent;
+        if (quizContent.questions) {
+          content = quizContent.questions.map((q) => 
+            `问题: ${q.text} ${q.options ? q.options.map((o) => `选项: ${o.text}`).join(' ') : ''}`
+          ).join('\n');
+        }
+      } else if (selectedLesson.type === 'video' && selectedLesson.content) {
+        // 视频课时 - 提取视频描述
+        const videoContent = selectedLesson.content as import('@/types/course').VideoLessonContent;
+        content = videoContent.description || '';
+      }
+      
+      // 添加课时标题
+      const titleContent = `当前学习内容: ${selectedLesson.title}\n\n${content}`;
+      setPageContent(titleContent);
+    }
+  }, [selectedLesson]);
+  
   if (loading) {
     return <LoadingSkeleton />;
   }
@@ -228,6 +260,7 @@ const CoursePage = () => {
             isChatOpen={isChatOpen}
             setIsChatOpen={setIsChatOpen}
             courseName={courseData.title}
+            pageContent={pageContent}
           />
         </div>
       </div>

@@ -17,18 +17,20 @@ interface CourseAssistantChatProps {
   isChatOpen: boolean;
   setIsChatOpen: (isOpen: boolean) => void;
   courseName?: string;
+  pageContent?: string; // 新增页面内容属性
 }
 
 const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
   isChatOpen,
   setIsChatOpen,
-  courseName = '当前课程'
+  courseName = '当前课程',
+  pageContent = ''
 }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
     { 
       role: 'ai', 
-      content: `你好！我是你的${courseName}学习助手，有什么问题我可以帮忙解答吗？` 
+      content: `你好！我是你的${courseName}学习助手。我很高兴能陪伴你探索这个主题！我不会直接给你答案，而是通过提问引导你思考，帮助你形成自己的理解。有什么问题想一起探讨吗？` 
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,10 +59,27 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
     setCurrentStreamingMessage('');
     
     try {
-      // 准备发送给AI的消息，包括系统提示
+      // 准备苏格拉底式教学的系统提示
+      const socraticPrompt = `你是一个采用苏格拉底式教学法的专业学习助手，专注于帮助学生学习${courseName}。
+      
+你的主要目标是通过提问引导学生自己思考和发现答案，而不是直接提供信息。遵循以下原则：
+
+1. **提问而非解答**：不要直接给出答案，而是提出深思熟虑的问题，引导学生自己获得理解。
+2. **循序渐进**：通过一系列递进的问题，从简单到复杂，逐步引导思考。
+3. **等待回应**：在每次提问后，给学生充分的思考时间。不要一次提出太多问题。
+4. **深入追问**：根据学生的回答进一步提问，深入探索话题。
+5. **反思验证**：引导学生反思自己的答案，验证其合理性。
+6. **保持鼓励**：使用积极、支持性的语言，肯定学生的思考过程。
+7. **引发批判性思维**：鼓励学生质疑假设，考虑不同角度。
+8. **推进自我总结**：在对话结束时，引导学生自己总结所学内容。
+
+请使用Markdown格式来增强你的回复的可读性。始终保持耐心和尊重，记住你的目标是培养学生的独立思考能力，而不是简单地提供信息。
+
+${pageContent ? `当前页面内容：${pageContent}` : '如果你不确定学生正在学习的具体内容，可以礼貌地询问，然后基于他们的描述进行引导。'}`;
+
+      // 准备发送给AI的消息
       const aiMessages: AppChatMessage[] = [
-        { role: 'system', content: `你是一个专业、友善的学习助手，专注于帮助学生学习${courseName}。
-提供准确、有用的回答，解释复杂概念，并鼓励学生继续探索。请使用Markdown格式来增强你的回复的可读性。` },
+        { role: 'system', content: socraticPrompt },
         ...messages.map(msg => ({ 
           role: msg.role === 'ai' ? 'ai' as const : 'user' as const, 
           content: msg.content 
@@ -108,7 +127,7 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
           </div>
           <div>
             <h3 className="font-medium text-ghibli-deepTeal text-sm">亿小步平台助手</h3>
-            <p className="text-xs text-ghibli-brown">AI驱动的课程辅导</p>
+            <p className="text-xs text-ghibli-brown">苏格拉底式学习引导</p>
           </div>
         </div>
         <Button
@@ -176,7 +195,7 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
             <Input 
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="输入你的问题..." 
+              placeholder="和我分享你的想法..." 
               className="flex-1 bg-white/70 border-ghibli-sand/70 focus-visible:ring-ghibli-teal"
               disabled={isLoading}
             />
@@ -195,28 +214,28 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
               variant="outline" 
               size="sm" 
               className="text-xs rounded-full bg-white/70 border-ghibli-sand hover:bg-ghibli-cream text-ghibli-brown"
-              onClick={() => handleQuickPrompt("请解释这个课程中的重要概念")}
+              onClick={() => handleQuickPrompt("我想理解这个概念的核心原理")}
               disabled={isLoading}
             >
-              解释这个概念
+              探索概念
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
               className="text-xs rounded-full bg-white/70 border-ghibli-sand hover:bg-ghibli-cream text-ghibli-brown"
-              onClick={() => handleQuickPrompt("我在理解这部分内容时遇到了困难，能帮我解释一下吗？")}
+              onClick={() => handleQuickPrompt("我对这部分内容有些困惑，能引导我理解吗？")}
               disabled={isLoading}
             >
-              我需要帮助
+              我有困惑
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
               className="text-xs rounded-full bg-white/70 border-ghibli-sand hover:bg-ghibli-cream text-ghibli-brown"
-              onClick={() => handleQuickPrompt("你能推荐一些学习资源来加深我对这个主题的理解吗？")}
+              onClick={() => handleQuickPrompt("这个知识点如何应用到实际场景中？")}
               disabled={isLoading}
             >
-              推荐学习资源
+              应用知识
             </Button>
           </div>
         </form>
