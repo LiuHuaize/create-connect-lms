@@ -464,14 +464,6 @@ const LessonContent: React.FC<LessonContentProps> = ({
               </div>
             ) : (
               <div className="card-creator-container mt-4">
-                <Button 
-                  variant="outline" 
-                  className="mb-6" 
-                  onClick={() => setShowCardCreator(false)}
-                >
-                  返回说明
-                </Button>
-                
                 <CardCreatorStudent
                   taskId={selectedLesson.id}
                   studentId={userId}

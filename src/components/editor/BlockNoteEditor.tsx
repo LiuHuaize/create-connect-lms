@@ -80,6 +80,62 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
     
   }, [isFullscreen, onFullscreenToggle, editor]);
 
+  // 添加鼠标按下事件处理，修复光标位置问题，并避免闪烁
+  React.useEffect(() => {
+    if (!editor || readOnly) return;
+
+    // 处理编辑器mousedown事件
+    const handleEditorMouseDown = (e: MouseEvent) => {
+      // 获取点击的元素
+      const target = e.target as HTMLElement;
+      
+      // 检查是否点击在编辑区域内部（排除工具栏等UI元素）
+      const isEditableArea = !!target.closest('[contenteditable="true"]');
+      if (!isEditableArea) return;
+      
+      // 找到编辑器内容区域，准备临时隐藏
+      const contentArea = editorContainerRef.current?.querySelector('.bn-container') as HTMLElement | null;
+      if (!contentArea) return;
+      
+      // 临时存储原有的opacity值
+      const originalOpacity = contentArea.style.opacity;
+      
+      // 临时使编辑器透明，避免用户看到光标闪烁
+      contentArea.style.opacity = '0';
+      
+      // 使用setTimeout让默认的光标定位先发生
+      setTimeout(() => {
+        try {
+          // 获取当前光标位置
+          const cursorPosition = editor.getTextCursorPosition();
+          if (cursorPosition && cursorPosition.block) {
+            // 将光标设置到当前块的末尾
+            editor.setTextCursorPosition(cursorPosition.block, "end");
+          }
+          // 恢复编辑器可见性
+          contentArea.style.opacity = originalOpacity;
+        } catch (error) {
+          // 发生错误时仍然恢复可见性
+          contentArea.style.opacity = originalOpacity;
+          console.error("设置光标位置失败:", error);
+        }
+      }, 10); // 稍微增加延时以确保默认处理完成
+    };
+
+    // 查找编辑器容器并添加mousedown事件监听
+    if (editorContainerRef.current) {
+      const editorElement = editorContainerRef.current.querySelector('[class*="bn-container"]');
+      if (editorElement) {
+        editorElement.addEventListener('mousedown', handleEditorMouseDown);
+        
+        // 返回清理函数
+        return () => {
+          editorElement.removeEventListener('mousedown', handleEditorMouseDown);
+        };
+      }
+    }
+  }, [editor, readOnly, editorContainerRef]);
+
   // 使用额外的useEffect来强制滚动条位置
   useEffect(() => {
     if (isFullscreen) {
