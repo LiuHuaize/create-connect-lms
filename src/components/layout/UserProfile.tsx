@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Settings, LogOut } from 'lucide-react';
+import { User, Settings, LogOut, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -12,9 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from 'sonner';
 
 const UserProfile: React.FC = () => {
-  const { user, signOut, role } = useAuth();
+  const { user, signOut, role, refreshUserRole } = useAuth();
   
   // 从邮箱中提取用户名
   const username = user?.email?.split('@')[0] || '用户';
@@ -26,6 +26,14 @@ const UserProfile: React.FC = () => {
 
   const handleLogout = async () => {
     await signOut();
+  };
+
+  // 刷新用户角色
+  const handleRefreshRole = async () => {
+    await refreshUserRole();
+    toast.success("角色已刷新", {
+      description: "您的角色权限已更新"
+    });
   };
 
   // 角色的中文标签
@@ -64,6 +72,10 @@ const UserProfile: React.FC = () => {
               <Settings className="mr-2 h-4 w-4" />
               <span>设置</span>
             </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer" onClick={handleRefreshRole}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            <span>刷新我的角色</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-pointer text-red-500" onClick={handleLogout}>
