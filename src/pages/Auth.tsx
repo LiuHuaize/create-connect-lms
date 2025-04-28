@@ -63,22 +63,29 @@ const Auth = () => {
   const authContent = (
     <>
       {authError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{authError}</AlertDescription>
+        <Alert variant="destructive" className="mb-4 bg-ghibli-peach border-ghibli-rust text-ghibli-brown">
+          <AlertDescription className="font-medium">{authError}</AlertDescription>
         </Alert>
       )}
 
       {loading ? (
         <div className="p-6 flex flex-col items-center justify-center">
-          <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-4" />
-          <p className="text-gray-600">正在加载验证系统...</p>
+          <div className="relative w-16 h-16 mb-4">
+            {/* 吉卜力风格的加载动画 - 小精灵旋转 */}
+            <div className="absolute w-6 h-6 bg-ghibli-mint rounded-full top-0 left-0 animate-bounce delay-75"></div>
+            <div className="absolute w-6 h-6 bg-ghibli-skyBlue rounded-full top-0 right-0 animate-bounce delay-150"></div>
+            <div className="absolute w-6 h-6 bg-ghibli-sunshine rounded-full bottom-0 left-0 animate-bounce delay-300"></div>
+            <div className="absolute w-6 h-6 bg-ghibli-coral rounded-full bottom-0 right-0 animate-bounce delay-500"></div>
+            <div className="absolute w-4 h-4 bg-ghibli-teal rounded-full inset-0 m-auto animate-ping"></div>
+          </div>
+          <p className="text-ghibli-brown font-medium italic">正在加载验证系统...</p>
           
           {hasAttemptedAuth && (
             <div className="mt-4 text-center">
-              <p className="text-sm text-gray-500 mb-2">加载时间过长？</p>
+              <p className="text-sm text-ghibli-lightBrown mb-2">加载时间过长？</p>
               <button 
                 onClick={handleRetry}
-                className="text-blue-500 hover:text-blue-700 text-sm font-medium"
+                className="text-ghibli-teal hover:text-ghibli-deepTeal text-sm font-medium underline transition-colors"
               >
                 点击重试
               </button>
