@@ -54,7 +54,17 @@ export const useBlockNoteEditor = ({
   const editor = useCreateBlockNote({
     initialContent: initialContent ? safelyParseContent(initialContent) : undefined,
     uploadFile: handleBlockNoteFileUpload, // 使用文件上传服务
-    dictionary: zhDictionary // 使用中文本地化
+    dictionary: {
+      ...zhDictionary,
+      placeholders: {
+        ...zhDictionary.placeholders,
+        // 仅覆盖标题块的占位符为空字符串
+        heading: "",
+        // 保留default和emptyDocument的默认值，让用户看到提示
+        // default: "在此输入文本或输入 '/' 使用命令",
+        // emptyDocument: "开始输入...",
+      },
+    },
   });
 
   // 处理编辑器内容变化
