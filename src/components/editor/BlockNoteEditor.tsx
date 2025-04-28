@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
@@ -35,15 +35,13 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
     editor,
     isFullscreen,
     isMobile,
-    setIsFullscreen
+    setIsFullscreen,
+    editorContainerRef
   } = useBlockNoteEditor({
     initialContent,
     onChange,
     theme: 'light'
   });
-
-  // 创建一个ref来引用编辑器内容区域
-  const editorContentRef = React.useRef<HTMLDivElement>(null);
 
   // 自定义toggleFullscreen函数，确保阻止导航
   const toggleFullscreen = React.useCallback((e?: React.MouseEvent) => {
@@ -62,18 +60,16 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
       onFullscreenToggle(isFullscreen);
     }
     
-    // 当切换到全屏模式时，确保编辑器获得焦点并滚动到顶部
+    // 当切换到全屏模式时，确保编辑器获得焦点
     if (isFullscreen && editor) {
       // 增加延迟以确保DOM和编辑器已更新
       setTimeout(() => {
         // 尝试聚焦编辑器
         editor.focus();
         
-        // 如果有内容区域ref，滚动到顶部
-        if (editorContentRef.current) {
-          editorContentRef.current.scrollTop = 0; // 使用scrollTop直接设置
-        }
-      }, 200); // 增加延迟到 200ms
+        // 确保全屏模式下整个页面滚动到顶部
+        window.scrollTo(0, 0);
+      }, 200);
     }
     
     // 派发自定义事件通知应用的其他部分编辑器全屏状态变化
@@ -83,6 +79,27 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
     document.dispatchEvent(event);
     
   }, [isFullscreen, onFullscreenToggle, editor]);
+
+  // 使用额外的useEffect来强制滚动条位置
+  useEffect(() => {
+    if (isFullscreen) {
+      // 确保在完全渲染后执行滚动操作
+      const timerId = setTimeout(() => {
+        // 获取所有可能的滚动容器并重置它们的滚动位置
+        const scrollContainers = document.querySelectorAll('.overflow-auto');
+        scrollContainers.forEach(container => {
+          if (container instanceof HTMLElement) {
+            container.scrollTop = 0;
+          }
+        });
+        
+        // 滚动主窗口
+        window.scrollTo(0, 0);
+      }, 300);
+      
+      return () => clearTimeout(timerId);
+    }
+  }, [isFullscreen]);
 
   // 处理保存操作
   const handleSave = React.useCallback((e: React.MouseEvent) => {
@@ -101,6 +118,7 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
         isFullscreen ? "fixed inset-0 z-50 bg-white dark:bg-gray-900" : "w-full", 
         className
       )}
+      ref={editorContainerRef}
     >
       {/* 桌面端右上角保存按钮 */}
       {!isMobile && !readOnly && onSave && (
@@ -126,15 +144,21 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
         toggleFullscreen={toggleFullscreen}
       />
       
-      {/* 编辑器主体内容 */}
+      {/* 编辑器主体内容 - 使用固定高度和顶部边距确保"输入文本"提示可见 */}
       <div 
-        ref={editorContentRef}
         className={cn(
-          "w-full h-full overflow-auto",
-          // 全屏模式增加整体padding，非全屏模式增加左侧padding给side menu留空间
-          isFullscreen ? "p-8 pt-6" : 
-          isMobile ? "min-h-[250px] pb-12 pl-10" : "min-h-[300px] pl-10"
+          "w-full overflow-auto",
+          // 全屏模式下使用不同的样式，确保编辑器界面固定在可见区域
+          isFullscreen 
+            ? "h-[calc(100vh-60px)] pt-4 px-8" 
+            : isMobile 
+              ? "min-h-[250px] pb-12 pl-10" 
+              : "min-h-[300px] pl-10"
         )}
+        style={{ 
+          // 确保内容区域总是从顶部开始显示
+          scrollPaddingTop: "60px"
+        }}
       >
         <BlockNoteView
           editor={editor}

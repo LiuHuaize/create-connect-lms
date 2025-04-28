@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useCreateBlockNote } from "@blocknote/react";
 import { zhDictionary } from "@/components/editor/locales/zh";
 import { handleBlockNoteFileUpload } from "@/services/fileUploadService";
@@ -19,6 +19,9 @@ export const useBlockNoteEditor = ({
   
   // 检测移动设备
   const [isMobile, setIsMobile] = useState(false);
+  
+  // 编辑器容器引用
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
   
   // 安全解析内容函数
   const safelyParseContent = (content: string) => {
@@ -51,16 +54,7 @@ export const useBlockNoteEditor = ({
   const editor = useCreateBlockNote({
     initialContent: initialContent ? safelyParseContent(initialContent) : undefined,
     uploadFile: handleBlockNoteFileUpload, // 使用文件上传服务
-    dictionary: zhDictionary, // 使用中文本地化
-    // 自定义代码块样式，确保深色主题下代码块背景是白色
-    domAttributes: {
-      // 为代码块容器添加类名
-      codeBlock: {
-        code: {
-          className: 'bg-white text-gray-900 dark:bg-white dark:text-gray-900'
-        }
-      }
-    }
+    dictionary: zhDictionary // 使用中文本地化
   });
 
   // 处理编辑器内容变化
@@ -104,6 +98,62 @@ export const useBlockNoteEditor = ({
     setIsFullscreen(prev => !prev);
   }, []);
 
+  // 监听全屏状态变化，在进入全屏时滚动到顶部
+  useEffect(() => {
+    if (isFullscreen) {
+      // 首先滚动整个窗口到顶部
+      window.scrollTo(0, 0);
+      
+      // 添加一个较长的延迟，确保DOM完全渲染
+      setTimeout(() => {
+        // 尝试多种方法找到可滚动的容器
+        
+        // 1. 使用editorContainerRef
+        if (editorContainerRef.current) {
+          const scrollElements = editorContainerRef.current.querySelectorAll('.overflow-auto');
+          scrollElements.forEach(element => {
+            if (element instanceof HTMLElement) {
+              element.scrollTop = 0;
+            }
+          });
+        }
+        
+        // 2. 查找编辑器相关的容器
+        const editorElements = document.querySelectorAll('.bn-container, .bn-editor, [class*="blocknote"]');
+        editorElements.forEach(element => {
+          if (element instanceof HTMLElement) {
+            element.scrollTop = 0;
+            
+            // 查找父级可滚动元素
+            let parent = element.parentElement;
+            while (parent) {
+              if (parent instanceof HTMLElement) {
+                const style = window.getComputedStyle(parent);
+                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                  parent.scrollTop = 0;
+                }
+              }
+              parent = parent.parentElement;
+            }
+          }
+        });
+        
+        // 3. 查找页面中所有的overflow: auto/scroll元素
+        const allScrollableElements = document.querySelectorAll('[class*="overflow-auto"], [class*="overflow-scroll"]');
+        allScrollableElements.forEach(element => {
+          if (element instanceof HTMLElement) {
+            element.scrollTop = 0;
+          }
+        });
+        
+        // 4. 如果编辑器实例存在，尝试聚焦并滚动
+        if (editor) {
+          editor.focus();
+        }
+      }, 300);
+    }
+  }, [isFullscreen, editor]);
+
   // 监听ESC键，用于退出全屏模式
   useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
@@ -123,6 +173,7 @@ export const useBlockNoteEditor = ({
     isFullscreen,
     isMobile,
     toggleFullscreen,
-    setIsFullscreen
+    setIsFullscreen,
+    editorContainerRef
   };
 }; 
