@@ -90,6 +90,7 @@ const CourseCreator: React.FC<CourseCreatorProps> = ({ onEditorFullscreenChange 
               setCoverImageURL={setCoverImageURL}
               moduleDataLoaded={moduleDataLoaded}
               onEditorFullscreenChange={onEditorFullscreenChange}
+              onSaveCourse={handleSaveCourse}
             />
           </Tabs>
         </div>

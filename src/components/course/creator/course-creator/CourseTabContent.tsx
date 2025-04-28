@@ -25,6 +25,7 @@ interface CourseTabContentProps {
   setCoverImageURL: React.Dispatch<React.SetStateAction<string | null>>;
   moduleDataLoaded: boolean;
   onEditorFullscreenChange?: (isFullscreen: boolean) => void;
+  onSaveCourse?: () => Promise<string | undefined | void>;
 }
 
 const LoadingFallback = () => (
@@ -48,6 +49,7 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
   setCoverImageURL,
   moduleDataLoaded,
   onEditorFullscreenChange,
+  onSaveCourse,
 }) => {
   const updateLesson = (moduleId: string, lessonId: string, updatedLesson: Lesson | null) => {
     if (!updatedLesson) {
@@ -153,6 +155,7 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
                 }
               }}
               onEditorFullscreenChange={onEditorFullscreenChange}
+              onCourseDataSaved={onSaveCourse}
             />
           </div>
         ) : (

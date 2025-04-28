@@ -47,9 +47,10 @@ interface LessonEditorProps {
   onSave: (updatedLesson: Lesson | null) => void;
   onContentChange: (newContent: LessonContent) => void;
   onEditorFullscreenChange?: (isFullscreen: boolean) => void;
+  onCourseDataSaved?: () => Promise<string | undefined | void>;
 }
 
-const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChange }: LessonEditorProps) => {
+const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChange, onCourseDataSaved }: LessonEditorProps) => {
   // Initialize content with the correct structure based on lesson type
   const initializeContent = (): LessonContent => {
     const baseContent = lesson.content;
@@ -119,7 +120,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
     }
   };
   
-  const handleSubmit = (data) => {
+  const handleSubmit = async (data) => {
     const updatedLesson: Lesson = {
       ...lesson,
       title: data.title,
@@ -153,7 +154,23 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
     }
     // 卡片创建器和拖拽分类内容在子组件内处理，直接使用currentContent
     
+    // 首先更新课程内容的状态
     onSave(updatedLesson);
+    
+    // 然后如果提供了数据库保存回调，则调用它保存到数据库
+    if (onCourseDataSaved) {
+      try {
+        const toastId = toast.loading('正在保存课程到数据库...');
+        await onCourseDataSaved();
+        toast.success('课程已成功保存到数据库', {
+          id: toastId,
+          duration: 2000
+        });
+      } catch (error) {
+        console.error('保存课程到数据库失败:', error);
+        toast.error('保存课程到数据库失败，请稍后再试');
+      }
+    }
   };
   
   // 处理Lexical编辑器内容变化
