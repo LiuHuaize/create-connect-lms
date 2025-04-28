@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,9 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isCompletionLoading, setIsCompletionLoading] = useState(false);
   const [showCardCreator, setShowCardCreator] = useState(true);
+  
+  // 添加ref，用于获取组件的根元素
+  const contentRef = useRef<HTMLDivElement>(null);
   
   // 新增状态来跟踪错误尝试次数和是否显示提示
   const [attemptCounts, setAttemptCounts] = useState<{[key: string]: number}>({});
@@ -240,6 +243,55 @@ const LessonContent: React.FC<LessonContentProps> = ({
       setIsCompletionLoading(false);
     }
   };
+
+  // 添加新的useEffect，监听selectedLesson变化，当变化时滚动到顶部
+  useEffect(() => {
+    if (selectedLesson) {
+      // 使用setTimeout确保在DOM更新后执行滚动操作
+      setTimeout(() => {
+        // 滚动方法1：尝试滚动最近的可滚动父容器
+        const scrollToTop = () => {
+          // 查找方法1：通过ref找到组件的DOM元素，然后找到其可滚动的父容器
+          if (contentRef.current) {
+            let parent = contentRef.current.parentElement;
+            while (parent) {
+              const style = window.getComputedStyle(parent);
+              if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                parent.scrollTop = 0;
+                return true;
+              }
+              parent = parent.parentElement;
+            }
+          }
+          
+          // 查找方法2：使用选择器直接找到可滚动的课程内容容器
+          const contentContainer = document.querySelector('.flex-1.overflow-y-auto.scrollbar-thin');
+          if (contentContainer instanceof HTMLElement) {
+            contentContainer.scrollTop = 0;
+            return true;
+          }
+          
+          // 查找方法3：尝试查找带有特定类组合的元素
+          const scrollElements = document.querySelectorAll('[class*="overflow-y-auto"], [class*="overflow-auto"]');
+          let scrolled = false;
+          scrollElements.forEach(element => {
+            if (element instanceof HTMLElement) {
+              element.scrollTop = 0;
+              scrolled = true;
+            }
+          });
+          if (scrolled) return true;
+          
+          // 备选方案：如果上述方法都失败，滚动整个窗口
+          window.scrollTo(0, 0);
+          return true;
+        };
+        
+        // 执行滚动
+        scrollToTop();
+      }, 100); // 短暂延迟确保DOM已更新
+    }
+  }, [selectedLesson]); // 只有在selectedLesson变化时触发
 
   const renderLessonContent = () => {
     if (!selectedLesson) return null;
@@ -545,7 +597,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
   };
 
   return (
-    <>
+    <div ref={contentRef}>
       {selectedLesson && selectedUnit ? (
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <Card className="border-none shadow-md overflow-hidden">
@@ -588,7 +640,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
           </Card>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
