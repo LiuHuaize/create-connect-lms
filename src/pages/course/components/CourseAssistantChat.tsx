@@ -3,7 +3,9 @@ import { MessageSquare, X, Send, Sparkles } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { sendMessageToAI, formatMessages } from '@/services/aiService';
+import { sendMessageToAI, streamMessageFromAI, formatMessages, AppChatMessage } from '@/services/aiService';
+import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import { containsMarkdown } from '@/utils/markdownUtils';
 
 // 定义消息类型
 interface ChatMessage {
@@ -30,6 +32,7 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentStreamingMessage, setCurrentStreamingMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // 自动滚动到底部
@@ -39,7 +42,7 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
   
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, currentStreamingMessage]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,21 +54,36 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
     setIsLoading(true);
+    setCurrentStreamingMessage('');
     
     try {
       // 准备发送给AI的消息，包括系统提示
-      const aiMessages = [
-        { role: 'system' as const, content: `你是一个专业、友善的学习助手，专注于帮助学生学习${courseName}。
-提供准确、有用的回答，解释复杂概念，并鼓励学生继续探索。` },
-        ...formatMessages(messages),
-        formatMessages([userMessage])[0]
+      const aiMessages: AppChatMessage[] = [
+        { role: 'system', content: `你是一个专业、友善的学习助手，专注于帮助学生学习${courseName}。
+提供准确、有用的回答，解释复杂概念，并鼓励学生继续探索。请使用Markdown格式来增强你的回复的可读性。` },
+        ...messages.map(msg => ({ 
+          role: msg.role === 'ai' ? 'ai' as const : 'user' as const, 
+          content: msg.content 
+        })),
+        { role: 'user' as const, content: message }
       ];
       
-      // 调用API获取回复
-      const aiResponse = await sendMessageToAI(aiMessages);
+      // 使用流式输出
+      let fullResponse = '';
       
-      // 添加AI回复
-      setMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
+      // 开始流式接收回复
+      await streamMessageFromAI(
+        aiMessages,
+        (chunk) => {
+          fullResponse += chunk;
+          setCurrentStreamingMessage(fullResponse);
+        },
+        { temperature: 0.7 }
+      );
+      
+      // 流式输出完成后，添加完整回复
+      setMessages(prev => [...prev, { role: 'ai', content: fullResponse }]);
+      setCurrentStreamingMessage('');
     } catch (error) {
       console.error('获取AI回复失败:', error);
       setMessages(prev => [...prev, { 
@@ -113,12 +131,31 @@ const CourseAssistantChat: React.FC<CourseAssistantChatProps> = ({
                   : 'bg-ghibli-cream/80 border border-ghibli-sand/50 text-ghibli-brown'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              {/* 根据是否包含Markdown语法选择渲染方式 */}
+              {msg.role === 'ai' && containsMarkdown(msg.content) ? (
+                <MarkdownRenderer>{msg.content}</MarkdownRenderer>
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              )}
             </div>
           </div>
         ))}
         
-        {isLoading && (
+        {/* 显示正在流式接收的消息 */}
+        {currentStreamingMessage && (
+          <div className="flex justify-start">
+            <div className="rounded-2xl p-3 max-w-[80%] shadow-sm bg-ghibli-cream/80 border border-ghibli-sand/50 text-ghibli-brown">
+              {containsMarkdown(currentStreamingMessage) ? (
+                <MarkdownRenderer>{currentStreamingMessage}</MarkdownRenderer>
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{currentStreamingMessage}</p>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* 加载指示器 */}
+        {isLoading && !currentStreamingMessage && (
           <div className="flex justify-start">
             <div className="bg-ghibli-cream/80 border border-ghibli-sand/50 rounded-2xl p-3 shadow-sm">
               <div className="flex space-x-2">

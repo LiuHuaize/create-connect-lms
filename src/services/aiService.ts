@@ -42,20 +42,22 @@ interface ChatCompletionResponse {
   };
 }
 
-// AI Hub Mix API 配置
-// 从环境变量读取API密钥，确保在 .env.local 或类似文件中设置 VITE_AIHUBMIX_API_KEY (Vite)
-// const API_KEY = import.meta.env.VITE_AIHUBMIX_API_KEY; // Removed environment variable usage
-const API_KEY = 'sk-ysF0SA6kJ7C1I2wG2f901fD6Fe8443Df8f75C92a0aF1Ce2b'; // Directly hardcoded API Key
-const BASE_URL = 'https://aihubmix.com/v1'; // AI Hub Mix API 地址
-const MODEL_NAME = 'kimi-latest'; // 
-const API_URL = 'https://aihubmix.com/v1/chat/completions';
+// OpenRouter API 配置
+const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || 'your-api-key-here'; // 从环境变量获取API密钥
+const BASE_URL = 'https://openrouter.ai/api/v1';
+const MODEL_NAME = 'google/gemini-2.5-pro-preview-03-25'; // Google Gemini 模型
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://yibu-platform.com'; // 网站URL，用于OpenRouter统计
+const SITE_NAME = 'YiBu Learning Platform'; // 网站名称改为英文，避免编码问题
 
 // 创建 axios 实例
 const aiApi = axios.create({
   baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${API_KEY}` // 使用环境变量中的 API Key
+    'Authorization': `Bearer ${API_KEY}`,
+    'HTTP-Referer': SITE_URL, // OpenRouter需要的标头
+    'X-Title': SITE_NAME, // OpenRouter需要的标头
   },
   timeout: 60000 // 设置60秒超时
 });
@@ -107,9 +109,6 @@ export const formatMessages = (messages: AppChatMessage[]): ChatMessage[] => {
 
 // 发送消息到 AI 服务并获取回复
 export const sendMessageToAI = async (messages: AppChatMessage[]): Promise<string> => {
-  // 使用硬编码的 API KEY，不再从环境变量获取
-  const apiKey = API_KEY;
-
   try {
     // 确保消息格式正确 - 将 'ai' 转换为 'assistant'
     const formattedMessages = formatMessages(messages);
@@ -117,12 +116,18 @@ export const sendMessageToAI = async (messages: AppChatMessage[]): Promise<strin
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${API_KEY}`,
+        'HTTP-Referer': SITE_URL,
+        'X-Title': SITE_NAME,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model: MODEL_NAME,
         messages: formattedMessages, // 使用格式化后的消息
+        // 请求返回Markdown格式
+        response_format: {
+          type: "text"
+        }
       }),
     });
 
@@ -143,6 +148,7 @@ export const sendMessageToAI = async (messages: AppChatMessage[]): Promise<strin
         throw new Error('API 响应格式不正确或内容为空');
     }
 
+    // 返回Markdown格式的内容
     return aiContent.trim();
 
   } catch (error) {
@@ -155,8 +161,8 @@ export const sendMessageToAI = async (messages: AppChatMessage[]): Promise<strin
   }
 };
 
-// 使用 stream 模式获取响应 (注意: AI Hub Mix 是否支持 stream 需要确认)
-// 如果不支持，这个函数可能需要调整或移除
+// 使用 stream 模式获取响应 
+// 流式输出Markdown格式的内容
 export const streamMessageFromAI = async (
   messages: AppChatMessage[],
   onChunk: (chunk: string) => void,
@@ -167,58 +173,97 @@ export const streamMessageFromAI = async (
 ) => {
   try {
     const formattedMessages = formatMessages(messages);
-    const requestData: ChatCompletionRequest = {
-      model: MODEL_NAME,
-      messages: formattedMessages,
-      temperature: options.temperature || 0.7,
-      max_tokens: options.max_tokens || 2000,
-      stream: true
-    };
-
-    const response = await aiApi.post('/chat/completions', requestData, {
-      responseType: 'stream'
+    
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'HTTP-Referer': SITE_URL,
+        'X-Title': SITE_NAME,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: MODEL_NAME,
+        messages: formattedMessages,
+        temperature: options.temperature || 0.7,
+        max_tokens: options.max_tokens || 2000,
+        stream: true,
+        // 请求返回Markdown格式
+        response_format: {
+          type: "text"
+        }
+      }),
     });
 
-    const reader = response.data.getReader();
-    const decoder = new TextDecoder('utf-8');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(`流式请求失败，状态码: ${response.status}. ${errorData.message || ''}`);
+    }
 
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('无法获取响应流');
+    }
+
+    const decoder = new TextDecoder('utf-8');
     let fullResponse = '';
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      // 注意：流式响应的格式可能与 DeepSeek 不同，需要根据 AI Hub Mix 的实际响应格式调整解析逻辑
-      const lines = chunk.split('\\n').filter(line => line.trim() !== '');
+      // 将新块附加到缓冲区
+      buffer += decoder.decode(value, { stream: true });
 
-      for (const line of lines) {
-          // 假设 AI Hub Mix 的流格式与 OpenAI/DeepSeek 类似 (data: {...})
-         if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') break;
+      // 处理缓冲区中的完整行
+      while (true) {
+        const lineEnd = buffer.indexOf('\n');
+        if (lineEnd === -1) break;
 
-            try {
-              const parsedData = JSON.parse(data);
-              // 这里的路径可能需要根据 AI Hub Mix 的具体响应调整
-              const content = parsedData.choices[0]?.delta?.content || '';
-              if (content) {
-                fullResponse += content;
-                onChunk(content);
-              }
-            } catch (e) {
-              console.error('解析流数据失败:', e, '原始行:', line);
+        const line = buffer.slice(0, lineEnd).trim();
+        buffer = buffer.slice(lineEnd + 1);
+
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') break;
+
+          try {
+            const parsedData = JSON.parse(data);
+            const content = parsedData.choices[0]?.delta?.content || '';
+            if (content) {
+              fullResponse += content;
+              onChunk(content);
             }
-         } else if (line.trim()) {
-             // 处理非 'data:' 开头的行，可能是错误或其他信息
-             console.warn('收到非标准流数据行:', line);
-         }
+          } catch (e) {
+            console.error('解析流数据失败:', e, '原始行:', line);
+          }
+        }
+      }
+    }
+
+    // 处理缓冲区中的剩余数据
+    if (buffer.trim() !== '') {
+      if (buffer.startsWith('data: ')) {
+        const data = buffer.slice(6);
+        if (data !== '[DONE]') {
+          try {
+            const parsedData = JSON.parse(data);
+            const content = parsedData.choices[0]?.delta?.content || '';
+            if (content) {
+              fullResponse += content;
+              onChunk(content);
+            }
+          } catch (e) {
+            console.error('解析剩余流数据失败:', e);
+          }
+        }
       }
     }
 
     return fullResponse;
   } catch (error) {
-    console.error('流式调用 AI Hub Mix API 失败:', error);
+    console.error('流式调用 OpenRouter API 失败:', error);
     throw new Error('与 AI 服务通信时出错');
   }
 }; 
