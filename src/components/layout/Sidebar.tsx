@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import Logo from "@/assets/Logo";
 import UserProfile from "./UserProfile";
+// 导入编辑器全屏事件常量
+import { EDITOR_FULLSCREEN_EVENT } from "@/components/editor/BlockNoteEditor";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -45,6 +47,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
       setIsCollapsed(false);
     }
   }, [isCoursePage]);
+
+  // 监听编辑器全屏状态变化事件
+  useEffect(() => {
+    const handleEditorFullscreenChange = (event: CustomEvent) => {
+      const { isFullscreen } = event.detail;
+      if (isFullscreen) {
+        setIsCollapsed(true);
+      }
+    };
+
+    // 添加类型断言使TypeScript知道这是一个CustomEvent
+    document.addEventListener(
+      EDITOR_FULLSCREEN_EVENT, 
+      handleEditorFullscreenChange as EventListener
+    );
+
+    return () => {
+      document.removeEventListener(
+        EDITOR_FULLSCREEN_EVENT, 
+        handleEditorFullscreenChange as EventListener
+      );
+    };
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();

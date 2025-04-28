@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 import { useBlockNoteEditor } from "@/hooks/useBlockNoteEditor";
 import { EditorToolbar } from "./EditorToolbar";
 
+// 定义自定义事件名称常量
+export const EDITOR_FULLSCREEN_EVENT = 'editor-fullscreen-change';
+
 interface BlockNoteEditorProps {
   initialContent?: string;
   onChange?: (content: string) => void;
@@ -72,6 +75,13 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
         }
       }, 200); // 增加延迟到 200ms
     }
+    
+    // 派发自定义事件通知应用的其他部分编辑器全屏状态变化
+    const event = new CustomEvent(EDITOR_FULLSCREEN_EVENT, { 
+      detail: { isFullscreen } 
+    });
+    document.dispatchEvent(event);
+    
   }, [isFullscreen, onFullscreenToggle, editor]);
 
   // 处理保存操作
@@ -121,13 +131,15 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
         ref={editorContentRef}
         className={cn(
           "w-full h-full overflow-auto",
-          isFullscreen ? "p-8 pt-6" : isMobile ? "min-h-[250px] pb-12" : "min-h-[300px]"
+          // 全屏模式增加整体padding，非全屏模式增加左侧padding给side menu留空间
+          isFullscreen ? "p-8 pt-6" : 
+          isMobile ? "min-h-[250px] pb-12 pl-10" : "min-h-[300px] pl-10"
         )}
       >
         <BlockNoteView
           editor={editor}
           editable={!readOnly}
-          formattingToolbar={false}
+          formattingToolbar={false} // 禁用内部工具栏
         />
       </div>
 
