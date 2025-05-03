@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { User, Lock, UserPlus } from 'lucide-react';
+import { User, Lock, UserPlus, Eye, EyeOff } from 'lucide-react';
 
 const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -54,6 +55,10 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <Card className="border-none bg-transparent shadow-none">
       <CardHeader className="space-y-2 text-center pb-2">
@@ -85,13 +90,21 @@ const SignUpForm = ({ onToggle }: { onToggle: () => void }) => {
                 <Lock className="absolute left-3 top-3 h-5 w-5 text-ghibli-teal" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="设置一个安全的密码"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 border-muted bg-white focus:border-primary focus:ring focus:ring-primary/20 transition-all rounded-xl"
+                  className="pl-10 pr-10 border-muted bg-white focus:border-primary focus:ring focus:ring-primary/20 transition-all rounded-xl"
                   disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  className="absolute right-3 top-3 text-ghibli-teal hover:text-ghibli-deepTeal transition-colors"
+                  onClick={togglePasswordVisibility}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
           </div>

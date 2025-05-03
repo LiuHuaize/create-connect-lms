@@ -309,7 +309,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
 
           {role === "admin" && (
             <div className="space-y-1">
-              <div className="border-t border-border mx-3 pt-2"></div>
               {adminLinks.map((link) => (
                 <Link
                   key={link.href}
