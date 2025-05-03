@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Course } from '@/types/course';
 
@@ -16,6 +15,32 @@ const InfoTab: React.FC<InfoTabProps> = ({ course }) => {
           <p className="text-gray-700 whitespace-pre-line">
             {course.description || '暂无课程描述'}
           </p>
+        </div>
+        
+        <div>
+          <h3 className="text-lg font-semibold mb-2">适用年级与学科</h3>
+          <div className="space-y-2">
+            <p className="text-gray-700">
+              <span className="font-medium">适用年级：</span>
+              {course.grade_range_min && course.grade_range_max 
+                ? `${course.grade_range_min} - ${course.grade_range_max}年级` 
+                : course.grade_range_min 
+                ? `${course.grade_range_min}年级及以上` 
+                : course.grade_range_max 
+                ? `${course.grade_range_max}年级及以下` 
+                : '所有年级'}
+            </p>
+            <p className="text-gray-700">
+              <span className="font-medium">主要学科：</span>
+              {course.primary_subject || '暂无指定'}
+            </p>
+            {course.secondary_subject && (
+              <p className="text-gray-700">
+                <span className="font-medium">跨学科领域：</span>
+                {course.secondary_subject}
+              </p>
+            )}
+          </div>
         </div>
         
         <div>

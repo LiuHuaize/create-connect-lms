@@ -1,8 +1,8 @@
-
 import React from 'react';
-import { BookOpen, Clock, User, Calendar } from 'lucide-react';
+import { BookOpen, Clock, User, Calendar, GraduationCap, Book } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
 import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/utils/date';
 
 interface OverviewTabProps {
   course: Course;
@@ -81,10 +81,29 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
             
             <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-gray-500" />
+              <GraduationCap className="h-5 w-5 text-gray-500" />
               <div>
-                <p className="text-gray-700">约 {estimatedHours} 小时</p>
-                <p className="text-sm text-gray-500">估计完成时间</p>
+                <p className="text-gray-700">
+                  {course.grade_range_min && course.grade_range_max 
+                    ? `${course.grade_range_min}-${course.grade_range_max}年级` 
+                    : course.grade_range_min 
+                    ? `${course.grade_range_min}年级及以上` 
+                    : course.grade_range_max 
+                    ? `${course.grade_range_max}年级及以下` 
+                    : '所有年级'}
+                </p>
+                <p className="text-sm text-gray-500">适用年级范围</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Book className="h-5 w-5 text-gray-500" />
+              <div>
+                <p className="text-gray-700">
+                  {course.primary_subject || '未指定'}
+                  {course.secondary_subject ? ` + ${course.secondary_subject}` : ''}
+                </p>
+                <p className="text-sm text-gray-500">学科领域</p>
               </div>
             </div>
             

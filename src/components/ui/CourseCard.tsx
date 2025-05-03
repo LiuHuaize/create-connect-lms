@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Award, BookOpen, BarChart, Star, Users } from 'lucide-react';
+import { Clock, Award, BookOpen, BarChart, Star, Users, GraduationCap, Book } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CourseCardProps {
@@ -14,6 +14,10 @@ interface CourseCardProps {
   coverImage?: string | null;
   rating?: number;
   studentsCount?: number;
+  gradeRangeMin?: number | null;
+  gradeRangeMax?: number | null;
+  primarySubject?: string | null;
+  secondarySubject?: string | null;
 }
 
 const CourseCard: React.FC<CourseCardProps> = ({
@@ -27,7 +31,11 @@ const CourseCard: React.FC<CourseCardProps> = ({
   className,
   coverImage,
   rating = 4.8,
-  studentsCount = 0
+  studentsCount = 0,
+  gradeRangeMin,
+  gradeRangeMax,
+  primarySubject,
+  secondarySubject
 }) => {
   const getBadgeColor = () => {
     switch (type) {
@@ -135,6 +143,31 @@ const CourseCard: React.FC<CourseCardProps> = ({
             <div className="flex items-center gap-1.5 group-hover:text-primary/70 transition-colors duration-300">
               <BarChart className="h-4 w-4" />
               <span>{level}</span>
+            </div>
+          )}
+          
+          {/* 适用年级范围 */}
+          {(gradeRangeMin || gradeRangeMax) && (
+            <div className="flex items-center gap-1.5 group-hover:text-primary/70 transition-colors duration-300">
+              <GraduationCap className="h-4 w-4" />
+              <span>
+                {gradeRangeMin && gradeRangeMax 
+                  ? `${gradeRangeMin}-${gradeRangeMax}年级` 
+                  : gradeRangeMin 
+                  ? `${gradeRangeMin}年级及以上` 
+                  : `${gradeRangeMax}年级及以下`}
+              </span>
+            </div>
+          )}
+          
+          {/* 学科 */}
+          {primarySubject && (
+            <div className="flex items-center gap-1.5 group-hover:text-primary/70 transition-colors duration-300">
+              <Book className="h-4 w-4" />
+              <span>
+                {primarySubject}
+                {secondarySubject ? ` + ${secondarySubject}` : ''}
+              </span>
             </div>
           )}
           

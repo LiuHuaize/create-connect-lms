@@ -22,16 +22,19 @@ interface InProgressCoursesProps {
 }
 
 const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading }) => {
+  // 仅显示可用课程
+  const availableCourses = courses.filter(course => course.isAvailable !== false);
+  
   return (
     <div className="space-y-6">
       {loading ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">正在加载课程...</p>
         </div>
-      ) : courses.length > 0 ? (
+      ) : availableCourses.length > 0 ? (
         // 显示用户已加入的课程
-        courses.map((course) => (
-          <div key={course.id} className="course-card">
+        availableCourses.map((course) => (
+          <div key={course.id} className="course-card bg-white rounded-xl shadow-sm border border-gray-100">
             <div className="p-6">
               <div className="flex justify-between items-start">
                 <div>
@@ -39,12 +42,6 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
                     <div className="bg-ghibli-lightTeal text-ghibli-deepTeal inline-block px-3 py-1 rounded-full text-xs font-medium">
                       {getCategoryDisplayName(course.category)}
                     </div>
-                    
-                    {course.isAvailable === false && (
-                      <div className="bg-amber-100 text-amber-700 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium">
-                        <AlertCircle size={12} className="mr-1" /> 课程暂不可用
-                      </div>
-                    )}
                   </div>
                   <h3 className="font-bold text-xl mb-2">{course.title}</h3>
                   <p className="text-gray-600 mb-4">{course.short_description || '暂无描述'}</p>
@@ -63,17 +60,11 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
                   </div>
                 </div>
                 
-                {course.isAvailable !== false ? (
-                  <Link to={`/course/${course.id}`}>
-                    <button className="bg-ghibli-teal text-white p-3 rounded-full hover:bg-ghibli-deepTeal transition-colors">
-                      <Play size={20} fill="white" />
-                    </button>
-                  </Link>
-                ) : (
-                  <button disabled className="bg-gray-300 text-white p-3 rounded-full cursor-not-allowed opacity-50">
+                <Link to={`/course/${course.id}`}>
+                  <button className="bg-ghibli-teal text-white p-3 rounded-full hover:bg-ghibli-deepTeal transition-colors">
                     <Play size={20} fill="white" />
                   </button>
-                )}
+                </Link>
               </div>
               
               <div className="mt-2">
@@ -92,23 +83,17 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
                   <p className="text-sm text-gray-500">{course.title}</p>
                 </div>
                 
-                {course.isAvailable !== false ? (
-                  <Link to={`/course/${course.id}`}>
-                    <button className="event-register-btn">
-                      继续
-                    </button>
-                  </Link>
-                ) : (
-                  <div className="py-2 px-4 text-gray-500 text-sm">
-                    教师已暂时取消此课程的发布
-                  </div>
-                )}
+                <Link to={`/course/${course.id}`}>
+                  <button className="event-register-btn">
+                    继续
+                  </button>
+                </Link>
               </div>
             </div>
           </div>
         ))
       ) : (
-        <div className="text-center py-12">
+        <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <p className="text-gray-500 mb-4">您还没有加入任何课程</p>
           <Button asChild>
             <Link to="/explore-courses">浏览课程</Link>

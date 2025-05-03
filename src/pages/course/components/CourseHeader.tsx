@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, BookOpen, Menu, Clock, Users, RefreshCw, Loader2 } from 'lucide-react';
+import { ChevronLeft, BookOpen, Menu, GraduationCap, Users, RefreshCw, Loader2, Book } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Course } from '@/types/course';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -65,9 +65,9 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
             )}
             
             <div className="truncate flex items-center min-w-0">
-              {courseData.image_url && (
+              {courseData.cover_image && (
                 <div className="hidden sm:block w-10 h-10 rounded-lg overflow-hidden mr-3 bg-slate-200 dark:bg-slate-700 flex-shrink-0">
-                  <img src={courseData.image_url} alt={courseData.title} className="w-full h-full object-cover" />
+                  <img src={courseData.cover_image} alt={courseData.title} className="w-full h-full object-cover" />
                 </div>
               )}
               
@@ -78,12 +78,20 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
                     <BookOpen size={14} className="mr-1 flex-shrink-0" /> 
                     <span className="truncate">{courseData.short_description || ""}</span>
                   </div>
-                  {courseData.duration && (
-                    <div className="hidden sm:flex items-center flex-shrink-0">
-                      <Clock size={14} className="mr-1" />
-                      <span>{courseData.duration}</span>
-                    </div>
-                  )}
+                  
+                  {/* 年级范围 */}
+                  <div className="hidden sm:flex items-center flex-shrink-0">
+                    <GraduationCap size={14} className="mr-1" />
+                    <span>
+                      {courseData.grade_range_min && courseData.grade_range_max 
+                        ? `${courseData.grade_range_min}-${courseData.grade_range_max}年级` 
+                        : courseData.grade_range_min 
+                        ? `${courseData.grade_range_min}年级及以上` 
+                        : courseData.grade_range_max 
+                        ? `${courseData.grade_range_max}年级及以下` 
+                        : '所有年级'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -111,25 +119,27 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
               )}
             </Button>
             
-            {courseData.instructor && (
+            {courseData.author_id && (
               <div className="hidden sm:flex items-center mr-4">
                 <Avatar className="h-8 w-8 mr-2 border border-slate-200 dark:border-slate-600">
                   <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
-                    {courseData.instructor.slice(0, 2).toUpperCase()}
+                    创建者
                   </AvatarFallback>
                 </Avatar>
                 <div className="text-sm text-slate-600 dark:text-slate-300">
-                  {courseData.instructor}
+                  创建者
                 </div>
               </div>
             )}
             
-            {courseData.student_count && (
-              <div className="hidden sm:flex text-sm text-slate-500 dark:text-slate-400 items-center">
-                <Users size={14} className="mr-1" />
-                <span>{courseData.student_count} 名学员</span>
-              </div>
-            )}
+            {/* 学科信息 */}
+            <div className="hidden sm:flex text-sm text-slate-500 dark:text-slate-400 items-center">
+              <Book size={14} className="mr-1" />
+              <span>
+                {courseData.primary_subject || '未指定学科'}
+                {courseData.secondary_subject ? ` + ${courseData.secondary_subject}` : ''}
+              </span>
+            </div>
           </div>
         </div>
       </header>

@@ -109,6 +109,23 @@
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
   }
 
+  /* 继续按钮样式 - 更加醒目 */
+  .event-register-btn {
+    @apply py-2 px-4 bg-blue-600 text-white font-bold rounded-full shadow-md transition-all duration-300;
+    letter-spacing: 0.05em;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .event-register-btn:hover {
+    @apply transform -translate-y-0.5 shadow-lg;
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .event-register-btn:active {
+    @apply transform translate-y-0 shadow-md;
+  }
+
   /* 更新玻璃卡片样式 */
   .glass-card {
     @apply relative overflow-hidden bg-white/85 backdrop-blur-md border border-white/30 shadow-xl rounded-2xl;

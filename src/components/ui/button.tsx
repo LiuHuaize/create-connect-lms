@@ -9,18 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5",
+        default: "bg-primary text-primary-foreground hover:shadow-lg hover:-translate-y-0.5",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg hover:-translate-y-0.5",
+          "bg-destructive text-destructive-foreground hover:shadow-lg hover:-translate-y-0.5",
         outline:
-          "border-2 border-input bg-background hover:bg-accent/10 hover:text-accent-foreground hover:shadow-lg hover:-translate-y-0.5",
+          "border-2 border-input bg-background hover:shadow-lg hover:-translate-y-0.5",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:shadow-lg hover:-translate-y-0.5",
-        ghost: "hover:bg-accent/10 hover:text-accent-foreground",
+          "bg-secondary text-secondary-foreground hover:shadow-lg hover:-translate-y-0.5",
+        ghost: "",
         link: "text-primary underline-offset-4 hover:underline",
-        macaron: "bg-macaron-pink text-white border-2 border-macaron-pink/80 hover:bg-macaron-deepPink hover:border-macaron-deepPink/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(156,54,93,0.2)] hover:shadow-[6px_8px_0_rgba(156,54,93,0.15)] hover:-translate-y-0.5",
-        macaronMint: "bg-macaron-mint text-macaron-deepMint border-2 border-macaron-mint/80 hover:bg-macaron-deepMint hover:text-white hover:border-macaron-deepMint/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(42,125,101,0.2)] hover:shadow-[6px_8px_0_rgba(42,125,101,0.15)] hover:-translate-y-0.5",
-        macaronLavender: "bg-macaron-lavender text-macaron-deepLavender border-2 border-macaron-lavender/80 hover:bg-macaron-deepLavender hover:text-white hover:border-macaron-deepLavender/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(105,51,176,0.2)] hover:shadow-[6px_8px_0_rgba(105,51,176,0.15)] hover:-translate-y-0.5",
+        macaron: "bg-macaron-pink text-white border-2 border-macaron-pink/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(156,54,93,0.2)] hover:shadow-[6px_8px_0_rgba(156,54,93,0.15)] hover:-translate-y-0.5",
+        macaronMint: "bg-macaron-mint text-macaron-deepMint border-2 border-macaron-mint/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(42,125,101,0.2)] hover:shadow-[6px_8px_0_rgba(42,125,101,0.15)] hover:-translate-y-0.5",
+        macaronLavender: "bg-macaron-lavender text-macaron-deepLavender border-2 border-macaron-lavender/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(105,51,176,0.2)] hover:shadow-[6px_8px_0_rgba(105,51,176,0.15)] hover:-translate-y-0.5",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -30,7 +30,11 @@ export const useCourseCreator = () => {
     status: 'draft',
     price: null,
     tags: [],
-    category: null
+    category: null,
+    grade_range_min: null,
+    grade_range_max: null,
+    primary_subject: null,
+    secondary_subject: null
   });
 
   const [modules, setModules] = useState<CourseModule[]>([]);

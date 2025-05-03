@@ -18,6 +18,10 @@ export type Course = {
   created_at?: string;
   updated_at?: string;
   category?: string | null;
+  grade_range_min?: number | null;
+  grade_range_max?: number | null;
+  primary_subject?: string | null;
+  secondary_subject?: string | null;
 };
 
 // 课程模块类型定义

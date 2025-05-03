@@ -40,20 +40,26 @@ export const useLearningData = () => {
     };
   }, [user, queryClient]);
 
-  // 使用useMemo优化过滤操作
-  const inProgressCourses = useMemo(() => 
-    enrolledCourses.filter(course => course.progress < 100), 
+  // 先过滤出所有已发布的课程
+  const availableCourses = useMemo(() => 
+    enrolledCourses.filter(course => course.isAvailable !== false),
     [enrolledCourses]
+  );
+
+  // 使用已过滤的可用课程来生成进行中和已完成的课程列表
+  const inProgressCourses = useMemo(() => 
+    availableCourses.filter(course => course.progress < 100), 
+    [availableCourses]
   );
   
   const completedCourses = useMemo(() => 
-    enrolledCourses.filter(course => course.progress >= 100), 
-    [enrolledCourses]
+    availableCourses.filter(course => course.progress >= 100), 
+    [availableCourses]
   );
 
   return {
     // 数据
-    enrolledCourses,
+    enrolledCourses: availableCourses, // 只返回已发布的课程
     inProgressCourses,
     completedCourses,
     loadingEnrolled,

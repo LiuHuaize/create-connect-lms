@@ -136,6 +136,64 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
             </SelectContent>
           </Select>
         </div>
+        
+        <div>
+          <Label className="text-sm font-medium text-gray-700 mb-2">适用年级范围</Label>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Label htmlFor="grade-min" className="text-xs text-gray-500 mb-1">最小年级</Label>
+              <Input 
+                id="grade-min"
+                type="number" 
+                min="1"
+                placeholder="1" 
+                value={course.grade_range_min || ''}
+                onChange={(e) => setCourse(prev => ({ 
+                  ...prev, 
+                  grade_range_min: e.target.value ? parseInt(e.target.value) : null 
+                }))}
+                className="placeholder:text-gray-400 focus:ring-2 focus:ring-connect-blue/20"
+              />
+            </div>
+            <div className="flex-1">
+              <Label htmlFor="grade-max" className="text-xs text-gray-500 mb-1">最大年级</Label>
+              <Input 
+                id="grade-max"
+                type="number" 
+                min="1"
+                placeholder="12" 
+                value={course.grade_range_max || ''}
+                onChange={(e) => setCourse(prev => ({ 
+                  ...prev, 
+                  grade_range_max: e.target.value ? parseInt(e.target.value) : null 
+                }))}
+                className="placeholder:text-gray-400 focus:ring-2 focus:ring-connect-blue/20"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <Label htmlFor="primary-subject" className="text-sm font-medium text-gray-700 mb-2">主学科</Label>
+          <Input 
+            id="primary-subject"
+            placeholder="例如：数学、语文、科学等" 
+            value={course.primary_subject || ''}
+            onChange={(e) => setCourse(prev => ({ ...prev, primary_subject: e.target.value }))}
+            className="placeholder:text-gray-400 focus:ring-2 focus:ring-connect-blue/20"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="secondary-subject" className="text-sm font-medium text-gray-700 mb-2">第二跨学科</Label>
+          <Input 
+            id="secondary-subject"
+            placeholder="例如：编程、历史、艺术等" 
+            value={course.secondary_subject || ''}
+            onChange={(e) => setCourse(prev => ({ ...prev, secondary_subject: e.target.value }))}
+            className="placeholder:text-gray-400 focus:ring-2 focus:ring-connect-blue/20"
+          />
+        </div>
       </div>
 
       <Dialog open={customCategoryOpen} onOpenChange={setCustomCategoryOpen}>

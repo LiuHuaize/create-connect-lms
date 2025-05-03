@@ -52,6 +52,10 @@ export const courseService = {
       price: courseData.price,
       tags: courseData.tags,
       category: courseData.category,
+      grade_range_min: courseData.grade_range_min,
+      grade_range_max: courseData.grade_range_max,
+      primary_subject: courseData.primary_subject,
+      secondary_subject: courseData.secondary_subject,
       updated_at: new Date().toISOString()
     };
     

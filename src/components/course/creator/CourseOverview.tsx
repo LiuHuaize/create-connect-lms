@@ -1,8 +1,8 @@
-
 import React from 'react';
-import { BookOpen, Clock, Image } from 'lucide-react';
+import { BookOpen, Book, User, Image, Check, AlertCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Course, CourseModule } from '@/types/course';
+import { Badge } from '@/components/ui/badge';
 
 interface CourseOverviewProps {
   course: Course;
@@ -53,38 +53,53 @@ const CourseOverview: React.FC<CourseOverviewProps> = ({
       
       <div className="flex items-center gap-2 mb-1">
         <BookOpen size={14} className="text-gray-400" />
-        <span className="text-xs text-gray-500">{modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)} 课时</span>
+        <span className="text-xs text-gray-500">
+          适用年级: {course.grade_range_min && course.grade_range_max 
+            ? `${course.grade_range_min}-${course.grade_range_max}` 
+            : '所有'}
+        </span>
       </div>
       
       <div className="flex items-center gap-2 mb-4">
-        <Clock size={14} className="text-gray-400" />
-        <span className="text-xs text-gray-500">0 小时总时长</span>
+        <Book size={14} className="text-gray-400" />
+        <span className="text-xs text-gray-500">
+          学科: {course.primary_subject || '未指定'}
+          {course.secondary_subject ? ` + ${course.secondary_subject}` : ''}
+        </span>
       </div>
       
-      <div className="mb-4">
-        <h5 className="text-sm font-medium mb-2">完成状态</h5>
-        <Progress value={completionPercentage} className="h-2.5" />
-        <p className="text-xs text-gray-500 mt-1">{completionPercentage}% 完成 - 添加更多内容以完成发布</p>
+      <div className="mb-5">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-xs font-medium text-gray-600">课程完成度</span>
+          <span className="text-xs font-medium text-blue-500">{completionPercentage}%</span>
+        </div>
+        <Progress value={completionPercentage} className="h-1.5" />
       </div>
       
-      <div className="space-y-2">
-        <h5 className="text-sm font-medium">发布所需</h5>
-        
-        {getPublishRequirements().map((requirement, index) => (
-          <div key={index} className="flex items-center gap-2 text-sm">
-            {requirement.complete ? (
-              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-            ) : (
-              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            )}
-            <span>{requirement.name}</span>
+      <div className="space-y-2.5">
+        <p className="text-xs font-medium text-gray-700">发布要求</p>
+        {getPublishRequirements().map((req, index) => (
+          <div key={index} className="flex items-center text-xs">
+            <div className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center mr-2 ${
+              req.complete ? 'bg-green-500' : 'bg-gray-200'
+            }`}>
+              {req.complete && <Check className="h-2.5 w-2.5 text-white" />}
+            </div>
+            <span className={req.complete ? 'text-gray-700' : 'text-gray-500'}>
+              {req.name}
+            </span>
           </div>
         ))}
       </div>
+      
+      {completionPercentage < 50 && (
+        <div className="mt-5 bg-amber-50 border border-amber-100 rounded-lg p-3 flex gap-2 items-start">
+          <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-700">
+            完成更多内容以增加发布成功率。高质量的课程更容易吸引学生。
+          </p>
+        </div>
+      )}
     </div>
   );
 };
