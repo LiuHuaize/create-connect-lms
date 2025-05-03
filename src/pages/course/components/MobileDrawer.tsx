@@ -22,16 +22,16 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
 }) => {
   return (
     <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
-      <DrawerContent className="h-[90vh] max-h-[90vh] bg-white dark:bg-slate-800 rounded-t-xl">
-        <DrawerHeader className="border-b border-slate-200 dark:border-slate-700 px-4 py-4 relative">
-          <div className="absolute left-4 top-4 w-8 h-8 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400">
+      <DrawerContent className="h-[90vh] max-h-[90vh] bg-background rounded-t-xl">
+        <DrawerHeader className="border-b border-border px-4 py-4 relative">
+          <div className="absolute left-4 top-4 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
             <BookOpen size={16} />
           </div>
           <div className="ml-12">
-            <DrawerTitle className="text-lg text-slate-800 dark:text-slate-200 font-semibold">课程大纲</DrawerTitle>
-            <DrawerDescription className="text-sm text-slate-600 dark:text-slate-400 mt-1">{courseData?.title}</DrawerDescription>
+            <DrawerTitle className="text-lg text-foreground font-semibold">课程大纲</DrawerTitle>
+            <DrawerDescription className="text-sm text-muted-foreground mt-1">{courseData?.title}</DrawerDescription>
           </div>
-          <DrawerClose className="absolute right-4 top-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+          <DrawerClose className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors">
             <X size={20} />
           </DrawerClose>
         </DrawerHeader>
@@ -46,11 +46,11 @@ const MobileDrawer: React.FC<MobileDrawerProps> = ({
           />
         </div>
         
-        <DrawerFooter className="pt-2 px-4 border-t border-slate-200 dark:border-slate-700">
+        <DrawerFooter className="pt-2 px-4 border-t border-border">
           <DrawerClose asChild>
             <Button 
               variant="outline" 
-              className="w-full rounded-xl py-3 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+              className="w-full rounded-xl py-3 text-foreground hover:bg-muted transition-all"
             >
               关闭
             </Button>

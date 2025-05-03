@@ -51,9 +51,9 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   // 折叠状态下的简化渲染
   if (collapsed) {
     return (
-      <div className="py-2 h-full overflow-y-auto flex flex-col items-center bg-macaron-cream rounded-r-xl">
+      <div className="py-2 h-full overflow-y-auto flex flex-col items-center bg-muted rounded-r-xl">
         {/* 整体课程进度指示器 */}
-        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-macaron-mint text-macaron-deepMint mb-4 relative shadow-md animate-pulse-slow">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-primary/10 text-primary mb-4 relative shadow-md animate-pulse-slow">
           <div className="absolute inset-0 rounded-full">
             <svg className="w-full h-full" viewBox="0 0 100 100">
               <circle 
@@ -89,11 +89,11 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
           
           // 为不同模块分配不同的颜色
           const moduleColors = [
-            { bg: 'bg-macaron-mint', text: 'text-macaron-deepMint' },
-            { bg: 'bg-macaron-blue', text: 'text-macaron-darkGray' },
-            { bg: 'bg-macaron-lavender', text: 'text-macaron-deepLavender' },
-            { bg: 'bg-macaron-yellow', text: 'text-macaron-darkGray' },
-            { bg: 'bg-macaron-blue', text: 'text-macaron-darkGray' },
+            { bg: 'bg-primary/10', text: 'text-primary' },
+            { bg: 'bg-secondary/10', text: 'text-secondary' },
+            { bg: 'bg-accent/10', text: 'text-accent' },
+            { bg: 'bg-secondary/20', text: 'text-secondary-foreground' },
+            { bg: 'bg-primary/20', text: 'text-primary-foreground' },
           ];
           
           const colorIndex = moduleIndex % moduleColors.length;
@@ -106,7 +106,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                 "w-10 h-10 rounded-full flex items-center justify-center my-2 relative shadow-md hover:scale-110 transition-transform duration-200", 
                 currentModuleHasActiveLesson 
                   ? `${bg} ${text}` 
-                  : "bg-macaron-lightGray text-macaron-darkGray"
+                  : "bg-muted text-muted-foreground"
               )}
               title={`${module.title} - 完成度: ${moduleProgress}%`}
             >
@@ -122,7 +122,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                   <circle 
                     cx="50" cy="50" r="40" 
                     fill="none" 
-                    stroke={moduleProgress === 100 ? "#2A7D65" : currentModuleHasActiveLesson ? "currentColor" : "#7C8495"}
+                    stroke={moduleProgress === 100 ? "var(--primary)" : currentModuleHasActiveLesson ? "currentColor" : "var(--muted-foreground)"}
                     strokeWidth="8" 
                     strokeDasharray="251.2" 
                     strokeDashoffset={251.2 - (251.2 * moduleProgress / 100)}
@@ -139,21 +139,20 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   }
   
   return (
-    <div className="py-3 h-full overflow-y-auto bg-macaron-cream rounded-r-xl custom-scrollbar">
+    <div className="py-3 h-full overflow-y-auto bg-background rounded-r-xl custom-scrollbar">
       {/* 课程总体进度 */}
-      <div className="mx-4 mb-6 p-4 bg-white rounded-xl shadow-sm">
+      <div className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-bold text-macaron-darkGray">学习进度</h3>
-          <Badge variant="outline" className="bg-macaron-mint/20 text-macaron-deepMint border-macaron-mint">
+          <h3 className="text-sm font-bold text-foreground">学习进度</h3>
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
             {progress}%
           </Badge>
         </div>
-        <div className="h-3 w-full bg-macaron-lightGray rounded-full overflow-hidden">
+        <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
           <div 
-            className="h-full rounded-full transition-all duration-500 ease-out"
+            className="h-full rounded-full progress-bar transition-all duration-500 ease-out"
             style={{ 
               width: `${progress}%`,
-              background: `linear-gradient(90deg, #D0F5EA, #2A7D65)`,
             }}
           ></div>
         </div>
@@ -167,18 +166,18 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
         
         // 为不同模块分配不同的颜色
         const moduleColors = [
-          { bg: 'bg-macaron-mint/20', text: 'text-macaron-deepMint', border: 'border-macaron-mint/50', icon: <GraduationCap size={18} /> },
-          { bg: 'bg-macaron-blue/20', text: 'text-macaron-darkGray', border: 'border-macaron-blue/50', icon: <BookOpen size={18} /> },
-          { bg: 'bg-macaron-lavender/20', text: 'text-macaron-deepLavender', border: 'border-macaron-lavender/50', icon: <Award size={18} /> },
-          { bg: 'bg-macaron-yellow/20', text: 'text-macaron-darkGray', border: 'border-macaron-yellow/50', icon: <Medal size={18} /> },
-          { bg: 'bg-macaron-blue/20', text: 'text-macaron-darkGray', border: 'border-macaron-blue/50', icon: <Star size={18} /> },
+          { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/30', icon: <GraduationCap size={18} /> },
+          { bg: 'bg-secondary/10', text: 'text-secondary', border: 'border-secondary/30', icon: <BookOpen size={18} /> },
+          { bg: 'bg-accent/10', text: 'text-accent', border: 'border-accent/30', icon: <Award size={18} /> },
+          { bg: 'bg-secondary/20', text: 'text-secondary-foreground', border: 'border-secondary/30', icon: <Medal size={18} /> },
+          { bg: 'bg-primary/20', text: 'text-primary-foreground', border: 'border-primary/30', icon: <Star size={18} /> },
         ];
         
         const colorIndex = moduleIndex % moduleColors.length;
         const { bg, text, border, icon } = moduleColors[colorIndex];
         
         return (
-          <div key={module.id} className="mb-5 hover-card mx-2 bg-white rounded-xl shadow-sm overflow-hidden">
+          <div key={module.id} className="mb-5 hover-card mx-2 bg-card rounded-xl shadow-sm overflow-hidden">
             <div className={`px-4 py-3 flex items-center justify-between ${bg} border-b ${border}`}>
               <div className="flex items-center space-x-2">
                 <div className={`${text} ${bg} w-8 h-8 rounded-lg flex items-center justify-center shadow-sm`}>
@@ -196,16 +195,16 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
             
             {/* 模块进度条 */}
             <div className="px-4 py-2">
-              <div className="h-2 w-full bg-macaron-lightGray rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                 <div 
                   className={`h-full rounded-full transition-all duration-500 ease-out`}
                   style={{ 
                     width: `${moduleProgress}%`,
-                    backgroundColor: moduleProgress === 100 ? '#2A7D65' : 
-                                     colorIndex === 0 ? '#2A7D65' : 
-                                     colorIndex === 1 ? '#3B82F6' : 
-                                     colorIndex === 2 ? '#6933B0' : 
-                                     colorIndex === 3 ? '#FFC107' : '#3B82F6'
+                    backgroundColor: moduleProgress === 100 ? 'var(--primary)' : 
+                                    colorIndex === 0 ? 'var(--primary)' : 
+                                    colorIndex === 1 ? 'var(--secondary)' : 
+                                    colorIndex === 2 ? 'var(--accent)' : 
+                                    colorIndex === 3 ? 'var(--secondary)' : 'var(--primary)'
                   }}
                 ></div>
               </div>
@@ -225,17 +224,17 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                     <li key={lesson.id}>
                       <Link
                         to={`/course/${courseData.id}/lesson/${lesson.id}`}
-                        className={`flex items-center px-4 py-3 hover:bg-macaron-lightGray/30 transition-all rounded-lg mx-2 ${
-                          isActive ? `${bg} ${text}` : 'text-macaron-darkGray'
+                        className={`flex items-center px-4 py-3 hover:bg-muted/30 transition-all rounded-lg mx-2 ${
+                          isActive ? `${bg} ${text}` : 'text-foreground'
                         }`}
                         onClick={() => isMobile && setSidebarOpen && setSidebarOpen(false)}
                       >
                         <div className="flex-shrink-0 mr-3">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            isLoadingStatus ? 'text-macaron-gray bg-macaron-lightGray' :
-                            isCompleted ? 'text-white bg-macaron-coral shadow-sm' : 
+                            isLoadingStatus ? 'text-muted-foreground bg-muted' :
+                            isCompleted ? 'text-white bg-accent shadow-sm' : 
                             isActive ? `${text} ${bg} shadow-sm` : 
-                            'border-2 border-macaron-lightGray'
+                            'border-2 border-muted'
                           }`}>
                             {isLoadingStatus ? (
                               <Loader2 size={14} className="animate-spin" />
@@ -248,33 +247,23 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className={`text-sm truncate ${
-                            isActive ? 'font-bold' : ''
-                          }`}>
-                            {lesson.title}
-                          </div>
-                          <div className="text-xs text-macaron-gray mt-0.5 flex items-center">
-                            <ContentTypeIcon type={lesson.type} size={12} />
-                            <span className="ml-1">
-                              {lesson.type === 'video' ? '视频' : 
-                               lesson.type === 'quiz' ? '测验' : 
-                               lesson.type === 'text' ? '阅读' : '内容'}
-                            </span>
-                          </div>
+                          <span className="text-sm">{lesson.title}</span>
                         </div>
                         
-                        {isCompleted && (
-                          <div className="flex-shrink-0 ml-2 text-macaron-coral animate-pulse-slow">
-                            <CheckCircle size={14} />
-                          </div>
-                        )}
+                        <div className="flex-shrink-0 ml-2">
+                          {isCompleted ? (
+                            <CheckCircle size={16} className="text-accent" />
+                          ) : (
+                            <ChevronRight size={16} className="text-muted-foreground" />
+                          )}
+                        </div>
                       </Link>
                     </li>
                   );
                 })}
               </ul>
             ) : (
-              <p className="text-xs text-macaron-gray px-6 py-3 italic">此模块暂无课时内容</p>
+              <div className="px-4 py-3 text-sm text-muted-foreground">该模块暂无课时</div>
             )}
           </div>
         );

@@ -41,6 +41,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isCompletionLoading, setIsCompletionLoading] = useState(false);
   const [showCardCreator, setShowCardCreator] = useState(false);
+  const [lessonIsCompleted, setLessonIsCompleted] = useState(false);
   
   // 添加ref，用于获取组件的根元素
   const contentRef = useRef<HTMLDivElement>(null);
@@ -50,6 +51,19 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
   const [showCorrectAnswers, setShowCorrectAnswers] = useState<{[key: string]: boolean}>({});
   const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string}>({});
+  
+  // 获取课时的完成状态
+  useEffect(() => {
+    if (courseData?.id && selectedLesson?.id) {
+      courseService.getLessonCompletionStatus(courseData.id)
+        .then(status => {
+          setLessonIsCompleted(!!status[selectedLesson.id]);
+        })
+        .catch(error => {
+          console.error('获取课时完成状态失败:', error);
+        });
+    }
+  }, [courseData?.id, selectedLesson?.id]);
   
   // 添加标记当前课时为已完成的函数
   const markCurrentLessonComplete = async (score?: number) => {
@@ -378,6 +392,9 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 markCurrentLessonComplete();
               }
             }}
+            isCompleted={lessonIsCompleted}
+            courseId={courseData?.id}
+            enrollmentId={enrollmentId}
           />
         );
       
@@ -443,11 +460,13 @@ const LessonContent: React.FC<LessonContentProps> = ({
             <CardContent className="p-4 sm:p-6">
               {renderLessonContent()}
               
-              <LessonNavigation 
-                courseData={courseData}
-                selectedLesson={selectedLesson}
-                enrollmentId={enrollmentId}
-              />
+              {selectedLesson.type !== 'resource' && (
+                <LessonNavigation 
+                  courseData={courseData}
+                  selectedLesson={selectedLesson}
+                  enrollmentId={enrollmentId}
+                />
+              )}
             </CardContent>
           </Card>
         </div>
