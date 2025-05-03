@@ -66,48 +66,58 @@ export const useBlockNoteEditor = ({
       },
     },
   });
-
-  // 处理编辑器内容变化
+  
+  // 在内容变化时触发onChange回调
   useEffect(() => {
-    if (onChange && editor) {
-      // 创建一个处理变化的函数
-      const handleChange = () => {
-        const content = JSON.stringify(editor.document);
-        onChange(content);
-      };
-      
-      // 使用onChange方法，这会在每次内容变化时自动触发
-      const unsubscribe = editor.onChange(handleChange);
-      
-      // 返回清理函数
-      return unsubscribe;
-    }
+    if (!editor || !onChange) return;
+    
+    // 监听编辑器内容变化
+    const unsubscribe = editor.onChange(() => {
+      try {
+        // 将编辑器内容转换为JSON字符串
+        // 获取编辑器内容的JSON结构
+        const blocks = editor.topLevelBlocks;
+        const jsonString = JSON.stringify(blocks);
+        
+        // 调用外部onChange回调
+        onChange(jsonString);
+      } catch (error) {
+        console.error('处理BlockNote内容变化失败:', error);
+      }
+    });
+    
+    // 清理订阅
+    return unsubscribe;
   }, [editor, onChange]);
-
-  // 监听窗口大小变化，检测移动设备
+  
+  // 检测移动设备
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+    // 简单的移动设备检测
+    const checkIfMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      return /iphone|ipad|ipod|android|blackberry|mini|windows\sce|palm/i.test(userAgent);
     };
     
-    handleResize();
+    const checkDeviceSize = () => {
+      return window.innerWidth < 768;
+    };
+    
+    // 设置初始移动设备状态
+    setIsMobile(checkIfMobile() || checkDeviceSize());
+    
+    // 监听窗口大小变化
+    const handleResize = () => {
+      setIsMobile(checkIfMobile() || checkDeviceSize());
+    };
+    
     window.addEventListener('resize', handleResize);
     
+    // 清理
     return () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
-  // 切换全屏模式 - 修改为避免触发导航操作
-  const toggleFullscreen = useCallback((e?: React.MouseEvent) => {
-    // 如果传入了事件，阻止默认行为和冒泡
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setIsFullscreen(prev => !prev);
-  }, []);
-
+  
   // 监听全屏状态变化，在进入全屏时滚动到顶部
   useEffect(() => {
     if (isFullscreen) {
@@ -163,27 +173,12 @@ export const useBlockNoteEditor = ({
       }, 300);
     }
   }, [isFullscreen, editor]);
-
-  // 监听ESC键，用于退出全屏模式
-  useEffect(() => {
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleEscKey);
-    return () => {
-      document.removeEventListener('keydown', handleEscKey);
-    };
-  }, [isFullscreen]);
-
+  
   return {
     editor,
     isFullscreen,
-    isMobile,
-    toggleFullscreen,
     setIsFullscreen,
+    isMobile,
     editorContainerRef
   };
 }; 
