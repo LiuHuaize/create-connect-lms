@@ -90,7 +90,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
           // 为不同模块分配不同的颜色
           const moduleColors = [
             { bg: 'bg-macaron-mint', text: 'text-macaron-deepMint' },
-            { bg: 'bg-macaron-pink', text: 'text-macaron-deepPink' },
+            { bg: 'bg-macaron-blue', text: 'text-macaron-darkGray' },
             { bg: 'bg-macaron-lavender', text: 'text-macaron-deepLavender' },
             { bg: 'bg-macaron-yellow', text: 'text-macaron-darkGray' },
             { bg: 'bg-macaron-blue', text: 'text-macaron-darkGray' },
@@ -122,7 +122,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                   <circle 
                     cx="50" cy="50" r="40" 
                     fill="none" 
-                    stroke={moduleProgress === 100 ? "#FF8D9D" : currentModuleHasActiveLesson ? "currentColor" : "#7C8495"}
+                    stroke={moduleProgress === 100 ? "#2A7D65" : currentModuleHasActiveLesson ? "currentColor" : "#7C8495"}
                     strokeWidth="8" 
                     strokeDasharray="251.2" 
                     strokeDashoffset={251.2 - (251.2 * moduleProgress / 100)}
@@ -144,7 +144,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
       <div className="mx-4 mb-6 p-4 bg-white rounded-xl shadow-sm">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-bold text-macaron-darkGray">学习进度</h3>
-          <Badge variant="outline" className="bg-macaron-pink/20 text-macaron-deepPink border-macaron-pink">
+          <Badge variant="outline" className="bg-macaron-mint/20 text-macaron-deepMint border-macaron-mint">
             {progress}%
           </Badge>
         </div>
@@ -153,7 +153,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
             className="h-full rounded-full transition-all duration-500 ease-out"
             style={{ 
               width: `${progress}%`,
-              background: `linear-gradient(90deg, #D0F5EA, #FFBFCF, #F0E2FF)`,
+              background: `linear-gradient(90deg, #D0F5EA, #2A7D65)`,
             }}
           ></div>
         </div>
@@ -168,7 +168,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
         // 为不同模块分配不同的颜色
         const moduleColors = [
           { bg: 'bg-macaron-mint/20', text: 'text-macaron-deepMint', border: 'border-macaron-mint/50', icon: <GraduationCap size={18} /> },
-          { bg: 'bg-macaron-pink/20', text: 'text-macaron-deepPink', border: 'border-macaron-pink/50', icon: <BookOpen size={18} /> },
+          { bg: 'bg-macaron-blue/20', text: 'text-macaron-darkGray', border: 'border-macaron-blue/50', icon: <BookOpen size={18} /> },
           { bg: 'bg-macaron-lavender/20', text: 'text-macaron-deepLavender', border: 'border-macaron-lavender/50', icon: <Award size={18} /> },
           { bg: 'bg-macaron-yellow/20', text: 'text-macaron-darkGray', border: 'border-macaron-yellow/50', icon: <Medal size={18} /> },
           { bg: 'bg-macaron-blue/20', text: 'text-macaron-darkGray', border: 'border-macaron-blue/50', icon: <Star size={18} /> },
@@ -201,9 +201,9 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                   className={`h-full rounded-full transition-all duration-500 ease-out`}
                   style={{ 
                     width: `${moduleProgress}%`,
-                    backgroundColor: moduleProgress === 100 ? '#FF8D9D' : 
+                    backgroundColor: moduleProgress === 100 ? '#2A7D65' : 
                                      colorIndex === 0 ? '#2A7D65' : 
-                                     colorIndex === 1 ? '#9C365D' : 
+                                     colorIndex === 1 ? '#3B82F6' : 
                                      colorIndex === 2 ? '#6933B0' : 
                                      colorIndex === 3 ? '#FFC107' : '#3B82F6'
                   }}
