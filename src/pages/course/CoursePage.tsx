@@ -11,7 +11,7 @@ import CourseHeader from './components/CourseHeader';
 import CourseSidebar from './components/CourseSidebar';
 import MobileDrawer from './components/MobileDrawer';
 import LessonContent from './components/LessonContent';
-import CourseAssistantChat from './components/CourseAssistantChat';
+import FloatingAssistantChat from './components/FloatingAssistantChat';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import NotFoundCard from './components/NotFoundCard';
 import { useCourseData } from './hooks/useCourseData';
@@ -19,7 +19,6 @@ import { useCourseData } from './hooks/useCourseData';
 const CoursePage = () => {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId?: string }>();
   const navigate = useNavigate();
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   
@@ -156,7 +155,7 @@ const CoursePage = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                      className={`text-macaron-teal hover:text-macaron-deepTeal ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-colors`}
+                      className={`text-primary hover:text-primary/80 ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-colors`}
                       aria-label={sidebarCollapsed ? "展开大纲" : "收起大纲"}
                     >
                       {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -225,21 +224,6 @@ const CoursePage = () => {
                 )}
               </span>
             </div>
-            
-            {/* 添加学习助手按钮 */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              className="ml-4 text-macaron-teal hover:text-macaron-deepTeal transition-colors"
-            >
-              {isChatOpen ? (
-                <X className="h-4 w-4 mr-2" />
-              ) : (
-                <MessageSquare className="h-4 w-4 mr-2" />
-              )}
-              {isChatOpen ? "关闭助手" : "学习助手"}
-            </Button>
           </div>
           
           {/* 内容区域（可滚动） */}
@@ -253,17 +237,13 @@ const CoursePage = () => {
             />
           </div>
         </div>
-        
-        {/* 学习助手聊天抽屉 */}
-        <div className={`fixed inset-y-0 right-0 w-80 md:w-96 bg-white border-l border-muted shadow-lg transform transition-transform duration-300 ease-in-out ${isChatOpen ? 'translate-x-0' : 'translate-x-full'} z-20`}>
-          <CourseAssistantChat
-            isChatOpen={isChatOpen}
-            setIsChatOpen={setIsChatOpen}
-            courseName={courseData.title}
-            pageContent={pageContent}
-          />
-        </div>
       </div>
+      
+      {/* 使用浮动式学习助手替代原来的侧边栏抽屉 */}
+      <FloatingAssistantChat
+        courseName={courseData.title}
+        pageContent={pageContent}
+      />
     </div>
   );
 };
