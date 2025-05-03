@@ -100,13 +100,13 @@ const CoursePage = () => {
   // 如果课程不可用，显示不可用信息
   if (!isCourseAvailable) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-ghibli-parchment">
+      <div className="flex flex-col items-center justify-center h-screen bg-macaron-cream">
         <div className="bg-white p-8 rounded-xl shadow-md max-w-md text-center">
           <div className="inline-flex items-center justify-center p-4 bg-amber-100 rounded-full mb-6">
             <AlertCircle size={32} className="text-amber-600" />
           </div>
-          <h2 className="text-2xl font-bold text-ghibli-brown mb-3">课程暂不可用</h2>
-          <p className="text-ghibli-lightBrown mb-6">
+          <h2 className="text-2xl font-bold text-macaron-brown mb-3">课程暂不可用</h2>
+          <p className="text-macaron-lightBrown mb-6">
             该课程目前已被教师取消发布，暂时无法访问。请等待课程重新发布后再来学习。
           </p>
           <Button 
@@ -120,7 +120,7 @@ const CoursePage = () => {
   }
   
   return (
-    <div className="flex flex-col h-screen bg-ghibli-parchment">
+    <div className="flex flex-col h-screen bg-macaron-cream">
       <CourseHeader 
         courseData={courseData} 
         isMobile={isMobile} 
@@ -140,14 +140,14 @@ const CoursePage = () => {
       <div className="flex flex-1 overflow-hidden">
         {!isMobile && (
           <div 
-            className={`bg-ghibli-parchment border-r border-ghibli-sand flex-shrink-0 transition-all duration-300 ease-in-out h-full flex flex-col ${
+            className={`bg-macaron-cream border-r border-muted flex-shrink-0 transition-all duration-300 ease-in-out h-full flex flex-col ${
               sidebarCollapsed ? 'w-16' : 'w-80'
             }`}
           >
             {/* 侧边栏顶部控制栏 */}
-            <div className="flex items-center justify-between p-4 border-b border-ghibli-sand">
+            <div className="flex items-center justify-between p-4 border-b border-muted">
               {!sidebarCollapsed && (
-                <h3 className="font-medium text-ghibli-deepTeal">课程大纲</h3>
+                <h3 className="font-medium text-macaron-deepTeal">课程大纲</h3>
               )}
               <TooltipProvider>
                 <Tooltip>
@@ -156,7 +156,7 @@ const CoursePage = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                      className={`text-ghibli-teal hover:text-ghibli-deepTeal ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-colors`}
+                      className={`text-macaron-teal hover:text-macaron-deepTeal ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-colors`}
                       aria-label={sidebarCollapsed ? "展开大纲" : "收起大纲"}
                     >
                       {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -170,7 +170,7 @@ const CoursePage = () => {
             </div>
             
             {/* 侧边栏内容区域（可滚动） */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-ghibli-sand">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted">
               {!sidebarCollapsed ? (
                 <CourseSidebar 
                   courseData={courseData}
@@ -191,13 +191,13 @@ const CoursePage = () => {
         
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* 内容区域顶部控制栏 */}
-          <div className="flex justify-between items-center px-6 py-3 border-b border-ghibli-sand bg-white shadow-sm">
+          <div className="flex justify-between items-center px-6 py-3 border-b border-muted bg-white shadow-sm">
             {isMobile && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebarOpen(true)}
-                className="text-ghibli-teal hover:text-ghibli-deepTeal transition-colors mr-2"
+                className="text-macaron-teal hover:text-macaron-deepTeal transition-colors mr-2"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 课程大纲
@@ -205,7 +205,7 @@ const CoursePage = () => {
             )}
             
             <div className="flex items-center gap-3 ml-auto">
-              <span className="text-xs font-medium text-ghibli-brown">课程进度</span>
+              <span className="text-xs font-medium text-macaron-brown">课程进度</span>
               <div className="w-48 mr-2 relative">
                 <Progress 
                   value={isProgressLoading ? 0 : progress} 
@@ -213,11 +213,11 @@ const CoursePage = () => {
                 />
                 {isProgressLoading && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="h-2 w-2 animate-spin text-ghibli-teal" />
+                    <Loader2 className="h-2 w-2 animate-spin text-macaron-teal" />
                   </div>
                 )}
               </div>
-              <span className="text-xs font-semibold text-ghibli-deepTeal min-w-[40px] bg-ghibli-lightTeal/30 py-1 px-2 rounded-full">
+              <span className="text-xs font-semibold text-macaron-deepMint min-w-[40px] bg-macaron-mint/30 py-1 px-2 rounded-full">
                 {isProgressLoading ? (
                   <Loader2 className="h-3 w-3 animate-spin inline" />
                 ) : (
@@ -231,7 +231,7 @@ const CoursePage = () => {
               variant="ghost"
               size="sm"
               onClick={() => setIsChatOpen(!isChatOpen)}
-              className="ml-4 text-ghibli-teal hover:text-ghibli-deepTeal transition-colors"
+              className="ml-4 text-macaron-teal hover:text-macaron-deepTeal transition-colors"
             >
               {isChatOpen ? (
                 <X className="h-4 w-4 mr-2" />
@@ -243,7 +243,7 @@ const CoursePage = () => {
           </div>
           
           {/* 内容区域（可滚动） */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-ghibli-sand bg-white">
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted bg-white">
             <LessonContent
               selectedLesson={selectedLesson}
               selectedUnit={selectedUnit}
@@ -255,7 +255,7 @@ const CoursePage = () => {
         </div>
         
         {/* 学习助手聊天抽屉 */}
-        <div className={`fixed inset-y-0 right-0 w-80 md:w-96 bg-white border-l border-ghibli-sand shadow-lg transform transition-transform duration-300 ease-in-out ${isChatOpen ? 'translate-x-0' : 'translate-x-full'} z-20`}>
+        <div className={`fixed inset-y-0 right-0 w-80 md:w-96 bg-white border-l border-muted shadow-lg transform transition-transform duration-300 ease-in-out ${isChatOpen ? 'translate-x-0' : 'translate-x-full'} z-20`}>
           <CourseAssistantChat
             isChatOpen={isChatOpen}
             setIsChatOpen={setIsChatOpen}

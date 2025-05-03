@@ -4,83 +4,94 @@
 
 @layer base {
   :root {
-    --background: 43 40% 94%; /* 更亮的米色背景 #F5F2E9 - Ghibli风格的奶油色 */
-    --foreground: 30 20% 20%; /* 深棕色文字 #403933 - 适合Ghibli风格的深棕色 */
+    /* 主要背景和前景色 */
+    --background: 210 50% 98%; /* 浅蓝背景 #F5F9FD */
+    --foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
 
-    --card: 48 39% 96%; /* 非常浅的米色卡片 #F2EFE6 - UI中标注的颜色 */
-    --card-foreground: 30 20% 20%; /* 深棕色文字 #403933 */
+    /* 卡片样式 */
+    --card: 0 0% 100%; /* 纯白色卡片 #FFFFFF */
+    --card-foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
 
-    --popover: 48 39% 96%; /* 非常浅的米色弹出框 #F2EFE6 */
-    --popover-foreground: 30 20% 20%; /* 深棕色文字 #403933 */
+    /* 弹出框样式 */
+    --popover: 0 0% 100%; /* 纯白色弹出框 #FFFFFF */
+    --popover-foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
 
-    --primary: 176 47% 61%; /* 蓝绿色主色 #6FC5BE - 图片中按钮和活跃元素的颜色 */
-    --primary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
+    /* 主色调 - 活泼的紫色 */
+    --primary: 260 80% 65%; /* 鲜艳紫色 #9364ED */
+    --primary-foreground: 0 0% 100%; /* 纯白色文字 #FFFFFF */
 
-    --secondary: 27 62% 87%; /* 浅棕色次要色 #F7E8CD - Ghibli风格的沙色 */
-    --secondary-foreground: 30 20% 20%; /* 深棕色文字 #403933 */
+    /* 次要色调 - 蓝绿色 */
+    --secondary: 190 90% 60%; /* 明亮的蓝绿色 #33C9E8 */
+    --secondary-foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
 
-    --muted: 27 50% 93%; /* 柔和的浅米色 #F9F0E2 */
-    --muted-foreground: 30 10% 40%; /* 灰棕色文字 #706B65 */
+    /* 柔和中性色 */
+    --muted: 210 40% 96%; /* 极浅蓝灰色 #F0F4FA */
+    --muted-foreground: 215 25% 50%; /* 中蓝灰色文字 #6B7A9A */
 
-    --accent: 173 30% 82%; /* 淡蓝绿色强调 #D4E5E3 - 图片中的淡蓝绿色 */
-    --accent-foreground: 176 47% 30%; /* 深蓝绿色文字 #386964 */
+    /* 强调色 - 珊瑚色 */
+    --accent: 350 95% 65%; /* 鲜艳珊瑚色 #FF4D76 */
+    --accent-foreground: 0 0% 100%; /* 纯白色文字 #FFFFFF */
 
-    --destructive: 0 65% 50%; /* 亮红色警告 #C94444 - Ghibli风格的红色 */
+    /* 警告/危险色 */
+    --destructive: 10 90% 60%; /* 明亮的红橙色 #FF5C33 */
     --destructive-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --border: 27 30% 87%; /* 边框米色 #E9DED0 */
-    --input: 27 30% 87%; /* 输入框边框 #E9DED0 */
-    --ring: 176 47% 61%; /* 蓝绿色环 #6FC5BE */
+    /* 边框和输入框 */
+    --border: 214 32% 91%; /* 浅蓝灰色边框 #E5EBF5 */
+    --input: 214 32% 91%; /* 浅蓝灰色输入框边框 #E5EBF5 */
+    --ring: 260 80% 65%; /* 紫色环 #9364ED */
 
-    --radius: 0.8rem; /* 适合Ghibli风格的圆角 */
+    /* 圆角半径 */
+    --radius: 1.5rem; /* 圆角, 24px */
 
-    --sidebar-background: 48 39% 96%; /* 浅米色侧边栏 #F2EFE6 */
-    --sidebar-foreground: 30 20% 20%; /* 深棕色文字 #403933 */
-    --sidebar-primary: 176 47% 61%; /* 蓝绿色主色 #6FC5BE */
-    --sidebar-primary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
-    --sidebar-accent: 173 30% 82%; /* 淡蓝绿色强调 #D4E5E3 */
-    --sidebar-accent-foreground: 176 47% 30%; /* 深蓝绿色文字 #386964 */
-    --sidebar-border: 27 30% 87%; /* 边框米色 #E9DED0 */
-    --sidebar-ring: 176 47% 61%; /* 蓝绿色环 #6FC5BE */
+    /* 侧边栏主题 */
+    --sidebar-background: 260 80% 97%; /* 浅紫色侧边栏 #F7F2FF */
+    --sidebar-foreground: 260 30% 30%; /* 深紫色文字 #5C4580 */
+    --sidebar-primary: 260 80% 65%; /* 紫色主色 #9364ED */
+    --sidebar-primary-foreground: 0 0% 100%; /* 白色文字 #FFFFFF */
+    --sidebar-accent: 350 95% 65%; /* 珊瑚色强调 #FF4D76 */
+    --sidebar-accent-foreground: 0 0% 100%; /* 白色文字 #FFFFFF */
+    --sidebar-border: 260 40% 90%; /* 浅紫色边框 #E8DAFF */
+    --sidebar-ring: 260 80% 65%; /* 紫色环 #9364ED */
   }
 
   .dark {
-    --background: 30 20% 20%; /* 深棕色背景 #403933 - Ghibli风格的深棕色 */
-    --foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
+    --background: 225 30% 12%; /* 深蓝灰色背景 #171C38 */
+    --foreground: 210 40% 98%; /* 几乎白色文字 #F5F9FD */
 
-    --card: 30 20% 25%; /* 深棕色卡片 #4D4439 */
-    --card-foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
+    --card: 225 25% 16%; /* 深蓝灰色卡片 #20263F */
+    --card-foreground: 210 40% 98%; /* 几乎白色文字 #F5F9FD */
 
-    --popover: 30 20% 25%; /* 深棕色弹出框 #4D4439 */
-    --popover-foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
+    --popover: 225 25% 16%; /* 深蓝灰色弹出框 #20263F */
+    --popover-foreground: 210 40% 98%; /* 几乎白色文字 #F5F9FD */
 
-    --primary: 176 47% 50%; /* 较暗蓝绿色 #50B3AB */
+    --primary: 260 75% 60%; /* 深紫色 #8550E8 */
     --primary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --secondary: 30 20% 30%; /* 深棕色次要色 #59504A */
-    --secondary-foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
+    --secondary: 190 85% 50%; /* 深一点的蓝绿色 #19B8D9 */
+    --secondary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --muted: 30 20% 28%; /* 暗棕色 #534A3F */
-    --muted-foreground: 30 15% 70%; /* 灰棕色文字 #B5ADA3 */
+    --muted: 225 25% 22%; /* 暗蓝灰色 #2D3452 */
+    --muted-foreground: 210 40% 80%; /* 浅灰蓝色文字 #B8D0F0 */
 
-    --accent: 176 47% 35%; /* 深蓝绿色强调 #386964 */
-    --accent-foreground: 173 30% 82%; /* 淡蓝绿色文字 #D4E5E3 */
+    --accent: 350 90% 60%; /* 深珊瑚色 #FF3366 */
+    --accent-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --destructive: 0 65% 50%; /* 深红色警告 #C94444 */
+    --destructive: 10 85% 55%; /* 深红橙色 #F04A2B */
     --destructive-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
-    --border: 30 20% 30%; /* 边框深棕色 #59504A */
-    --input: 30 20% 30%; /* 输入框边框 #59504A */
-    --ring: 176 47% 50%; /* 蓝绿色环 #50B3AB */
+    --border: 225 30% 25%; /* 深蓝灰色边框 #2C3559 */
+    --input: 225 30% 25%; /* 深蓝灰色输入框边框 #2C3559 */
+    --ring: 260 75% 60%; /* 深紫色环 #8550E8 */
     
-    --sidebar-background: 30 20% 18%; /* 深棕色侧边栏 #3A3329 */
-    --sidebar-foreground: 48 39% 96%; /* 浅米色文字 #F2EFE6 */
-    --sidebar-primary: 176 47% 50%; /* 较暗蓝绿色 #50B3AB */
+    --sidebar-background: 260 40% 16%; /* 深紫灰色侧边栏 #2A2045 */
+    --sidebar-foreground: 210 40% 90%; /* 浅色文字 #D5E6FA */
+    --sidebar-primary: 260 75% 60%; /* 深紫色 #8550E8 */
     --sidebar-primary-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
-    --sidebar-accent: 176 47% 30%; /* 深蓝绿色强调 #306964 */
-    --sidebar-accent-foreground: 173 30% 82%; /* 淡蓝绿色文字 #D4E5E3 */
-    --sidebar-border: 30 20% 28%; /* 边框暗棕色 #534A3F */
-    --sidebar-ring: 176 47% 50%; /* 蓝绿色环 #50B3AB */
+    --sidebar-accent: 350 90% 60%; /* 深珊瑚色 #FF3366 */
+    --sidebar-accent-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
+    --sidebar-border: 260 30% 25%; /* 深紫灰色边框 #352A59 */
+    --sidebar-ring: 260 75% 60%; /* 深紫色环 #8550E8 */
   }
 }
 
@@ -98,160 +109,244 @@
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
   }
 
-  /* 更新玻璃卡片样式，使用更友好的阴影和边框 */
+  /* 更新玻璃卡片样式 */
   .glass-card {
-    @apply bg-ghibli-parchment/95 backdrop-blur-md border-2 border-ghibli-teal/30 shadow-md rounded-2xl;
+    @apply relative overflow-hidden bg-white/85 backdrop-blur-md border border-white/30 shadow-xl rounded-2xl;
+    box-shadow: 
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05),
+      inset 0 2px 4px rgba(255, 255, 255, 0.5);
+    animation: cardShimmer 2.5s infinite linear;
+  }
+
+  @keyframes cardShimmer {
+    0% { background-position: -100% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* 添加进度条发光效果 */
+  .progress-bar {
+    @apply rounded-full overflow-hidden relative;
+    background: linear-gradient(
+      90deg, 
+      theme('colors.primary.DEFAULT') 0%,
+      theme('colors.secondary.DEFAULT') 50%,
+      theme('colors.accent.DEFAULT') 100%
+    );
+    background-size: 200% 100%;
+    animation: progressGlow 3s infinite ease-in-out alternate;
+  }
+
+  @keyframes progressGlow {
+    0% { background-position: 0% 0; }
+    100% { background-position: 100% 0; }
+  }
+
+  /* 磨砂玻璃效果升级 */
+  .frosted-glass {
+    @apply backdrop-blur-lg bg-white/65 dark:bg-gray-800/60 rounded-2xl;
+    box-shadow: 
+      0 8px 20px rgba(0, 0, 0, 0.1),
+      0 6px 10px rgba(0, 0, 0, 0.05),
+      inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  }
+
+  /* 发光卡片效果 */
+  .glow-card {
+    @apply relative rounded-2xl overflow-hidden;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
   }
   
-  /* 更新高级模糊效果 */
-  .premium-blur {
-    @apply backdrop-blur-lg bg-ghibli-parchment/30 border-2 border-ghibli-teal/20 rounded-2xl;
+  .glow-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    background: linear-gradient(45deg, 
+      theme('colors.primary.DEFAULT'), 
+      theme('colors.secondary.DEFAULT'),
+      theme('colors.accent.DEFAULT'));
+    z-index: -1;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .glow-card:hover::before {
+    opacity: 0.5;
   }
   
   /* 更新文本渐变 */
   .text-gradient {
-    @apply bg-gradient-to-r from-ghibli-teal to-ghibli-deepTeal bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent font-bold;
   }
   
-  /* 更新悬停缩放效果 */
-  .hover-scale {
-    @apply transition-all duration-300 hover:scale-[1.03] hover:shadow-md;
+  /* 悬停卡片效果 */
+  .hover-card {
+    @apply transition-all duration-300 ease-in-out;
+    transform: perspective(1000px) rotateX(0) rotateY(0);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  }
+  
+  .hover-card:hover {
+    transform: perspective(1000px) rotateX(2deg) rotateY(2deg);
+    box-shadow: 
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
   
   /* 更新侧边栏链接样式 */
   .sidebar-link {
-    @apply flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200;
+    @apply flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden;
   }
   
   .sidebar-link.active {
-    @apply bg-ghibli-lightTeal text-ghibli-deepTeal;
+    @apply bg-primary text-primary-foreground;
+  }
+  
+  .sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, 
+      rgba(255,255,255,0.1), 
+      rgba(255,255,255,0.2),
+      rgba(255,255,255,0.1));
+    background-size: 200% 100%;
+    animation: linkShimmer 2s infinite linear;
+  }
+  
+  @keyframes linkShimmer {
+    0% { background-position: -100% 0; }
+    100% { background-position: 200% 0; }
   }
   
   .sidebar-link:not(.active) {
-    @apply text-ghibli-brown hover:bg-ghibli-sand;
+    @apply text-foreground hover:bg-primary/10;
   }
   
-  /* 更新课程页面样式 */
-  .course-card {
-    @apply bg-ghibli-parchment rounded-2xl shadow-md border-2 border-ghibli-sand hover:shadow-lg hover:border-ghibli-teal/50 transition-all duration-300;
+  /* 按钮悬停效果 */
+  .btn-hover-effect {
+    @apply relative overflow-hidden transition-all duration-200;
   }
   
-  .course-section-header {
-    @apply bg-gradient-to-r from-ghibli-lightTeal to-ghibli-sand border-b-2 border-ghibli-teal/30 px-6 py-4 rounded-t-xl;
+  .btn-hover-effect::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: -100%;
+    background: linear-gradient(90deg, 
+      rgba(255,255,255,0), 
+      rgba(255,255,255,0.2), 
+      rgba(255,255,255,0));
+    transition: all 0.3s ease;
   }
   
-  .lesson-item {
-    @apply transition-all duration-200 hover:bg-ghibli-lightTeal/50;
+  .btn-hover-effect:hover::after {
+    left: 100%;
   }
   
-  .lesson-item.active {
-    @apply bg-ghibli-lightTeal/50 border-l-4 border-ghibli-teal;
+  /* 标题动画效果 */
+  .animated-heading {
+    @apply font-bold relative inline-block;
   }
   
-  .quiz-container {
-    @apply bg-ghibli-parchment rounded-2xl shadow-md border-2 border-ghibli-sand p-6 mb-6;
+  .animated-heading::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 0;
+    height: 3px;
+    background: linear-gradient(to right, 
+      theme('colors.primary.DEFAULT'), 
+      theme('colors.accent.DEFAULT'));
+    transition: width 0.3s ease;
   }
   
-  .quiz-option {
-    @apply flex items-center p-3 rounded-xl border-2 border-ghibli-sand hover:border-ghibli-teal hover:bg-ghibli-lightTeal/50 transition-all duration-200 cursor-pointer mb-3;
-  }
-  
-  .interactive-container {
-    @apply bg-gradient-to-br from-ghibli-lightTeal to-ghibli-sand rounded-2xl p-8 mb-6 flex items-center justify-center border-2 border-ghibli-teal/30;
+  .animated-heading:hover::after {
+    width: 100%;
   }
 
-  /* 为小朋友添加一些有趣的按钮样式 */
-  .btn-kids {
-    @apply rounded-full bg-ghibli-teal text-white py-3 px-6 font-medium shadow-md 
-    hover:bg-ghibli-skyBlue hover:shadow-lg hover:scale-105 transition-all duration-300 
-    border-2 border-ghibli-teal/80;
+  /* 自定义滚动条样式 */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--primary), 0.3) transparent;
   }
 
-  /* 添加可爱的卡片样式 */
-  .card-kids {
-    @apply bg-ghibli-parchment rounded-3xl shadow-md border-2 border-ghibli-sand
-    hover:shadow-lg hover:border-ghibli-teal/50 transition-all duration-300 
-    overflow-hidden relative p-6;
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
   }
 
-  /* 添加有趣的进度条样式 */
-  .progress-kids {
-    @apply h-4 bg-ghibli-sand rounded-full overflow-hidden border border-ghibli-teal/30;
-  }
-  
-  .progress-kids-fill {
-    @apply h-full bg-gradient-to-r from-ghibli-teal to-ghibli-skyBlue 
-    transition-all duration-700 ease-in-out rounded-full;
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 12px;
   }
 
-  /* 儿童友好的彩色选项卡 */
-  .tab-kids {
-    @apply bg-ghibli-sand px-4 py-2 rounded-t-xl font-medium border-2 border-b-0
-    border-ghibli-teal/30 transition-all duration-200;
-  }
-  
-  .tab-kids.active {
-    @apply bg-ghibli-parchment border-ghibli-teal/50 text-ghibli-deepTeal;
-  }
-  
-  /* 儿童友好的导航菜单 */
-  .nav-kids {
-    @apply flex gap-2 p-2 bg-ghibli-cream rounded-2xl border-2 border-ghibli-teal/30 shadow-md;
-  }
-  
-  .nav-item-kids {
-    @apply px-4 py-2 rounded-xl font-medium transition-all duration-200
-    hover:bg-ghibli-sunshine hover:text-ghibli-brown;
-  }
-  
-  .nav-item-kids.active {
-    @apply bg-ghibli-mint text-ghibli-deepTeal;
-  }
-  
-  /* 彩虹边框效果 */
-  .rainbow-border-kids {
-    @apply relative p-1 rounded-2xl;
-    background: linear-gradient(45deg, 
-      var(--tw-gradient-stops));
-    --tw-gradient-from: #6FC5BE var(--tw-gradient-from-position);
-    --tw-gradient-to: #7CD5FF var(--tw-gradient-to-position);
-    --tw-gradient-stops: var(--tw-gradient-from), #FFDC7C, #FF8C7C, #A0D995, var(--tw-gradient-to);
-  }
-  
-  .rainbow-border-kids > * {
-    @apply bg-ghibli-parchment rounded-2xl relative z-10;
-  }
-  
-  /* 可爱的阴影效果 */
-  .shadow-kids {
-    box-shadow: 4px 8px 0 rgba(82, 72, 58, 0.2);
-    @apply transition-all duration-200;
-  }
-  
-  .shadow-kids:hover {
-    box-shadow: 6px 12px 0 rgba(82, 72, 58, 0.15);
-    @apply -translate-y-1;
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--primary)) 0%,
+      hsl(var(--secondary)) 50%,
+      hsl(var(--accent)) 100%
+    );
+    border-radius: 12px;
+    transition: all 0.3s ease;
   }
 
-  /* 添加活动页面特定样式 */
-  .event-date-block {
-    @apply bg-ghibli-teal text-white rounded-lg overflow-hidden;
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--primary)) 20%,
+      hsl(var(--accent)) 80%
+    );
   }
 
-  .event-tag {
-    @apply inline-block bg-ghibli-lightTeal text-ghibli-deepTeal px-3 py-1 rounded-full text-xs font-medium;
+  /* 整体页面滚动条 */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--primary), 0.2) transparent;
   }
 
-  .event-card {
-    @apply bg-ghibli-parchment rounded-xl p-4 hover:shadow-md transition-all duration-200 border border-ghibli-sand;
-  }
-  
-  .event-register-btn {
-    @apply bg-ghibli-teal text-white px-4 py-2 rounded-full font-medium shadow-sm hover:shadow-md hover:bg-ghibli-deepTeal transition-all duration-200;
+  html::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
 
-  .month-nav-btn {
-    @apply p-2 rounded-full hover:bg-ghibli-lightTeal transition-all duration-200;
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--primary), 0.6) 0%,
+      hsl(var(--accent), 0.6) 100%
+    );
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--primary)) 0%,
+      hsl(var(--accent)) 100%
+    );
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
 }
 

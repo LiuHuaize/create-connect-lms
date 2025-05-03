@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import SignInForm from '@/components/auth/SignInForm';
 import SignUpForm from '@/components/auth/SignUpForm';
 import AuthLayout from '@/components/layout/AuthLayout';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Auth = () => {
   const [isSignIn, setIsSignIn] = useState(true);
@@ -63,34 +64,23 @@ const Auth = () => {
   const authContent = (
     <>
       {authError && (
-        <Alert variant="destructive" className="mb-4 bg-ghibli-peach border-ghibli-rust text-ghibli-brown">
-          <AlertDescription className="font-medium">{authError}</AlertDescription>
+        <Alert variant="destructive" className="mb-4 bg-destructive/10 border-destructive/30 text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>登录失败</AlertTitle>
+          <AlertDescription>{authError}</AlertDescription>
         </Alert>
       )}
 
       {loading ? (
-        <div className="p-6 flex flex-col items-center justify-center">
-          <div className="relative w-16 h-16 mb-4">
-            {/* 吉卜力风格的加载动画 - 小精灵旋转 */}
-            <div className="absolute w-6 h-6 bg-ghibli-mint rounded-full top-0 left-0 animate-bounce delay-75"></div>
-            <div className="absolute w-6 h-6 bg-ghibli-skyBlue rounded-full top-0 right-0 animate-bounce delay-150"></div>
-            <div className="absolute w-6 h-6 bg-ghibli-sunshine rounded-full bottom-0 left-0 animate-bounce delay-300"></div>
-            <div className="absolute w-6 h-6 bg-ghibli-coral rounded-full bottom-0 right-0 animate-bounce delay-500"></div>
-            <div className="absolute w-4 h-4 bg-ghibli-teal rounded-full inset-0 m-auto animate-ping"></div>
+        <div className="min-h-[350px] flex flex-col items-center justify-center">
+          <div className="relative w-24 h-24">
+            <div className="absolute w-6 h-6 bg-primary/60 rounded-full top-0 left-0 animate-bounce delay-75"></div>
+            <div className="absolute w-6 h-6 bg-secondary/60 rounded-full top-0 right-0 animate-bounce delay-150"></div>
+            <div className="absolute w-6 h-6 bg-accent/60 rounded-full bottom-0 left-0 animate-bounce delay-300"></div>
+            <div className="absolute w-6 h-6 bg-primary/60 rounded-full bottom-0 right-0 animate-bounce delay-500"></div>
+            <div className="absolute w-4 h-4 bg-accent rounded-full inset-0 m-auto animate-ping"></div>
           </div>
-          <p className="text-ghibli-brown font-medium italic">正在加载验证系统...</p>
-          
-          {hasAttemptedAuth && (
-            <div className="mt-4 text-center">
-              <p className="text-sm text-ghibli-lightBrown mb-2">加载时间过长？</p>
-              <button 
-                onClick={handleRetry}
-                className="text-ghibli-teal hover:text-ghibli-deepTeal text-sm font-medium underline transition-colors"
-              >
-                点击重试
-              </button>
-            </div>
-          )}
+          <p className="mt-4 text-muted-foreground">正在登录中...</p>
         </div>
       ) : (
         <>
@@ -105,7 +95,12 @@ const Auth = () => {
   );
 
   // Use AuthLayout for the page
-  return <AuthLayout>{authContent}</AuthLayout>;
+  return <AuthLayout 
+    title={isSignIn ? "欢迎回来" : "创建新账户"} 
+    description={isSignIn ? "登录您的亿小步教育账户" : "注册一个新的亿小步教育账户"}
+  >
+    {authContent}
+  </AuthLayout>;
 };
 
 export default Auth;

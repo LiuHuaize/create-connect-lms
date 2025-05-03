@@ -70,7 +70,7 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
                   placeholder="请输入您的用户名"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="pl-10 border-ghibli-sand bg-ghibli-cream focus:border-ghibli-teal focus:ring focus:ring-ghibli-lightTeal transition-all rounded-md"
+                  className="pl-10 border-muted bg-white focus:border-primary focus:ring focus:ring-primary/20 transition-all rounded-xl"
                   disabled={isLoading}
                 />
               </div>
@@ -85,7 +85,7 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
                   placeholder="请输入您的密码"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 border-ghibli-sand bg-ghibli-cream focus:border-ghibli-teal focus:ring focus:ring-ghibli-lightTeal transition-all rounded-md"
+                  className="pl-10 border-muted bg-white focus:border-primary focus:ring focus:ring-primary/20 transition-all rounded-xl"
                   disabled={isLoading}
                 />
               </div>
@@ -93,7 +93,7 @@ const SignInForm = ({ onToggle }: { onToggle: () => void }) => {
           </div>
           <Button 
             type="submit" 
-            className="w-full bg-ghibli-teal hover:bg-ghibli-deepTeal text-white transition-colors duration-300 rounded-md shadow-md hover:shadow-lg transform hover:-translate-y-1 font-medium border-2 border-ghibli-lightTeal" 
+            className="w-full bg-primary hover:bg-primary-foreground hover:text-primary text-primary-foreground transition-colors duration-300 rounded-xl shadow-sm hover:shadow-md font-medium border border-primary/50" 
             disabled={isLoading}
           >
             {isLoading ? (

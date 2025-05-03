@@ -139,21 +139,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
 
   // Sidebar content component
   const SidebarContent = () => (
-    <div className="h-full w-full flex flex-col bg-sidebar">
-      <div className="p-4 border-b border-sidebar-border">
+    <div className="h-full w-full flex flex-col bg-card">
+      <div className="p-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center">
           <Logo variant="default" />
+        </div>
           {isMobile && (
             <Button
               variant="ghost"
               size="icon"
-              className="ml-auto"
+            className="rounded-full hover:bg-primary/10"
               onClick={onClose}
             >
               <X className="h-5 w-5" />
             </Button>
           )}
-        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -164,10 +164,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  "flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium",
-                  isActive(link.href)
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                  "sidebar-link",
+                  isActive(link.href) ? "active" : ""
                 )}
                 onClick={isMobile ? onClose : undefined}
               >
@@ -179,7 +177,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
 
           {(role === "teacher" || role === "admin") && (
             <div className="space-y-1">
-              <div className="px-3 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
+              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 教学管理
               </div>
               {teacherLinks.map((link) => (
@@ -187,10 +185,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
                   key={link.href}
                   to={link.href}
                   className={cn(
-                    "flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium",
-                    isActive(link.href)
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                    "sidebar-link",
+                    isActive(link.href) ? "active" : ""
                   )}
                   onClick={isMobile ? onClose : undefined}
                 >
@@ -203,7 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
 
           {role === "admin" && (
             <div className="space-y-1">
-              <div className="px-3 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
+              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 管理员
               </div>
               {adminLinks.map((link) => (
@@ -211,10 +207,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
                   key={link.href}
                   to={link.href}
                   className={cn(
-                    "flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium",
-                    isActive(link.href)
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                    "sidebar-link",
+                    isActive(link.href) ? "active" : ""
                   )}
                   onClick={isMobile ? onClose : undefined}
                 >
@@ -226,7 +220,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
           )}
 
           <div className="space-y-1">
-            <div className="px-3 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
+            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               个人
             </div>
             {profileLinks.map((link) => (
@@ -234,10 +228,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  "flex items-center space-x-3 rounded-md px-3 py-2 text-sm font-medium",
-                  isActive(link.href)
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                  "sidebar-link",
+                  isActive(link.href) ? "active" : ""
                 )}
                 onClick={isMobile ? onClose : undefined}
               >
@@ -249,15 +241,122 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
         </nav>
       </div>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-border">
+        <div className="flex items-center space-x-3 py-2">
         <UserProfile />
+          <div className="ml-auto">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full hover:bg-destructive/10 text-destructive"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Collapsed sidebar content
+  const CollapsedSidebarContent = () => (
+    <div className="h-full w-full flex flex-col bg-card overflow-hidden">
+      <div className="p-4 border-b border-border flex justify-center">
+        <Logo variant="icon" />
+      </div>
+
+      <div className="flex-1 py-4 overflow-y-auto">
+        <nav className="space-y-6">
+          <div className="space-y-1">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  "flex justify-center mx-2 rounded-xl p-3",
+                  isActive(link.href)
+                    ? "bg-secondary/30 text-secondary-foreground"
+                    : "text-foreground hover:bg-primary/10"
+                )}
+                onClick={isMobile ? onClose : undefined}
+              >
+                {link.icon}
+              </Link>
+            ))}
+          </div>
+
+          {(role === "teacher" || role === "admin") && (
+            <div className="space-y-1">
+              <div className="border-t border-border mx-3 pt-2"></div>
+              {teacherLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={cn(
+                    "flex justify-center mx-2 rounded-xl p-3",
+                    isActive(link.href)
+                      ? "bg-secondary/30 text-secondary-foreground"
+                      : "text-foreground hover:bg-primary/10"
+                  )}
+                  onClick={isMobile ? onClose : undefined}
+                >
+                  {link.icon}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {role === "admin" && (
+            <div className="space-y-1">
+              <div className="border-t border-border mx-3 pt-2"></div>
+              {adminLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={cn(
+                    "flex justify-center mx-2 rounded-xl p-3",
+                    isActive(link.href)
+                      ? "bg-secondary/30 text-secondary-foreground"
+                      : "text-foreground hover:bg-primary/10"
+                  )}
+                  onClick={isMobile ? onClose : undefined}
+                >
+                  {link.icon}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <div className="border-t border-border mx-3 pt-2"></div>
+            {profileLinks.map((link) => (
+              <Link
+                key={link.href}
+                to={link.href}
+                className={cn(
+                  "flex justify-center mx-2 rounded-xl p-3",
+                  isActive(link.href)
+                    ? "bg-secondary/30 text-secondary-foreground"
+                    : "text-foreground hover:bg-primary/10"
+                )}
+                onClick={isMobile ? onClose : undefined}
+              >
+                {link.icon}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      </div>
+
+      <div className="p-4 border-t border-border flex justify-center">
         <Button
-          variant="outline"
-          className="w-full mt-4"
+          variant="ghost"
+          size="icon"
+          className="rounded-full hover:bg-destructive/10 text-destructive"
           onClick={handleSignOut}
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          退出登录
+          <LogOut className="h-5 w-5" />
         </Button>
       </div>
     </div>

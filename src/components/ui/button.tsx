@@ -5,31 +5,28 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg hover:-translate-y-0.5",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-lg hover:-translate-y-0.5",
         outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border-2 border-input bg-background hover:bg-accent/10 hover:text-accent-foreground hover:shadow-lg hover:-translate-y-0.5",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:shadow-lg hover:-translate-y-0.5",
+        ghost: "hover:bg-accent/10 hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        kids: "bg-ghibli-teal text-white border-2 border-ghibli-teal/80 hover:bg-ghibli-skyBlue hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(82,72,58,0.2)] hover:shadow-[6px_8px_0_rgba(82,72,58,0.15)] hover:-translate-y-0.5",
-        kidsOutline: "bg-ghibli-parchment text-ghibli-deepTeal border-2 border-ghibli-teal hover:bg-ghibli-mint hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(82,72,58,0.2)] hover:shadow-[6px_8px_0_rgba(82,72,58,0.15)] hover:-translate-y-0.5",
-        kidsSunshine: "bg-ghibli-sunshine text-ghibli-brown border-2 border-ghibli-sunshine/80 hover:bg-ghibli-peach hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(82,72,58,0.2)] hover:shadow-[6px_8px_0_rgba(82,72,58,0.15)] hover:-translate-y-0.5",
+        macaron: "bg-macaron-pink text-white border-2 border-macaron-pink/80 hover:bg-macaron-deepPink hover:border-macaron-deepPink/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(156,54,93,0.2)] hover:shadow-[6px_8px_0_rgba(156,54,93,0.15)] hover:-translate-y-0.5",
+        macaronMint: "bg-macaron-mint text-macaron-deepMint border-2 border-macaron-mint/80 hover:bg-macaron-deepMint hover:text-white hover:border-macaron-deepMint/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(42,125,101,0.2)] hover:shadow-[6px_8px_0_rgba(42,125,101,0.15)] hover:-translate-y-0.5",
+        macaronLavender: "bg-macaron-lavender text-macaron-deepLavender border-2 border-macaron-lavender/80 hover:bg-macaron-deepLavender hover:text-white hover:border-macaron-deepLavender/80 hover:scale-105 transition-all duration-300 shadow-[4px_6px_0_rgba(105,51,176,0.2)] hover:shadow-[6px_8px_0_rgba(105,51,176,0.15)] hover:-translate-y-0.5",
       },
       size: {
         default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
+        sm: "h-9 px-3",
+        lg: "h-11 px-8",
         icon: "h-10 w-10",
-        kidsDefault: "h-12 px-6 py-3 rounded-full text-base",
-        kidsLg: "h-14 px-8 py-4 rounded-full text-lg",
-        kidsSm: "h-10 px-4 py-2 rounded-full text-sm",
       },
     },
     defaultVariants: {
