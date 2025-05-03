@@ -14,7 +14,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { 
   FileText, Video, FileQuestion, 
-  Plus, Trash2, AlertCircle
+  Plus, Trash2, AlertCircle, Download
 } from 'lucide-react';
 import { 
   Lesson, 
@@ -26,12 +26,14 @@ import {
   AssignmentLessonContent,
   CardCreatorLessonContent,
   DragSortContent,
+  ResourceLessonContent,
   LessonContent
 } from '@/types/course';
 import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
 import VideoUploader from './creator/VideoUploader';
 import CardCreatorLessonEditor from './CardCreatorLessonEditor';
 import DragSortEditor from './creator/drag-sort/DragSortEditor';
+import ResourceLessonEditor from './ResourceLessonEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -94,6 +96,11 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
           categories: (baseContent as DragSortContent)?.categories || [],
           correctMappings: (baseContent as DragSortContent)?.correctMappings || []
         } as DragSortContent;
+      case 'resource':
+        return {
+          description: (baseContent as ResourceLessonContent)?.description || '',
+          resourceFiles: (baseContent as ResourceLessonContent)?.resourceFiles || []
+        } as ResourceLessonContent;
       default:
         return baseContent;
     }
@@ -152,7 +159,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         aiGradingPrompt: data.aiGradingPrompt
       } as AssignmentLessonContent;
     }
-    // 卡片创建器和拖拽分类内容在子组件内处理，直接使用currentContent
+    // 卡片创建器、拖拽分类和资源内容在子组件内处理，直接使用currentContent
     
     // 首先更新课程内容的状态
     onSave(updatedLesson);
@@ -353,379 +360,454 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
     }
   };
   
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>课程标题</FormLabel>
-              <FormControl>
-                <Input placeholder="输入课程标题" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
+  // 处理资源编辑器的内容变化
+  const handleResourceContentChange = (updatedLesson: Lesson) => {
+    setCurrentContent(updatedLesson.content);
+    onContentChange(updatedLesson.content);
+  };
+  
+  // 获取课程ID
+  const getCourseId = async (): Promise<string> => {
+    if (!lesson.module_id) {
+      return '';
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('course_modules')
+        .select('course_id')
+        .eq('id', lesson.module_id)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data?.course_id || '';
+    } catch (error) {
+      console.error('获取课程ID失败:', error);
+      return '';
+    }
+  };
+  
+  const [courseId, setCourseId] = useState<string>('');
+  
+  // 在组件挂载时获取课程ID
+  React.useEffect(() => {
+    if (lesson.module_id) {
+      getCourseId().then(id => setCourseId(id));
+    }
+  }, [lesson.module_id]);
+  
+  // 处理保存
+  const handleSaveCourse = async () => {
+    if (onCourseDataSaved) {
+      await onCourseDataSaved();
+    }
+  };
+  
+  // 渲染特定类型的课时编辑器
+  const renderLessonEditor = () => {
+    // 资源编辑器有自己的保存按钮和表单，单独处理
+    if (lesson.type === 'resource') {
+      return (
+        <ResourceLessonEditor
+          lesson={lesson}
+          onChange={handleResourceContentChange}
+          onSave={handleSaveCourse}
+          isSaving={false}
+          courseId={courseId}
         />
-        
-        {/* Render different content fields based on lesson type */}
-        {lesson.type === 'video' && (
-          <div className="space-y-4">
-            <div>
-              <FormLabel className="block text-sm font-medium text-gray-700 mb-2">上传视频</FormLabel>
-              <VideoUploader 
-                onVideoUploaded={handleVideoUploaded} 
-                initialVideoPath={lesson.video_file_path || null}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                上传视频文件或使用URL。视频文件将存储在我们的服务器上。
-              </p>
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="bilibiliUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>哔哩哔哩视频嵌入</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="输入B站视频iframe嵌入代码" 
-                      {...field} 
-                      onChange={(e) => {
-                        field.onChange(e);
-                        handleBilibiliUrlChange(e);
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    例如：https://player.bilibili.com/player.html?aid=xxx&bvid=xxx&cid=xxx&page=1&as_wide=1&high_quality=1&danmaku=0
-                    <br />
-                    <span className="text-xs">
-                      <strong>参数说明</strong>：
-                      aid/bvid(视频ID, 必填) | 
-                      page(第几个视频, 默认1) | 
-                      as_wide(是否宽屏, 1为宽屏) | 
-                      high_quality(是否高清, 1为高清) | 
-                      danmaku(是否显示弹幕, 0为关闭)
-                    </span>
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-            
-            {(currentContent as VideoLessonContent).bilibiliUrl && (
-              <div className="mt-2">
-                <FormLabel className="block text-sm font-medium text-gray-700 mb-2">预览</FormLabel>
-                <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
-                  <iframe 
-                    src={(function() {
-                      const url = (currentContent as VideoLessonContent).bilibiliUrl || '';
-                      // 确保添加as_wide=1参数
-                      if (url.includes('as_wide=1')) {
-                        return url;
-                      } else if (url.includes('?')) {
-                        return `${url}&as_wide=1&high_quality=1`;
-                      } else {
-                        return `${url}?as_wide=1&high_quality=1`;
-                      }
-                    })()}
-                    allowFullScreen={true}
-                    className="w-full h-full"
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      aspectRatio: '16/9', 
-                      border: 'none',
-                      display: 'block'
-                    }}
-                    scrolling="no" 
-                    frameBorder="0"
-                    sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
-                  />
-                </div>
-              </div>
+      );
+    }
+    
+    // 卡片创建器也有自己的UI和逻辑，单独处理
+    if (lesson.type === 'card_creator') {
+      return (
+        <CardCreatorLessonEditor 
+          lesson={lesson}
+          onUpdate={(updatedLesson) => {
+            setCurrentContent(updatedLesson.content);
+            onContentChange(updatedLesson.content);
+          }}
+        />
+      );
+    }
+    
+    // 拖拽分类也有自己的UI和逻辑，单独处理
+    if (lesson.type === 'drag_sort') {
+      return (
+        <DragSortEditor 
+          lesson={lesson}
+          onSave={(content) => {
+            setCurrentContent(content);
+            onContentChange(content);
+          }}
+        />
+      );
+    }
+    
+    // 其他类型使用常规表单
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>课程标题</FormLabel>
+                <FormControl>
+                  <Input placeholder="输入课程标题" {...field} />
+                </FormControl>
+              </FormItem>
             )}
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>视频描述</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="为视频添加描述文本" className="min-h-20" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
-        
-        {lesson.type === 'text' && (
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="text"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>内容</FormLabel>
-                  <FormControl>
-                    <BlockNoteEditor
-                      initialContent={(currentContent as TextLessonContent).text || ''}
-                      onChange={handleLexicalEditorChange}
-                      placeholder="在此输入课程内容..."
-                      className="min-h-[300px] border-0 shadow-none"
-                      onFullscreenToggle={handleEditorFullscreenToggle}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    使用编辑器工具栏来格式化内容并添加链接、列表等元素。点击右上角可以全屏编辑。
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-          </div>
-        )}
-        
-        {lesson.type === 'quiz' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">测验问题</h3>
-              <Button type="button" onClick={addQuestion} size="sm" variant="outline">
-                <Plus size={16} className="mr-2" /> 添加问题
-              </Button>
-            </div>
-            
-            {questions.length === 0 ? (
-              <div className="text-center p-8 border border-dashed border-gray-300 rounded-md">
-                <FileQuestion className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500">还没有问题。点击上方"添加问题"按钮开始创建测验。</p>
+          />
+          
+          {/* Render different content fields based on lesson type */}
+          {lesson.type === 'video' && (
+            <div className="space-y-4">
+              <div>
+                <FormLabel className="block text-sm font-medium text-gray-700 mb-2">上传视频</FormLabel>
+                <VideoUploader 
+                  onVideoUploaded={handleVideoUploaded} 
+                  initialVideoPath={lesson.video_file_path || null}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  上传视频文件或使用URL。视频文件将存储在我们的服务器上。
+                </p>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {questions.map((question, index) => (
-                  <div key={question.id} className="border border-gray-200 rounded-md p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium">问题 {index + 1}</h4>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => deleteQuestion(question.id)}
-                        className="h-8 w-8 p-0 text-red-500"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          问题类型
-                        </label>
-                        <select
-                          className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-connect-blue/20 focus:border-connect-blue"
-                          value={question.type}
-                          onChange={(e) => updateQuestion(question.id, 'type', e.target.value)}
+              
+              <FormField
+                control={form.control}
+                name="bilibiliUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>哔哩哔哩视频嵌入</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="输入B站视频iframe嵌入代码" 
+                        {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handleBilibiliUrlChange(e);
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      例如：https://player.bilibili.com/player.html?aid=xxx&bvid=xxx&cid=xxx&page=1&as_wide=1&high_quality=1&danmaku=0
+                      <br />
+                      <span className="text-xs">
+                        <strong>参数说明</strong>：
+                        aid/bvid(视频ID, 必填) | 
+                        page(第几个视频, 默认1) | 
+                        as_wide(是否宽屏, 1为宽屏) | 
+                        high_quality(是否高清, 1为高清) | 
+                        danmaku(是否显示弹幕, 0为关闭)
+                      </span>
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+              
+              {(currentContent as VideoLessonContent).bilibiliUrl && (
+                <div className="mt-2">
+                  <FormLabel className="block text-sm font-medium text-gray-700 mb-2">预览</FormLabel>
+                  <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
+                    <iframe 
+                      src={(function() {
+                        const url = (currentContent as VideoLessonContent).bilibiliUrl || '';
+                        // 确保添加as_wide=1参数
+                        if (url.includes('as_wide=1')) {
+                          return url;
+                        } else if (url.includes('?')) {
+                          return `${url}&as_wide=1&high_quality=1`;
+                        } else {
+                          return `${url}?as_wide=1&high_quality=1`;
+                        }
+                      })()}
+                      allowFullScreen={true}
+                      className="w-full h-full"
+                      style={{ 
+                        width: '100%', 
+                        height: '100%', 
+                        aspectRatio: '16/9', 
+                        border: 'none',
+                        display: 'block'
+                      }}
+                      scrolling="no" 
+                      frameBorder="0"
+                      sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>视频描述</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="为视频添加描述文本" className="min-h-20" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+          
+          {lesson.type === 'text' && (
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="text"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>内容</FormLabel>
+                    <FormControl>
+                      <BlockNoteEditor
+                        initialContent={(currentContent as TextLessonContent).text || ''}
+                        onChange={handleLexicalEditorChange}
+                        placeholder="在此输入课程内容..."
+                        className="min-h-[300px] border-0 shadow-none"
+                        onFullscreenToggle={handleEditorFullscreenToggle}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      使用编辑器工具栏来格式化内容并添加链接、列表等元素。点击右上角可以全屏编辑。
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+          
+          {lesson.type === 'quiz' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">测验问题</h3>
+                <Button type="button" onClick={addQuestion} size="sm" variant="outline">
+                  <Plus size={16} className="mr-2" /> 添加问题
+                </Button>
+              </div>
+              
+              {questions.length === 0 ? (
+                <div className="text-center p-8 border border-dashed border-gray-300 rounded-md">
+                  <FileQuestion className="mx-auto h-10 w-10 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-500">还没有问题。点击上方"添加问题"按钮开始创建测验。</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {questions.map((question, index) => (
+                    <div key={question.id} className="border border-gray-200 rounded-md p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-medium">问题 {index + 1}</h4>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteQuestion(question.id)}
+                          className="h-8 w-8 p-0 text-red-500"
                         >
-                          {QUESTION_TYPES.map((type) => (
-                            <option key={type.id} value={type.id}>
-                              {type.name}
-                            </option>
-                          ))}
-                        </select>
+                          <Trash2 size={16} />
+                        </Button>
                       </div>
                       
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          问题文本
-                        </label>
-                        <Input
-                          value={question.text}
-                          onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
-                          placeholder="输入问题内容"
-                        />
-                      </div>
-                      
-                      {(question.type === 'multiple_choice' || question.type === 'true_false') && (
-                        <div>
-                          <div className="flex justify-between items-center mb-2">
-                            <label className="block text-sm font-medium text-gray-700">
-                              选项
-                            </label>
-                            {question.type === 'multiple_choice' && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => addOption(question.id)}
-                                className="h-6"
-                              >
-                                <Plus size={14} className="mr-1" /> 添加选项
-                              </Button>
-                            )}
-                          </div>
-                          
-                          <div className="space-y-2">
-                            {question.options?.map((option) => (
-                              <div key={option.id} className="flex items-center gap-2">
-                                <input
-                                  type="radio"
-                                  name={`correct-${question.id}`}
-                                  checked={question.correctOption === option.id}
-                                  onChange={() => setCorrectOption(question.id, option.id)}
-                                  className="h-4 w-4 text-connect-blue"
-                                />
-                                <Input
-                                  value={option.text}
-                                  onChange={(e) => updateOption(question.id, option.id, e.target.value)}
-                                  className="flex-1"
-                                />
-                                {question.type === 'multiple_choice' && question.options && question.options.length > 2 && (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => deleteOption(question.id, option.id)}
-                                    className="h-8 w-8 p-0 text-red-500"
-                                  >
-                                    <Trash2 size={14} />
-                                  </Button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">选择正确答案</p>
-                        </div>
-                      )}
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          提示信息（答错时显示）
-                        </label>
-                        <Textarea
-                          placeholder="输入当学生答错时显示的提示信息"
-                          rows={2}
-                          value={question.hint || ''}
-                          onChange={(e) => updateQuestion(question.id, 'hint', e.target.value)}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">给学生的提示，帮助他们思考正确答案</p>
-                      </div>
-                      
-                      {question.type === 'short_answer' && (
+                      <div className="space-y-3">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            答案示例（仅供参考）
+                            问题类型
+                          </label>
+                          <select
+                            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-connect-blue/20 focus:border-connect-blue"
+                            value={question.type}
+                            onChange={(e) => updateQuestion(question.id, 'type', e.target.value)}
+                          >
+                            {QUESTION_TYPES.map((type) => (
+                              <option key={type.id} value={type.id}>
+                                {type.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            问题文本
+                          </label>
+                          <Input
+                            value={question.text}
+                            onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
+                            placeholder="输入问题内容"
+                          />
+                        </div>
+                        
+                        {(question.type === 'multiple_choice' || question.type === 'true_false') && (
+                          <div>
+                            <div className="flex justify-between items-center mb-2">
+                              <label className="block text-sm font-medium text-gray-700">
+                                选项
+                              </label>
+                              {question.type === 'multiple_choice' && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => addOption(question.id)}
+                                  className="h-6"
+                                >
+                                  <Plus size={14} className="mr-1" /> 添加选项
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="space-y-2">
+                              {question.options?.map((option) => (
+                                <div key={option.id} className="flex items-center gap-2">
+                                  <input
+                                    type="radio"
+                                    name={`correct-${question.id}`}
+                                    checked={question.correctOption === option.id}
+                                    onChange={() => setCorrectOption(question.id, option.id)}
+                                    className="h-4 w-4 text-connect-blue"
+                                  />
+                                  <Input
+                                    value={option.text}
+                                    onChange={(e) => updateOption(question.id, option.id, e.target.value)}
+                                    className="flex-1"
+                                  />
+                                  {question.type === 'multiple_choice' && question.options && question.options.length > 2 && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => deleteOption(question.id, option.id)}
+                                      className="h-8 w-8 p-0 text-red-500"
+                                    >
+                                      <Trash2 size={14} />
+                                    </Button>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">选择正确答案</p>
+                          </div>
+                        )}
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            提示信息（答错时显示）
                           </label>
                           <Textarea
-                            placeholder="输入可能的正确答案示例"
-                            rows={3}
-                            value={question.sampleAnswer || ''}
-                            onChange={(e) => updateQuestion(question.id, 'sampleAnswer', e.target.value)}
+                            placeholder="输入当学生答错时显示的提示信息"
+                            rows={2}
+                            value={question.hint || ''}
+                            onChange={(e) => updateQuestion(question.id, 'hint', e.target.value)}
                           />
-                          
-                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                            <p className="text-xs text-yellow-700 font-medium mb-1">AI评分说明</p>
-                            <p className="text-xs text-yellow-600">
-                              简答题将使用AI进行自动评分。系统会根据问题和示例答案来评判学生的回答。
-                              您可以在作业的"AI评分提示"部分提供更详细的评分标准和要求。
-                            </p>
-                          </div>
+                          <p className="text-xs text-gray-500 mt-1">给学生的提示，帮助他们思考正确答案</p>
                         </div>
-                      )}
+                        
+                        {question.type === 'short_answer' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              答案示例（仅供参考）
+                            </label>
+                            <Textarea
+                              placeholder="输入可能的正确答案示例"
+                              rows={3}
+                              value={question.sampleAnswer || ''}
+                              onChange={(e) => updateQuestion(question.id, 'sampleAnswer', e.target.value)}
+                            />
+                            
+                            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                              <p className="text-xs text-yellow-700 font-medium mb-1">AI评分说明</p>
+                              <p className="text-xs text-yellow-600">
+                                简答题将使用AI进行自动评分。系统会根据问题和示例答案来评判学生的回答。
+                                您可以在作业的"AI评分提示"部分提供更详细的评分标准和要求。
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        
-        {lesson.type === 'assignment' && (
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="instructions"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>作业说明</FormLabel>
-                  <FormControl>
-                    <Textarea className="min-h-40" placeholder="为学生提供详细的作业说明和要求" {...field} />
-                  </FormControl>
-                </FormItem>
+                  ))}
+                </div>
               )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="criteria"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>评分标准</FormLabel>
-                  <FormControl>
-                    <Textarea className="min-h-32" placeholder="描述作业的评分标准和要求" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    这些评分标准将展示给学生，帮助他们了解作业要求和评分方式
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+            </div>
+          )}
+          
+          {lesson.type === 'assignment' && (
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="instructions"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>作业说明</FormLabel>
+                    <FormControl>
+                      <Textarea className="min-h-40" placeholder="为学生提供详细的作业说明和要求" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="criteria"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>评分标准</FormLabel>
+                    <FormControl>
+                      <Textarea className="min-h-32" placeholder="描述作业的评分标准和要求" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      这些评分标准将展示给学生，帮助他们了解作业要求和评分方式
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="aiGradingPrompt"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>AI评分提示</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      className="min-h-32" 
-                      placeholder="指导AI如何评分，例如：'这是一篇关于商业计划的作业，请评估以下几点：1. 内容完整性(30%)，2. 逻辑性(30%)，3. 创新性(20%)，4. 表达清晰度(20%)'" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    输入提示词指导AI如何评分学生作业。这些提示词不会展示给学生，仅用于AI评分。
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="aiGradingPrompt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>AI评分提示</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        className="min-h-32" 
+                        placeholder="指导AI如何评分，例如：'这是一篇关于商业计划的作业，请评估以下几点：1. 内容完整性(30%)，2. 逻辑性(30%)，3. 创新性(20%)，4. 表达清晰度(20%)'" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      输入提示词指导AI如何评分学生作业。这些提示词不会展示给学生，仅用于AI评分。
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-3 pt-4">
+            <Button type="button" variant="outline" onClick={() => onSave(null)}>
+              取消
+            </Button>
+            <Button type="submit" className="bg-connect-blue hover:bg-blue-600">
+              保存课程
+            </Button>
           </div>
-        )}
-        
-        {lesson.type === 'card_creator' && (
-          <CardCreatorLessonEditor 
-            lesson={lesson}
-            onUpdate={(updatedLesson) => {
-              setCurrentContent(updatedLesson.content);
-              onContentChange(updatedLesson.content);
-            }}
-          />
-        )}
-        
-        {lesson.type === 'drag_sort' && (
-          <DragSortEditor 
-            lesson={lesson}
-            onSave={(content) => {
-              setCurrentContent(content);
-              onContentChange(content);
-            }}
-          />
-        )}
-        
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="outline" onClick={() => onSave(null)}>
-            取消
-          </Button>
-          <Button type="submit" className="bg-connect-blue hover:bg-blue-600">
-            保存课程
-          </Button>
-        </div>
-      </form>
-    </Form>
+        </form>
+      </Form>
+    );
+  };
+
+  return (
+    <div className="w-full p-4">
+      {renderLessonEditor()}
+    </div>
   );
 };
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Video, FileText, FileQuestion, CheckSquare, CreditCard, Move } from 'lucide-react';
+import { Video, FileText, FileQuestion, CheckSquare, CreditCard, Move, Download } from 'lucide-react';
 import { LessonType } from '@/types/course';
 
 export type LessonTypeInfo = {
@@ -14,7 +14,8 @@ export const LESSON_TYPES: LessonTypeInfo[] = [
   { id: 'quiz', name: '测验', icon: React.createElement(FileQuestion, { size: 16, className: "text-ghibli-sunshine" }) },
   { id: 'assignment', name: '作业', icon: React.createElement(CheckSquare, { size: 16, className: "text-ghibli-lavender" }) },
   { id: 'card_creator', name: '卡片创建', icon: React.createElement(CreditCard, { size: 16, className: "text-ghibli-coral" }) },
-  { id: 'drag_sort', name: '拖拽分类', icon: React.createElement(Move, { size: 16, className: "text-ghibli-pink" }) }
+  { id: 'drag_sort', name: '拖拽分类', icon: React.createElement(Move, { size: 16, className: "text-ghibli-pink" }) },
+  { id: 'resource', name: '资源下载', icon: React.createElement(Download, { size: 16, className: "text-ghibli-indigo" }) }
 ];
 
 export const getLessonTypeInfo = (type: LessonType): LessonTypeInfo | undefined => {
@@ -43,6 +44,11 @@ export const getInitialContentByType = (type: LessonType) => {
         items: [],
         categories: [],
         correctMappings: []
+      };
+    case 'resource':
+      return { 
+        description: '',
+        resourceFiles: []
       };
     default:
       return { text: '' };

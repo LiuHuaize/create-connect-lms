@@ -71,6 +71,24 @@ export type CardCreatorLessonContent = {
   templateDescription?: string;
 };
 
+// 资源下载课程内容类型
+export type ResourceLessonContent = {
+  description?: string;
+  resourceFiles?: ResourceFile[];
+};
+
+// 资源文件类型
+export type ResourceFile = {
+  id: string;
+  title: string;
+  description?: string;
+  filePath: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  downloadCount?: number;
+};
+
 // AI评分结果类型
 export type AIGradingResult = {
   score: number; // AI给出的分数
@@ -126,7 +144,8 @@ export type LessonContent =
   | AssignmentLessonContent
   | CodeLessonContent
   | CardCreatorLessonContent
-  | DragSortContent;
+  | DragSortContent
+  | ResourceLessonContent;
 
 // Quiz related types
 export type QuizQuestionType = 'multiple_choice' | 'true_false' | 'short_answer';
@@ -147,7 +166,7 @@ export type QuizQuestion = {
 };
 
 // Lesson type - use string union for better type safety
-export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort';
+export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort' | 'resource';
 
 // Make sure order_index is included in the Lesson type
 export type Lesson = {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent } from '@/types/course';
+import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent, ResourceLessonContent } from '@/types/course';
 // 临时注释掉不存在的导入
 // import { CardCreatorTask } from '@/types/card-creator';
 import LessonNavigation from './LessonNavigation';
@@ -16,6 +16,7 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import TextLessonContent from '@/components/course/lessons/TextLessonContent';
 import VideoLessonContent from '@/components/course/lessons/VideoLessonContent';
 import QuizLessonContent from '@/components/course/lessons/quiz/QuizLessonContent';
+import ResourceLessonView from '@/components/course/lessons/ResourceLessonView';
 import DragSortExercise from '@/components/course/components/drag-sort/DragSortExercise';
 import { containsMarkdown } from '@/utils/markdownUtils';
 
@@ -364,6 +365,19 @@ const LessonContent: React.FC<LessonContentProps> = ({
             onUnmarkComplete={handleUnmarkComplete}
             isCompletionLoading={isCompletionLoading}
             navigate={navigate}
+          />
+        );
+      
+      case 'resource':
+        return (
+          <ResourceLessonView 
+            key={selectedLesson.id}
+            lesson={selectedLesson}
+            onComplete={() => {
+              if (selectedLesson && courseData && enrollmentId) {
+                markCurrentLessonComplete();
+              }
+            }}
           />
         );
       
