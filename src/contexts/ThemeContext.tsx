@@ -15,12 +15,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // 从localStorage读取主题设置，默认为system
+    // 从localStorage读取主题设置，默认为light
     if (typeof window !== 'undefined') {
       const storedTheme = localStorage.getItem('theme') as Theme;
-      return storedTheme || 'system';
+      return storedTheme || 'light'; // 默认改为light而不是system
     }
-    return 'system';
+    return 'light'; // 默认改为light
   });
 
   // 监听主题变化并更新根元素类和localStorage
@@ -30,37 +30,37 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     // 移除所有主题类
     root.classList.remove('light', 'dark');
 
-    if (theme === 'system') {
-      // 根据系统偏好设置主题
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-      root.classList.add(systemTheme);
+    // 忽略系统偏好，总是使用亮色主题，除非明确指定为dark
+    if (theme === 'dark') {
+      root.classList.add('dark');
     } else {
-      // 根据用户选择设置主题
-      root.classList.add(theme);
+      // 无论是'light'还是'system'，都使用亮色主题
+      root.classList.add('light');
     }
     
     // 保存主题设置到localStorage
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // 添加系统主题变化监听
+  // 移除系统主题变化监听，因为我们现在忽略系统偏好
+  // 如果想保留此功能但默认使用light主题，可以保留这段代码并修改
   useEffect(() => {
     if (theme !== 'system') return;
     
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    // 即使是system设置，我们也强制使用light主题
+    const root = window.document.documentElement;
+    root.classList.remove('dark');
+    root.classList.add('light');
     
-    // 当系统主题变化时更新
-    const handleChange = () => {
-      const root = window.document.documentElement;
-      root.classList.remove('light', 'dark');
-      root.classList.add(mediaQuery.matches ? 'dark' : 'light');
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    // 不再监听系统主题变化
+    // const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    // const handleChange = () => {
+    //   const root = window.document.documentElement;
+    //   root.classList.remove('light', 'dark');
+    //   root.classList.add('light'); // 总是使用light
+    // };
+    // mediaQuery.addEventListener('change', handleChange);
+    // return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme]);
 
   const value = {
