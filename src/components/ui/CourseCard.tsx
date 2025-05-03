@@ -77,6 +77,18 @@ const CourseCard: React.FC<CourseCardProps> = ({
     }
   };
 
+  // 从图片URL生成WebP版本URL（如果原始URL不是WebP格式）
+  const getWebPUrl = (url: string) => {
+    if (!url) return '';
+    // 检查URL是否已经是WebP格式
+    if (url.toLowerCase().endsWith('.webp')) return url;
+    
+    // 假设有一个转换服务或已经预先生成了WebP版本
+    // 实际实现中可能需要根据项目的图片处理方式调整
+    const urlWithoutExtension = url.substring(0, url.lastIndexOf('.')) || url;
+    return `${urlWithoutExtension}.webp`;
+  };
+
   return (
     <div className={cn(
       "glow-card hover-card group cursor-pointer",
@@ -92,8 +104,19 @@ const CourseCard: React.FC<CourseCardProps> = ({
           <div className="w-full h-full overflow-hidden">
             <img 
               src={coverImage} 
-              alt={title} 
+              alt={title}
+              loading="lazy"
+              decoding="async"
+              srcSet={`${coverImage} 1x, ${coverImage} 2x`}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+              onError={(e) => {
+                // 如果图片加载失败，回退到原始URL（移除WebP后缀）
+                const target = e.target as HTMLImageElement;
+                if (target.src.endsWith('.webp')) {
+                  target.src = target.src.replace('.webp', '.jpg');
+                }
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>

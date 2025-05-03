@@ -1,9 +1,7 @@
 import React, { useMemo } from 'react';
 import { BlockNoteView } from "@blocknote/mantine";
 import { BlockNoteEditor, useCreateBlockNote } from "@blocknote/react";
-import "@blocknote/core/fonts/inter.css";
-import "@blocknote/mantine/style.css";
-import "./custom-blocknote.css"; // 引入自定义样式
+import "./custom-blocknote.css"; // 保留自定义样式
 
 interface BlockNoteRendererProps {
   content: string;

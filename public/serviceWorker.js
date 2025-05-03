@@ -1,13 +1,25 @@
 // 为应用程序定义一个缓存版本
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = (self.location.port || 'default') + '-connect-lms-cache-' + CACHE_VERSION;
 const API_CACHE_NAME = (self.location.port || 'default') + '-connect-lms-api-cache-' + CACHE_VERSION;
+const CRITICAL_CACHE_NAME = (self.location.port || 'default') + '-connect-lms-critical-cache-' + CACHE_VERSION;
 
-// 需要缓存的静态资源列表 - 仅缓存基本资源
+// 需要缓存的静态资源列表 - 扩展基本资源
 const urlsToCache = [
   '/',
   '/index.html',
-  '/assets/vendor.js'
+  '/assets/vendor.js',
+  '/assets/index.css',
+  '/assets/index.js',
+  '/logo-yi.svg'
+];
+
+// 关键资源列表 - 最高优先级缓存和加载
+const criticalResources = [
+  '/assets/index.css',
+  '/logo-yi.svg',
+  '/assets/vendor.js',
+  '/index.html'
 ];
 
 // 不缓存的路径列表
@@ -17,9 +29,12 @@ const noCachePaths = [
   '/dashboard'
 ];
 
-// 最小化预加载资源列表
+// 扩展预加载资源列表
 const preloadResources = [
-  '/assets/index.css'
+  '/assets/index.css',
+  '/assets/vendor.js',
+  '/logo-yi.svg',
+  '/node_modules/@blocknote/core/fonts/inter.css'
 ];
 
 // 检查URL是否应该被缓存
@@ -39,6 +54,16 @@ function shouldCache(url) {
   return true;
 }
 
+// 检查URL是否是关键资源
+function isCriticalResource(url) {
+  for (const resource of criticalResources) {
+    if (url.pathname.endsWith(resource)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Service Worker安装后缓存指定的静态资源
 self.addEventListener('install', (event) => {
   console.log('Service Worker安装中...', self.location.port);
@@ -47,12 +72,20 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('已打开缓存:', CACHE_NAME);
-        // 仅缓存基本资源，避免过度缓存
-        return cache.addAll(urlsToCache);
-      })
+    Promise.all([
+      // 缓存基本资源
+      caches.open(CACHE_NAME)
+        .then((cache) => {
+          console.log('已打开缓存:', CACHE_NAME);
+          return cache.addAll(urlsToCache);
+        }),
+      // 单独缓存关键资源到专门的缓存空间
+      caches.open(CRITICAL_CACHE_NAME)
+        .then((cache) => {
+          console.log('已打开关键资源缓存:', CRITICAL_CACHE_NAME);
+          return cache.addAll(criticalResources);
+        })
+    ])
   );
 });
 
@@ -76,6 +109,9 @@ self.addEventListener('fetch', (event) => {
                        url.hostname.includes('supabase.co');
   const isAuthRequest = url.pathname.includes('/auth/v1/');
   
+  // 检查是否是关键资源
+  const isCritical = isCriticalResource(url);
+  
   // 对认证请求直接使用网络，永不缓存
   if (isAuthRequest) {
     event.respondWith(fetch(event.request));
@@ -89,11 +125,56 @@ self.addEventListener('fetch', (event) => {
       // 非GET请求直接走网络
       event.respondWith(fetch(event.request));
     }
-  } else {
-    // 对静态资源使用网络优先策略
+  }
+  // 对关键资源使用缓存优先策略
+  else if (isCritical) {
+    event.respondWith(cacheFirstThenNetwork(event.request));
+  }
+  // 对其他静态资源使用网络优先策略
+  else {
     event.respondWith(networkFirstThenCache(event.request));
   }
 });
+
+// 缓存优先策略 - 适用于关键资源
+async function cacheFirstThenNetwork(request) {
+  const criticalCache = await caches.open(CRITICAL_CACHE_NAME);
+  const cache = await caches.open(CACHE_NAME);
+  
+  // 先尝试从关键缓存获取
+  let cachedResponse = await criticalCache.match(request);
+  
+  // 如果关键缓存没有，尝试从常规缓存获取
+  if (!cachedResponse) {
+    cachedResponse = await cache.match(request);
+  }
+  
+  if (cachedResponse) {
+    // 后台更新缓存
+    fetch(request.clone())
+      .then((networkResponse) => {
+        if (networkResponse.ok) {
+          criticalCache.put(request, networkResponse.clone());
+        }
+      })
+      .catch(error => console.log('后台更新关键资源失败:', error));
+    
+    return cachedResponse;
+  }
+  
+  // 如果缓存中没有，从网络获取并缓存
+  try {
+    const networkResponse = await fetch(request.clone());
+    
+    if (networkResponse.ok) {
+      await criticalCache.put(request, networkResponse.clone());
+    }
+    
+    return networkResponse;
+  } catch (error) {
+    throw error;
+  }
+}
 
 // 网络优先策略，但缓存时间很短 - 适用于API请求
 async function networkFirstWithShortCache(request) {
@@ -190,7 +271,8 @@ self.addEventListener('activate', (event) => {
   // 当前端口的缓存白名单
   const currentPortCaches = [
     CACHE_NAME, 
-    API_CACHE_NAME
+    API_CACHE_NAME,
+    CRITICAL_CACHE_NAME
   ];
   
   // 立即接管所有页面
@@ -219,6 +301,20 @@ self.addEventListener('activate', (event) => {
           client.postMessage({
             type: 'SW_ACTIVATED',
             version: CACHE_VERSION
+          });
+        });
+      });
+      
+      // 预加载关键资源
+      caches.open(CRITICAL_CACHE_NAME).then(cache => {
+        preloadResources.forEach(resource => {
+          fetch(resource).then(response => {
+            if (response.ok) {
+              cache.put(resource, response);
+              console.log('预加载资源成功:', resource);
+            }
+          }).catch(err => {
+            console.error('预加载资源失败:', resource, err);
           });
         });
       });

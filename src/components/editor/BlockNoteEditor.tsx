@@ -1,7 +1,5 @@
 import React, { useEffect } from 'react';
 import { BlockNoteView } from "@blocknote/mantine";
-import "@blocknote/core/fonts/inter.css";
-import "@blocknote/mantine/style.css";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { cn } from "@/lib/utils";
