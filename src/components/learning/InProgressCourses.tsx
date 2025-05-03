@@ -1,6 +1,6 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Play, Clock, AlertCircle } from 'lucide-react';
+import { BookOpen, Play, Clock, GraduationCap, Book } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
@@ -14,6 +14,10 @@ interface Course {
   short_description?: string;
   enrolledAt?: string;
   isAvailable?: boolean;
+  grade_range_min?: number | null;
+  grade_range_max?: number | null;
+  primary_subject?: string | null;
+  secondary_subject?: string | null;
 }
 
 interface InProgressCoursesProps {
@@ -46,7 +50,7 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
                   <h3 className="font-bold text-xl mb-2">{course.title}</h3>
                   <p className="text-gray-600 mb-4">{course.short_description || '暂无描述'}</p>
                   
-                  <div className="flex items-center gap-4 mb-4">
+                  <div className="flex flex-wrap items-center gap-4 mb-4">
                     <div className="flex items-center text-gray-500">
                       <BookOpen size={16} className="mr-1" />
                       <span className="text-sm">进行中</span>
@@ -55,6 +59,25 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
                       <Clock size={16} className="mr-1" />
                       <span className="text-sm">
                         加入于 {course.enrolledAt ? format(new Date(course.enrolledAt), 'yyyy-MM-dd') : '未知'}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-gray-500">
+                      <GraduationCap size={16} className="mr-1" />
+                      <span className="text-sm">
+                        {course.grade_range_min && course.grade_range_max 
+                          ? `适用${course.grade_range_min}-${course.grade_range_max}年级` 
+                          : course.grade_range_min 
+                          ? `适用${course.grade_range_min}年级及以上` 
+                          : course.grade_range_max 
+                          ? `适用${course.grade_range_max}年级及以下` 
+                          : '适用所有年级'}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-gray-500">
+                      <Book size={16} className="mr-1" />
+                      <span className="text-sm">
+                        {course.primary_subject || '未指定学科'}
+                        {course.secondary_subject ? ` + ${course.secondary_subject}` : ''}
                       </span>
                     </div>
                   </div>

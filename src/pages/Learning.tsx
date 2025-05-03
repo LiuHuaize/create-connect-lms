@@ -1,9 +1,7 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import useLearningData from '@/hooks/useLearningData';
+import PageContainer from '@/components/layout/PageContainer';
 
 // 导入拆分的组件
 import InProgressCourses from '@/components/learning/InProgressCourses';
@@ -18,16 +16,7 @@ const Learning = () => {
   } = useLearningData();
 
   return (
-    <div className="animate-fade-in p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">我的学习</h1>
-        <Button asChild>
-          <Link to="/explore-courses">
-            <Search className="mr-2 h-4 w-4" /> 探索更多课程
-          </Link>
-        </Button>
-      </div>
-      
+    <PageContainer title="我的学习">
       <Tabs defaultValue="inProgress" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="inProgress">进行中</TabsTrigger>
@@ -53,7 +42,7 @@ const Learning = () => {
           <SavedCourses />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 };
 

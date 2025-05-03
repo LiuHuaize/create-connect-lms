@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useEventsData } from '@/hooks/useEventsData';
 import { useUserProgress } from '@/hooks/useUserProgress';
 import { CalendarDays, Trophy, ArrowRight } from 'lucide-react';
+import PageContainer from '@/components/layout/PageContainer';
 
 // 导入拆分后的组件
 import DashboardProgress from '@/components/dashboard/DashboardProgress';
@@ -41,9 +42,7 @@ const Dashboard = () => {
   }, [events]);
 
   return (
-    <div className="animate-fade-in p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">我的学习中心</h1>
-      
+    <PageContainer title="我的学习中心">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* 总体进度 */}
         <DashboardProgress overallProgress={overallProgress} />
@@ -66,7 +65,7 @@ const Dashboard = () => {
         recommendedCourses={recommendedCourses} 
         loadingRecommended={loadingRecommended} 
       />
-    </div>
+    </PageContainer>
   );
 };
 

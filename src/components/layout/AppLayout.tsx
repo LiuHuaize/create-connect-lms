@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Bell, Search } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -68,52 +67,24 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, isCoursePage = false })
       />
       
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Global Header */}
-        {!isCoursePage && (
+        {/* Global Header - 只保留移动端菜单按钮 */}
+        {!isCoursePage && isMobile && (
           <header 
             className={`sticky top-0 z-40 w-full border-b backdrop-blur-md transition-all duration-300 ${
               scrolled ? 'bg-background/80 shadow-sm' : 'bg-background/50'
             }`}
           >
-            <div className="h-16 px-4 flex items-center justify-between">
+            <div className="h-16 px-4 flex items-center">
               {/* Mobile Menu Button */}
-              {isMobile && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSidebarOpen(true)}
-                  className="md:hidden mr-2 rounded-full hover:bg-primary/10"
-                  aria-label="打开菜单"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              )}
-              
-              {/* Search Input */}
-              <div className="flex-1 max-w-md relative hidden md:flex">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <Input
-                  type="search"
-                  placeholder="搜索课程、技能..."
-                  className="pl-10 pr-4 py-2 h-9 rounded-full bg-muted/50 border-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-              
-              {/* Right Side Actions */}
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full relative"
-                >
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                    2
-                  </span>
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(true)}
+                className="rounded-full hover:bg-primary/10"
+                aria-label="打开菜单"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
             </div>
           </header>
         )}

@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchAndFilter from '@/components/explore/SearchAndFilter';
 import ExploreTabsContent from '@/components/explore/TabsContent';
 import useExploreCoursesData from '@/hooks/useExploreCoursesData';
+import PageContainer from '@/components/layout/PageContainer';
 
 const ExploreCourses = () => {
   const {
@@ -25,12 +26,10 @@ const ExploreCourses = () => {
   } = useExploreCoursesData();
 
   return (
-    <div className="container max-w-screen-xl mx-auto py-8 px-4 sm:px-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">探索课程</h1>
-      <p className="text-lg text-gray-600 mb-8">
-        发现并加入符合您兴趣的课程，开始您的学习之旅
-      </p>
-      
+    <PageContainer 
+      title="探索课程" 
+      subtitle="发现并加入符合您兴趣的课程，开始您的学习之旅"
+    >
       <SearchAndFilter
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -65,7 +64,7 @@ const ExploreCourses = () => {
           handleEnrollCourse={handleEnrollCourse}
         />
       </Tabs>
-    </div>
+    </PageContainer>
   );
 };
 

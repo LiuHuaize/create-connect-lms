@@ -2,23 +2,22 @@ import React from 'react';
 import { Calendar, Filter, ChevronLeft, ChevronRight, MapPin, Clock, Users, Star, BookOpen, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import PageContainer from '@/components/layout/PageContainer';
 
 const Events = () => {
+  const rightButtons = (
+    <div className="flex items-center gap-3">
+      <Button variant="outline" size="sm" className="text-sm bg-macaron-lavender/30 text-macaron-deepLavender border-macaron-lavender hover:bg-macaron-lavender/50 transition-all duration-300">
+        <Filter size={16} className="mr-2" /> 筛选
+      </Button>
+      <Button variant="default" size="sm" className="text-sm bg-macaron-coral text-white hover:bg-macaron-coral/80 transition-all duration-300">
+        <Calendar size={16} className="mr-2" /> 添加到日历
+      </Button>
+    </div>
+  );
+  
   return (
-    <div className="animate-fade-in p-6 pt-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-macaron-darkGray">趣味活动</h1>
-        
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" className="text-sm bg-macaron-lavender/30 text-macaron-deepLavender border-macaron-lavender hover:bg-macaron-lavender/50 transition-all duration-300">
-            <Filter size={16} className="mr-2" /> 筛选
-          </Button>
-          <Button variant="default" size="sm" className="text-sm bg-macaron-coral text-white hover:bg-macaron-coral/80 transition-all duration-300">
-            <Calendar size={16} className="mr-2" /> 添加到日历
-          </Button>
-        </div>
-      </div>
-      
+    <PageContainer title="趣味活动" rightContent={rightButtons}>
       {/* Month navigation */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
@@ -173,7 +172,7 @@ const Events = () => {
           加载更多活动
         </Button>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 
