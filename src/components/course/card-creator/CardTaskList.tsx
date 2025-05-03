@@ -1,123 +1,131 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { PlusCircle, Edit, Trash2, ExternalLink } from 'lucide-react';
 import { CardCreatorTask } from '@/types/card-creator';
-import { CardCreatorService } from '@/services/card-creator-service';
-import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useConfirm } from '@/hooks/useConfirm';
 
 interface CardTaskListProps {
   courseId: string;
-  isTeacher?: boolean;
-  onCreateTask?: () => void;
-  onEditTask?: (task: CardCreatorTask) => void;
+  isTeacher: boolean;
+  onCreateTask: () => void;
+  onEditTask: (task: CardCreatorTask) => void;
 }
 
-export function CardTaskList({ courseId, isTeacher = false, onCreateTask, onEditTask }: CardTaskListProps) {
+export const CardTaskList: React.FC<CardTaskListProps> = ({
+  courseId,
+  isTeacher,
+  onCreateTask,
+  onEditTask
+}) => {
   const [tasks, setTasks] = useState<CardCreatorTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
+  const navigate = useNavigate();
+  const { confirmDelete } = useConfirm();
 
   useEffect(() => {
-    loadTasks();
+    const fetchTasks = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('card_creator_tasks')
+          .select('*')
+          .eq('course_id', courseId)
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        
+        setTasks(data as CardCreatorTask[]);
+      } catch (error) {
+        console.error('Error fetching card tasks:', error);
+        toast.error('获取卡片任务失败');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTasks();
   }, [courseId]);
 
-  const loadTasks = async () => {
-    setIsLoading(true);
-    try {
-      const tasks = await CardCreatorService.getTasksByCourse(courseId);
-      setTasks(tasks);
-    } catch (error) {
-      console.error('Error loading card creator tasks:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm('确定要删除这个任务吗？')) return;
+    const confirmed = await confirmDelete('确定要删除这个卡片任务吗？', '此操作无法撤销，所有学生提交的卡片也将被删除。');
     
-    try {
-      const success = await CardCreatorService.deleteTask(taskId);
-      if (success) {
-        setTasks(tasks => tasks.filter(task => task.id !== taskId));
-      } else {
-        throw new Error('删除任务失败');
+    if (confirmed) {
+      try {
+        const { error } = await supabase
+          .from('card_creator_tasks')
+          .delete()
+          .eq('id', taskId);
+          
+        if (error) throw error;
+        
+        setTasks(tasks.filter(task => task.id !== taskId));
+        toast.success('卡片任务已删除');
+      } catch (error) {
+        console.error('Error deleting card task:', error);
+        toast.error('删除卡片任务失败');
       }
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      alert('删除任务失败，请重试');
     }
   };
 
-  const handleOpenTask = (task: CardCreatorTask) => {
-    router.push(`/course/${courseId}/card-creator/${task.id}`);
-  };
+  if (isLoading) {
+    return <div className="py-8 text-center">加载任务中...</div>;
+  }
 
   return (
-    <div className="card-task-list space-y-4">
-      {isTeacher && (
-        <div className="flex justify-end">
-          <Button onClick={onCreateTask} className="flex items-center space-x-2">
-            <PlusCircle className="h-4 w-4" />
-            <span>创建新卡片任务</span>
-          </Button>
-        </div>
-      )}
+    <div className="space-y-6">
+      {/* 创建卡片按钮已隐藏 */}
       
-      {isLoading ? (
-        <div className="py-8 text-center text-gray-500">加载中...</div>
-      ) : tasks.length === 0 ? (
-        <div className="py-8 text-center text-gray-500">
-          {isTeacher 
-            ? '暂无卡片创建任务，点击上方按钮创建第一个任务'
-            : '本课程暂无卡片创建任务'
-          }
+      {tasks.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+          <p className="text-gray-500">暂无卡片制作任务</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {tasks.map(task => (
             <div 
-              key={task.id} 
-              className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+              key={task.id}
+              className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white"
             >
-              <div className="flex justify-between items-start">
-                <h3 className="text-lg font-medium">{task.title}</h3>
-                {isTeacher && (
-                  <div className="flex space-x-2">
-                    <Button 
-                      size="icon" 
-                      variant="ghost"
-                      onClick={() => onEditTask?.(task)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="text-red-500 hover:text-red-600" 
-                      onClick={() => handleDeleteTask(task.id!)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-              
-              <p className="text-gray-600 text-sm mt-2 line-clamp-2">
-                {task.instructions}
-              </p>
-              
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-xs text-gray-500">
-                  创建时间: {new Date(task.created_at || '').toLocaleDateString()}
+              <div className="p-5">
+                <h3 className="text-xl font-semibold mb-2">{task.title}</h3>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{task.instructions}</p>
+                
+                <div className="flex justify-between">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/course/${courseId}/card-creator/${task.id}`)}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1.5" />
+                    打开
+                  </Button>
+                  
+                  {isTeacher && (
+                    <div className="space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onEditTask(task)}
+                      >
+                        <Edit className="h-4 w-4 mr-1.5" />
+                        编辑
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                        onClick={() => handleDeleteTask(task.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1.5" />
+                        删除
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleOpenTask(task)}
-                >
-                  {isTeacher ? '查看详情' : '开始任务'}
-                </Button>
               </div>
             </div>
           ))}
@@ -125,4 +133,4 @@ export function CardTaskList({ courseId, isTeacher = false, onCreateTask, onEdit
       )}
     </div>
   );
-} 
+}; 

@@ -196,8 +196,9 @@
   .hover-card:hover {
     transform: perspective(1000px) rotateX(2deg) rotateY(2deg);
     box-shadow: 
-      0 20px 25px -5px rgba(0, 0, 0, 0.1),
-      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      0 20px 30px -5px rgba(0, 0, 0, 0.15),
+      0 10px 15px -5px rgba(0, 0, 0, 0.1);
+    border-color: hsl(var(--primary)) !important;
   }
   
   /* 更新侧边栏链接样式 */

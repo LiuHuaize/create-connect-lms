@@ -3,13 +3,15 @@ import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIc
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent } from '@/types/course';
-import { CardCreatorTask } from '@/types/card-creator';
+// 临时注释掉不存在的导入
+// import { CardCreatorTask } from '@/types/card-creator';
 import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
 import { courseService } from '@/services/courseService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { CardCreatorStudent } from '@/components/course/card-creator/CardCreatorStudent';
+// 临时注释掉不存在的导入
+// import { CardCreatorStudent } from '@/components/course/card-creator/CardCreatorStudent';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import TextLessonContent from '@/components/course/lessons/TextLessonContent';
 import VideoLessonContent from '@/components/course/lessons/VideoLessonContent';
@@ -37,7 +39,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [quizResult, setQuizResult] = useState<{score: number, totalQuestions: number} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCompletionLoading, setIsCompletionLoading] = useState(false);
-  const [showCardCreator, setShowCardCreator] = useState(true);
+  const [showCardCreator, setShowCardCreator] = useState(false);
   
   // 添加ref，用于获取组件的根元素
   const contentRef = useRef<HTMLDivElement>(null);
@@ -47,6 +49,27 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
   const [showCorrectAnswers, setShowCorrectAnswers] = useState<{[key: string]: boolean}>({});
   const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string}>({});
+  
+  // 添加标记当前课时为已完成的函数
+  const markCurrentLessonComplete = async (score?: number) => {
+    if (!selectedLesson?.id || !courseData?.id || !enrollmentId) return;
+    
+    setIsCompletionLoading(true);
+    try {
+      await courseService.markLessonComplete(
+        selectedLesson.id,
+        courseData.id,
+        enrollmentId,
+        score || 100
+      );
+      toast.success('课时已标记为完成');
+    } catch (error) {
+      console.error('标记课时完成失败:', error);
+      toast.error('标记课时完成失败');
+    } finally {
+      setIsCompletionLoading(false);
+    }
+  };
   
   // 在组件挂载和课程ID/课时ID变化时，加载测验状态
   useEffect(() => {
@@ -294,199 +317,60 @@ const LessonContent: React.FC<LessonContentProps> = ({
   }, [selectedLesson]); // 只有在selectedLesson变化时触发
 
   const renderLessonContent = () => {
-    if (!selectedLesson) return null;
-    
+    if (!selectedLesson) {
+      return (
+        <Card className="p-5 bg-white rounded-xl shadow-sm text-center">
+          <CardContent className="py-10">
+            <p>请从侧边栏选择一个课时开始学习</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // 根据课时类型渲染不同内容
     switch (selectedLesson.type) {
       case 'text':
-        return <TextLessonContent key={selectedLesson.id} content={selectedLesson.content as any} />;
+        return <TextLessonContent 
+          key={selectedLesson.id}
+          content={selectedLesson.content as any} 
+        />;
       
       case 'video':
-        return (
-          <VideoLessonContent 
-            key={selectedLesson.id}
-            content={selectedLesson.content as any} 
-            videoFilePath={selectedLesson.video_file_path} 
-          />
-        );
+        return <VideoLessonContent 
+          key={selectedLesson.id}
+          content={selectedLesson.content as any} 
+          videoFilePath={selectedLesson.video_file_path} 
+        />;
       
       case 'quiz':
         return (
-          <QuizLessonContent
+          <QuizLessonContent 
             key={selectedLesson.id}
             lessonId={selectedLesson.id}
             courseId={courseData?.id || ''}
             enrollmentId={enrollmentId}
             content={selectedLesson.content}
+            userAnswers={userAnswers} 
             quizSubmitted={quizSubmitted}
             quizResult={quizResult}
-            userAnswers={userAnswers}
-            navigate={navigate}
-            onQuizSubmit={handleQuizSubmit}
-            onAnswerSelect={handleAnswerSelect}
-            onCheckSingleAnswer={handleCheckSingleAnswer}
-            onUnmarkComplete={handleUnmarkComplete}
             isLoading={isLoading}
-            isCompletionLoading={isCompletionLoading}
             attemptCounts={attemptCounts}
             showHints={showHints}
             showCorrectAnswers={showCorrectAnswers}
             selectedAnswer={selectedAnswer}
+            onAnswerSelect={handleAnswerSelect}
+            onCheckSingleAnswer={handleCheckSingleAnswer}
+            onQuizSubmit={handleQuizSubmit}
+            onUnmarkComplete={handleUnmarkComplete}
+            isCompletionLoading={isCompletionLoading}
+            navigate={navigate}
           />
         );
-
-      case 'assignment':
-        const assignmentContent = selectedLesson.content as AssignmentLessonContentType;
-        return (
-          <div className="space-y-6">
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-5">
-              <h3 className="font-medium text-amber-800 mb-2 flex items-center">
-                <Check size={18} className="mr-2" /> 作业说明
-              </h3>
-              <p className="text-amber-700 text-sm">请按照要求完成作业并提交。</p>
-            </div>
-            
-            <div className="prose max-w-none">
-              <h3 className="font-medium text-lg mb-4">作业要求</h3>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-                <p>{assignmentContent.instructions || '同学们需要自己去做一个网站'}</p>
-              </div>
-              
-              <h3 className="font-medium text-lg mb-4">评分标准</h3>
-              <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-                <p>{assignmentContent.criteria || '只要做了就满分'}</p>
-              </div>
-            </div>
-            
-            <div className="mt-8 border-t border-gray-200 pt-6">
-              <h3 className="font-medium text-lg mb-4">提交作业</h3>
-              <textarea 
-                className="w-full p-3 border border-gray-300 rounded-md" 
-                rows={8}
-                placeholder="在此输入您的答案或上传文件..."
-              ></textarea>
-              
-              <div className="flex items-center gap-4 mt-4">
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  上传文件
-                </Button>
-                <Button 
-                  className="bg-amber-600 hover:bg-amber-700"
-                >
-                  提交作业
-                </Button>
-              </div>
-              
-              <p className="text-sm text-gray-500 mt-4">
-                提交后，您的作业将被AI自动评分，老师也会对您的作业进行审核。
-              </p>
-            </div>
-          </div>
-        );
-        
-      case 'card_creator':
-        // 获取卡片创建器内容
-        const cardCreatorContent = selectedLesson.content as CardCreatorLessonContentType;
-        
-        // 从API获取用户ID
-        const userId = enrollmentId?.split('_')?.[0] || '';
-        
-        // 将课时内容转换为卡片任务格式
-        const cardTask: CardCreatorTask = {
-          id: selectedLesson.id,
-          course_id: courseData?.id || '',
-          title: selectedLesson.title,
-          instructions: cardCreatorContent.instructions || '',
-          template_type: cardCreatorContent.templateType || 'text',
-          template_image_url: cardCreatorContent.templateImageUrl,
-          template_description: cardCreatorContent.templateDescription
-        };
-        
-        return (
-          <div className="space-y-6">
-            {!showCardCreator ? (
-              <div className="space-y-6">
-                <div className="interactive-container text-center py-10">
-                  <h3 className="text-xl font-bold text-blue-700 mb-4">互动内容区域</h3>
-                  <Button 
-                    className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm"
-                    onClick={() => setShowCardCreator(true)}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 4V20M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    点击生成我的卡片
-                  </Button>
-                </div>
-                
-                <div className="flex flex-row gap-6 mb-6">
-                  <Card className="flex-1 border border-ghibli-teal/30 bg-ghibli-parchment shadow-sm">
-                    <CardHeader className="bg-gradient-to-r from-ghibli-mint/30 to-ghibli-lightTeal/20 pb-3">
-                      <CardTitle className="text-lg text-ghibli-deepTeal">学习目标</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <ul className="space-y-2">
-                        <li className="flex items-start">
-                          <div className="mr-2 mt-0.5 text-ghibli-teal">
-                            <Check size={16} />
-                          </div>
-                          <span className="text-ghibli-brown">理解基本概念</span>
-                        </li>
-                        <li className="flex items-start">
-                          <div className="mr-2 mt-0.5 text-ghibli-teal">
-                            <Check size={16} />
-                          </div>
-                          <span className="text-ghibli-brown">应用所学知识解决简单问题</span>
-                        </li>
-                        <li className="flex items-start">
-                          <div className="mr-2 mt-0.5 text-ghibli-teal">
-                            <Check size={16} />
-                          </div>
-                          <span className="text-ghibli-brown">通过互动加深理解</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="flex-1 border border-ghibli-teal/30 bg-ghibli-parchment shadow-sm">
-                    <CardHeader className="bg-gradient-to-r from-ghibli-mint/30 to-ghibli-lightTeal/20 pb-3">
-                      <CardTitle className="text-lg text-ghibli-deepTeal">说明</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <p className="text-ghibli-brown">
-                        跟随指示完成互动练习。你可以随时暂停并返回。
-                        如果遇到困难，可以点击右下角的帮助按钮获取提示。
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            ) : (
-              <div className="card-creator-container mt-4">
-                <CardCreatorStudent
-                  taskId={selectedLesson.id}
-                  studentId={userId}
-                  task={cardTask}
-                  onSubmit={(submission) => {
-                    console.log('卡片已提交:', submission);
-                    // 这里可以添加卡片提交后的操作，如标记课时为已完成
-                    if (enrollmentId && selectedLesson.id && courseData?.id) {
-                      courseService.markLessonComplete(
-                        selectedLesson.id,
-                        courseData.id,
-                        enrollmentId
-                      );
-                    }
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        );
+      
       case 'drag_sort':
-        return (
-          <div className="w-full mt-2 max-w-[1000px] mx-auto">
+        if (selectedLesson.content) {
+          const dragSortContent = selectedLesson.content as DragSortContent;
+          return (
             <DragSortExercise 
               lesson={selectedLesson}
               onComplete={(isCorrect, mappings) => {
@@ -494,98 +378,38 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 
                 if (isCorrect && selectedLesson && courseData && enrollmentId) {
                   console.log('开始标记课时完成...');
-                  
-                  // 使用try-catch并显示toast消息
-                  try {
-                    toast.loading('正在保存结果...');
-                    
-                    courseService.markLessonComplete(
-                      selectedLesson.id,
-                      courseData.id,
-                      enrollmentId,
-                      isCorrect ? 100 : 0,
-                      {
-                        isCorrect,
-                        mappings
-                      }
-                    )
-                    .then(() => {
-                      console.log('课时标记完成成功');
-                      toast.success('练习结果已保存');
-                    })
-                    .catch(error => {
-                      console.error('课时标记完成失败:', error);
-                      toast.error('保存结果时出错，请稍后再试');
-                    });
-                  } catch (error) {
-                    console.error('保存练习结果时出错:', error);
-                    toast.error('保存结果时出错，请稍后再试');
-                  }
-                } else {
-                  console.log('未能标记课时完成', { isCorrect, selectedLesson: !!selectedLesson, courseData: !!courseData, enrollmentId });
+                  markCurrentLessonComplete();
                 }
               }}
             />
-          </div>
+          );
+        }
+        return null;
+        
+      case 'card_creator':
+        // 卡片创建功能已被隐藏
+        return (
+          <Card className="p-5 bg-white rounded-xl shadow-sm overflow-hidden">
+            <CardContent>
+              <div className="py-10 text-center">
+                <AlertTriangle className="h-12 w-12 text-amber-500 mb-4 mx-auto" />
+                <h3 className="text-xl font-bold mb-2">此功能已被禁用</h3>
+                <p className="text-gray-600 mb-4">卡片创建功能当前不可用。</p>
+              </div>
+            </CardContent>
+          </Card>
         );
-      // Handle other types with a default case
+        
       default:
         return (
-          <div className="space-y-6">
-            <div className="interactive-container">
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-blue-700 mb-4">互动内容区域</h3>
-                <Button 
-                  className="bg-ghibli-teal hover:bg-ghibli-deepTeal text-white"
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  标记为已完成
-                </Button>
-              </div>
-            </div>
-            
-            <div className="flex flex-row gap-6 mb-6">
-              <Card className="flex-1 border border-ghibli-teal/30 bg-ghibli-parchment shadow-sm">
-                <CardHeader className="bg-gradient-to-r from-ghibli-mint/30 to-ghibli-lightTeal/20 pb-3">
-                  <CardTitle className="text-lg text-ghibli-deepTeal">学习目标</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <ul className="space-y-2">
-                    <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-ghibli-teal">
-                        <Check size={16} />
-                      </div>
-                      <span className="text-ghibli-brown">理解基本概念</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-ghibli-teal">
-                        <Check size={16} />
-                      </div>
-                      <span className="text-ghibli-brown">应用所学知识解决简单问题</span>
-                    </li>
-                    <li className="flex items-start">
-                      <div className="mr-2 mt-0.5 text-ghibli-teal">
-                        <Check size={16} />
-                      </div>
-                      <span className="text-ghibli-brown">通过互动加深理解</span>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-              
-              <Card className="flex-1 border border-ghibli-teal/30 bg-ghibli-parchment shadow-sm">
-                <CardHeader className="bg-gradient-to-r from-ghibli-mint/30 to-ghibli-lightTeal/20 pb-3">
-                  <CardTitle className="text-lg text-ghibli-deepTeal">说明</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <p className="text-ghibli-brown">
-                    跟随指示完成互动练习。你可以随时暂停并返回。
-                    如果遇到困难，可以点击右下角的帮助按钮获取提示。
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>{selectedLesson.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>此类型的内容暂不支持显示</p>
+            </CardContent>
+          </Card>
         );
     }
   };
