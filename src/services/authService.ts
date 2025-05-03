@@ -1,6 +1,27 @@
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/auth';
 import { cacheUserRole, getCachedUserRole, clearUserRoleCache } from '@/utils/authCache';
+import { pinyin } from 'pinyin-pro';
+
+/**
+ * 辅助函数：将中文用户名转换为拼音，用于邮箱地址
+ */
+function encodeUsernameForEmail(username: string): string {
+  // 检查是否包含非ASCII字符（如中文）
+  if (/[^\x00-\x7F]/.test(username)) {
+    // 将中文转换为不带声调的拼音，并移除空格
+    const pinyinResult = pinyin(username, { 
+      toneType: 'none', // 不带声调
+      nonZh: 'consecutive' // 保留非中文字符
+    });
+    
+    // 移除拼音之间的空格
+    return pinyinResult.replace(/\s+/g, '');
+  }
+  
+  // 如果不包含中文字符，则原样返回
+  return username;
+}
 
 /**
  * 认证服务 - 封装与认证相关的API调用
@@ -14,12 +35,26 @@ export const authService = {
    * @returns 包含错误信息的对象（如果有）
    */
   async signIn(username: string, password: string) {
-    // 转换用户名为内部邮箱格式
-    const email = `${username}@user.internal`;
+    // 编码用户名并创建内部邮箱格式
+    const encodedUsername = encodeUsernameForEmail(username);
+    const email = `${encodedUsername}@user.internal`;
     console.log('使用邮箱登录:', email);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      // 首先尝试使用编码后的邮箱格式
+      let { error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      // 如果登录失败，可能是旧用户使用了非编码格式，尝试旧格式
+      if (error) {
+        console.log('编码登录失败，尝试旧格式登录');
+        const oldFormatEmail = `${username}@user.internal`;
+        const oldFormatResult = await supabase.auth.signInWithPassword({ 
+          email: oldFormatEmail, 
+          password 
+        });
+        error = oldFormatResult.error;
+      }
+      
       if (!error) {
         console.log('登录成功');
       } else {
@@ -40,17 +75,35 @@ export const authService = {
    * @returns 包含错误信息的对象（如果有）
    */
   async signUp(username: string, password: string) {
-    // 转换用户名为内部邮箱格式
-    const email = `${username}@user.internal`;
-    console.log('使用邮箱注册:', email);
-    
+    // 首先检查用户名是否已存在
     try {
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .limit(1);
+      
+      if (checkError) {
+        console.error('检查用户名存在性时出错:', checkError);
+        return { error: checkError };
+      }
+      
+      if (existingUsers && existingUsers.length > 0) {
+        console.error('用户名已存在');
+        return { error: { message: '用户名已被使用，请选择其他用户名' } };
+      }
+      
+      // 编码用户名并创建内部邮箱格式
+      const encodedUsername = encodeUsernameForEmail(username);
+      const email = `${encodedUsername}@user.internal`;
+      console.log('使用邮箱注册:', email);
+      
       const { error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data: {
-            username: username
+            username: username // 保存原始用户名
           }
         }
       });

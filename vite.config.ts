@@ -17,7 +17,17 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      'pinyin': path.resolve(__dirname, './node_modules/pinyin-pro')
     },
+  },
+  optimizeDeps: {
+    exclude: ['pinyin-pro'], // 排除pinyin-pro以避免依赖优化问题
+    esbuildOptions: {
+      platform: 'browser', // 确保构建平台是浏览器
+      define: {
+        global: 'window' // 将global定义为window以避免Node.js特定代码的问题
+      }
+    }
   },
   build: {
     // 出于更好的缓存考虑，启用长期缓存
