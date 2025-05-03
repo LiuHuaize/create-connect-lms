@@ -1,6 +1,6 @@
 import React from 'react';
 import { QuizQuestion } from '@/types/course';
-import { CheckCircle, X } from 'lucide-react';
+import { CheckCircle, X, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { containsMarkdown } from '@/utils/markdownUtils';
@@ -31,31 +31,32 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
   const isCorrect = question.correctOption === userAnswer;
   
   return (
-    <div className="quiz-container">
-      <h4 className="font-medium text-lg mb-4">问题 {questionIndex + 1}: 
-        {question.text && containsMarkdown(question.text) ? (
-          <MarkdownRenderer>{question.text}</MarkdownRenderer>
-        ) : (
-          <span>{question.text || '未命名问题'}</span>
-        )}
+    <div className="bg-white rounded-xl shadow-sm p-6 hover-card transition-all duration-300 border border-macaron-lightGray">
+      <h4 className="font-medium text-lg mb-4 flex items-start text-macaron-darkGray">
+        <span className="flex-shrink-0 mr-2 w-7 h-7 rounded-full bg-macaron-lavender/30 text-macaron-deepLavender flex items-center justify-center text-sm font-bold">
+          {questionIndex + 1}
+        </span>
+        <span className="flex-1">
+          {question.text && containsMarkdown(question.text) ? (
+            <MarkdownRenderer>{question.text}</MarkdownRenderer>
+          ) : (
+            <span>{question.text || '未命名问题'}</span>
+          )}
+        </span>
       </h4>
       
       {/* 显示提示 */}
       {showHint && question.hint && !showCorrectAnswer && (
-        <div className="mb-4 p-3 bg-ghibli-sunshine/20 border border-ghibli-sunshine/50 rounded-lg flex items-start">
-          <div className="text-ghibli-orange h-5 w-5 mr-2 flex-shrink-0 mt-0.5">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
+        <div className="mb-4 p-3 bg-macaron-yellow/20 border border-macaron-yellow/50 rounded-lg flex items-start animate-fade-in">
+          <div className="text-amber-500 h-5 w-5 mr-2 flex-shrink-0 mt-0.5">
+            <HelpCircle size={20} />
           </div>
           <div>
-            <p className="text-ghibli-brown font-medium mb-1">提示：</p>
+            <p className="text-macaron-darkGray font-medium mb-1">提示：</p>
             {containsMarkdown(question.hint) ? (
               <MarkdownRenderer>{question.hint}</MarkdownRenderer>
             ) : (
-              <p className="text-ghibli-brown">{question.hint}</p>
+              <p className="text-macaron-gray">{question.hint}</p>
             )}
           </div>
         </div>
@@ -63,17 +64,17 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
       
       {/* 当显示正确答案时的提示（针对答错情况） */}
       {showCorrectAnswer && userAnswer !== question.correctOption && (
-        <div className="mb-4 p-3 bg-ghibli-mint/20 border border-ghibli-teal/30 rounded-lg flex items-start">
-          <CheckCircle className="text-ghibli-teal h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+        <div className="mb-4 p-3 bg-macaron-mint/20 border border-macaron-mint/50 rounded-lg flex items-start animate-fade-in">
+          <CheckCircle className="text-macaron-deepMint h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-ghibli-deepTeal font-medium">已显示正确答案</p>
+            <p className="text-macaron-deepMint font-medium">已显示正确答案</p>
           </div>
         </div>
       )}
       
       {/* 选项列表 */}
       {question.options && (
-        <div className="space-y-3">
+        <div className="space-y-3 mt-4">
           {question.options.map((option, oIndex) => {
             // 高亮显示选择但错误的答案
             const isSelected = selectedAnswer === option.id;
@@ -84,25 +85,31 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             return (
               <label 
                 key={option.id || `opt-${oIndex}`} 
-                className={`quiz-option flex items-start p-3 rounded-lg border ${
+                className={`flex items-start p-4 rounded-xl border transition-all duration-300 cursor-pointer ${
                   shouldHighlightCorrect 
-                    ? 'bg-ghibli-mint/20 border-ghibli-teal/50' 
+                    ? 'bg-macaron-mint/20 border-macaron-mint shadow-sm' 
                     : shouldHighlightWrong 
-                      ? 'bg-ghibli-peach/20 border-ghibli-coral/50' 
+                      ? 'bg-macaron-pink/20 border-macaron-pink shadow-sm' 
                       : isSelected
-                        ? 'bg-gray-100 border-gray-300'
-                        : 'border-gray-200'
+                        ? 'bg-macaron-lavender/20 border-macaron-lavender shadow-sm'
+                        : 'border-macaron-lightGray hover:bg-macaron-cream/30'
                 }`}
               >
                 <input 
                   type="radio" 
                   name={`q-${question.id}`} 
-                  className="mr-3 h-4 w-4 accent-blue-500 mt-1" 
+                  className="mr-3 h-5 w-5 accent-macaron-deepLavender mt-0.5" 
                   checked={selectedAnswer === option.id}
                   onChange={() => onAnswerSelect(question.id, option.id)}
                   disabled={quizSubmitted || showCorrectAnswer}
                 />
-                <div className={`flex-1 ${shouldHighlightCorrect ? 'text-ghibli-deepTeal font-medium' : shouldHighlightWrong ? 'text-ghibli-brown' : ''}`}>
+                <div className={`flex-1 ${
+                  shouldHighlightCorrect 
+                    ? 'text-macaron-deepMint font-medium' 
+                    : shouldHighlightWrong 
+                      ? 'text-macaron-deepPink' 
+                      : 'text-macaron-darkGray'
+                }`}>
                   {option.text && containsMarkdown(option.text) ? (
                     <MarkdownRenderer>{option.text}</MarkdownRenderer>
                   ) : (
@@ -110,13 +117,13 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
                   )}
                 </div>
                 {shouldHighlightCorrect && (
-                  <span className="ml-2 text-ghibli-grassGreen/70 text-sm flex items-center">
-                    <CheckCircle className="h-4 w-4 mr-1" /> 正确答案
+                  <span className="ml-2 text-macaron-deepMint text-sm flex items-center font-bold">
+                    <CheckCircle className="h-5 w-5 mr-1" /> 正确答案
                   </span>
                 )}
                 {shouldHighlightWrong && (
-                  <span className="ml-2 text-ghibli-coral/70 text-sm flex items-center">
-                    <X className="h-4 w-4 mr-1" /> 不正确
+                  <span className="ml-2 text-macaron-deepPink text-sm flex items-center font-bold">
+                    <X className="h-5 w-5 mr-1" /> 不正确
                   </span>
                 )}
               </label>
@@ -129,7 +136,7 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
       {question.type === 'short_answer' && (
         <div className="mt-4">
           <textarea 
-            className="w-full p-3 border border-gray-300 rounded-md" 
+            className="w-full p-3 border border-macaron-lightGray rounded-lg focus:ring-2 focus:ring-macaron-lavender focus:outline-none" 
             rows={4}
             placeholder="在此输入您的答案..."
             value={userAnswer || ''}
@@ -141,10 +148,10 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
       
       {/* 检查单个答案的按钮 */}
       {!quizSubmitted && (
-        <div className="flex justify-end mt-3">
+        <div className="flex justify-end mt-4">
           <Button 
             variant="outline"
-            className="text-ghibli-brown border-ghibli-sand hover:bg-ghibli-cream/50"
+            className="text-macaron-darkGray border-macaron-lavender/30 hover:bg-macaron-lavender/20 transition-all duration-300"
             onClick={() => onCheckAnswer(question.id, question.correctOption || '')}
             disabled={!selectedAnswer}
           >

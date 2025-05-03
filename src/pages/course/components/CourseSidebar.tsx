@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Course, CourseModule } from '@/types/course';
 import ContentTypeIcon from './ContentTypeIcon';
-import { CheckCircle, Loader2, BookOpen, GraduationCap, ChevronRight } from 'lucide-react';
+import { CheckCircle, Loader2, BookOpen, GraduationCap, ChevronRight, Star, Award, Medal } from 'lucide-react';
 import { courseService, lessonCompletionCache } from '@/services/courseService';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -51,9 +51,9 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   // 折叠状态下的简化渲染
   if (collapsed) {
     return (
-      <div className="py-2 h-full overflow-y-auto flex flex-col items-center">
+      <div className="py-2 h-full overflow-y-auto flex flex-col items-center bg-macaron-cream rounded-r-xl">
         {/* 整体课程进度指示器 */}
-        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-ghibli-lightTeal/50 text-ghibli-deepTeal mb-2 relative">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-macaron-mint text-macaron-deepMint mb-4 relative shadow-md animate-pulse-slow">
           <div className="absolute inset-0 rounded-full">
             <svg className="w-full h-full" viewBox="0 0 100 100">
               <circle 
@@ -74,7 +74,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
               />
             </svg>
           </div>
-          <span className="text-xs font-medium z-10">{progress}%</span>
+          <span className="text-sm font-bold z-10">{progress}%</span>
         </div>
         
         {/* 模块指示点 */}
@@ -87,14 +87,26 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
             lesson => selectedLesson && selectedLesson.id === lesson.id
           );
           
+          // 为不同模块分配不同的颜色
+          const moduleColors = [
+            { bg: 'bg-macaron-mint', text: 'text-macaron-deepMint' },
+            { bg: 'bg-macaron-pink', text: 'text-macaron-deepPink' },
+            { bg: 'bg-macaron-lavender', text: 'text-macaron-deepLavender' },
+            { bg: 'bg-macaron-yellow', text: 'text-macaron-darkGray' },
+            { bg: 'bg-macaron-blue', text: 'text-macaron-darkGray' },
+          ];
+          
+          const colorIndex = moduleIndex % moduleColors.length;
+          const { bg, text } = moduleColors[colorIndex];
+          
           return (
             <div 
               key={module.id} 
               className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center my-1 relative", 
+                "w-10 h-10 rounded-full flex items-center justify-center my-2 relative shadow-md hover:scale-110 transition-transform duration-200", 
                 currentModuleHasActiveLesson 
-                  ? "bg-ghibli-lightTeal/50 text-ghibli-deepTeal" 
-                  : "bg-ghibli-cream text-ghibli-brown"
+                  ? `${bg} ${text}` 
+                  : "bg-macaron-lightGray text-macaron-darkGray"
               )}
               title={`${module.title} - 完成度: ${moduleProgress}%`}
             >
@@ -103,14 +115,14 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                   <circle 
                     cx="50" cy="50" r="40" 
                     fill="none" 
-                    stroke={currentModuleHasActiveLesson ? "currentColor" : "#807668"}
+                    stroke={currentModuleHasActiveLesson ? "currentColor" : "#7C8495"}
                     strokeOpacity="0.2"
                     strokeWidth="8" 
                   />
                   <circle 
                     cx="50" cy="50" r="40" 
                     fill="none" 
-                    stroke={moduleProgress === 100 ? "#A0D995" : currentModuleHasActiveLesson ? "currentColor" : "#807668"}
+                    stroke={moduleProgress === 100 ? "#FF8D9D" : currentModuleHasActiveLesson ? "currentColor" : "#7C8495"}
                     strokeWidth="8" 
                     strokeDasharray="251.2" 
                     strokeDashoffset={251.2 - (251.2 * moduleProgress / 100)}
@@ -118,7 +130,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                   />
                 </svg>
               </div>
-              <span className="text-xs font-medium z-10">{moduleIndex + 1}</span>
+              <span className="text-sm font-bold z-10">{moduleIndex + 1}</span>
             </div>
           );
         })}
@@ -127,42 +139,80 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   }
   
   return (
-    <div className="py-2 h-full overflow-y-auto bg-ghibli-parchment">
+    <div className="py-3 h-full overflow-y-auto bg-macaron-cream rounded-r-xl custom-scrollbar">
+      {/* 课程总体进度 */}
+      <div className="mx-4 mb-6 p-4 bg-white rounded-xl shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-bold text-macaron-darkGray">学习进度</h3>
+          <Badge variant="outline" className="bg-macaron-pink/20 text-macaron-deepPink border-macaron-pink">
+            {progress}%
+          </Badge>
+        </div>
+        <div className="h-3 w-full bg-macaron-lightGray rounded-full overflow-hidden">
+          <div 
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{ 
+              width: `${progress}%`,
+              background: `linear-gradient(90deg, #D0F5EA, #FFBFCF, #F0E2FF)`,
+            }}
+          ></div>
+        </div>
+      </div>
+      
       {courseData?.modules && courseData.modules.map((module, moduleIndex) => {
         // 计算模块完成进度
         const totalLessons = module.lessons?.length || 0;
         const completedLessons = module.lessons?.filter(lesson => completionStatus[lesson.id]).length || 0;
         const moduleProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
         
+        // 为不同模块分配不同的颜色
+        const moduleColors = [
+          { bg: 'bg-macaron-mint/20', text: 'text-macaron-deepMint', border: 'border-macaron-mint/50', icon: <GraduationCap size={18} /> },
+          { bg: 'bg-macaron-pink/20', text: 'text-macaron-deepPink', border: 'border-macaron-pink/50', icon: <BookOpen size={18} /> },
+          { bg: 'bg-macaron-lavender/20', text: 'text-macaron-deepLavender', border: 'border-macaron-lavender/50', icon: <Award size={18} /> },
+          { bg: 'bg-macaron-yellow/20', text: 'text-macaron-darkGray', border: 'border-macaron-yellow/50', icon: <Medal size={18} /> },
+          { bg: 'bg-macaron-blue/20', text: 'text-macaron-darkGray', border: 'border-macaron-blue/50', icon: <Star size={18} /> },
+        ];
+        
+        const colorIndex = moduleIndex % moduleColors.length;
+        const { bg, text, border, icon } = moduleColors[colorIndex];
+        
         return (
-          <div key={module.id} className="mb-5">
-            <div className="px-4 py-3 flex items-center justify-between">
+          <div key={module.id} className="mb-5 hover-card mx-2 bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className={`px-4 py-3 flex items-center justify-between ${bg} border-b ${border}`}>
               <div className="flex items-center space-x-2">
-                <div className="bg-ghibli-lightTeal w-8 h-8 rounded-lg flex items-center justify-center text-ghibli-deepTeal">
-                  <GraduationCap size={16} />
+                <div className={`${text} ${bg} w-8 h-8 rounded-lg flex items-center justify-center shadow-sm`}>
+                  {icon}
                 </div>
-                <h3 className="text-sm font-semibold text-ghibli-deepTeal">
+                <h3 className={`text-sm font-semibold ${text}`}>
                   {moduleIndex + 1}. {module.title}
                 </h3>
               </div>
               
-              <Badge variant="outline" className="text-xs bg-ghibli-cream border-ghibli-teal/30 text-ghibli-deepTeal">
+              <Badge variant="outline" className={`text-xs ${bg} ${text} ${border}`}>
                 {completedLessons}/{totalLessons}
               </Badge>
             </div>
             
             {/* 模块进度条 */}
-            <div className="px-4 mb-2">
-              <div className="h-1.5 w-full bg-ghibli-sand rounded-full overflow-hidden">
+            <div className="px-4 py-2">
+              <div className="h-2 w-full bg-macaron-lightGray rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-ghibli-teal rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${moduleProgress}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ease-out`}
+                  style={{ 
+                    width: `${moduleProgress}%`,
+                    backgroundColor: moduleProgress === 100 ? '#FF8D9D' : 
+                                     colorIndex === 0 ? '#2A7D65' : 
+                                     colorIndex === 1 ? '#9C365D' : 
+                                     colorIndex === 2 ? '#6933B0' : 
+                                     colorIndex === 3 ? '#FFC107' : '#3B82F6'
+                  }}
                 ></div>
               </div>
             </div>
             
             {module.lessons && module.lessons.length > 0 ? (
-              <ul className="mt-1">
+              <ul className="mt-1 pb-2">
                 {module.lessons
                   .slice() // 创建数组副本，避免修改原数组
                   .sort((a, b) => a.order_index - b.order_index) // 按照order_index排序
@@ -175,22 +225,22 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                     <li key={lesson.id}>
                       <Link
                         to={`/course/${courseData.id}/lesson/${lesson.id}`}
-                        className={`flex items-center px-4 py-3 hover:bg-ghibli-lightTeal/20 transition-all rounded-lg mx-2 ${
-                          isActive ? 'bg-ghibli-lightTeal/30 text-ghibli-deepTeal' : 'text-ghibli-brown'
+                        className={`flex items-center px-4 py-3 hover:bg-macaron-lightGray/30 transition-all rounded-lg mx-2 ${
+                          isActive ? `${bg} ${text}` : 'text-macaron-darkGray'
                         }`}
                         onClick={() => isMobile && setSidebarOpen && setSidebarOpen(false)}
                       >
                         <div className="flex-shrink-0 mr-3">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            isLoadingStatus ? 'text-ghibli-teal/50' :
-                            isCompleted ? 'text-ghibli-grassGreen bg-ghibli-lightTeal/30' : 
-                            isActive ? 'text-ghibli-teal bg-ghibli-lightTeal/20 border-2 border-ghibli-teal' : 
-                            'border-2 border-ghibli-sand'
+                            isLoadingStatus ? 'text-macaron-gray bg-macaron-lightGray' :
+                            isCompleted ? 'text-white bg-macaron-coral shadow-sm' : 
+                            isActive ? `${text} ${bg} shadow-sm` : 
+                            'border-2 border-macaron-lightGray'
                           }`}>
                             {isLoadingStatus ? (
                               <Loader2 size={14} className="animate-spin" />
                             ) : isCompleted ? (
-                              <CheckCircle size={16} />
+                              <CheckCircle size={14} />
                             ) : isActive ? (
                               <span className="text-xs">•</span>
                             ) : null}
@@ -199,11 +249,11 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                         
                         <div className="flex-1 min-w-0">
                           <div className={`text-sm truncate ${
-                            isActive ? 'font-medium' : ''
+                            isActive ? 'font-bold' : ''
                           }`}>
                             {lesson.title}
                           </div>
-                          <div className="text-xs text-ghibli-lightBrown mt-0.5 flex items-center">
+                          <div className="text-xs text-macaron-gray mt-0.5 flex items-center">
                             <ContentTypeIcon type={lesson.type} size={12} />
                             <span className="ml-1">
                               {lesson.type === 'video' ? '视频' : 
@@ -214,7 +264,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                         </div>
                         
                         {isCompleted && (
-                          <div className="flex-shrink-0 ml-2 text-ghibli-grassGreen">
+                          <div className="flex-shrink-0 ml-2 text-macaron-coral animate-pulse-slow">
                             <CheckCircle size={14} />
                           </div>
                         )}
@@ -224,7 +274,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
                 })}
               </ul>
             ) : (
-              <p className="text-xs text-ghibli-lightBrown px-6 py-3 italic">此模块暂无课时内容</p>
+              <p className="text-xs text-macaron-gray px-6 py-3 italic">此模块暂无课时内容</p>
             )}
           </div>
         );
