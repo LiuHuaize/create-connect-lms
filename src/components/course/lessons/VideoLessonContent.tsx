@@ -25,7 +25,7 @@ const VideoLessonContent: React.FC<VideoLessonContentProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mx-auto max-w-4xl">
       <div className="aspect-video bg-gradient-to-br from-gray-900 to-blue-900 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
         {content.bilibiliUrl ? (
           <iframe 
@@ -37,7 +37,8 @@ const VideoLessonContent: React.FC<VideoLessonContentProps> = ({
               height: '100%', 
               aspectRatio: '16/9', 
               border: 'none',
-              display: 'block'
+              display: 'block',
+              margin: '0 auto'
             }}
             scrolling="no" 
             frameBorder="0"
@@ -46,8 +47,13 @@ const VideoLessonContent: React.FC<VideoLessonContentProps> = ({
         ) : videoFilePath ? (
           <video 
             controls 
-            className="w-full h-full"
+            className="w-full h-full object-contain"
             src={videoFilePath}
+            style={{
+              margin: '0 auto', 
+              maxHeight: '100%', 
+              maxWidth: '100%'
+            }}
           >
             您的浏览器不支持视频播放
           </video>

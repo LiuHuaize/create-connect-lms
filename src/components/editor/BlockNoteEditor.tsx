@@ -217,7 +217,7 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
         <BlockNoteView
           editor={editor}
           editable={!readOnly}
-          formattingToolbar={false} // 禁用内部工具栏
+          formattingToolbar={true} // 启用格式工具栏以支持文本对齐等功能
         />
       </div>
 

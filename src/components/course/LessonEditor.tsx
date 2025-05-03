@@ -513,7 +513,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
               {(currentContent as VideoLessonContent).bilibiliUrl && (
                 <div className="mt-2">
                   <FormLabel className="block text-sm font-medium text-gray-700 mb-2">预览</FormLabel>
-                  <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
+                  <div className="aspect-video bg-gray-100 rounded-md overflow-hidden mx-auto max-w-3xl">
                     <iframe 
                       src={(function() {
                         const url = (currentContent as VideoLessonContent).bilibiliUrl || '';
@@ -533,7 +533,8 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                         height: '100%', 
                         aspectRatio: '16/9', 
                         border: 'none',
-                        display: 'block'
+                        display: 'block',
+                        margin: '0 auto'
                       }}
                       scrolling="no" 
                       frameBorder="0"

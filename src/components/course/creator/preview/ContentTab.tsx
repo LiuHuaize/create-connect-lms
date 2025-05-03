@@ -70,7 +70,7 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
           )}
           
           {lesson.type === 'video' && (
-            <div className="space-y-4">
+            <div className="space-y-4 mx-auto max-w-4xl">
               <div className="aspect-video bg-gray-200 flex items-center justify-center rounded-lg">
                 {(lesson.content as VideoLessonContent).bilibiliUrl ? (
                   <iframe 
@@ -92,7 +92,8 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
                       height: '100%', 
                       aspectRatio: '16/9', 
                       border: 'none',
-                      display: 'block'
+                      display: 'block',
+                      margin: '0 auto'
                     }}
                     scrolling="no" 
                     frameBorder="0"
@@ -101,8 +102,13 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
                 ) : lesson.video_file_path ? (
                   <video 
                     controls 
-                    className="w-full h-full rounded-lg"
+                    className="w-full h-full rounded-lg object-contain"
                     src={lesson.video_file_path}
+                    style={{
+                      margin: '0 auto', 
+                      maxHeight: '100%', 
+                      maxWidth: '100%'
+                    }}
                   >
                     您的浏览器不支持视频播放
                   </video>

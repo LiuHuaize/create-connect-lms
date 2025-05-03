@@ -118,11 +118,16 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     
     return (
       <div className="mt-4">
-        <div className="aspect-video bg-gray-100 rounded-md overflow-hidden">
+        <div className="aspect-video bg-gray-100 rounded-md overflow-hidden mx-auto max-w-3xl">
           <video 
             src={videoPath} 
             controls 
             className="w-full h-full object-contain"
+            style={{
+              margin: '0 auto',
+              maxHeight: '100%',
+              maxWidth: '100%'
+            }}
           />
         </div>
         <div className="mt-2 flex justify-end">
