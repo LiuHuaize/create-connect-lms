@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, GripVertical, Trash2, Frame } from 'lucide-react';
+import { ChevronDown, ChevronRight, GripVertical, Trash2 } from 'lucide-react';
 import { DraggableAttributes } from '@dnd-kit/core';
 import { toast } from 'sonner';
 
@@ -12,7 +12,6 @@ interface ModuleHeaderProps {
   onDeleteModule: (moduleId: string) => void;
   attributes?: DraggableAttributes;
   listeners?: any;
-  isFrame?: boolean;
 }
 
 const ModuleHeader: React.FC<ModuleHeaderProps> = ({
@@ -23,8 +22,7 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
   onUpdateTitle,
   onDeleteModule,
   attributes,
-  listeners,
-  isFrame = false
+  listeners
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [tempTitle, setTempTitle] = useState(title);
@@ -53,9 +51,7 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
   };
 
   return (
-    <div 
-      className={`flex items-center p-4 ${isFrame ? 'bg-ghibli-indigo bg-opacity-5' : ''}`}
-    >
+    <div className="flex items-center p-4">
       <div className="flex items-center cursor-grab" {...attributes} {...listeners}>
         <GripVertical size={18} className="text-gray-400 mr-2" />
       </div>
@@ -71,10 +67,6 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
         )}
       </button>
       
-      {isFrame && (
-        <Frame size={18} className="text-ghibli-indigo mr-2" />
-      )}
-      
       {editMode ? (
         <input
           type="text"
@@ -88,10 +80,9 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
       ) : (
         <div 
           onClick={() => setEditMode(true)} 
-          className={`flex-1 font-medium cursor-pointer hover:underline ${isFrame ? 'text-ghibli-indigo' : ''}`}
+          className="flex-1 font-medium cursor-pointer hover:underline"
         >
           {title}
-          {isFrame && <span className="ml-2 text-xs font-normal bg-ghibli-indigo bg-opacity-20 text-ghibli-indigo px-2 py-0.5 rounded">框架</span>}
         </div>
       )}
       
