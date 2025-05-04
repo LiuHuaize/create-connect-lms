@@ -48,14 +48,11 @@
 
 /* 自定义编辑器根元素样式 */
 .custom-editor-root {
-  background-color: #f8f5f0 !important; /* 米色纸张效果背景 */
-  border: 1px solid #e2d9c8 !important; /* 淡色边框 */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important; /* 轻微阴影 */
+  background-color: #f9fafc !important; /* 更清爽的浅灰色背景 */
+  border: 1px solid #e5e7eb !important; /* 更淡的边框颜色 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03) !important; /* 更淡的阴影 */
   padding: 1rem !important;
-  /* 纸张纹理效果 */
-  background-image: linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px) !important;
-  background-size: 20px 20px !important;
+  /* 移除纹理效果，使设计更简洁 */
 }
 
 /* 自定义段落样式 */
@@ -66,7 +63,7 @@
 
 /* 自定义标题样式 */
 .custom-editor-root [data-content-type="heading"] {
-  color: #36635b !important; /* 深青色 */
+  color: #2563eb !important; /* 更现代的蓝色标题 */
   font-weight: 600 !important;
 }
 
@@ -80,14 +77,14 @@
 
 /* 增强当前活动块的视觉反馈 */
 .bn-container [data-is-active="true"] {
-  background-color: rgba(35, 131, 226, 0.07) !important;
+  background-color: rgba(37, 99, 235, 0.05) !important; /* 更轻的蓝色 */
   border-radius: 4px !important;
 }
 
 /* 改进空行的显示 */
 .bn-container [data-content-type="paragraph"]:empty::after {
   content: "按回车新建一行..." !important;
-  color: #aaa !important;
+  color: #a1a1aa !important; /* 更协调的灰色 */
   font-style: italic !important;
   font-size: 14px !important;
   position: absolute !important;
@@ -99,6 +96,52 @@
 /* 斜杠菜单样式 */
 .bn-slash-menu {
   border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important; /* 更轻的阴影 */
   overflow: hidden !important;
+}
+
+/* ===== BlockNote编辑器现代风格 ===== */
+.bn-container {
+  --bn-colors-editor-background: #ffffff !important;
+  --bn-colors-border: #e5e7eb !important;
+  --bn-colors-shadow: rgba(0, 0, 0, 0.05) !important;
+  
+  /* 整体样式调整 */
+  background-color: white !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+/* 编辑器块样式 */
+.bn-container > div > div {
+  margin-bottom: 2px !important;
+  border-radius: 4px !important;
+  transition: background-color 0.2s !important;
+}
+
+/* 编辑区域样式 */
+.bn-container [contenteditable="true"] {
+  padding: 3px 5px !important;
+  border-radius: 4px !important;
+  transition: background-color 0.2s !important;
+}
+
+/* 编辑区域激活样式 */
+.bn-container [contenteditable="true"]:focus {
+  background-color: rgba(59, 130, 246, 0.04) !important;
+}
+
+/* 标题样式优化 */
+.bn-container [data-content-type="heading"] {
+  margin-top: 10px !important;
+  margin-bottom: 5px !important;
+  font-weight: 600 !important;
+}
+
+/* 段落样式 */
+.bn-container [data-content-type="paragraph"] {
+  color: #374151 !important;
+  line-height: 1.6 !important;
 } 
