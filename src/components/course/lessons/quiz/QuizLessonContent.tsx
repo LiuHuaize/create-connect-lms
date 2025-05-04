@@ -25,6 +25,7 @@ interface QuizLessonContentProps {
   showHints: { [key: string]: boolean };
   showCorrectAnswers: { [key: string]: boolean };
   selectedAnswer: { [key: string]: string };
+  refreshCourseData?: () => void;
 }
 
 const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
@@ -45,7 +46,8 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
   attemptCounts,
   showHints,
   showCorrectAnswers,
-  selectedAnswer
+  selectedAnswer,
+  refreshCourseData
 }) => {
   // 添加提交测验后的庆祝效果
   const triggerConfetti = () => {

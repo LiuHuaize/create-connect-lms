@@ -19,6 +19,8 @@ import QuizLessonContent from '@/components/course/lessons/quiz/QuizLessonConten
 import ResourceLessonView from '@/components/course/lessons/ResourceLessonView';
 import DragSortExercise from '@/components/course/components/drag-sort/DragSortExercise';
 import { containsMarkdown } from '@/utils/markdownUtils';
+import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
+import { useCourseData } from '../hooks/useCourseData';
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
@@ -38,6 +40,7 @@ const FrameLessonView: React.FC<{
 }> = ({ content, courseId, enrollmentId, navigate, onComplete }) => {
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [renderedLesson, setRenderedLesson] = useState<Lesson | null>(null);
+  const { refreshCourseData } = useCourseData(courseId);
   
   // 初始化时设置第一个子课时
   useEffect(() => {
@@ -135,6 +138,12 @@ const FrameLessonView: React.FC<{
           <ChevronLeft className="mr-2 h-5 w-5" /> 上一步
         </Button>
         
+        {currentLessonIndex === content.lessons.length - 1 && (
+          <div className="flex justify-center">
+            {/* 移除这里的完成按钮 */}
+          </div>
+        )}
+        
         <Button 
           variant="outline" 
           className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
@@ -166,6 +175,9 @@ const LessonContent: React.FC<LessonContentProps> = ({
   // 添加ref，用于获取组件的根元素
   const contentRef = useRef<HTMLDivElement>(null);
   
+  // 获取刷新课程数据的函数
+  const { refreshCourseData } = useCourseData(courseData?.id);
+  
   // 新增状态来跟踪错误尝试次数和是否显示提示
   const [attemptCounts, setAttemptCounts] = useState<{[key: string]: number}>({});
   const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
@@ -184,27 +196,6 @@ const LessonContent: React.FC<LessonContentProps> = ({
         });
     }
   }, [courseData?.id, selectedLesson?.id]);
-  
-  // 添加标记当前课时为已完成的函数
-  const markCurrentLessonComplete = async (score?: number) => {
-    if (!selectedLesson?.id || !courseData?.id || !enrollmentId) return;
-    
-    setIsCompletionLoading(true);
-    try {
-      await courseService.markLessonComplete(
-        selectedLesson.id,
-        courseData.id,
-        enrollmentId,
-        score || 100
-      );
-      toast.success('课时已标记为完成');
-    } catch (error) {
-      console.error('标记课时完成失败:', error);
-      toast.error('标记课时完成失败');
-    } finally {
-      setIsCompletionLoading(false);
-    }
-  };
   
   // 在组件挂载和课程ID/课时ID变化时，加载测验状态
   useEffect(() => {
@@ -369,6 +360,12 @@ const LessonContent: React.FC<LessonContentProps> = ({
           score,
           quizData
         );
+        
+        // 刷新课程数据以更新进度
+        if (refreshCourseData) {
+          refreshCourseData();
+        }
+        
         console.log('测验完成并标记为已完成');
       }
     } catch (error) {
@@ -381,25 +378,6 @@ const LessonContent: React.FC<LessonContentProps> = ({
   // 处理单个问题答案的检查
   const handleCheckSingleAnswer = (questionId: string, correctOptionId: string) => {
     checkAnswer(questionId, correctOptionId);
-  };
-
-  // 取消完成标记
-  const handleUnmarkComplete = async () => {
-    if (!selectedLesson?.id) return;
-    
-    setIsCompletionLoading(true);
-    try {
-      await courseService.unmarkLessonComplete(selectedLesson.id);
-      setQuizSubmitted(false);
-      setQuizResult(null);
-      setUserAnswers({});
-      toast.success('已取消完成标记');
-    } catch (error) {
-      console.error('取消标记失败:', error);
-      toast.error('取消标记失败');
-    } finally {
-      setIsCompletionLoading(false);
-    }
   };
 
   // 添加新的useEffect，监听selectedLesson变化，当变化时滚动到顶部
@@ -472,25 +450,34 @@ const LessonContent: React.FC<LessonContentProps> = ({
             enrollmentId={enrollmentId}
             navigate={navigate}
             onComplete={() => {
-              if (selectedLesson && courseData && enrollmentId) {
-                markCurrentLessonComplete();
+              // 刷新课程数据以更新进度
+              if (refreshCourseData) {
+                refreshCourseData();
               }
             }}
           />
         );
       
       case 'text':
-        return <TextLessonContent 
-          key={selectedLesson.id}
-          content={selectedLesson.content as any} 
-        />;
+        return (
+          <>
+            <TextLessonContent 
+              key={selectedLesson.id}
+              content={selectedLesson.content as any} 
+            />
+          </>
+        );
       
       case 'video':
-        return <VideoLessonContent 
-          key={selectedLesson.id}
-          content={selectedLesson.content as any} 
-          videoFilePath={selectedLesson.video_file_path} 
-        />;
+        return (
+          <>
+            <VideoLessonContent 
+              key={selectedLesson.id}
+              content={selectedLesson.content as any} 
+              videoFilePath={selectedLesson.video_file_path} 
+            />
+          </>
+        );
       
       case 'quiz':
         return (
@@ -511,9 +498,13 @@ const LessonContent: React.FC<LessonContentProps> = ({
             onAnswerSelect={handleAnswerSelect}
             onCheckSingleAnswer={handleCheckSingleAnswer}
             onQuizSubmit={handleQuizSubmit}
-            onUnmarkComplete={handleUnmarkComplete}
+            onUnmarkComplete={async () => {
+              // 空的异步函数，返回Promise
+              return Promise.resolve();
+            }}
             isCompletionLoading={isCompletionLoading}
             navigate={navigate}
+            refreshCourseData={refreshCourseData}
           />
         );
       
@@ -523,9 +514,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
             key={selectedLesson.id}
             lesson={selectedLesson}
             onComplete={() => {
-              if (selectedLesson && courseData && enrollmentId) {
-                markCurrentLessonComplete();
-              }
+              // 不再需要在这里标记完成，由统一的完成按钮处理
             }}
             isCompleted={lessonIsCompleted}
             courseId={courseData?.id}
@@ -541,11 +530,6 @@ const LessonContent: React.FC<LessonContentProps> = ({
               lesson={selectedLesson}
               onComplete={(isCorrect, mappings) => {
                 console.log('拖拽练习完成回调被触发', { isCorrect, mappingsCount: mappings.length });
-                
-                if (isCorrect && selectedLesson && courseData && enrollmentId) {
-                  console.log('开始标记课时完成...');
-                  markCurrentLessonComplete();
-                }
               }}
             />
           );
@@ -595,13 +579,12 @@ const LessonContent: React.FC<LessonContentProps> = ({
             <CardContent className="p-4 sm:p-6">
               {renderLessonContent()}
               
-              {selectedLesson.type !== 'resource' && selectedLesson.type !== 'frame' && (
-                <LessonNavigation 
-                  courseData={courseData}
-                  selectedLesson={selectedLesson}
-                  enrollmentId={enrollmentId}
-                />
-              )}
+              {/* 移除类型条件，对所有课时类型都显示导航和完成按钮 */}
+              <LessonNavigation 
+                courseData={courseData}
+                selectedLesson={selectedLesson}
+                enrollmentId={enrollmentId}
+              />
             </CardContent>
           </Card>
         </div>

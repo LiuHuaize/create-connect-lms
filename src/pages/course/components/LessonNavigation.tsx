@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { toast } from 'sonner';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { courseService } from '@/services/courseService';
 import { useCourseData } from '../hooks/useCourseData';
+import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
 
 interface LessonNavigationProps {
   courseData: Course & { modules?: CourseModule[] };
@@ -22,24 +20,9 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   
   // 获取刷新课程数据的方法
   const { refreshCourseData } = useCourseData(courseData?.id);
-  
-  // 获取课时的完成状态
-  useEffect(() => {
-    if (courseData?.id && selectedLesson?.id) {
-      courseService.getLessonCompletionStatus(courseData.id)
-        .then(status => {
-          setIsCompleted(!!status[selectedLesson.id]);
-        })
-        .catch(error => {
-          console.error('获取课时完成状态失败:', error);
-        });
-    }
-  }, [courseData?.id, selectedLesson?.id]);
 
   // 找到前一个和后一个课时
   const findNeighborLessons = () => {
@@ -85,56 +68,13 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   };
   
   const { prevLesson, nextLesson } = findNeighborLessons();
-  
-  // 处理标记完成或取消完成
-  const handleToggleComplete = async () => {
-    if (!enrollmentId || !selectedLesson || !courseData.id) {
-      toast.error('无法执行此操作');
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      if (isCompleted) {
-        // 取消完成
-        await courseService.unmarkLessonComplete(selectedLesson.id);
-        toast.success('已取消标记完成');
-        setIsCompleted(false);
-        
-        // 刷新课程数据和进度
-        if (refreshCourseData) {
-          refreshCourseData();
-        }
-      } else {
-        // 标记完成
-        await courseService.markLessonComplete(
-          selectedLesson.id,
-          courseData.id,
-          enrollmentId
-        );
-        toast.success('课时已标记为完成');
-        setIsCompleted(true);
-        
-        // 刷新课程数据和进度
-        if (refreshCourseData) {
-          refreshCourseData();
-        }
-      }
-    } catch (error) {
-      console.error('更新完成状态失败:', error);
-      toast.error(isCompleted ? '取消标记失败' : '标记完成失败');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
-    <div className="flex justify-between items-center mt-8 pt-6 border-t border-ghibli-sand/30">
+    <div className="flex justify-between items-center mt-8 pt-6 border-t border-macaron-lavender/30">
       <Button 
         variant="outline" 
         size={isMobile ? "sm" : "default"} 
-        className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
+        className="flex items-center border-macaron-lavender text-macaron-darkGray hover:bg-macaron-cream/30 transition-all"
         onClick={() => prevLesson && navigate(`/course/${courseData?.id}/lesson/${prevLesson.id}`)}
         disabled={!prevLesson}
       >
@@ -142,46 +82,20 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
         {isMobile ? '上一课' : '上一课'}
       </Button>
       
-      <HoverCard>
-        <HoverCardTrigger asChild>
-          <Button 
-            className={`transition-all ${isCompleted 
-              ? 'bg-ghibli-peach hover:bg-ghibli-coral text-ghibli-brown' 
-              : 'bg-ghibli-teal hover:bg-ghibli-deepTeal text-white'
-            }`}
-            size={isMobile ? "sm" : "default"}
-            onClick={handleToggleComplete}
-            disabled={isLoading}
-          >
-            {isMobile ? (
-              isCompleted ? <X size={16} /> : <Check size={16} />
-            ) : (
-              isCompleted ? '取消完成标记' : '标记为已完成'
-            )}
-            {!isMobile && (
-              isCompleted ? <X size={18} className="ml-2" /> : <Check size={18} className="ml-2" />
-            )}
-          </Button>
-        </HoverCardTrigger>
-        <HoverCardContent className="w-80 border-ghibli-sand bg-ghibli-parchment">
-          <div className="text-sm">
-            <h4 className="font-medium mb-2 text-ghibli-deepTeal">
-              {isCompleted ? '取消完成标记' : '完成课时'}
-            </h4>
-            <p className="text-ghibli-brown">
-              {isCompleted 
-                ? '取消此课时的完成标记，这将影响您的学习进度。' 
-                : '标记此课时为已完成后，会更新您的学习进度，并解锁下一节课程。'
-              }
-            </p>
-          </div>
-        </HoverCardContent>
-      </HoverCard>
+      {selectedLesson && courseData?.id && (
+        <LessonCompletionButton
+          lessonId={selectedLesson.id}
+          courseId={courseData.id}
+          enrollmentId={enrollmentId}
+          refreshCourseData={refreshCourseData}
+          className="px-6 py-2 rounded-xl"
+        />
+      )}
       
       <Button 
         variant="outline" 
         size={isMobile ? "sm" : "default"} 
-        className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
+        className="flex items-center border-macaron-lavender text-macaron-darkGray hover:bg-macaron-cream/30 transition-all"
         onClick={() => nextLesson && navigate(`/course/${courseData?.id}/lesson/${nextLesson.id}`)}
         disabled={!nextLesson}
       >
