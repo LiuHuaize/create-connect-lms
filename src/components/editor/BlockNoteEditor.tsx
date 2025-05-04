@@ -165,6 +165,104 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
     }
   }, [onSave]);
 
+  // 添加自定义样式到文档头
+  React.useEffect(() => {
+    // 创建样式元素
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = `
+      /* 侧边菜单按钮悬停增强样式 */
+      .bn-side-menu-button {
+        transition: background-color 0.2s ease;
+      }
+      .bn-side-menu-button:hover {
+        background-color: rgba(0, 0, 0, 0.1) !important;
+        border-radius: 4px;
+      }
+      
+      /* 自定义对齐菜单样式 */
+      .bn-side-menu-custom {
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        border-radius: 6px;
+        overflow: hidden;
+        min-width: 120px;
+        animation: fadeIn 0.2s ease;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .bn-side-menu-custom button {
+        transition: all 0.15s ease;
+        font-size: 14px;
+      }
+      
+      .bn-side-menu-custom button:hover {
+        background-color: #f0f0f0 !important;
+      }
+      
+      .bn-side-menu-custom button[data-alignment="left"]:before {
+        content: "⬅️ ";
+      }
+      
+      .bn-side-menu-custom button[data-alignment="center"]:before {
+        content: "↔️ ";
+      }
+      
+      .bn-side-menu-custom button[data-alignment="right"]:before {
+        content: "➡️ ";
+      }
+      
+      .bn-side-menu-custom button[data-alignment="justify"]:before {
+        content: "⬌ ";
+      }
+      
+      /* 表格样式增强 */
+      .bn-container table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 10px 0;
+      }
+      
+      .bn-container th, .bn-container td {
+        border: 1px solid #e0e0e0;
+        padding: 8px;
+        transition: background-color 0.2s ease;
+      }
+      
+      .bn-container th {
+        background-color: #f5f5f5;
+      }
+      
+      .bn-container tr:nth-child(even) {
+        background-color: #fafafa;
+      }
+      
+      /* 文本对齐样式增强 */
+      [data-text-alignment="center"] {
+        text-align: center;
+      }
+      
+      [data-text-alignment="right"] {
+        text-align: right;
+      }
+      
+      [data-text-alignment="justify"] {
+        text-align: justify;
+      }
+    `;
+    
+    // 添加到文档头
+    document.head.appendChild(styleElement);
+    
+    // 清理函数
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
   return (
     <div 
       className={cn(

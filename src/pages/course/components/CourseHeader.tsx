@@ -119,19 +119,6 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
               )}
             </Button>
             
-            {courseData.author_id && (
-              <div className="hidden sm:flex items-center mr-4">
-                <Avatar className="h-8 w-8 mr-2 border border-slate-200 dark:border-slate-600">
-                  <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
-                    创建者
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-sm text-slate-600 dark:text-slate-300">
-                  创建者
-                </div>
-              </div>
-            )}
-            
             {/* 学科信息 */}
             <div className="hidden sm:flex text-sm text-slate-500 dark:text-slate-400 items-center">
               <Book size={14} className="mr-1" />

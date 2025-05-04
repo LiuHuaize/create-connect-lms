@@ -50,6 +50,128 @@ export const useBlockNoteEditor = ({
     }
   };
   
+  // 自定义侧边菜单初始化函数
+  const setupCustomSideMenu = (editor) => {
+    if (!editor) return;
+    
+    // 创建自定义侧边菜单元素
+    let sideMenuElement: HTMLElement | null = null;
+    
+    editor.sideMenu.onUpdate((sideMenuState) => {
+      // 如果元素不存在，创建它
+      if (!sideMenuElement) {
+        sideMenuElement = document.createElement('div');
+        sideMenuElement.className = 'bn-side-menu-custom';
+        sideMenuElement.style.position = 'absolute';
+        sideMenuElement.style.background = 'white';
+        sideMenuElement.style.borderRadius = '4px';
+        sideMenuElement.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+        sideMenuElement.style.zIndex = '100';
+        sideMenuElement.style.display = 'none';
+        
+        // 添加对齐选项
+        const alignmentOptions = [
+          { id: 'left', label: '左对齐', value: 'left' },
+          { id: 'center', label: '居中', value: 'center' },
+          { id: 'right', label: '右对齐', value: 'right' },
+          { id: 'justify', label: '两端对齐', value: 'justify' }
+        ];
+        
+        // 创建对齐按钮容器
+        const alignmentContainer = document.createElement('div');
+        alignmentContainer.className = 'alignment-options';
+        alignmentContainer.style.padding = '6px';
+        alignmentContainer.style.display = 'flex';
+        alignmentContainer.style.flexDirection = 'column';
+        alignmentContainer.style.gap = '4px';
+        
+        alignmentOptions.forEach(option => {
+          const button = document.createElement('button');
+          button.textContent = option.label;
+          button.setAttribute('data-alignment', option.value);
+          button.style.padding = '4px 8px';
+          button.style.border = 'none';
+          button.style.borderRadius = '4px';
+          button.style.textAlign = 'left';
+          button.style.cursor = 'pointer';
+          button.style.background = 'transparent';
+          button.style.width = '100%';
+          
+          button.onmouseover = () => {
+            button.style.background = '#f0f0f0';
+          };
+          
+          button.onmouseout = () => {
+            button.style.background = 'transparent';
+          };
+          
+          button.onclick = () => {
+            if (sideMenuState.block) {
+              // 更新块的textAlignment属性
+              editor.updateBlock(sideMenuState.block, {
+                props: { textAlignment: option.value }
+              });
+              
+              // 隐藏菜单
+              if (sideMenuElement) {
+                sideMenuElement.style.display = 'none';
+              }
+            }
+          };
+          
+          alignmentContainer.appendChild(button);
+        });
+        
+        sideMenuElement.appendChild(alignmentContainer);
+        
+        // 添加到文档
+        document.body.appendChild(sideMenuElement);
+        
+        // 添加拖拽功能按钮（仅在原侧边菜单显示时）
+        document.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+          // 检查点击是否在侧边菜单的六个点上
+          if (target.classList.contains('bn-side-menu-button') || 
+              target.closest('.bn-side-menu-button')) {
+            // 显示自定义侧边菜单
+            if (sideMenuElement && sideMenuState.block) {
+              const sideMenuButton = document.querySelector('.bn-side-menu-button');
+              if (sideMenuButton) {
+                const rect = sideMenuButton.getBoundingClientRect();
+                sideMenuElement.style.display = 'block';
+                sideMenuElement.style.top = `${rect.top}px`;
+                sideMenuElement.style.left = `${rect.right + 5}px`;
+              }
+            }
+          } else if (!target.closest('.bn-side-menu-custom')) {
+            // 如果点击在自定义侧边菜单之外，隐藏它
+            if (sideMenuElement) {
+              sideMenuElement.style.display = 'none';
+            }
+          }
+        });
+      }
+      
+      // 根据sideMenuState更新菜单显示
+      if (sideMenuState.show) {
+        // 原生侧边菜单将会显示
+        // 我们不在这里显示自定义菜单，而是等待用户点击侧边菜单按钮时显示
+      } else {
+        // 隐藏自定义菜单
+        if (sideMenuElement) {
+          sideMenuElement.style.display = 'none';
+        }
+      }
+    });
+    
+    return () => {
+      // 清理函数
+      if (sideMenuElement) {
+        document.body.removeChild(sideMenuElement);
+      }
+    };
+  };
+  
   // 创建BlockNote编辑器实例
   const editor = useCreateBlockNote({
     initialContent: initialContent ? safelyParseContent(initialContent) : undefined,
@@ -65,7 +187,25 @@ export const useBlockNoteEditor = ({
         // emptyDocument: "开始输入...",
       },
     },
+    // 启用表格功能并允许对齐
+    tables: {
+      // 启用表格单元格拆分和合并
+      splitCells: true,
+      // 启用单元格背景色
+      cellBackgroundColor: true,
+      // 启用单元格文本颜色
+      cellTextColor: true,
+      // 启用表头
+      headers: true
+    },
   });
+  
+  // 在编辑器初始化后设置自定义侧边菜单
+  useEffect(() => {
+    if (editor) {
+      return setupCustomSideMenu(editor);
+    }
+  }, [editor]);
   
   // 在内容变化时触发onChange回调
   useEffect(() => {
