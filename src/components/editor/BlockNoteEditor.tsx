@@ -82,53 +82,46 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
   React.useEffect(() => {
     if (!editor || readOnly) return;
 
-    // 处理编辑器mousedown事件
-    const handleEditorMouseDown = (e: MouseEvent) => {
-      // 获取点击的元素
-      const target = e.target as HTMLElement;
-      
-      // 检查是否点击在编辑区域内部（排除工具栏等UI元素）
-      const isEditableArea = !!target.closest('[contenteditable="true"]');
-      if (!isEditableArea) return;
-      
-      // 找到编辑器内容区域，准备临时隐藏
-      const contentArea = editorContainerRef.current?.querySelector('.bn-container') as HTMLElement | null;
-      if (!contentArea) return;
-      
-      // 临时存储原有的opacity值
-      const originalOpacity = contentArea.style.opacity;
-      
-      // 临时使编辑器透明，避免用户看到光标闪烁
-      contentArea.style.opacity = '0';
-      
-      // 使用setTimeout让默认的光标定位先发生
-      setTimeout(() => {
+    // 添加对回车键的特殊处理
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
         try {
           // 获取当前光标位置
           const cursorPosition = editor.getTextCursorPosition();
-          if (cursorPosition && cursorPosition.block) {
-            // 将光标设置到当前块的末尾
-            editor.setTextCursorPosition(cursorPosition.block, "end");
+          if (!cursorPosition || !cursorPosition.block) return;
+          
+          // 简化逻辑：只检查是否可以安全插入块
+          // 创建新的空段落
+          const newBlock = editor.insertBlocks(
+            [{ type: 'paragraph', content: [] }],
+            cursorPosition.block,
+            'after'
+          );
+          
+          // 将光标移动到新创建的块
+          if (newBlock.length > 0) {
+            setTimeout(() => {
+              editor.setTextCursorPosition(newBlock[0], 'start');
+            }, 0);
           }
-          // 恢复编辑器可见性
-          contentArea.style.opacity = originalOpacity;
+          
+          // 阻止默认行为
+          e.preventDefault();
         } catch (error) {
-          // 发生错误时仍然恢复可见性
-          contentArea.style.opacity = originalOpacity;
-          console.error("设置光标位置失败:", error);
+          console.error("处理回车键失败:", error);
         }
-      }, 10); // 稍微增加延时以确保默认处理完成
+      }
     };
 
-    // 查找编辑器容器并添加mousedown事件监听
+    // 查找编辑器容器并添加事件监听
     if (editorContainerRef.current) {
       const editorElement = editorContainerRef.current.querySelector('[class*="bn-container"]');
       if (editorElement) {
-        editorElement.addEventListener('mousedown', handleEditorMouseDown);
+        editorElement.addEventListener('keydown', handleKeyDown);
         
         // 返回清理函数
         return () => {
-          editorElement.removeEventListener('mousedown', handleEditorMouseDown);
+          editorElement.removeEventListener('keydown', handleKeyDown);
         };
       }
     }
@@ -304,8 +297,8 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
           isFullscreen 
             ? "h-[calc(100vh-60px)] pt-4 px-8" 
             : isMobile 
-              ? "min-h-[250px] pb-12 pl-10" 
-              : "min-h-[300px] pl-10"
+              ? "min-h-[250px] pb-12 pl-4" 
+              : "min-h-[300px] pl-4"
         )}
         style={{ 
           // 确保内容区域总是从顶部开始显示

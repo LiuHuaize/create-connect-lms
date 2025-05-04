@@ -120,10 +120,6 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.7" },
         },
-        "bounce-slow": {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-20px)" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -133,7 +129,6 @@ export default {
         "slide-in": "slide-in 0.5s ease-out forwards",
         "slide-out": "slide-out 0.5s ease-out forwards",
         "pulse-slow": "pulse-slow 3s infinite",
-        "bounce-slow": "bounce-slow 3s ease-in-out infinite",
       },
     },
   },

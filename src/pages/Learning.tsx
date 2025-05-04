@@ -7,7 +7,6 @@ import PageContainer from '@/components/layout/PageContainer';
 import InProgressCourses from '@/components/learning/InProgressCourses';
 import CompletedCourses from '@/components/learning/CompletedCourses';
 import SavedCourses from '@/components/learning/SavedCourses';
-import LearningStats from '@/components/learning/LearningStats';
 
 const Learning = () => {
   const {
@@ -30,13 +29,6 @@ const Learning = () => {
             courses={inProgressCourses} 
             loading={loadingEnrolled} 
           />
-          
-          <LearningStats 
-            totalTimeSpent={120} 
-            coursesInProgress={inProgressCourses.length} 
-            coursesCompleted={completedCourses.length}
-            streakDays={3}
-          />
         </TabsContent>
         
         <TabsContent value="completed">
@@ -44,24 +36,10 @@ const Learning = () => {
             courses={completedCourses} 
             loading={loadingEnrolled} 
           />
-          
-          <LearningStats 
-            totalTimeSpent={120} 
-            coursesInProgress={inProgressCourses.length} 
-            coursesCompleted={completedCourses.length}
-            streakDays={3}
-          />
         </TabsContent>
         
         <TabsContent value="saved">
           <SavedCourses />
-          
-          <LearningStats 
-            totalTimeSpent={120} 
-            coursesInProgress={inProgressCourses.length} 
-            coursesCompleted={completedCourses.length}
-            streakDays={3}
-          />
         </TabsContent>
       </Tabs>
     </PageContainer>

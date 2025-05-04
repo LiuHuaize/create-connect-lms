@@ -99,12 +99,12 @@ const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
         )}
       </div>
       
-      <div ref={containerRef} className="flex flex-wrap gap-2 items-center">
+      <div ref={containerRef} className="flex flex-wrap gap-2">
         {visibleCategories.map((category) => (
           <Badge 
             key={category}
             variant={selectedCategory === category ? "default" : "outline"}
-            className="cursor-pointer transition-all hover:shadow-sm text-sm px-3 py-1"
+            className="cursor-pointer transition-all hover:shadow-sm"
             onClick={() => handleCategoryClick(category)}
           >
             {category}
@@ -114,7 +114,7 @@ const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
         {categories.length > visibleCategories.length && (
           <Badge 
             variant="outline"
-            className="cursor-pointer hover:bg-gray-100 text-sm px-3 py-1"
+            className="cursor-pointer hover:bg-gray-100"
             onClick={() => setShowAllCategories(!showAllCategories)}
           >
             {showAllCategories ? '收起' : `+${categories.length - visibleCategories.length}`}

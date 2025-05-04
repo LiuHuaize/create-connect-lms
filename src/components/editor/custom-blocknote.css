@@ -74,4 +74,31 @@
 .custom-editor-root [data-content-type="bulletListItem"],
 .custom-editor-root [data-content-type="numberedListItem"] {
   margin-left: 0.5rem !important;
+}
+
+/* ===== 基本的Notion风格提示 ===== */
+
+/* 增强当前活动块的视觉反馈 */
+.bn-container [data-is-active="true"] {
+  background-color: rgba(35, 131, 226, 0.07) !important;
+  border-radius: 4px !important;
+}
+
+/* 改进空行的显示 */
+.bn-container [data-content-type="paragraph"]:empty::after {
+  content: "按回车新建一行..." !important;
+  color: #aaa !important;
+  font-style: italic !important;
+  font-size: 14px !important;
+  position: absolute !important;
+  top: 4px !important;
+  left: 6px !important;
+  pointer-events: none !important;
+}
+
+/* 斜杠菜单样式 */
+.bn-slash-menu {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
 } 

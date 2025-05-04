@@ -73,11 +73,12 @@ export function CourseProgressCard({
                 {progress}%
               </span>
             </div>
-            <div className="relative overflow-hidden rounded-full h-3 bg-gray-200 dark:bg-gray-700 flex">
+            <div className="relative overflow-hidden rounded-full h-2 bg-muted flex">
               <div 
-                className="progress-bar bg-primary"
+                className="progress-bar" 
                 style={{ width: `${progress}%` }}
               ></div>
+              {/* 动画光晕效果 */}
               <div 
                 className="absolute top-0 bottom-0 left-0 w-20 bg-gradient-to-r from-transparent via-white/40 to-transparent transform -translate-x-20 animate-pulse-slow"
                 style={{ animationDuration: '2s' }}
@@ -85,9 +86,10 @@ export function CourseProgressCard({
             </div>
           </div>
           
-          <div className="flex justify-end mt-4">
-            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-primary/15 group-hover:bg-primary text-primary group-hover:text-primary-foreground transition-colors duration-300 shadow-sm">
-              <ChevronRight size={18} />
+          {/* 继续学习按钮指示 */}
+          <div className="flex justify-end mt-3">
+            <div className="btn-hover-effect w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 group-hover:bg-primary transition-colors duration-300">
+              <ChevronRight size={16} className="text-primary-foreground" />
             </div>
           </div>
         </div>
