@@ -167,7 +167,7 @@ export type QuizQuestion = {
 };
 
 // Lesson type - use string union for better type safety
-export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort' | 'resource';
+export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort' | 'resource' | 'frame';
 
 // Make sure order_index is included in the Lesson type
 export type Lesson = {
@@ -181,6 +181,8 @@ export type Lesson = {
   updated_at?: string;
   video_file_path?: string | null; // 视频文件路径
   bilibili_url?: string | null; // B站嵌入URL
+  isFrame?: boolean; // 是否是框架容器
+  subLessons?: Lesson[]; // 框架内的子课时
 };
 
 // 拖拽分类练习的数据结构

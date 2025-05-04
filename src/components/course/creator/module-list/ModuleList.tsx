@@ -4,7 +4,6 @@ import { CourseModule, Lesson, LessonType } from '@/types/course';
 import { Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import ModuleItem from './ModuleItem';
-import FrameModuleButton from './FrameModuleButton';
 import { getInitialContentByType } from './lessonTypeUtils';
 import { 
   DndContext, 
@@ -53,26 +52,10 @@ const ModuleList: React.FC<ModuleListProps> = ({
       course_id: modules[0]?.course_id || 'temp-course-id',
       title: `新模块 ${modules.length + 1}`,
       order_index: modules.length,
-      lessons: [],
-      isFrame: false
+      lessons: []
     };
     setModules([...modules, newModule]);
     setExpandedModule(newModule.id);
-  };
-
-  // 添加框架模块函数
-  const addFrameModule = () => {
-    const newModule: CourseModule = {
-      id: uuidv4(),
-      course_id: modules[0]?.course_id || 'temp-course-id',
-      title: `框架 ${modules.length + 1}`,
-      order_index: modules.length,
-      lessons: [],
-      isFrame: true
-    };
-    setModules([...modules, newModule]);
-    setExpandedModule(newModule.id);
-    toast.success('已添加新框架模块，您可以在此框架中添加多个课时');
   };
 
   const updateModuleTitle = (moduleId: string, newTitle: string) => {
@@ -121,9 +104,11 @@ const ModuleList: React.FC<ModuleListProps> = ({
       id: uuidv4(),
       module_id: moduleId,
       type: lessonType,
-      title: `新${lessonType}课程`,
+      title: `新${lessonType === 'frame' ? '框架' : lessonType}课程`,
       content: getInitialContentByType(lessonType),
-      order_index: orderIndex
+      order_index: orderIndex,
+      isFrame: lessonType === 'frame',
+      subLessons: lessonType === 'frame' ? [] : undefined
     };
     
     // 先创建一个模块的副本
@@ -142,8 +127,13 @@ const ModuleList: React.FC<ModuleListProps> = ({
     // 更新状态
     setModules(updatedModules);
     
-    // 设置当前课时
-    setCurrentLesson(newLesson);
+    // 对于框架类型，不直接进入编辑模式
+    if (lessonType !== 'frame') {
+      // 设置当前课时
+      setCurrentLesson(newLesson);
+    } else {
+      toast.success('已添加框架容器，可以在框架中添加多个子课时');
+    }
     
     // 确保模块是展开的
     if (expandedModule !== moduleId) {
@@ -386,7 +376,6 @@ const ModuleList: React.FC<ModuleListProps> = ({
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold">课程结构</h2>
           <div className="flex space-x-2">
-            <FrameModuleButton onAddFrameModule={addFrameModule} />
             <Button onClick={addModule} className="bg-connect-blue hover:bg-blue-600">
               <Plus size={16} className="mr-2" /> 添加模块
             </Button>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Video, FileText, FileQuestion, CheckSquare, CreditCard, Move, Download } from 'lucide-react';
+import { Video, FileText, FileQuestion, CheckSquare, CreditCard, Move, Download, Frame } from 'lucide-react';
 import { LessonType } from '@/types/course';
 
 export type LessonTypeInfo = {
@@ -15,7 +15,8 @@ export const LESSON_TYPES: LessonTypeInfo[] = [
   { id: 'assignment', name: '作业', icon: React.createElement(CheckSquare, { size: 16, className: "text-ghibli-lavender" }) },
   { id: 'card_creator', name: '卡片创建', icon: React.createElement(CreditCard, { size: 16, className: "text-ghibli-coral" }) },
   { id: 'drag_sort', name: '拖拽分类', icon: React.createElement(Move, { size: 16, className: "text-ghibli-pink" }) },
-  { id: 'resource', name: '资源下载', icon: React.createElement(Download, { size: 16, className: "text-ghibli-indigo" }) }
+  { id: 'resource', name: '资源下载', icon: React.createElement(Download, { size: 16, className: "text-ghibli-indigo" }) },
+  { id: 'frame', name: '框架容器', icon: React.createElement(Frame, { size: 16, className: "text-ghibli-purple" }) }
 ];
 
 export const getLessonTypeInfo = (type: LessonType): LessonTypeInfo | undefined => {
@@ -45,6 +46,8 @@ export const getLessonTypeIcon = (type: LessonType) => {
       return React.createElement(Move, { size: 16, className: "text-ghibli-pink" });
     case 'resource':
       return React.createElement(Download, { size: 16, className: "text-ghibli-indigo" });
+    case 'frame':
+      return React.createElement(Frame, { size: 16, className: "text-ghibli-purple" });
     default:
       return React.createElement(FileText, { size: 16, className: "text-gray-500" });
   }
@@ -83,6 +86,11 @@ export const getInitialContentByType = (type: LessonType) => {
       return { 
         description: '',
         resourceFiles: []
+      };
+    case 'frame':
+      return { 
+        description: '框架容器可以包含多个子课时',
+        subLessons: []
       };
     default:
       return { text: '' };
