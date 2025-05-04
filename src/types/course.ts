@@ -33,6 +33,7 @@ export type CourseModule = {
   created_at?: string;
   updated_at?: string;
   lessons?: Lesson[];
+  isFrame?: boolean; // 是否是框架模块
 };
 
 // Define all possible lesson content types

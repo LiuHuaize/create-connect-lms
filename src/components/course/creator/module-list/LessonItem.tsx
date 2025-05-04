@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Trash2, Pencil, GripVertical } from 'lucide-react';
+import React, { useState } from 'react';
+import { Pencil, Trash2, GripVertical } from 'lucide-react';
 import { Lesson } from '@/types/course';
 import { getLessonTypeIcon, getLessonTypeName } from './lessonTypeUtils';
 import { useSortable } from '@dnd-kit/sortable';
@@ -13,6 +13,7 @@ interface LessonItemProps {
   onEditLesson: (lesson: Lesson) => void;
   onUpdateLesson?: (lesson: Lesson) => void;
   onDeleteLesson: (moduleId: string, lessonId: string) => void;
+  isInFrame?: boolean;
 }
 
 const LessonItem: React.FC<LessonItemProps> = ({
@@ -21,148 +22,116 @@ const LessonItem: React.FC<LessonItemProps> = ({
   index,
   onEditLesson,
   onUpdateLesson,
-  onDeleteLesson
+  onDeleteLesson,
+  isInFrame = false
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(lesson.title);
-  const [originalTitle, setOriginalTitle] = useState(lesson.title);
-
+  const [title, setTitle] = useState(lesson.title);
+  
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
-    transition
-  } = useSortable({ id: lesson.id });
-
+    transition,
+    isDragging
+  } = useSortable({
+    id: lesson.id,
+    data: {
+      type: 'lesson',
+      lesson,
+      index,
+      moduleId
+    }
+  });
+  
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+    position: 'relative' as 'relative'
   };
-
-  // 当外部传入的课时标题变更时，更新内部状态
-  useEffect(() => {
-    setEditedTitle(lesson.title);
-    setOriginalTitle(lesson.title);
-  }, [lesson.title]);
-
+  
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditedTitle(e.target.value);
+    setTitle(e.target.value);
   };
-
-  const handleEditClick = () => {
-    setIsEditing(true);
-  };
-
+  
   const handleTitleBlur = () => {
     setIsEditing(false);
-    
-    // 如果标题没有变化，不做任何操作
-    if (editedTitle === originalTitle) {
-      return;
-    }
-    
-    // 如果标题为空，恢复原始标题
-    if (!editedTitle.trim()) {
-      setEditedTitle(originalTitle);
+    if (title.trim() === '') {
+      setTitle(lesson.title);
       toast.error('课时标题不能为空');
       return;
     }
     
-    // 更新课时标题
-    const updatedLesson = {
-      ...lesson,
-      title: editedTitle.trim()
-    };
-    
-    // 先记录日志，便于调试
-    console.log(`课时标题更新: ${lesson.id} - 从 "${originalTitle}" 到 "${editedTitle.trim()}"`);
-    
-    // 如果有onUpdateLesson，优先使用它进行更新
-    if (onUpdateLesson) {
-      console.log('调用onUpdateLesson更新课时标题');
+    if (title !== lesson.title && onUpdateLesson) {
+      const updatedLesson = { ...lesson, title };
       onUpdateLesson(updatedLesson);
-    } else {
-      // 否则回退到onEditLesson
-      console.log('没有onUpdateLesson函数，使用onEditLesson代替');
-      onEditLesson(updatedLesson);
     }
-    
-    // 更新内部状态
-    setOriginalTitle(editedTitle.trim());
-    
-    // 显示反馈
-    console.log(`课时标题已更新: ${originalTitle} -> ${editedTitle.trim()}`);
   };
-
+  
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      (e.target as HTMLInputElement).blur();
+      handleTitleBlur();
     } else if (e.key === 'Escape') {
-      setEditedTitle(originalTitle);
+      setTitle(lesson.title);
       setIsEditing(false);
     }
   };
 
-  const lessonTypeIcon = getLessonTypeIcon(lesson.type);
-  const lessonTypeName = getLessonTypeName(lesson.type);
-
-  // 处理完整的课时编辑（点击课时本身而不是标题）
-  const handleFullLessonEdit = () => {
-    // 只有在点击课时内容区域(而不是标题编辑区域)时才触发完整编辑
-    if (!isEditing) {
-      onEditLesson(lesson);
-    }
-  };
-
   return (
-    <div
-      ref={setNodeRef}
+    <div 
+      ref={setNodeRef} 
       style={style}
-      className="flex items-center p-2 my-1 bg-white border border-gray-200 rounded-md shadow-sm group"
+      className={`flex items-center border border-gray-200 rounded-md p-2 mb-2 ${
+        isInFrame 
+          ? 'bg-white shadow-sm hover:shadow-md transition-shadow' 
+          : 'bg-white hover:bg-gray-50'
+      } ${isDragging ? 'opacity-50' : ''}`}
     >
-      <div className="cursor-move mr-2" {...attributes} {...listeners}>
+      <div {...attributes} {...listeners} className="cursor-grab mr-2">
         <GripVertical size={16} className="text-gray-400" />
       </div>
       
-      <div className="mr-2" title={`${lessonTypeName}课时`}>
-        {lessonTypeIcon}
+      <div className="flex-shrink-0 mr-2">
+        {getLessonTypeIcon(lesson.type)}
       </div>
       
-      <div className="flex-1">
-        {isEditing ? (
-          <input
-            type="text"
-            value={editedTitle}
-            onChange={handleTitleChange}
-            onBlur={handleTitleBlur}
-            onKeyDown={handleKeyDown}
-            className="w-full p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-            autoFocus
-          />
-        ) : (
-          <div 
-            className="font-medium text-gray-700 hover:bg-gray-100 p-1 rounded-md cursor-pointer"
-            onClick={handleEditClick}
-          >
-            {editedTitle || '未命名课时'}
-          </div>
-        )}
-      </div>
+      {isEditing ? (
+        <input
+          type="text"
+          value={title}
+          onChange={handleTitleChange}
+          onBlur={handleTitleBlur}
+          onKeyDown={handleKeyDown}
+          className="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+          autoFocus
+        />
+      ) : (
+        <div 
+          className="flex-1 cursor-pointer hover:underline"
+          onClick={() => onEditLesson(lesson)}
+        >
+          {lesson.title}
+          <span className="ml-2 text-xs text-gray-500">
+            {getLessonTypeName(lesson.type)}
+          </span>
+        </div>
+      )}
       
-      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center ml-2 space-x-1">
         <button
-          onClick={handleFullLessonEdit}
-          className="p-1 text-gray-500 hover:text-blue-500 focus:outline-none"
-          aria-label="编辑课时内容"
+          onClick={() => setIsEditing(true)}
+          className="p-1 text-gray-400 hover:text-blue-500 focus:outline-none"
+          aria-label="编辑课时标题"
         >
           <Pencil size={14} />
         </button>
         
         <button
           onClick={() => onDeleteLesson(moduleId, lesson.id)}
-          className="p-1 text-gray-500 hover:text-red-500 focus:outline-none"
+          className="p-1 text-gray-400 hover:text-red-500 focus:outline-none"
           aria-label="删除课时"
         >
           <Trash2 size={14} />

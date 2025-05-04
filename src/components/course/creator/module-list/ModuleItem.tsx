@@ -68,7 +68,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
     <div 
       ref={setSortableNodeRef} 
       style={style} 
-      className="border border-gray-200 rounded-lg bg-white shadow-sm mb-4"
+      className={`border border-gray-200 rounded-lg bg-white shadow-sm mb-4 ${module.isFrame ? 'border-2 border-ghibli-indigo border-dashed' : ''}`}
     >
       <ModuleHeader 
         moduleId={module.id!}
@@ -79,12 +79,13 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
         onDeleteModule={onDeleteModule}
         attributes={attributes}
         listeners={listeners}
+        isFrame={module.isFrame}
       />
       
       {isExpanded && (
-        <div className="p-4 pt-0 border-t border-gray-200">
+        <div className={`p-4 pt-0 border-t border-gray-200 ${module.isFrame ? 'bg-gray-50' : ''}`}>
           <div 
-            className={`space-y-2 mb-4 rounded-md p-2 min-h-[50px] ${isOver ? 'bg-blue-50 border border-dashed border-blue-300' : ''}`}
+            className={`space-y-2 mb-4 rounded-md p-2 min-h-[50px] ${module.isFrame ? 'bg-white' : ''} ${isOver ? 'bg-blue-50 border border-dashed border-blue-300' : ''}`}
             ref={setDroppableNodeRef}
           >
             {module.lessons && module.lessons.length > 0 ? (
@@ -103,6 +104,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
                       onEditLesson={onEditLesson}
                       onUpdateLesson={onUpdateLesson}
                       onDeleteLesson={onDeleteLesson}
+                      isInFrame={module.isFrame}
                     />
                   ))
                 }
@@ -111,7 +113,9 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
               <div className="text-center py-4 text-gray-400 text-sm italic">
                 {isOver 
                   ? "放置课时到这里..." 
-                  : "此模块暂无课时，请添加内容"}
+                  : module.isFrame 
+                    ? "此框架暂无课时，请添加内容" 
+                    : "此模块暂无课时，请添加内容"}
               </div>
             )}
           </div>

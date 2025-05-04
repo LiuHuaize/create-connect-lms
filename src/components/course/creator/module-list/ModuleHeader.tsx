@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, GripVertical, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, GripVertical, Trash2, Frame } from 'lucide-react';
 import { DraggableAttributes } from '@dnd-kit/core';
 import { toast } from 'sonner';
 
@@ -12,6 +12,7 @@ interface ModuleHeaderProps {
   onDeleteModule: (moduleId: string) => void;
   attributes?: DraggableAttributes;
   listeners?: any;
+  isFrame?: boolean;
 }
 
 const ModuleHeader: React.FC<ModuleHeaderProps> = ({
@@ -22,98 +23,81 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
   onUpdateTitle,
   onDeleteModule,
   attributes,
-  listeners
+  listeners,
+  isFrame = false
 }) => {
-  const [currentTitle, setCurrentTitle] = useState(title);
-  const [isEditing, setIsEditing] = useState(false);
-  const [originalTitle, setOriginalTitle] = useState(title);
+  const [editMode, setEditMode] = useState(false);
+  const [tempTitle, setTempTitle] = useState(title);
 
-  // 当外部传入的标题变化时，更新本地状态
   useEffect(() => {
-    setCurrentTitle(title);
-    setOriginalTitle(title);
+    setTempTitle(title);
   }, [title]);
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentTitle(e.target.value);
+  const handleInputBlur = () => {
+    if (tempTitle.trim() === '') {
+      setTempTitle(title);
+      toast.error('模块名称不能为空');
+    } else if (tempTitle !== title) {
+      onUpdateTitle(moduleId, tempTitle);
+    }
+    setEditMode(false);
   };
 
-  const handleTitleBlur = () => {
-    setIsEditing(false);
-    
-    // 如果标题没有变化，不做任何操作
-    if (currentTitle === originalTitle) {
-      return;
-    }
-    
-    // 如果标题为空，使用原始标题
-    if (!currentTitle.trim()) {
-      setCurrentTitle(originalTitle);
-      toast.error('模块标题不能为空');
-      return;
-    }
-    
-    // 提交更改
-    onUpdateTitle(moduleId, currentTitle);
-    setOriginalTitle(currentTitle);
-    
-    // 显示反馈
-    console.log(`模块标题已更新: ${originalTitle} -> ${currentTitle}`);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      (e.target as HTMLInputElement).blur();
+      handleInputBlur();
     } else if (e.key === 'Escape') {
-      setCurrentTitle(originalTitle);
-      setIsEditing(false);
+      setTempTitle(title);
+      setEditMode(false);
     }
-  };
-
-  const handleTitleClick = () => {
-    setIsEditing(true);
   };
 
   return (
-    <div
-      className="flex items-center p-2 bg-slate-100 border-b border-gray-200 rounded-t cursor-pointer select-none"
-      {...attributes}
+    <div 
+      className={`flex items-center p-4 ${isFrame ? 'bg-ghibli-indigo bg-opacity-5' : ''}`}
     >
-      <div className="cursor-move mr-2" {...listeners}>
-        <GripVertical size={16} className="text-gray-500" />
+      <div className="flex items-center cursor-grab" {...attributes} {...listeners}>
+        <GripVertical size={18} className="text-gray-400 mr-2" />
       </div>
-      <div
-        className="mr-2 cursor-pointer"
+      
+      <button 
         onClick={() => onToggleExpand(moduleId)}
+        className="mr-2 text-gray-500 hover:text-gray-700"
       >
         {isExpanded ? (
-          <ChevronDown size={16} className="text-gray-700" />
+          <ChevronDown size={18} />
         ) : (
-          <ChevronRight size={16} className="text-gray-700" />
+          <ChevronRight size={18} />
         )}
-      </div>
-      {isEditing ? (
+      </button>
+      
+      {isFrame && (
+        <Frame size={18} className="text-ghibli-indigo mr-2" />
+      )}
+      
+      {editMode ? (
         <input
           type="text"
-          value={currentTitle}
-          onChange={handleTitleChange}
-          onBlur={handleTitleBlur}
-          onKeyDown={handleKeyDown}
-          className="flex-1 p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+          value={tempTitle}
+          onChange={(e) => setTempTitle(e.target.value)}
+          onBlur={handleInputBlur}
+          onKeyDown={handleInputKeyDown}
+          className="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-connect-blue"
           autoFocus
         />
       ) : (
-        <div
-          className="flex-1 font-medium text-gray-800 hover:bg-gray-200 p-1 rounded-md"
-          onClick={handleTitleClick}
+        <div 
+          onClick={() => setEditMode(true)} 
+          className={`flex-1 font-medium cursor-pointer hover:underline ${isFrame ? 'text-ghibli-indigo' : ''}`}
         >
-          {currentTitle || '未命名模块'}
+          {title}
+          {isFrame && <span className="ml-2 text-xs font-normal bg-ghibli-indigo bg-opacity-20 text-ghibli-indigo px-2 py-0.5 rounded">框架</span>}
         </div>
       )}
-      <button
+      
+      <button 
         onClick={() => onDeleteModule(moduleId)}
-        className="p-1 text-gray-500 hover:text-red-500 focus:outline-none"
+        className="ml-2 text-gray-400 hover:text-red-500"
         aria-label="删除模块"
       >
         <Trash2 size={16} />
