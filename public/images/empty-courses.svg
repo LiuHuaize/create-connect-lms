@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <!-- 背景元素 -->
+  <circle cx="250" cy="250" r="200" fill="#f9f7ff" />
+  
+  <!-- 卡通学生形象 -->
+  <g transform="translate(155, 130)">
+    <!-- 身体 -->
+    <ellipse cx="100" cy="130" rx="70" ry="90" fill="#6b77e8" />
+    
+    <!-- 头部 -->
+    <circle cx="100" cy="70" r="60" fill="#ffcbb6" />
+    
+    <!-- 眼睛 -->
+    <circle cx="80" cy="60" r="8" fill="white" />
+    <circle cx="120" cy="60" r="8" fill="white" />
+    <circle cx="80" cy="60" r="4" fill="#333" />
+    <circle cx="120" cy="60" r="4" fill="#333" />
+    
+    <!-- 嘴巴 - 困惑表情 -->
+    <path d="M85 90 Q100 85 115 90" stroke="#333" stroke-width="3" fill="none" />
+    
+    <!-- 头发 -->
+    <path d="M50 50 Q100 10 150 50" fill="#5d4037" />
+    <path d="M60 80 Q60 30 100 30 Q140 30 140 80" fill="#5d4037" />
+    
+    <!-- 手臂 - 摊手姿势 -->
+    <path d="M50 130 Q20 150 30 180" stroke="#6b77e8" stroke-width="20" fill="none" stroke-linecap="round" />
+    <path d="M150 130 Q180 150 170 180" stroke="#6b77e8" stroke-width="20" fill="none" stroke-linecap="round" />
+    
+    <!-- 问号气泡 -->
+    <circle cx="170" cy="30" r="25" fill="#ffeb3b" />
+    <text x="163" y="40" font-family="Arial" font-weight="bold" font-size="30" fill="#333">?</text>
+  </g>
+  
+  <!-- 书本 - 散落在周围 -->
+  <g transform="translate(100, 330) rotate(-20)">
+    <rect x="0" y="0" width="70" height="50" rx="5" fill="#ff7043" />
+    <rect x="0" y="0" width="70" height="10" rx="5" fill="#e64a19" />
+    <line x1="10" y1="30" x2="60" y2="30" stroke="white" stroke-width="2" />
+  </g>
+  
+  <g transform="translate(320, 340) rotate(15)">
+    <rect x="0" y="0" width="70" height="50" rx="5" fill="#42a5f5" />
+    <rect x="0" y="0" width="70" height="10" rx="5" fill="#1e88e5" />
+    <line x1="10" y1="30" x2="60" y2="30" stroke="white" stroke-width="2" />
+  </g>
+  
+  <g transform="translate(220, 370)">
+    <rect x="0" y="0" width="70" height="50" rx="5" fill="#66bb6a" />
+    <rect x="0" y="0" width="70" height="10" rx="5" fill="#43a047" />
+    <line x1="10" y1="30" x2="60" y2="30" stroke="white" stroke-width="2" />
+  </g>
+</svg> 
