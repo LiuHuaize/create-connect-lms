@@ -390,6 +390,29 @@ export const useCourseCreator = () => {
         return;
       }
       
+      // 检查并确保所有模块都有标题
+      const invalidModules = modules.filter(module => !module.title || module.title.trim() === '');
+      if (invalidModules.length > 0) {
+        toast.error(`有 ${invalidModules.length} 个模块缺少标题，请填写后再保存`);
+        return;
+      }
+      
+      // 检查并确保所有课时都有标题
+      let invalidLessons = 0;
+      modules.forEach(module => {
+        if (module.lessons) {
+          invalidLessons += module.lessons.filter(lesson => !lesson.title || lesson.title.trim() === '').length;
+        }
+      });
+      
+      if (invalidLessons > 0) {
+        toast.error(`有 ${invalidLessons} 个课时缺少标题，请填写后再保存`);
+        return;
+      }
+      
+      // 记录当前最新的模块状态，确保保存的是最新编辑的数据
+      console.log('当前要保存的模块状态:', JSON.stringify(modules));
+      
       // 1. 保存课程基本信息
       const courseToSave = {
         ...course,
@@ -405,8 +428,11 @@ export const useCourseCreator = () => {
         id: savedCourse.id 
       }));
       
+      // 创建当前模块数据的深拷贝，确保没有引用问题
+      const currentModules = JSON.parse(JSON.stringify(modules));
+      
       // 准备模块数据 - 预处理模块以减少数据库请求
-      const modulesToProcess = modules.map(module => {
+      const modulesToProcess = currentModules.map(module => {
         const moduleToSave = { ...module };
         
         // 确保使用保存后的课程ID
@@ -417,6 +443,16 @@ export const useCourseCreator = () => {
         // 确保模块ID是有效的UUID
         if (!moduleToSave.id || moduleToSave.id.startsWith('m')) {
           moduleToSave.id = uuidv4();
+        }
+        
+        // 打印每个模块的标题，用于调试
+        console.log(`准备保存模块: ${moduleToSave.id}, 标题: ${moduleToSave.title}`);
+        
+        // 如果有课时，也打印每个课时的标题
+        if (moduleToSave.lessons && moduleToSave.lessons.length > 0) {
+          moduleToSave.lessons.forEach(lesson => {
+            console.log(`  - 课时: ${lesson.id}, 标题: ${lesson.title}`);
+          });
         }
         
         return moduleToSave;
@@ -546,8 +582,14 @@ export const useCourseCreator = () => {
         try {
           const modulePromises = moduleBatch.map(async moduleToSave => {
             try {
+              // 再次确认模块标题不为空
+              if (!moduleToSave.title || moduleToSave.title.trim() === '') {
+                console.error(`模块 ${moduleToSave.id} 标题为空，设置默认标题`);
+                moduleToSave.title = `未命名模块 ${Date.now()}`;
+              }
+              
               const savedModule = await courseService.addCourseModule(moduleToSave);
-              console.log(`模块 ${moduleToSave.title} 保存成功:`, savedModule.id);
+              console.log(`模块保存成功 - ID: ${savedModule.id}, 标题: ${savedModule.title}`);
               savedModulesMap[moduleToSave.id] = savedModule;
               return savedModule;
             } catch (error) {
@@ -577,7 +619,7 @@ export const useCourseCreator = () => {
         const moduleWithLessons = { ...savedModule, lessons: [] };
         
         if (module.lessons && module.lessons.length > 0) {
-          console.log(`开始保存模块 ${savedModule.id} 的 ${module.lessons.length} 个课时`);
+          console.log(`开始保存模块 ${savedModule.id} (${savedModule.title}) 的 ${module.lessons.length} 个课时`);
           
           // 每次最多处理20个课时
           for (let i = 0; i < module.lessons.length; i += 20) {
@@ -591,12 +633,18 @@ export const useCourseCreator = () => {
                   lessonToSave.id = uuidv4();
                 }
                 
+                // 再次确认课时标题不为空
+                if (!lessonToSave.title || lessonToSave.title.trim() === '') {
+                  console.error(`课时 ${lessonToSave.id} 标题为空，设置默认标题`);
+                  lessonToSave.title = `未命名课时 ${Date.now()}`;
+                }
+                
                 try {
                   const savedLesson = await courseService.addLesson({
                     ...lessonToSave,
                     module_id: savedModule.id
                   });
-                  console.log(`课时 ${lessonToSave.title} 保存成功:`, savedLesson.id);
+                  console.log(`课时保存成功 - ID: ${savedLesson.id}, 标题: ${savedLesson.title}`);
                   return savedLesson;
                 } catch (error) {
                   console.error(`保存课时 ${lessonToSave.title} 失败:`, error);
@@ -629,7 +677,7 @@ export const useCourseCreator = () => {
         toast.success('课程保存成功');
       }
       
-      // 更新模块数据，确保所有模块和课时都有正确的ID
+      // 更新模块数据，确保所有模块和课时都有正确的ID，使用保存后的最新数据
       setModules(savedModulesWithLessons);
       
       // Update reference values after successful manual save
@@ -637,7 +685,7 @@ export const useCourseCreator = () => {
       previousModulesRef.current = JSON.parse(JSON.stringify(savedModulesWithLessons));
       setLastSaved(new Date()); // Also update last saved time
 
-      console.log('课程及其所有模块和课时已成功保存。');
+      console.log('课程及其所有模块和课时已成功保存。最新模块数据:', savedModulesWithLessons);
       toast.success('课程已保存');
       
       return savedCourse.id;

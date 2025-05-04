@@ -22,6 +22,40 @@ export const getLessonTypeInfo = (type: LessonType): LessonTypeInfo | undefined 
   return LESSON_TYPES.find(lessonType => lessonType.id === type);
 };
 
+// 获取课时类型对应的图标组件
+export const getLessonTypeIcon = (type: LessonType) => {
+  const typeInfo = getLessonTypeInfo(type);
+  if (!typeInfo) {
+    return React.createElement(FileText, { size: 16, className: "text-gray-500" });
+  }
+  
+  // 返回已渲染的React元素，而不是组件类
+  switch (type) {
+    case 'video':
+      return React.createElement(Video, { size: 16, className: "text-ghibli-skyBlue" });
+    case 'text':
+      return React.createElement(FileText, { size: 16, className: "text-ghibli-grassGreen" });
+    case 'quiz':
+      return React.createElement(FileQuestion, { size: 16, className: "text-ghibli-sunshine" });
+    case 'assignment':
+      return React.createElement(CheckSquare, { size: 16, className: "text-ghibli-lavender" });
+    case 'card_creator':
+      return React.createElement(CreditCard, { size: 16, className: "text-ghibli-coral" });
+    case 'drag_sort':
+      return React.createElement(Move, { size: 16, className: "text-ghibli-pink" });
+    case 'resource':
+      return React.createElement(Download, { size: 16, className: "text-ghibli-indigo" });
+    default:
+      return React.createElement(FileText, { size: 16, className: "text-gray-500" });
+  }
+};
+
+// 获取课时类型的显示名称
+export const getLessonTypeName = (type: LessonType): string => {
+  const typeInfo = getLessonTypeInfo(type);
+  return typeInfo ? typeInfo.name : '文本内容';
+};
+
 export const getInitialContentByType = (type: LessonType) => {
   switch(type) {
     case 'video':

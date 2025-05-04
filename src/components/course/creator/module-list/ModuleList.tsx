@@ -310,6 +310,54 @@ const ModuleList: React.FC<ModuleListProps> = ({
     }
   };
 
+  // 编辑/更新课时
+  const updateLesson = (updatedLesson: Lesson) => {
+    console.log('ModuleList - 正在更新课时:', updatedLesson);
+    
+    // 为了确保React状态更新，创建一个新的模块数组
+    const updatedModules = modules.map(module => {
+      // 找到包含这个课时的模块
+      if (module.id === updatedLesson.module_id) {
+        console.log(`找到模块 ${module.id}, 课时所属模块标题: "${module.title}"`);
+        
+        // 如果模块有课时列表
+        if (module.lessons && module.lessons.length > 0) {
+          // 创建一个新的课时数组，替换修改的课时
+          const updatedLessons = module.lessons.map(lesson => {
+            if (lesson.id === updatedLesson.id) {
+              console.log(`更新课时 ${lesson.id}, 从 "${lesson.title}" 到 "${updatedLesson.title}"`);
+              return updatedLesson; // 返回更新后的课时
+            }
+            return lesson; // 返回原始课时
+          });
+          
+          // 返回更新后的模块
+          return {
+            ...module,
+            lessons: updatedLessons
+          };
+        }
+      }
+      // 返回原始模块
+      return module;
+    });
+    
+    // 更新React状态
+    setModules(updatedModules);
+    
+    // 如果当前正在编辑的课时就是被更新的课时，也更新当前课时状态
+    setCurrentLesson(prev => 
+      prev && prev.id === updatedLesson.id ? updatedLesson : prev
+    );
+    
+    console.log('ModuleList - 课时更新完成');
+    
+    // 显示提示消息
+    toast.success(`课时标题已更新为: ${updatedLesson.title}`, {
+      duration: 1500
+    });
+  };
+
   return (
     <DndContext 
       sensors={sensors}
@@ -339,6 +387,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
                 onDeleteModule={deleteModule}
                 onToggleExpand={toggleModuleExpand}
                 onEditLesson={setCurrentLesson}
+                onUpdateLesson={updateLesson}
                 onDeleteLesson={deleteLesson}
                 onAddLesson={addLesson}
               />

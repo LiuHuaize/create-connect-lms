@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, GripVertical, Trash2 } from 'lucide-react';
 import { DraggableAttributes } from '@dnd-kit/core';
-import { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities/useListeners';
+import { toast } from 'sonner';
 
 interface ModuleHeaderProps {
   moduleId: string;
@@ -11,7 +11,7 @@ interface ModuleHeaderProps {
   onUpdateTitle: (moduleId: string, title: string) => void;
   onDeleteModule: (moduleId: string) => void;
   attributes?: DraggableAttributes;
-  listeners?: SyntheticListenerMap;
+  listeners?: any;
 }
 
 const ModuleHeader: React.FC<ModuleHeaderProps> = ({
@@ -24,43 +24,96 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
   attributes,
   listeners
 }) => {
+  const [currentTitle, setCurrentTitle] = useState(title);
+  const [isEditing, setIsEditing] = useState(false);
+  const [originalTitle, setOriginalTitle] = useState(title);
+
+  // 当外部传入的标题变化时，更新本地状态
+  useEffect(() => {
+    setCurrentTitle(title);
+    setOriginalTitle(title);
+  }, [title]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCurrentTitle(e.target.value);
+  };
+
+  const handleTitleBlur = () => {
+    setIsEditing(false);
+    
+    // 如果标题没有变化，不做任何操作
+    if (currentTitle === originalTitle) {
+      return;
+    }
+    
+    // 如果标题为空，使用原始标题
+    if (!currentTitle.trim()) {
+      setCurrentTitle(originalTitle);
+      toast.error('模块标题不能为空');
+      return;
+    }
+    
+    // 提交更改
+    onUpdateTitle(moduleId, currentTitle);
+    setOriginalTitle(currentTitle);
+    
+    // 显示反馈
+    console.log(`模块标题已更新: ${originalTitle} -> ${currentTitle}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      (e.target as HTMLInputElement).blur();
+    } else if (e.key === 'Escape') {
+      setCurrentTitle(originalTitle);
+      setIsEditing(false);
+    }
+  };
+
+  const handleTitleClick = () => {
+    setIsEditing(true);
+  };
+
   return (
-    <div 
-      className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200"
+    <div
+      className="flex items-center p-2 bg-slate-100 border-b border-gray-200 rounded-t cursor-pointer select-none"
+      {...attributes}
     >
-      <div className="flex items-center gap-2 flex-grow">
-        <button 
-          {...attributes} 
-          {...listeners} 
-          className="cursor-grab text-gray-400 hover:text-gray-600 p-1 focus:outline-none"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical size={18} />
-        </button>
-        
-        <button 
-          onClick={() => onToggleExpand(moduleId)}
-          className="p-1 text-gray-500 hover:text-gray-700 focus:outline-none"
-        >
-          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-        </button>
-        
+      <div className="cursor-move mr-2" {...listeners}>
+        <GripVertical size={16} className="text-gray-500" />
+      </div>
+      <div
+        className="mr-2 cursor-pointer"
+        onClick={() => onToggleExpand(moduleId)}
+      >
+        {isExpanded ? (
+          <ChevronDown size={16} className="text-gray-700" />
+        ) : (
+          <ChevronRight size={16} className="text-gray-700" />
+        )}
+      </div>
+      {isEditing ? (
         <input
           type="text"
-          value={title}
-          onChange={(e) => onUpdateTitle(moduleId, e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="text-lg font-medium focus:outline-none focus:ring-1 focus:ring-connect-blue rounded px-2 py-0.5 flex-grow bg-transparent"
-          placeholder="模块标题"
+          value={currentTitle}
+          onChange={handleTitleChange}
+          onBlur={handleTitleBlur}
+          onKeyDown={handleKeyDown}
+          className="flex-1 p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+          autoFocus
         />
-      </div>
-      
+      ) : (
+        <div
+          className="flex-1 font-medium text-gray-800 hover:bg-gray-200 p-1 rounded-md"
+          onClick={handleTitleClick}
+        >
+          {currentTitle || '未命名模块'}
+        </div>
+      )}
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDeleteModule(moduleId);
-        }}
-        className="text-gray-400 hover:text-red-500 transition-colors ml-2 p-1"
+        onClick={() => onDeleteModule(moduleId)}
+        className="p-1 text-gray-500 hover:text-red-500 focus:outline-none"
         aria-label="删除模块"
       >
         <Trash2 size={16} />

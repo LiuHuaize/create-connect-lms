@@ -265,25 +265,38 @@ export const courseService = {
   async addCourseModule(module: Omit<CourseModule, "created_at" | "updated_at">): Promise<CourseModule> {
     const isUpdate = Boolean(module.id);
     
-    const { data, error } = await supabase
-      .from("course_modules")
-      .upsert({
-        id: module.id,
-        course_id: module.course_id,
-        title: module.title,
-        order_index: module.order_index,
-        updated_at: new Date().toISOString(),
-        ...(isUpdate ? {} : { created_at: new Date().toISOString() })
-      })
-      .select("*")
-      .single();
-
-    if (error) {
-      console.error('保存课程模块失败:', error);
-      throw error;
+    if (!module.title || module.title.trim() === '') {
+      console.error('模块标题为空，设置为默认值');
+      module.title = `未命名模块 ${Date.now()}`;
     }
     
-    return data as unknown as CourseModule;
+    console.log(`正在保存模块到数据库: ${isUpdate ? '更新' : '新建'} - ID: ${module.id}, 标题: ${module.title}`);
+    
+    try {
+      const { data, error } = await supabase
+        .from("course_modules")
+        .upsert({
+          id: module.id,
+          course_id: module.course_id,
+          title: module.title,
+          order_index: module.order_index,
+          updated_at: new Date().toISOString(),
+          ...(isUpdate ? {} : { created_at: new Date().toISOString() })
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error('保存课程模块失败:', error);
+        throw error;
+      }
+      
+      console.log(`模块保存成功，从数据库返回: ID: ${data.id}, 标题: ${data.title}`);
+      return data as unknown as CourseModule;
+    } catch (error) {
+      console.error(`保存模块 "${module.title}" 时发生错误:`, error);
+      throw error;
+    }
   },
 
   // 软删除课程模块
@@ -409,33 +422,55 @@ export const courseService = {
       throw new Error("Lesson must have a module_id");
     }
 
-    const isUpdate = Boolean(lesson.id);
-    
-    const { data, error } = await supabase
-      .from("lessons")
-      .upsert({
-        id: lesson.id,
-        module_id: lesson.module_id,
-        title: lesson.title,
-        type: lesson.type,
-        content: lesson.content as unknown as Json,
-        order_index: lesson.order_index,
-        video_file_path: lesson.type === 'video' ? 
-          (lesson.video_file_path || (lesson.content as any).videoFilePath || null) : null,
-        bilibili_url: lesson.type === 'video' ? 
-          (lesson.bilibili_url || (lesson.content as any).bilibiliUrl || null) : null,
-        updated_at: new Date().toISOString(),
-        ...(isUpdate ? {} : { created_at: new Date().toISOString() })
-      })
-      .select("*")
-      .single();
-
-    if (error) {
-      console.error('保存课时失败:', error);
-      throw error;
+    if (!lesson.title || lesson.title.trim() === '') {
+      console.error('课时标题为空，设置为默认值');
+      lesson.title = `未命名课时 ${Date.now()}`;
     }
     
-    return convertDbLessonToLesson(data);
+    const isUpdate = Boolean(lesson.id);
+    console.log(`正在保存课时到数据库: ${isUpdate ? '更新' : '新建'} - ID: ${lesson.id}, 标题: ${lesson.title}`);
+    
+    try {
+      // 确保课时内容是有效的JSON对象
+      let contentToSave = lesson.content;
+      if (typeof contentToSave === 'string') {
+        try {
+          contentToSave = JSON.parse(contentToSave);
+        } catch (e) {
+          console.warn('课时内容不是有效的JSON，保持原值');
+        }
+      }
+      
+      const { data, error } = await supabase
+        .from("lessons")
+        .upsert({
+          id: lesson.id,
+          module_id: lesson.module_id,
+          title: lesson.title,
+          type: lesson.type,
+          content: contentToSave as unknown as Json,
+          order_index: lesson.order_index,
+          video_file_path: lesson.type === 'video' ? 
+            (lesson.video_file_path || (lesson.content as any).videoFilePath || null) : null,
+          bilibili_url: lesson.type === 'video' ? 
+            (lesson.bilibili_url || (lesson.content as any).bilibiliUrl || null) : null,
+          updated_at: new Date().toISOString(),
+          ...(isUpdate ? {} : { created_at: new Date().toISOString() })
+        })
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error('保存课时失败:', error);
+        throw error;
+      }
+      
+      console.log(`课时保存成功，从数据库返回: ID: ${data.id}, 标题: ${data.title}`);
+      return convertDbLessonToLesson(data);
+    } catch (error) {
+      console.error(`保存课时 "${lesson.title}" 时发生错误:`, error);
+      throw error;
+    }
   },
 
   // 软删除课时

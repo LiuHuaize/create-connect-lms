@@ -59,6 +59,13 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         id: toastId,
         duration: 2000
       });
+      
+      // 添加额外确认消息强化保存成功的感知
+      setTimeout(() => {
+        toast.info('所有模块和课时标题已更新', {
+          duration: 2000
+        });
+      }, 500);
     } catch (error) {
       console.error('保存课程失败:', error);
       toast.error('保存课程失败，请检查网络连接或刷新页面后重试');
