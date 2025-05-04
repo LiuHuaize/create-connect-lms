@@ -14,7 +14,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { 
   FileText, Video, FileQuestion, 
-  Plus, Trash2, AlertCircle, Download
+  Plus, Trash2, AlertCircle, Download, Layers
 } from 'lucide-react';
 import { 
   Lesson, 
@@ -27,6 +27,7 @@ import {
   CardCreatorLessonContent,
   DragSortContent,
   ResourceLessonContent,
+  FrameLessonContent,
   LessonContent
 } from '@/types/course';
 import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
@@ -34,6 +35,7 @@ import VideoUploader from './creator/VideoUploader';
 import CardCreatorLessonEditor from './CardCreatorLessonEditor';
 import DragSortEditor from './creator/drag-sort/DragSortEditor';
 import ResourceLessonEditor from './ResourceLessonEditor';
+import FrameLessonEditor from './FrameLessonEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -101,6 +103,12 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
           description: (baseContent as ResourceLessonContent)?.description || '',
           resourceFiles: (baseContent as ResourceLessonContent)?.resourceFiles || []
         } as ResourceLessonContent;
+      case 'frame':
+        return {
+          title: (baseContent as FrameLessonContent)?.title || lesson.title || '课程框架',
+          description: (baseContent as FrameLessonContent)?.description || '',
+          lessons: (baseContent as FrameLessonContent)?.lessons || []
+        } as FrameLessonContent;
       default:
         return baseContent;
     }
@@ -441,6 +449,20 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
             setCurrentContent(content);
             onContentChange(content);
           }}
+        />
+      );
+    }
+    
+    // 框架也有自己的UI和逻辑，单独处理
+    if (lesson.type === 'frame') {
+      return (
+        <FrameLessonEditor
+          lesson={lesson}
+          onSave={(content) => {
+            setCurrentContent(content);
+            onContentChange(content);
+          }}
+          onCourseDataSaved={onCourseDataSaved}
         />
       );
     }

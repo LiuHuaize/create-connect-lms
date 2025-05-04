@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle } from 'lucide-react';
+import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle, Layers } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent, ResourceLessonContent } from '@/types/course';
+import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent, ResourceLessonContent, FrameLessonContent as FrameLessonContentType } from '@/types/course';
 // 临时注释掉不存在的导入
 // import { CardCreatorTask } from '@/types/card-creator';
 import LessonNavigation from './LessonNavigation';
@@ -27,6 +27,126 @@ interface LessonContentProps {
   enrollmentId: string | null;
   navigate: NavigateFunction;
 }
+
+// 框架内容视图组件
+const FrameLessonView: React.FC<{
+  content: FrameLessonContentType;
+  courseId: string;
+  enrollmentId: string | null;
+  navigate: NavigateFunction;
+  onComplete?: () => void;
+}> = ({ content, courseId, enrollmentId, navigate, onComplete }) => {
+  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [renderedLesson, setRenderedLesson] = useState<Lesson | null>(null);
+  
+  // 初始化时设置第一个子课时
+  useEffect(() => {
+    if (content.lessons && content.lessons.length > 0) {
+      setRenderedLesson(content.lessons[0]);
+    }
+  }, [content]);
+  
+  // 当currentLessonIndex变化时，更新显示的课时
+  useEffect(() => {
+    if (content.lessons && content.lessons[currentLessonIndex]) {
+      setRenderedLesson(content.lessons[currentLessonIndex]);
+    }
+  }, [currentLessonIndex, content.lessons]);
+  
+  // 导航到下一个框架内课时
+  const goToNextLesson = () => {
+    if (currentLessonIndex < content.lessons.length - 1) {
+      setCurrentLessonIndex(prevIndex => prevIndex + 1);
+    } else if (onComplete) {
+      // 如果是最后一个课时，执行完成回调
+      onComplete();
+    }
+  };
+  
+  // 导航到上一个框架内课时
+  const goToPreviousLesson = () => {
+    if (currentLessonIndex > 0) {
+      setCurrentLessonIndex(prevIndex => prevIndex - 1);
+    }
+  };
+  
+  if (!renderedLesson) {
+    return <div>此框架中没有课时内容</div>;
+  }
+  
+  return (
+    <div>
+      {/* 框架描述信息 */}
+      {currentLessonIndex === 0 && content.description && (
+        <div className="mb-6 p-4 bg-ghibli-cream/40 rounded-lg border border-ghibli-sand/30">
+          <div className="flex items-start gap-3">
+            <Layers className="h-5 w-5 text-ghibli-purple mt-1" />
+            <div>
+              <h3 className="font-medium text-ghibli-deepTeal mb-1">框架介绍</h3>
+              <div className="text-sm text-ghibli-brown">
+                <MarkdownRenderer>{content.description || ''}</MarkdownRenderer>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 当前课时内容 */}
+      <div className="mb-4">
+        <Card className="border-none shadow-sm">
+          <CardHeader className="pb-2">
+            <div className="text-xs text-ghibli-brown mb-1">
+              第 {currentLessonIndex + 1}/{content.lessons.length} 课时
+            </div>
+            <CardTitle className="text-xl text-ghibli-deepTeal">
+              {renderedLesson.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* 渲染子课时内容 */}
+            {(() => {
+              const lesson = renderedLesson;
+              switch (lesson.type) {
+                case 'text':
+                  return <TextLessonContent key={lesson.id} content={lesson.content as any} />;
+                case 'video':
+                  return <VideoLessonContent 
+                    key={lesson.id}
+                    content={lesson.content as any} 
+                    videoFilePath={lesson.video_file_path} 
+                  />;
+                // 可以根据需要添加其他类型
+                default:
+                  return <div key={lesson.id}>此类型的内容暂不支持在框架内显示</div>;
+              }
+            })()}
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* 框架内导航按钮 */}
+      <div className="flex justify-between mt-6">
+        <Button 
+          variant="outline" 
+          className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
+          onClick={goToPreviousLesson}
+          disabled={currentLessonIndex === 0}
+        >
+          <ChevronLeft className="mr-2 h-5 w-5" /> 上一步
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
+          onClick={goToNextLesson}
+          disabled={currentLessonIndex === content.lessons.length - 1}
+        >
+          下一步 <ChevronRight className="ml-2 h-5 w-5" />
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const LessonContent: React.FC<LessonContentProps> = ({
   selectedLesson,
@@ -344,6 +464,21 @@ const LessonContent: React.FC<LessonContentProps> = ({
 
     // 根据课时类型渲染不同内容
     switch (selectedLesson.type) {
+      case 'frame':
+        return (
+          <FrameLessonView 
+            content={selectedLesson.content as FrameLessonContentType}
+            courseId={courseData?.id || ''}
+            enrollmentId={enrollmentId}
+            navigate={navigate}
+            onComplete={() => {
+              if (selectedLesson && courseData && enrollmentId) {
+                markCurrentLessonComplete();
+              }
+            }}
+          />
+        );
+      
       case 'text':
         return <TextLessonContent 
           key={selectedLesson.id}
@@ -460,7 +595,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
             <CardContent className="p-4 sm:p-6">
               {renderLessonContent()}
               
-              {selectedLesson.type !== 'resource' && (
+              {selectedLesson.type !== 'resource' && selectedLesson.type !== 'frame' && (
                 <LessonNavigation 
                   courseData={courseData}
                   selectedLesson={selectedLesson}

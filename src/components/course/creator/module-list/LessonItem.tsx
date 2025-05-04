@@ -1,15 +1,10 @@
-import React, { useState } from 'react';
-import { Pencil, Trash2, GripVertical, Frame, ChevronDown, ChevronRight, Plus } from 'lucide-react';
-import { Lesson, LessonType } from '@/types/course';
-import { getLessonTypeIcon, getLessonTypeName, LESSON_TYPES } from './lessonTypeUtils';
+import React, { useState, useEffect } from 'react';
+import { Trash2, Pencil, GripVertical } from 'lucide-react';
+import { Lesson } from '@/types/course';
+import { getLessonTypeIcon, getLessonTypeName } from './lessonTypeUtils';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button } from '@/components/ui/button';
-import { useDroppable } from '@dnd-kit/core';
-import { v4 as uuidv4 } from 'uuid';
-import { DragEndEvent } from '@dnd-kit/core';
 
 interface LessonItemProps {
   lesson: Lesson;
@@ -18,7 +13,6 @@ interface LessonItemProps {
   onEditLesson: (lesson: Lesson) => void;
   onUpdateLesson?: (lesson: Lesson) => void;
   onDeleteLesson: (moduleId: string, lessonId: string) => void;
-  isInFrame?: boolean;
 }
 
 const LessonItem: React.FC<LessonItemProps> = ({
@@ -27,305 +21,154 @@ const LessonItem: React.FC<LessonItemProps> = ({
   index,
   onEditLesson,
   onUpdateLesson,
-  onDeleteLesson,
-  isInFrame = false
+  onDeleteLesson
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [title, setTitle] = useState(lesson.title);
-  const [isExpanded, setIsExpanded] = useState(false);
-  
+  const [editedTitle, setEditedTitle] = useState(lesson.title);
+  const [originalTitle, setOriginalTitle] = useState(lesson.title);
+
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
-    transition,
-    isDragging
-  } = useSortable({
-    id: lesson.id,
-    data: {
-      type: 'lesson',
-      lesson,
-      index,
-      moduleId
-    }
-  });
-  
-  const { setNodeRef: setDroppableNodeRef, isOver } = useDroppable({
-    id: `frame-${lesson.id}`,
-    data: {
-      frameId: lesson.id,
-      accepts: ['lesson'],
-      moduleId
-    },
-    disabled: !lesson.isFrame
-  });
-  
+    transition
+  } = useSortable({ id: lesson.id });
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 10 : 'auto',
-    position: 'relative' as 'relative'
   };
-  
+
+  // 当外部传入的课时标题变更时，更新内部状态
+  useEffect(() => {
+    setEditedTitle(lesson.title);
+    setOriginalTitle(lesson.title);
+  }, [lesson.title]);
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
+    setEditedTitle(e.target.value);
   };
-  
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
   const handleTitleBlur = () => {
     setIsEditing(false);
-    if (title.trim() === '') {
-      setTitle(lesson.title);
+    
+    // 如果标题没有变化，不做任何操作
+    if (editedTitle === originalTitle) {
+      return;
+    }
+    
+    // 如果标题为空，恢复原始标题
+    if (!editedTitle.trim()) {
+      setEditedTitle(originalTitle);
       toast.error('课时标题不能为空');
       return;
     }
     
-    if (title !== lesson.title && onUpdateLesson) {
-      const updatedLesson = { ...lesson, title };
+    // 更新课时标题
+    const updatedLesson = {
+      ...lesson,
+      title: editedTitle.trim()
+    };
+    
+    // 先记录日志，便于调试
+    console.log(`课时标题更新: ${lesson.id} - 从 "${originalTitle}" 到 "${editedTitle.trim()}"`);
+    
+    // 如果有onUpdateLesson，优先使用它进行更新
+    if (onUpdateLesson) {
+      console.log('调用onUpdateLesson更新课时标题');
       onUpdateLesson(updatedLesson);
+    } else {
+      // 否则回退到onEditLesson
+      console.log('没有onUpdateLesson函数，使用onEditLesson代替');
+      onEditLesson(updatedLesson);
     }
+    
+    // 更新内部状态
+    setOriginalTitle(editedTitle.trim());
+    
+    // 显示反馈
+    console.log(`课时标题已更新: ${originalTitle} -> ${editedTitle.trim()}`);
   };
-  
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleTitleBlur();
+      e.preventDefault();
+      (e.target as HTMLInputElement).blur();
     } else if (e.key === 'Escape') {
-      setTitle(lesson.title);
+      setEditedTitle(originalTitle);
       setIsEditing(false);
     }
   };
 
-  // 处理添加子课时到框架
-  const handleAddSubLesson = (type: LessonType) => {
-    if (!lesson.isFrame || !onUpdateLesson) return;
-    
-    const newSubLesson: Lesson = {
-      id: uuidv4(),
-      module_id: moduleId,
-      type: type,
-      title: `新${type}课程`,
-      content: {},
-      order_index: lesson.subLessons?.length || 0
-    };
-    
-    const updatedSubLessons = [...(lesson.subLessons || []), newSubLesson];
-    const updatedLesson = {
-      ...lesson,
-      subLessons: updatedSubLessons
-    };
-    
-    onUpdateLesson(updatedLesson);
-    setIsExpanded(true);
-    toast.success(`已添加新${getLessonTypeName(type)}到框架`);
+  const lessonTypeIcon = getLessonTypeIcon(lesson.type);
+  const lessonTypeName = getLessonTypeName(lesson.type);
+
+  // 处理完整的课时编辑（点击课时本身而不是标题）
+  const handleFullLessonEdit = () => {
+    // 只有在点击课时内容区域(而不是标题编辑区域)时才触发完整编辑
+    if (!isEditing) {
+      onEditLesson(lesson);
+    }
   };
 
-  // 处理从框架中删除子课时
-  const handleDeleteSubLesson = (subLessonId: string) => {
-    if (!lesson.isFrame || !lesson.subLessons || !onUpdateLesson) return;
-    
-    // 从框架子课时列表中移除课时
-    const updatedSubLessons = lesson.subLessons
-      .filter(sl => sl.id !== subLessonId)
-      // 更新order_index以保持连续
-      .map((subLesson, index) => ({
-        ...subLesson,
-        order_index: index
-      }));
-      
-    const updatedLesson = {
-      ...lesson,
-      subLessons: updatedSubLessons
-    };
-    
-    onUpdateLesson(updatedLesson);
-    toast.success('已从框架中删除课时');
-  };
-
-  // 子课时点击编辑处理
-  const handleEditSubLesson = (subLesson: Lesson) => {
-    // 创建一个临时Lesson对象，包含框架信息
-    const tempLesson = {
-      ...subLesson,
-      parentFrameId: lesson.id, // 添加父框架ID，以便编辑后能找回
-      isSubLesson: true // 标记为子课时
-    };
-    onEditLesson(tempLesson);
-  };
-  
-  // 处理子课时的拖动排序
-  const handleSubLessonDragEnd = (event: DragEndEvent) => {
-    // ... implement sub-lesson drag sorting logic
-  };
-
-  // 基本课时项渲染
-  const renderBasicLessonItem = () => (
-    <div 
-      ref={setNodeRef} 
+  return (
+    <div
+      ref={setNodeRef}
       style={style}
-      className={`flex items-center border border-gray-200 rounded-md p-2 mb-2 ${
-        isInFrame 
-          ? 'bg-white shadow-sm hover:shadow-md transition-shadow' 
-          : 'bg-white hover:bg-gray-50'
-      } ${isDragging ? 'opacity-50' : ''}`}
+      className="flex items-center p-2 my-1 bg-white border border-gray-200 rounded-md shadow-sm group"
     >
-      <div {...attributes} {...listeners} className="cursor-grab mr-2">
+      <div className="cursor-move mr-2" {...attributes} {...listeners}>
         <GripVertical size={16} className="text-gray-400" />
       </div>
       
-      <div className="flex-shrink-0 mr-2">
-        {getLessonTypeIcon(lesson.type)}
+      <div className="mr-2" title={`${lessonTypeName}课时`}>
+        {lessonTypeIcon}
       </div>
       
-      {lesson.isFrame && (
-        <button 
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="mr-2 text-gray-500 hover:text-gray-700 focus:outline-none"
-        >
-          {isExpanded ? (
-            <ChevronDown size={16} />
-          ) : (
-            <ChevronRight size={16} />
-          )}
-        </button>
-      )}
+      <div className="flex-1">
+        {isEditing ? (
+          <input
+            type="text"
+            value={editedTitle}
+            onChange={handleTitleChange}
+            onBlur={handleTitleBlur}
+            onKeyDown={handleKeyDown}
+            className="w-full p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+            autoFocus
+          />
+        ) : (
+          <div 
+            className="font-medium text-gray-700 hover:bg-gray-100 p-1 rounded-md cursor-pointer"
+            onClick={handleEditClick}
+          >
+            {editedTitle || '未命名课时'}
+          </div>
+        )}
+      </div>
       
-      {isEditing ? (
-        <input
-          type="text"
-          value={title}
-          onChange={handleTitleChange}
-          onBlur={handleTitleBlur}
-          onKeyDown={handleKeyDown}
-          className="flex-1 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-          autoFocus
-        />
-      ) : (
-        <div 
-          className="flex-1 cursor-pointer hover:underline"
-          onClick={() => lesson.isFrame ? setIsExpanded(!isExpanded) : onEditLesson(lesson)}
-        >
-          {lesson.title}
-          <span className="ml-2 text-xs text-gray-500">
-            {getLessonTypeName(lesson.type)}
-          </span>
-          {lesson.isFrame && (
-            <span className="ml-2 text-xs bg-ghibli-purple bg-opacity-20 text-ghibli-purple px-2 py-0.5 rounded">
-              框架
-            </span>
-          )}
-        </div>
-      )}
-      
-      <div className="flex items-center ml-2 space-x-1">
+      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
-          onClick={() => setIsEditing(true)}
-          className="p-1 text-gray-400 hover:text-blue-500 focus:outline-none"
-          aria-label="编辑课时标题"
+          onClick={handleFullLessonEdit}
+          className="p-1 text-gray-500 hover:text-blue-500 focus:outline-none"
+          aria-label="编辑课时内容"
         >
           <Pencil size={14} />
         </button>
         
         <button
           onClick={() => onDeleteLesson(moduleId, lesson.id)}
-          className="p-1 text-gray-400 hover:text-red-500 focus:outline-none"
+          className="p-1 text-gray-500 hover:text-red-500 focus:outline-none"
           aria-label="删除课时"
         >
           <Trash2 size={14} />
         </button>
       </div>
     </div>
-  );
-
-  // 框架内容渲染
-  const renderFrameContent = () => {
-    if (!lesson.isFrame || !isExpanded) return null;
-    
-    return (
-      <div 
-        className="ml-6 mt-2 pl-4 border-l-2 border-ghibli-purple border-dashed"
-      >
-        <div 
-          ref={setDroppableNodeRef}
-          className={`space-y-2 mb-4 rounded-md p-2 min-h-[50px] ${
-            isOver ? 'bg-blue-50 border border-dashed border-blue-300' : ''
-          }`}
-        >
-          {lesson.subLessons && lesson.subLessons.length > 0 ? (
-            <SortableContext 
-              items={lesson.subLessons.map(sl => sl.id)} 
-              strategy={verticalListSortingStrategy}
-            >
-              {lesson.subLessons
-                .sort((a, b) => a.order_index - b.order_index)
-                .map((subLesson, idx) => (
-                  <div 
-                    key={subLesson.id}
-                    className="flex items-center border border-gray-200 rounded-md p-2 mb-2 bg-white hover:bg-gray-50"
-                  >
-                    <div className="flex-shrink-0 mr-2">
-                      {getLessonTypeIcon(subLesson.type)}
-                    </div>
-                    
-                    <div 
-                      className="flex-1 cursor-pointer hover:underline"
-                      onClick={() => handleEditSubLesson(subLesson)}
-                    >
-                      {subLesson.title}
-                      <span className="ml-2 text-xs text-gray-500">
-                        {getLessonTypeName(subLesson.type)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center ml-2 space-x-1">
-                      <button
-                        onClick={() => handleDeleteSubLesson(subLesson.id)}
-                        className="p-1 text-gray-400 hover:text-red-500 focus:outline-none"
-                        aria-label="删除子课时"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              }
-            </SortableContext>
-          ) : (
-            <div className="text-center py-4 text-gray-400 text-sm italic">
-              {isOver 
-                ? "放置课时到这里..." 
-                : "此框架暂无课时，请添加内容"
-              }
-            </div>
-          )}
-        </div>
-        
-        <div className="flex flex-wrap gap-2 mb-2">
-          {LESSON_TYPES
-            .filter(type => type.id !== 'frame') // 不允许嵌套框架
-            .map((type) => (
-              <Button 
-                key={type.id}
-                size="sm"
-                variant="outline"
-                className="flex items-center space-x-1 text-xs"
-                onClick={() => handleAddSubLesson(type.id)}
-              >
-                {type.icon}
-                <span className="ml-1">{type.name}</span>
-              </Button>
-            ))
-          }
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <>
-      {renderBasicLessonItem()}
-      {renderFrameContent()}
-    </>
   );
 };
 

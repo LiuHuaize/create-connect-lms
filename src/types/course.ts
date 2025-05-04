@@ -33,7 +33,6 @@ export type CourseModule = {
   created_at?: string;
   updated_at?: string;
   lessons?: Lesson[];
-  isFrame?: boolean; // 是否是框架模块
 };
 
 // Define all possible lesson content types
@@ -137,6 +136,13 @@ export type LessonCompletion = {
   data?: any;
 };
 
+// 框架课时内容类型 - 可以包含多个子课时内容
+export type FrameLessonContent = {
+  title: string;
+  description?: string;
+  lessons: Lesson[]; // 框架内的课时
+};
+
 // Union type for all possible lesson content
 export type LessonContent = 
   | VideoLessonContent 
@@ -146,7 +152,8 @@ export type LessonContent =
   | CodeLessonContent
   | CardCreatorLessonContent
   | DragSortContent
-  | ResourceLessonContent;
+  | ResourceLessonContent
+  | FrameLessonContent;
 
 // Quiz related types
 export type QuizQuestionType = 'multiple_choice' | 'true_false' | 'short_answer';
@@ -181,10 +188,6 @@ export type Lesson = {
   updated_at?: string;
   video_file_path?: string | null; // 视频文件路径
   bilibili_url?: string | null; // B站嵌入URL
-  isFrame?: boolean; // 是否是框架容器
-  subLessons?: Lesson[]; // 框架内的子课时
-  parentFrameId?: string; // 父框架ID，用于子课时
-  isSubLesson?: boolean; // 是否是框架中的子课时
 };
 
 // 拖拽分类练习的数据结构

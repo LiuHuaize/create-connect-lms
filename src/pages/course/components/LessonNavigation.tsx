@@ -62,6 +62,7 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
       
       // 添加到全局列表
       sortedLessons.forEach(lesson => {
+        // 直接添加所有顶层课时
         allLessons.push({
           lesson, 
           moduleIndex
