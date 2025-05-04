@@ -377,7 +377,7 @@ export const useCourseCreator = () => {
     setCompletionPercentage(percentage);
   };
 
-  const handleSaveCourse = async () => {
+  const handleSaveCourse = async (updatedLesson?: Lesson) => {
     try {
       console.log('开始保存课程:', course);
       
@@ -390,6 +390,65 @@ export const useCourseCreator = () => {
         return;
       }
       
+      // 如果提供了更新后的课时，优先处理它
+      if (updatedLesson) {
+        console.log('检测到直接传入的更新课时，优先保存:', updatedLesson);
+        console.log(`课时标题: "${updatedLesson.title}"，类型: ${updatedLesson.type}`);
+        
+        // 找到课时所属的模块
+        const moduleWithLesson = modules.find(module => 
+          module.lessons.some(lesson => lesson.id === updatedLesson.id)
+        );
+        
+        if (moduleWithLesson) {
+          try {
+            // 在保存前先更新React状态，确保最新的数据被保存
+            setModules(prevModules => {
+              const updatedModules = prevModules.map(module => {
+                if (module.id === moduleWithLesson.id) {
+                  return {
+                    ...module,
+                    lessons: module.lessons.map(lesson => 
+                      lesson.id === updatedLesson.id ? { ...updatedLesson } : lesson
+                    )
+                  };
+                }
+                return module;
+              });
+              
+              console.log('更新后的模块状态:', updatedModules);
+              return updatedModules;
+            });
+            
+            // 等待状态更新完成
+            await new Promise(resolve => setTimeout(resolve, 0));
+            
+            // 直接保存课时到数据库，使用传入的updatedLesson而不是从状态中读取
+            const savedLesson = await courseService.addLesson({
+              ...updatedLesson,
+              module_id: moduleWithLesson.id
+            });
+            
+            console.log('课时单独保存成功:', savedLesson);
+            toast.success(`课时 "${savedLesson.title}" 已保存`);
+            
+            // 保存完成，更新引用
+            setTimeout(() => {
+              previousModulesRef.current = JSON.parse(JSON.stringify(modules));
+            }, 0);
+            
+            return savedLesson.id;
+          } catch (error) {
+            console.error('单独保存课时失败:', error);
+            toast.error('保存课时失败，请稍后再试');
+            throw error;
+          }
+        } else {
+          console.error('找不到课时所属的模块:', updatedLesson.id);
+        }
+      }
+      
+      // 如果没有提供单独的课时，或者单独保存失败，继续正常的保存流程
       // 检查并确保所有模块都有标题
       const invalidModules = modules.filter(module => !module.title || module.title.trim() === '');
       if (invalidModules.length > 0) {

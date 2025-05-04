@@ -3,6 +3,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Loader2 } from 'lucide-react';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 // Lazy loaded components
 const LessonEditor = React.lazy(() => import('@/components/course/LessonEditor'));
@@ -25,7 +26,7 @@ interface CourseTabContentProps {
   setCoverImageURL: React.Dispatch<React.SetStateAction<string | null>>;
   moduleDataLoaded: boolean;
   onEditorFullscreenChange?: (isFullscreen: boolean) => void;
-  onSaveCourse?: () => Promise<string | undefined | void>;
+  onSaveCourse?: (updatedLesson?: Lesson) => Promise<string | undefined | void>;
 }
 
 const LoadingFallback = () => (
@@ -57,17 +58,33 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
       return;
     }
     
-    setModules(modules.map(module => 
-      module.id === moduleId 
-        ? { 
-            ...module, 
-            lessons: module.lessons.map(lesson => 
-              lesson.id === lessonId ? updatedLesson : lesson
-            ) 
-          } 
-        : module
-    ));
+    console.log(`CourseTabContent - 更新课时: ${lessonId}`, updatedLesson);
+    console.log(`课时标题更新: 从 "${modules.find(m => m.id === moduleId)?.lessons.find(l => l.id === lessonId)?.title}" 到 "${updatedLesson.title}"`);
+    
+    // 创建模块的深拷贝，确保状态更新正确触发
+    const updatedModules = modules.map(module => {
+      if (module.id === moduleId) {
+        // 创建课时的深拷贝
+        const updatedLessons = module.lessons.map(lesson => 
+          lesson.id === lessonId ? { ...updatedLesson } : lesson
+        );
+        
+        return { 
+          ...module, 
+          lessons: updatedLessons
+        };
+      }
+      return module;
+    });
+    
+    // 更新模块状态
+    setModules(updatedModules);
+    
+    // 重置当前课时
     setCurrentLesson(null);
+    
+    // 显示成功通知
+    toast.success(`课时 "${updatedLesson.title}" 已更新`, { duration: 2000 });
   };
   
   // Add a new handler for content changes

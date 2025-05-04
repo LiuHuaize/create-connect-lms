@@ -425,10 +425,13 @@ export const courseService = {
     if (!lesson.title || lesson.title.trim() === '') {
       console.error('课时标题为空，设置为默认值');
       lesson.title = `未命名课时 ${Date.now()}`;
+    } else {
+      // 确保标题被正确处理
+      lesson.title = lesson.title.trim();
     }
     
     const isUpdate = Boolean(lesson.id);
-    console.log(`正在保存课时到数据库: ${isUpdate ? '更新' : '新建'} - ID: ${lesson.id}, 标题: ${lesson.title}`);
+    console.log(`正在保存课时到数据库: ${isUpdate ? '更新' : '新建'} - ID: ${lesson.id}, 标题: "${lesson.title}"`);
     
     try {
       // 确保课时内容是有效的JSON对象
@@ -441,22 +444,32 @@ export const courseService = {
         }
       }
       
+      const lessonToSave = {
+        id: lesson.id,
+        module_id: lesson.module_id,
+        title: lesson.title,
+        type: lesson.type,
+        content: contentToSave as unknown as Json,
+        order_index: lesson.order_index,
+        video_file_path: lesson.type === 'video' ? 
+          (lesson.video_file_path || (lesson.content as any).videoFilePath || null) : null,
+        bilibili_url: lesson.type === 'video' ? 
+          (lesson.bilibili_url || (lesson.content as any).bilibiliUrl || null) : null,
+        updated_at: new Date().toISOString(),
+        ...(isUpdate ? {} : { created_at: new Date().toISOString() })
+      };
+      
+      console.log('准备发送到数据库的课时数据:', JSON.stringify({
+        id: lessonToSave.id,
+        title: lessonToSave.title,
+        module_id: lessonToSave.module_id,
+        type: lessonToSave.type,
+        // 省略大型内容字段
+      }));
+      
       const { data, error } = await supabase
         .from("lessons")
-        .upsert({
-          id: lesson.id,
-          module_id: lesson.module_id,
-          title: lesson.title,
-          type: lesson.type,
-          content: contentToSave as unknown as Json,
-          order_index: lesson.order_index,
-          video_file_path: lesson.type === 'video' ? 
-            (lesson.video_file_path || (lesson.content as any).videoFilePath || null) : null,
-          bilibili_url: lesson.type === 'video' ? 
-            (lesson.bilibili_url || (lesson.content as any).bilibiliUrl || null) : null,
-          updated_at: new Date().toISOString(),
-          ...(isUpdate ? {} : { created_at: new Date().toISOString() })
-        })
+        .upsert(lessonToSave)
         .select("*")
         .single();
 
@@ -465,7 +478,7 @@ export const courseService = {
         throw error;
       }
       
-      console.log(`课时保存成功，从数据库返回: ID: ${data.id}, 标题: ${data.title}`);
+      console.log(`课时保存成功，从数据库返回: ID: ${data.id}, 标题: "${data.title}"`);
       return convertDbLessonToLesson(data);
     } catch (error) {
       console.error(`保存课时 "${lesson.title}" 时发生错误:`, error);

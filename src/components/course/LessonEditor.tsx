@@ -49,7 +49,7 @@ interface LessonEditorProps {
   onSave: (updatedLesson: Lesson | null) => void;
   onContentChange: (newContent: LessonContent) => void;
   onEditorFullscreenChange?: (isFullscreen: boolean) => void;
-  onCourseDataSaved?: () => Promise<string | undefined | void>;
+  onCourseDataSaved?: (updatedLesson: Lesson) => Promise<string | undefined | void>;
 }
 
 const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChange, onCourseDataSaved }: LessonEditorProps) => {
@@ -128,11 +128,15 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
   };
   
   const handleSubmit = async (data) => {
+    console.log('正在保存课时数据:', data);
     const updatedLesson: Lesson = {
       ...lesson,
-      title: data.title,
+      title: data.title.trim(), // 确保标题被正确处理
       content: { ...currentContent }
     };
+    
+    // 记录日志以便调试
+    console.log(`提交课时标题更新: 从 "${lesson.title}" 到 "${data.title.trim()}"`);
     
     // Depending on the lesson type, extract the relevant content fields
     if (lesson.type === 'video') {
@@ -143,39 +147,31 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
       } as VideoLessonContent;
       updatedLesson.video_file_path = (currentContent as VideoLessonContent).videoFilePath || null;
       updatedLesson.bilibili_url = data.bilibiliUrl || null;
+    } else if (lesson.type === 'resource') {
+      // Resource lessons are handled separately in the resource editor
     } else if (lesson.type === 'text') {
-      updatedLesson.content = { 
-        text: data.text 
+      updatedLesson.content = {
+        text: data.content
       } as TextLessonContent;
     } else if (lesson.type === 'quiz') {
-      // Quiz questions are handled separately through the questions state
-      updatedLesson.content = { 
-        questions: questions 
-      } as QuizLessonContent;
-    } else if (lesson.type === 'assignment') {
-      updatedLesson.content = { 
-        instructions: data.instructions,
-        criteria: data.criteria,
-        aiGradingPrompt: data.aiGradingPrompt
-      } as AssignmentLessonContent;
+      // Quiz is handled by the quiz editor
     }
-    // 卡片创建器、拖拽分类和资源内容在子组件内处理，直接使用currentContent
     
     // 首先更新课程内容的状态
     onSave(updatedLesson);
     
     // 然后如果提供了数据库保存回调，则调用它保存到数据库
+    // 直接传递更新后的课时对象，确保保存的是最新数据
     if (onCourseDataSaved) {
       try {
         const toastId = toast.loading('正在保存课程到数据库...');
-        await onCourseDataSaved();
-        toast.success('课程已成功保存到数据库', {
-          id: toastId,
-          duration: 2000
-        });
+        console.log('即将保存到数据库的课时数据:', JSON.stringify(updatedLesson));
+        await onCourseDataSaved(updatedLesson);
+        toast.success('保存成功', { id: toastId });
+        form.reset(data); // 重置表单状态，避免意外的isDirty状态
       } catch (error) {
-        console.error('保存课程到数据库失败:', error);
-        toast.error('保存课程到数据库失败，请稍后再试');
+        console.error('保存失败:', error);
+        toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
       }
     }
   };
@@ -399,13 +395,6 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
     }
   }, [lesson.module_id]);
   
-  // 处理保存
-  const handleSaveCourse = async () => {
-    if (onCourseDataSaved) {
-      await onCourseDataSaved();
-    }
-  };
-  
   // 渲染特定类型的课时编辑器
   const renderLessonEditor = () => {
     // 资源编辑器有自己的保存按钮和表单，单独处理
@@ -414,7 +403,16 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         <ResourceLessonEditor
           lesson={lesson}
           onChange={handleResourceContentChange}
-          onSave={handleSaveCourse}
+          onSave={async () => {
+            if (onCourseDataSaved) {
+              // 创建更新后的课时对象
+              const updatedResourceLesson = {
+                ...lesson,
+                content: currentContent
+              };
+              await onCourseDataSaved(updatedResourceLesson);
+            }
+          }}
           isSaving={false}
           courseId={courseId}
         />
