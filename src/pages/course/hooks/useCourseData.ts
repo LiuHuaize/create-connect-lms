@@ -82,6 +82,7 @@ const fetchCourseDetails = async (courseId: string | undefined) => {
     return courseDetails;
   } catch (error) {
     console.error('获取课程详情失败:', error);
+    console.timeEnd('fetchCourseDetails');
     throw error;
   }
 };

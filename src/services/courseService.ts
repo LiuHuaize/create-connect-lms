@@ -186,6 +186,7 @@ export const courseService = {
       };
     } catch (error) {
       console.error('获取课程详情时出错:', error);
+      console.timeEnd('getCourseDetails'); // 确保在发生异常时也能结束计时器
       throw error;
     }
   },

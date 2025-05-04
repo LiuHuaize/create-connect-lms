@@ -159,7 +159,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
       // Resource lessons are handled separately in the resource editor
     } else if (lesson.type === 'text') {
       updatedLesson.content = {
-        text: data.content
+        text: data.text
       } as TextLessonContent;
     } else if (lesson.type === 'quiz') {
       // Quiz is handled by the quiz editor
