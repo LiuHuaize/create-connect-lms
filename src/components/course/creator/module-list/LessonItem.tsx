@@ -9,6 +9,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Button } from '@/components/ui/button';
 import { useDroppable } from '@dnd-kit/core';
 import { v4 as uuidv4 } from 'uuid';
+import { DragEndEvent } from '@dnd-kit/core';
 
 interface LessonItemProps {
   lesson: Lesson;
@@ -54,7 +55,8 @@ const LessonItem: React.FC<LessonItemProps> = ({
     id: `frame-${lesson.id}`,
     data: {
       frameId: lesson.id,
-      accepts: ['lesson']
+      accepts: ['lesson'],
+      moduleId
     },
     disabled: !lesson.isFrame
   });
@@ -122,7 +124,15 @@ const LessonItem: React.FC<LessonItemProps> = ({
   const handleDeleteSubLesson = (subLessonId: string) => {
     if (!lesson.isFrame || !lesson.subLessons || !onUpdateLesson) return;
     
-    const updatedSubLessons = lesson.subLessons.filter(sl => sl.id !== subLessonId);
+    // 从框架子课时列表中移除课时
+    const updatedSubLessons = lesson.subLessons
+      .filter(sl => sl.id !== subLessonId)
+      // 更新order_index以保持连续
+      .map((subLesson, index) => ({
+        ...subLesson,
+        order_index: index
+      }));
+      
     const updatedLesson = {
       ...lesson,
       subLessons: updatedSubLessons
@@ -132,30 +142,20 @@ const LessonItem: React.FC<LessonItemProps> = ({
     toast.success('已从框架中删除课时');
   };
 
-  // 处理编辑子课时
+  // 子课时点击编辑处理
   const handleEditSubLesson = (subLesson: Lesson) => {
     // 创建一个临时Lesson对象，包含框架信息
     const tempLesson = {
       ...subLesson,
-      parentFrameId: lesson.id // 添加父框架ID，以便编辑后能找回
+      parentFrameId: lesson.id, // 添加父框架ID，以便编辑后能找回
+      isSubLesson: true // 标记为子课时
     };
     onEditLesson(tempLesson);
   };
-
-  // 处理更新子课时
-  const handleUpdateSubLesson = (updatedSubLesson: Lesson) => {
-    if (!lesson.isFrame || !lesson.subLessons || !onUpdateLesson) return;
-    
-    const updatedSubLessons = lesson.subLessons.map(sl => 
-      sl.id === updatedSubLesson.id ? updatedSubLesson : sl
-    );
-    
-    const updatedLesson = {
-      ...lesson,
-      subLessons: updatedSubLessons
-    };
-    
-    onUpdateLesson(updatedLesson);
+  
+  // 处理子课时的拖动排序
+  const handleSubLessonDragEnd = (event: DragEndEvent) => {
+    // ... implement sub-lesson drag sorting logic
   };
 
   // 基本课时项渲染
@@ -244,9 +244,9 @@ const LessonItem: React.FC<LessonItemProps> = ({
     return (
       <div 
         className="ml-6 mt-2 pl-4 border-l-2 border-ghibli-purple border-dashed"
-        ref={setDroppableNodeRef}
       >
         <div 
+          ref={setDroppableNodeRef}
           className={`space-y-2 mb-4 rounded-md p-2 min-h-[50px] ${
             isOver ? 'bg-blue-50 border border-dashed border-blue-300' : ''
           }`}

@@ -183,6 +183,8 @@ export type Lesson = {
   bilibili_url?: string | null; // B站嵌入URL
   isFrame?: boolean; // 是否是框架容器
   subLessons?: Lesson[]; // 框架内的子课时
+  parentFrameId?: string; // 父框架ID，用于子课时
+  isSubLesson?: boolean; // 是否是框架中的子课时
 };
 
 // 拖拽分类练习的数据结构

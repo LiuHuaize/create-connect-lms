@@ -12,7 +12,9 @@ import {
   DragStartEvent,
   PointerSensor,
   useSensor,
-  useSensors
+  useSensors,
+  closestCenter,
+  DndContextProps
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { courseService } from '@/services/courseService';
@@ -221,6 +223,75 @@ const ModuleList: React.FC<ModuleListProps> = ({
     const overModuleId = overData?.moduleId as string | undefined;
     const overIsModule = !overData || overData.moduleId === overId;
     
+    // --- 检测是否是拖入框架 ---
+    const isDropIntoFrame = overId.startsWith('frame-');
+    
+    if (isDropIntoFrame && activeData?.type === 'lesson') {
+      // 处理拖入框架的情况
+      const frameId = overId.replace('frame-', '');
+      
+      setModules((prevModules) => {
+        // 查找源模块和课时
+        const sourceModuleIndex = prevModules.findIndex(m => m.id === activeModuleId);
+        if (sourceModuleIndex === -1) return prevModules;
+        
+        const sourceModule = prevModules[sourceModuleIndex];
+        const sourceLessons = sourceModule.lessons || [];
+        const lessonIndex = sourceLessons.findIndex(l => l.id === activeId);
+        if (lessonIndex === -1) return prevModules;
+        
+        const movedLesson = sourceLessons[lessonIndex];
+        
+        // 查找框架所在的模块和框架课时
+        const frameModuleId = overData.moduleId;
+        const frameModuleIndex = prevModules.findIndex(m => m.id === frameModuleId);
+        if (frameModuleIndex === -1) return prevModules;
+        
+        const frameModule = prevModules[frameModuleIndex];
+        const frameLessons = frameModule.lessons || [];
+        const frameIndex = frameLessons.findIndex(l => l.id === frameId);
+        if (frameIndex === -1) return prevModules;
+        
+        const frameLesson = frameLessons[frameIndex];
+        
+        // 准备要添加到框架中的课时
+        const lessonToAddToFrame = {
+          ...movedLesson,
+          // 从课时数组中移除，但保持课时ID不变
+          module_id: frameModuleId,
+        };
+        
+        // 将课时添加到框架的subLessons中
+        const updatedFrameLesson = {
+          ...frameLesson,
+          subLessons: [...(frameLesson.subLessons || []), lessonToAddToFrame]
+        };
+        
+        // 更新框架所在模块的课时
+        const updatedFrameModuleLessons = frameLessons.map((lesson, idx) => 
+          idx === frameIndex ? updatedFrameLesson : lesson
+        );
+        
+        // 从源模块中移除被拖动的课时
+        const updatedSourceLessons = sourceLessons
+          .filter((_, idx) => idx !== lessonIndex)
+          .map((lesson, idx) => ({ ...lesson, order_index: idx }));
+        
+        // 构建新的模块数组
+        return prevModules.map((module, idx) => {
+          if (idx === sourceModuleIndex) {
+            return { ...module, lessons: updatedSourceLessons };
+          }
+          if (idx === frameModuleIndex) {
+            return { ...module, lessons: updatedFrameModuleLessons };
+          }
+          return module;
+        });
+      });
+      
+      return;
+    }
+    
     // --- Module Reordering --- 
     if (activeData?.type === 'module') {
       const activeIndex = modules.findIndex((m) => m.id === activeId);
@@ -321,6 +392,55 @@ const ModuleList: React.FC<ModuleListProps> = ({
   const updateLesson = (updatedLesson: Lesson) => {
     console.log('ModuleList - 正在更新课时:', updatedLesson);
     
+    // 检查是否是框架中的子课时
+    if (updatedLesson.parentFrameId && updatedLesson.isSubLesson) {
+      const parentFrameId = updatedLesson.parentFrameId;
+      // 处理子课时的更新
+      setModules(prevModules => {
+        // 查找包含父框架的模块
+        const moduleWithFrame = prevModules.find(mod => 
+          mod.lessons && mod.lessons.some(lesson => lesson.id === parentFrameId)
+        );
+        
+        if (!moduleWithFrame) return prevModules;
+        
+        // 找到父框架
+        const frameLesson = moduleWithFrame.lessons.find(l => l.id === parentFrameId);
+        if (!frameLesson || !frameLesson.isFrame || !frameLesson.subLessons) return prevModules;
+        
+        // 更新子课时
+        const { parentFrameId, isSubLesson, ...cleanUpdatedLesson } = updatedLesson;
+        const updatedSubLessons = frameLesson.subLessons.map(subLesson => 
+          subLesson.id === cleanUpdatedLesson.id ? cleanUpdatedLesson : subLesson
+        );
+        
+        // 更新框架
+        const updatedFrameLesson = {
+          ...frameLesson,
+          subLessons: updatedSubLessons
+        };
+        
+        // 更新模块
+        return prevModules.map(mod => {
+          if (mod.id === moduleWithFrame.id) {
+            return {
+              ...mod,
+              lessons: mod.lessons.map(l => 
+                l.id === frameLesson.id ? updatedFrameLesson : l
+              )
+            };
+          }
+          return mod;
+        });
+      });
+      
+      // 重置当前编辑的课时
+      setCurrentLesson(null);
+      
+      toast.success(`课时 "${updatedLesson.title}" 已更新`);
+      return;
+    }
+    
     // 为了确保React状态更新，创建一个新的模块数组
     const updatedModules = modules.map(module => {
       // 找到包含这个课时的模块
@@ -365,12 +485,31 @@ const ModuleList: React.FC<ModuleListProps> = ({
     });
   };
 
+  // 实现DndContext的collisionDetection算法，使其能正确处理嵌套拖放
+  const collisionDetection: DndContextProps['collisionDetection'] = (args) => {
+    // 使用closestCenter算法作为基础
+    const collisions = closestCenter(args);
+    
+    // 如果有碰撞，查找是否有框架容器在碰撞列表中
+    const frameCollisions = collisions.filter(
+      collision => collision.id.toString().startsWith('frame-')
+    );
+    
+    // 如果存在框架碰撞，优先返回框架，提高框架拖放的优先级
+    if (frameCollisions.length > 0) {
+      return frameCollisions;
+    }
+    
+    return collisions;
+  };
+
   return (
     <DndContext 
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      collisionDetection={collisionDetection}
     >
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex justify-between items-center mb-6">
