@@ -84,7 +84,8 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         return { 
           instructions: (baseContent as AssignmentLessonContent).instructions || '', 
           criteria: (baseContent as AssignmentLessonContent).criteria || '',
-          aiGradingPrompt: (baseContent as AssignmentLessonContent).aiGradingPrompt || ''
+          aiGradingPrompt: (baseContent as AssignmentLessonContent).aiGradingPrompt || '',
+          allowFileUpload: (baseContent as AssignmentLessonContent).allowFileUpload || false
         } as AssignmentLessonContent;
       case 'card_creator':
         return {
@@ -171,6 +172,22 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
       } as TextLessonContent;
     } else if (lesson.type === 'quiz') {
       // Quiz is handled by the quiz editor
+    } else if (lesson.type === 'assignment') {
+      // 处理作业内容
+      updatedLesson.content = {
+        instructions: data.instructions || '',
+        criteria: data.criteria || '',
+        aiGradingPrompt: data.aiGradingPrompt || '',
+        allowFileUpload: data.allowFileUpload || false
+      } as AssignmentLessonContent;
+      
+      // 记录日志，检查数据是否正确传递
+      console.log('保存作业要求数据:', {
+        instructions: data.instructions,
+        criteria: data.criteria,
+        aiGradingPrompt: data.aiGradingPrompt,
+        allowFileUpload: data.allowFileUpload
+      });
     }
     
     // 首先更新课程内容的状态
@@ -827,6 +844,31 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                     <FormDescription>
                       输入提示词指导AI如何评分学生作业。这些提示词不会展示给学生，仅用于AI评分。
                     </FormDescription>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="allowFileUpload"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <div className="flex h-6 items-center">
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                      </div>
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>允许文件上传</FormLabel>
+                      <FormDescription>
+                        启用后，学生可以上传文件作为作业的一部分
+                      </FormDescription>
+                    </div>
                   </FormItem>
                 )}
               />

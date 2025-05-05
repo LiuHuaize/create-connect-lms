@@ -26,12 +26,14 @@ interface LexicalEditorProps {
   initialContent?: string;
   onChange?: (content: string) => void;
   placeholder?: string;
+  readOnly?: boolean;
 }
 
 const LexicalEditor: React.FC<LexicalEditorProps> = ({
   initialContent,
   onChange,
   placeholder = '在此输入课程内容...',
+  readOnly = false,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -39,19 +41,21 @@ const LexicalEditor: React.FC<LexicalEditorProps> = ({
   // 处理编辑器内容变化
   const handleEditorChange = useCallback(
     (editorState: any) => {
-      if (onChange) {
+      if (onChange && !readOnly) {
         // 将编辑器状态转换为JSON字符串
         const editorStateJSON = editorState.toJSON();
         onChange(JSON.stringify(editorStateJSON));
       }
     },
-    [onChange]
+    [onChange, readOnly]
   );
 
   // 切换全屏模式
   const toggleFullscreen = useCallback(() => {
-    setIsFullscreen((prev) => !prev);
-  }, []);
+    if (!readOnly) {
+      setIsFullscreen((prev) => !prev);
+    }
+  }, [readOnly]);
 
   // 监听ESC键，用于退出全屏模式
   useEffect(() => {
@@ -112,6 +116,7 @@ const LexicalEditor: React.FC<LexicalEditorProps> = ({
               contentEditable={
                 <ContentEditable 
                   className="editor-input min-h-[250px] px-4 py-3 focus:outline-none overflow-auto prose max-w-none"
+                  readOnly={readOnly}
                 />
               }
               placeholder={<div className="editor-placeholder text-gray-400">{placeholder}</div>}

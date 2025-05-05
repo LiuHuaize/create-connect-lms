@@ -55,6 +55,7 @@ export type AssignmentLessonContent = {
   instructions: string;
   criteria: string;
   aiGradingPrompt?: string; // AI评分提示
+  allowFileUpload?: boolean; // 是否允许文件上传
 };
 
 // 代码课程内容类型
@@ -126,6 +127,17 @@ export type AssignmentSubmission = {
     feedback: string;
     timestamp: string;
   }; // 教师评分结果
+  fileSubmissions?: AssignmentFileSubmission[]; // 学生提交的文件
+};
+
+// 学生文件提交类型
+export type AssignmentFileSubmission = {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  filePath: string; // Supabase存储路径
+  uploadedAt: string;
 };
 
 // 学生作业状态

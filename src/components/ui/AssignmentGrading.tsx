@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   CheckCircle, 
@@ -15,9 +15,13 @@ import {
   BarChart,
   User,
   FileText,
-  Bot
+  Bot,
+  Download,
+  Paperclip
 } from 'lucide-react';
-import { AIGradingResult, AssignmentSubmission } from '@/types/course';
+import { AIGradingResult, AssignmentSubmission, AssignmentFileSubmission } from '@/types/course';
+import { Badge } from './badge';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AssignmentGradingProps {
   submission: AssignmentSubmission;
@@ -53,11 +57,54 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
     if (score >= 60) return 'text-yellow-600';
     return 'text-red-600';
   };
+
+  // 下载文件
+  const handleDownloadFile = async (file: AssignmentFileSubmission) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('assignment-submissions')
+        .download(file.filePath);
+      
+      if (error) {
+        console.error('下载文件错误:', error);
+        return;
+      }
+      
+      // 创建下载链接
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.fileName;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('下载文件出错:', err);
+    }
+  };
+  
+  // 获取文件图标
+  const getFileIcon = (fileType: string) => {
+    if (fileType.includes('image')) return '🖼️';
+    if (fileType.includes('pdf')) return '📄';
+    if (fileType.includes('word') || fileType.includes('document')) return '📝';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '📊';
+    if (fileType.includes('zip') || fileType.includes('compressed')) return '🗜️';
+    return '📎';
+  };
+  
+  // 格式化文件大小
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
   
   return (
     <div className="space-y-6">
       {/* 学生信息和提交时间 */}
-      <div className="flex items-center justify-between">
+      <div>
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
             <User size={20} className="text-gray-600" />
@@ -68,7 +115,7 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-2">
           {submission.teacherGrading && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
               <CheckCircle size={12} className="mr-1" />
@@ -81,208 +128,265 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
               AI已评分
             </span>
           )}
+          {submission.fileSubmissions && submission.fileSubmissions.length > 0 && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              <Paperclip size={12} className="mr-1" />
+              {submission.fileSubmissions.length} 个文件
+            </span>
+          )}
         </div>
       </div>
       
       <Separator />
       
-      {/* 学生提交内容 */}
-      <div>
-        <h3 className="text-lg font-medium flex items-center mb-3">
-          <FileText size={18} className="mr-2 text-gray-500" />
-          提交内容
-        </h3>
-        <Card className="p-4 bg-gray-50">
-          <div dangerouslySetInnerHTML={{ __html: submission.content }} />
-        </Card>
-      </div>
-      
-      <Tabs defaultValue="ai-grading" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="ai-grading" className="flex items-center">
-            <Bot size={16} className="mr-2" />
-            AI评分
+      <Tabs defaultValue="content" className="w-full">
+        <TabsList className="grid grid-cols-2 mb-4">
+          <TabsTrigger value="content">
+            <FileText className="h-4 w-4 mr-2" />
+            提交内容
           </TabsTrigger>
-          <TabsTrigger value="teacher-grading" className="flex items-center">
-            <User size={16} className="mr-2" />
-            教师评分
+          <TabsTrigger value="files" disabled={!submission.fileSubmissions || submission.fileSubmissions.length === 0}>
+            <Paperclip className="h-4 w-4 mr-2" />
+            文件
+            {submission.fileSubmissions && submission.fileSubmissions.length > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {submission.fileSubmissions.length}
+              </span>
+            )}
           </TabsTrigger>
         </TabsList>
         
-        {/* AI评分内容 */}
-        <TabsContent value="ai-grading" className="space-y-4 pt-4">
-          {!submission.aiGrading && !isAIGradingLoading && (
-            <div className="text-center p-8 border border-dashed border-gray-200 rounded-lg">
-              <Bot size={40} className="mx-auto text-gray-400 mb-3" />
-              <p className="text-gray-600 mb-4">此作业尚未进行AI评分</p>
-              <Button 
-                onClick={onRequestAIGrading} 
-                className="bg-connect-blue hover:bg-blue-600"
-              >
-                请求AI评分
-              </Button>
-              
-              {aiGradingPrompt && (
-                <div className="mt-6 p-4 bg-gray-100 rounded-lg text-left">
-                  <p className="text-sm font-medium text-gray-700 mb-2">AI评分提示:</p>
-                  <p className="text-sm text-gray-600">{aiGradingPrompt}</p>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {isAIGradingLoading && (
-            <div className="text-center p-8 border border-dashed border-gray-200 rounded-lg">
-              <RefreshCw size={40} className="mx-auto text-blue-400 mb-3 animate-spin" />
-              <p className="text-gray-600">AI正在评分中，请稍候...</p>
-            </div>
-          )}
-          
-          {submission.aiGrading && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
-                    <span className={`text-2xl font-bold ${getScoreColorClass(submission.aiGrading.score)}`}>
-                      {submission.aiGrading.score}
-                    </span>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium">AI评分结果</h4>
-                    <p className="text-sm text-gray-500">
-                      评分时间: {new Date(submission.aiGrading.timestamp).toLocaleString()}
-                    </p>
-                    
-                    <div className="flex gap-2 mt-2">
-                      <Button variant="outline" size="sm" className="h-8">
-                        <ThumbsUp size={14} className="mr-1" />
-                        有帮助
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8">
-                        <ThumbsDown size={14} className="mr-1" />
-                        需改进
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-                
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={onRequestAIGrading}
-                  disabled={isAIGradingLoading}
-                >
-                  <RefreshCw size={14} className={`mr-1 ${isAIGradingLoading ? 'animate-spin' : ''}`} />
-                  重新评分
-                </Button>
+        <TabsContent value="content" className="mt-0">
+          {/* 学生提交内容 */}
+          <div>
+            <h3 className="text-lg font-medium flex items-center mb-3">
+              <FileText size={18} className="mr-2 text-gray-500" />
+              提交内容
+            </h3>
+            <Card className="p-4 bg-gray-50">
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                <div dangerouslySetInnerHTML={{ __html: submission.content }} />
               </div>
-              
-              <Card className="p-4">
-                <h4 className="text-sm font-medium mb-2">AI评语:</h4>
-                <div className="text-sm whitespace-pre-line">
-                  {submission.aiGrading.feedback}
-                </div>
-              </Card>
-              
-              {aiGradingPrompt && (
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                  <p className="text-xs text-gray-500 mb-1">使用的评分提示:</p>
-                  <p className="text-xs text-gray-600">{aiGradingPrompt}</p>
-                </div>
-              )}
-            </div>
-          )}
+            </Card>
+          </div>
         </TabsContent>
         
-        {/* 教师评分内容 */}
-        <TabsContent value="teacher-grading" className="space-y-4 pt-4">
-          <div className="grid grid-cols-4 gap-4">
-            <div className="col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                分数 (0-100)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={teacherScore}
-                onChange={(e) => setTeacherScore(Number(e.target.value))}
-                className="text-lg font-medium"
-              />
-              
-              {submission.aiGrading && (
-                <div className="flex items-center mt-2 text-sm text-gray-500">
-                  <Info size={14} className="mr-1" />
-                  AI评分: {submission.aiGrading.score}
+        <TabsContent value="files" className="mt-0">
+          {/* 学生提交的文件 */}
+          <div>
+            <h3 className="text-lg font-medium flex items-center mb-3">
+              <Paperclip size={18} className="mr-2 text-gray-500" />
+              提交的文件
+            </h3>
+            <div className="space-y-2">
+              {submission.fileSubmissions && submission.fileSubmissions.length > 0 ? (
+                submission.fileSubmissions.map((file) => (
+                  <Card key={file.id} className="overflow-hidden">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">
+                            {getFileIcon(file.fileType)}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate" title={file.fileName}>
+                              {file.fileName}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {formatFileSize(file.fileSize)}
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {new Date(file.uploadedAt).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownloadFile(file)}
+                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Download size={16} />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                  <Paperclip size={24} className="text-gray-400 mb-2" />
+                  <p className="text-gray-500">学生没有提交任何文件</p>
                 </div>
               )}
             </div>
-            
-            <div className="col-span-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                评语
-              </label>
-              <Textarea
-                value={teacherFeedback}
-                onChange={(e) => setTeacherFeedback(e.target.value)}
-                placeholder="提供您对学生作业的评语和建议..."
-                rows={6}
-              />
-              
-              {submission.aiGrading?.feedback && (
-                <div className="mt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setTeacherFeedback(submission.aiGrading?.feedback || '')}
-                  >
-                    <Bot size={14} className="mr-1" />
-                    使用AI评语
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {submission.teacherGrading && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-md flex items-start gap-2">
-              <CheckCircle size={16} className="text-green-500 mt-0.5" />
-              <div>
-                <p className="text-sm text-green-700 font-medium">已评分</p>
-                <p className="text-xs text-green-600">
-                  您已于 {new Date(submission.teacherGrading.timestamp).toLocaleString()} 完成评分
-                </p>
-              </div>
-            </div>
-          )}
-          
-          <div className="flex justify-end">
-            <Button 
-              onClick={handleTeacherGradingSubmit}
-              className="bg-connect-blue hover:bg-blue-600"
-            >
-              {submission.teacherGrading ? '更新评分' : '提交评分'}
-            </Button>
           </div>
         </TabsContent>
       </Tabs>
       
-      {/* 分数差异警告 */}
-      {submission.aiGrading && submission.teacherGrading && 
-        Math.abs(submission.aiGrading.score - submission.teacherGrading.score) > 15 && (
-        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md flex items-start gap-2">
-          <AlertCircle size={16} className="text-yellow-500 mt-0.5" />
-          <div>
-            <p className="text-sm text-yellow-700 font-medium">AI评分与教师评分差异较大</p>
-            <p className="text-xs text-yellow-600">
-              AI评分为 {submission.aiGrading.score}，教师评分为 {submission.teacherGrading.score}，
-              差异为 {Math.abs(submission.aiGrading.score - submission.teacherGrading.score)} 分。
-              您可能需要检查评分标准的一致性。
-            </p>
-          </div>
-        </div>
-      )}
+      <Separator />
+      
+      {/* 评分区域 */}
+      <div className="space-y-4">
+        <Tabs defaultValue="teacher">
+          <TabsList>
+            <TabsTrigger value="teacher">教师评分</TabsTrigger>
+            <TabsTrigger value="ai" disabled={!submission.aiGrading && !aiGradingPrompt}>
+              AI评分
+              {isAIGradingLoading && <RefreshCw size={14} className="ml-2 animate-spin" />}
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="teacher" className="space-y-4 pt-4">
+            {submission.teacherGrading ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-medium">教师评分</h3>
+                  <span className={`text-lg font-bold ${getScoreColorClass(submission.teacherGrading.score)}`}>
+                    {submission.teacherGrading.score}
+                  </span>
+                </div>
+                
+                <Card className="bg-white">
+                  <CardContent className="p-4">
+                    <div className="prose prose-sm max-w-none">
+                      <p>{submission.teacherGrading.feedback}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Button onClick={() => {
+                  setTeacherScore(submission.teacherGrading.score);
+                  setTeacherFeedback(submission.teacherGrading.feedback);
+                }}>
+                  修改评分
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="teacher-score">分数</Label>
+                  <span className={`text-lg font-bold ${getScoreColorClass(teacherScore)}`}>
+                    {teacherScore}
+                  </span>
+                </div>
+                
+                <Input
+                  id="teacher-score"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={teacherScore}
+                  onChange={(e) => setTeacherScore(parseInt(e.target.value))}
+                  className="w-full"
+                />
+                
+                <div className="grid grid-cols-5 text-center text-xs text-gray-500">
+                  <span>0</span>
+                  <span>25</span>
+                  <span>50</span>
+                  <span>75</span>
+                  <span>100</span>
+                </div>
+                
+                <div>
+                  <Label htmlFor="teacher-feedback">评语</Label>
+                  <Textarea
+                    id="teacher-feedback"
+                    value={teacherFeedback}
+                    onChange={(e) => setTeacherFeedback(e.target.value)}
+                    placeholder="输入对学生作业的评语和反馈..."
+                    className="min-h-32 mt-2"
+                  />
+                </div>
+                
+                <Button onClick={handleTeacherGradingSubmit} className="w-full">
+                  提交评分
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="ai" className="space-y-4 pt-4">
+            {submission.aiGrading ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-medium flex items-center">
+                    <Bot size={16} className="mr-2 text-blue-500" />
+                    AI评分
+                  </h3>
+                  <span className={`text-lg font-bold ${getScoreColorClass(submission.aiGrading.score)}`}>
+                    {submission.aiGrading.score}
+                  </span>
+                </div>
+                
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-4">
+                    <div className="prose prose-sm max-w-none">
+                      <div style={{ whiteSpace: 'pre-line' }}>
+                        {submission.aiGrading.feedback}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-green-600 border-green-200 hover:bg-green-50"
+                    onClick={() => {
+                      // 使用AI评分作为教师评分的起点
+                      setTeacherScore(submission.aiGrading!.score);
+                      setTeacherFeedback(submission.aiGrading!.feedback);
+                    }}
+                  >
+                    <ThumbsUp size={14} className="mr-2" />
+                    使用AI评分
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={onRequestAIGrading}
+                    disabled={isAIGradingLoading}
+                  >
+                    <RefreshCw size={14} className={`mr-2 ${isAIGradingLoading ? 'animate-spin' : ''}`} />
+                    重新评分
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center justify-center p-8 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
+                  <Bot size={32} className="text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-600 mb-2">AI尚未评分</h3>
+                  <p className="text-sm text-gray-500 text-center mb-4">
+                    使用AI来自动评分，它将根据提交的内容给出评分和反馈。
+                  </p>
+                  
+                  <Button onClick={onRequestAIGrading} disabled={isAIGradingLoading}>
+                    {isAIGradingLoading ? (
+                      <>
+                        <RefreshCw size={16} className="mr-2 animate-spin" />
+                        AI评分中...
+                      </>
+                    ) : (
+                      <>
+                        <Bot size={16} className="mr-2" />
+                        开始AI评分
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

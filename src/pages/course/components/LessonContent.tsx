@@ -19,6 +19,7 @@ import QuizLessonContent from '@/components/course/lessons/quiz/QuizLessonConten
 import ResourceLessonView from '@/components/course/lessons/ResourceLessonView';
 import DragSortExercise from '@/components/course/components/drag-sort/DragSortExercise';
 import HotspotLessonView from '@/components/course/lessons/hotspot/HotspotLessonView';
+import { AssignmentLessonContent } from '@/components/course/AssignmentLessonContent';
 import { containsMarkdown } from '@/utils/markdownUtils';
 import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
 import { useCourseData } from '../hooks/useCourseData';
@@ -172,6 +173,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [isCompletionLoading, setIsCompletionLoading] = useState(false);
   const [showCardCreator, setShowCardCreator] = useState(false);
   const [lessonIsCompleted, setLessonIsCompleted] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   
   // 添加ref，用于获取组件的根元素
   const contentRef = useRef<HTMLDivElement>(null);
@@ -197,6 +199,18 @@ const LessonContent: React.FC<LessonContentProps> = ({
         });
     }
   }, [courseData?.id, selectedLesson?.id]);
+  
+  // 获取当前用户ID
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data && data.user) {
+        setCurrentUserId(data.user.id);
+      }
+    };
+    
+    getUserId();
+  }, []);
   
   // 在组件挂载和课程ID/课时ID变化时，加载测验状态
   useEffect(() => {
@@ -523,6 +537,23 @@ const LessonContent: React.FC<LessonContentProps> = ({
           />
         );
       
+      case 'assignment':
+        return (
+          <AssignmentLessonContent
+            key={selectedLesson.id}
+            lessonId={selectedLesson.id}
+            content={selectedLesson.content as AssignmentLessonContentType}
+            userId={currentUserId}
+            onComplete={() => {
+              // 刷新课程数据以更新进度
+              if (refreshCourseData) {
+                refreshCourseData();
+              }
+            }}
+            isCompleted={lessonIsCompleted}
+          />
+        );
+      
       case 'drag_sort':
         if (selectedLesson.content) {
           const dragSortContent = selectedLesson.content as DragSortContent;
@@ -542,14 +573,8 @@ const LessonContent: React.FC<LessonContentProps> = ({
           <HotspotLessonView
             key={selectedLesson.id}
             lesson={selectedLesson}
-            courseId={courseData?.id}
-            enrollmentId={enrollmentId}
-            onComplete={() => {
-              // 刷新课程数据以更新进度
-              if (refreshCourseData) {
-                refreshCourseData();
-              }
-            }}
+            enrollmentId={enrollmentId || undefined}
+            isPreview={false}
           />
         );
         
