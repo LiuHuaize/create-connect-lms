@@ -80,17 +80,49 @@ const HotspotCard: React.FC<HotspotCardProps> = ({
 
   // 调整卡片位置，防止溢出屏幕
   const getCardPosition = () => {
-    if (!cardRef.current) return {};
+    // 计算更合理的卡片位置
+    // 1. 优先显示在热点右侧
+    // 2. 根据位置自动调整到合适的方向，防止超出边界
+    // 3. 使用固定的偏移量，避免位置变动
     
-    // 默认位置（假设在热点右侧）
-    let posX = position.x;
-    let posY = position.y - 5; // 稍微往上一点，避免遮挡热点
-    let transformOrigin = 'left center';
+    // 基础定位：默认在热点右侧，偏移30px
+    let posX = position.x; 
+    let posY = position.y;
+    let translateX = '0%';
+    let translateY = '-50%';
+    
+    // 四个方向的偏移策略
+    const directions = {
+      right: { x: posX, y: posY, translateX: '20px', translateY: '-50%', origin: 'left center' },
+      left: { x: posX, y: posY, translateX: 'calc(-100% - 20px)', translateY: '-50%', origin: 'right center' },
+      bottom: { x: posX, y: posY, translateX: '-50%', translateY: '20px', origin: 'center top' },
+      top: { x: posX, y: posY, translateX: '-50%', translateY: 'calc(-100% - 20px)', origin: 'center bottom' }
+    };
+    
+    // 默认使用右侧方向
+    let direction = 'right';
+    
+    // 根据热点在屏幕中的位置判断最佳显示方向
+    // 如果热点靠近右边缘，则将卡片显示在左侧
+    if (position.x > 65) {
+      direction = 'left';
+    }
+    // 如果热点在下半部分，考虑显示在上方
+    else if (position.y > 70) {
+      direction = 'top';
+    }
+    // 如果热点在上半部分且接近顶部，考虑显示在下方
+    else if (position.y < 30) {
+      direction = 'bottom';
+    }
+    
+    const selectedDirection = directions[direction];
     
     return {
-      left: `${posX}%`,
-      top: `${posY}%`,
-      transformOrigin
+      left: `${selectedDirection.x}%`,
+      top: `${selectedDirection.y}%`,
+      transform: `translate(${selectedDirection.translateX}, ${selectedDirection.translateY})`,
+      transformOrigin: selectedDirection.origin
     };
   };
 
@@ -101,9 +133,9 @@ const HotspotCard: React.FC<HotspotCardProps> = ({
           ref={cardRef}
           className="absolute z-20 min-w-[280px] max-w-[320px]"
           style={getCardPosition()}
-          initial={{ opacity: 0, scale: 0.9, x: -20 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          exit={{ opacity: 0, scale: 0.9, x: -20 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.2 }}
         >
           <div className="bg-white dark:bg-card rounded-xl shadow-lg overflow-hidden border border-border">

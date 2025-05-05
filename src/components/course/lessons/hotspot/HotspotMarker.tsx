@@ -41,7 +41,7 @@ const HotspotMarker: React.FC<HotspotMarkerProps> = ({
   };
 
   return (
-    <motion.div
+    <div
       id={`hotspot-${id}`}
       className="absolute z-10 cursor-pointer flex items-center justify-center"
       style={{
@@ -50,8 +50,6 @@ const HotspotMarker: React.FC<HotspotMarkerProps> = ({
         transform: 'translate(-50%, -50%)'
       }}
       onClick={onClick}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.95 }}
     >
       {/* 脉冲背景层 */}
       {isActive && (
@@ -61,6 +59,12 @@ const HotspotMarker: React.FC<HotspotMarkerProps> = ({
             sizeMap[size]
           )}
           animate={pulseAnimation}
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)'
+          }}
         />
       )}
       
@@ -79,11 +83,21 @@ const HotspotMarker: React.FC<HotspotMarkerProps> = ({
             ? '0 0 0 3px rgba(255, 255, 255, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2)' 
             : '0 2px 4px rgba(0, 0, 0, 0.2)' 
         }}
-        transition={{ duration: 0.3 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ 
+          duration: 0.2,
+          // 确保动画不影响位置
+          layout: false
+        }}
+        style={{
+          position: 'relative',
+          zIndex: 10,
+        }}
       >
         <PlusCircle size={size === 'sm' ? 16 : size === 'md' ? 20 : 24} />
       </motion.div>
-    </motion.div>
+    </div>
   );
 };
 
