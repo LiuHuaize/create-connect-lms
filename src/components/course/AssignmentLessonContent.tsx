@@ -323,23 +323,43 @@ export function AssignmentLessonContent({
             </h4>
             <div className="bg-white rounded-lg p-4 shadow-inner">
               {submission.teacherGrading && (
-                <div className="flex items-center gap-2 mb-2">
-                  <BookOpen className="h-4 w-4 text-gray-500" />
-                  <p className="text-sm">
-                    <span className="text-gray-600">老师评分：</span>
-                    <span className="font-medium text-gray-800 text-lg">{submission.teacherGrading.score}</span>
-                    <span className="text-gray-400 text-xs ml-1">分</span>
-                  </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BookOpen className="h-4 w-4 text-gray-500" />
+                    <p className="text-sm">
+                      <span className="text-gray-600">老师评分：</span>
+                      <span className="font-medium text-gray-800 text-lg">{submission.teacherGrading.score}</span>
+                      <span className="text-gray-400 text-xs ml-1">分</span>
+                    </p>
+                  </div>
+                  {submission.teacherGrading.feedback && (
+                    <div className="bg-gray-50 p-3 rounded-md">
+                      <h5 className="text-sm font-medium text-gray-700 mb-1">老师评语：</h5>
+                      <div className="text-sm text-gray-700 whitespace-pre-line">
+                        {submission.teacherGrading.feedback}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {submission.aiGrading && (
-                <div className="flex items-center gap-2">
-                  <Rocket className="h-4 w-4 text-gray-500" />
-                  <p className="text-sm">
-                    <span className="text-gray-600">AI评分：</span>
-                    <span className="font-medium text-gray-800 text-lg">{submission.aiGrading.score}</span>
-                    <span className="text-gray-400 text-xs ml-1">分</span>
-                  </p>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Rocket className="h-4 w-4 text-gray-500" />
+                    <p className="text-sm">
+                      <span className="text-gray-600">AI评分：</span>
+                      <span className="font-medium text-gray-800 text-lg">{submission.aiGrading.score}</span>
+                      <span className="text-gray-400 text-xs ml-1">分</span>
+                    </p>
+                  </div>
+                  {submission.aiGrading.feedback && (
+                    <div className="bg-blue-50 p-3 rounded-md">
+                      <h5 className="text-sm font-medium text-gray-700 mb-1">AI评语：</h5>
+                      <div className="text-sm text-gray-700 whitespace-pre-line">
+                        {submission.aiGrading.feedback}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

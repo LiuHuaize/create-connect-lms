@@ -17,7 +17,10 @@ import {
   FileText,
   Bot,
   Download,
-  Paperclip
+  Paperclip,
+  Edit,
+  Save,
+  X
 } from 'lucide-react';
 import { AIGradingResult, AssignmentSubmission, AssignmentFileSubmission } from '@/types/course';
 import { Badge } from './badge';
@@ -51,6 +54,7 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
     submission.teacherGrading?.feedback || ''
   );
   const [isSubmittingGrade, setIsSubmittingGrade] = useState(false);
+  const [isEditingGrade, setIsEditingGrade] = useState(!submission.teacherGrading);
   
   // 处理教师评分提交
   const handleTeacherGradingSubmit = async () => {
@@ -82,6 +86,9 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
         description: '你的评分已成功保存',
         variant: 'default',
       });
+      
+      // 提交后切换到查看模式
+      setIsEditingGrade(false);
     } catch (error) {
       console.error('提交评分失败:', error);
       toast({
@@ -92,6 +99,19 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
     } finally {
       setIsSubmittingGrade(false);
     }
+  };
+
+  // 取消编辑
+  const handleCancelEdit = () => {
+    // 恢复到原始值
+    if (submission.teacherGrading) {
+      setTeacherScore(submission.teacherGrading.score);
+      setTeacherFeedback(submission.teacherGrading.feedback);
+    } else {
+      setTeacherScore(0);
+      setTeacherFeedback('');
+    }
+    setIsEditingGrade(false);
   };
   
   // 根据分数返回颜色类名
@@ -143,6 +163,117 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+  
+  // 渲染教师评分内容
+  const renderTeacherGradingContent = () => {
+    if (isEditingGrade) {
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="teacher-score" className="font-medium text-base">分数</Label>
+            <span className={`text-lg font-bold ${getScoreColorClass(teacherScore)}`}>
+              {teacherScore}
+            </span>
+          </div>
+          
+          <Input
+            id="teacher-score"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value={teacherScore}
+            onChange={(e) => setTeacherScore(parseInt(e.target.value))}
+            className="w-full"
+          />
+          
+          <div className="grid grid-cols-5 text-center text-xs text-gray-500">
+            <span>0</span>
+            <span>25</span>
+            <span>50</span>
+            <span>75</span>
+            <span>100</span>
+          </div>
+          
+          <div>
+            <Label htmlFor="teacher-feedback" className="font-medium text-base">评语</Label>
+            <Textarea
+              id="teacher-feedback"
+              value={teacherFeedback}
+              onChange={(e) => setTeacherFeedback(e.target.value)}
+              placeholder="请输入详细的评语反馈，包括作业的优点、改进建议等..."
+              className="min-h-32 mt-2"
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleTeacherGradingSubmit} 
+              className="flex-1"
+              disabled={isSubmittingGrade}
+            >
+              {isSubmittingGrade ? (
+                <>
+                  <RefreshCw size={16} className="mr-2 animate-spin" />
+                  提交中...
+                </>
+              ) : (
+                <>
+                  <Save size={16} className="mr-2" />
+                  保存评分
+                </>
+              )}
+            </Button>
+            
+            {submission.teacherGrading && (
+              <Button 
+                variant="outline" 
+                onClick={handleCancelEdit}
+                disabled={isSubmittingGrade}
+              >
+                <X size={16} className="mr-2" />
+                取消
+              </Button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // 查看模式
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-medium">教师评分</h3>
+          <span className={`text-lg font-bold ${getScoreColorClass(submission.teacherGrading?.score || 0)}`}>
+            {submission.teacherGrading?.score || 0}
+          </span>
+        </div>
+        
+        <Card className="bg-white">
+          <CardContent className="p-4">
+            <div className="prose prose-sm max-w-none">
+              {submission.teacherGrading?.feedback ? (
+                <div style={{ whiteSpace: 'pre-line' }}>
+                  {submission.teacherGrading.feedback}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">暂无评语</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Button
+          onClick={() => setIsEditingGrade(true)}
+          className="w-full"
+        >
+          <Edit size={16} className="mr-2" />
+          修改评分
+        </Button>
+      </div>
+    );
   };
   
   return (
@@ -284,83 +415,7 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
           </TabsList>
           
           <TabsContent value="teacher" className="space-y-4 pt-4">
-            {submission.teacherGrading ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-medium">教师评分</h3>
-                  <span className={`text-lg font-bold ${getScoreColorClass(submission.teacherGrading.score)}`}>
-                    {submission.teacherGrading.score}
-                  </span>
-                </div>
-                
-                <Card className="bg-white">
-                  <CardContent className="p-4">
-                    <div className="prose prose-sm max-w-none">
-                      <p>{submission.teacherGrading.feedback}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Button onClick={() => {
-                  setTeacherScore(submission.teacherGrading.score);
-                  setTeacherFeedback(submission.teacherGrading.feedback);
-                }}>
-                  修改评分
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="teacher-score">分数</Label>
-                  <span className={`text-lg font-bold ${getScoreColorClass(teacherScore)}`}>
-                    {teacherScore}
-                  </span>
-                </div>
-                
-                <Input
-                  id="teacher-score"
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={teacherScore}
-                  onChange={(e) => setTeacherScore(parseInt(e.target.value))}
-                  className="w-full"
-                />
-                
-                <div className="grid grid-cols-5 text-center text-xs text-gray-500">
-                  <span>0</span>
-                  <span>25</span>
-                  <span>50</span>
-                  <span>75</span>
-                  <span>100</span>
-                </div>
-                
-                <div>
-                  <Label htmlFor="teacher-feedback">评语</Label>
-                  <Textarea
-                    id="teacher-feedback"
-                    value={teacherFeedback}
-                    onChange={(e) => setTeacherFeedback(e.target.value)}
-                    placeholder="输入对学生作业的评语和反馈..."
-                    className="min-h-32 mt-2"
-                  />
-                </div>
-                
-                <Button 
-                  onClick={handleTeacherGradingSubmit} 
-                  className="w-full"
-                  disabled={isSubmittingGrade}
-                >
-                  {isSubmittingGrade ? (
-                    <>
-                      <RefreshCw size={16} className="mr-2 animate-spin" />
-                      提交中...
-                    </>
-                  ) : '提交评分'}
-                </Button>
-              </div>
-            )}
+            {renderTeacherGradingContent()}
           </TabsContent>
           
           <TabsContent value="ai" className="space-y-4 pt-4">
@@ -395,6 +450,7 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
                       // 使用AI评分作为教师评分的起点
                       setTeacherScore(submission.aiGrading!.score);
                       setTeacherFeedback(submission.aiGrading!.feedback);
+                      setIsEditingGrade(true);
                     }}
                   >
                     <ThumbsUp size={14} className="mr-2" />
