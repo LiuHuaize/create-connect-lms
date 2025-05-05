@@ -11,7 +11,7 @@ import CourseHeader from './components/CourseHeader';
 import CourseSidebar from './components/CourseSidebar';
 import MobileDrawer from './components/MobileDrawer';
 import LessonContent from './components/LessonContent';
-import FloatingAssistantChat from './components/FloatingAssistantChat';
+import KhanmigoChat from '@/components/course/components/KhanmigoChat';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import NotFoundCard from './components/NotFoundCard';
 import { useCourseData } from './hooks/useCourseData';
@@ -239,10 +239,10 @@ const CoursePage = () => {
         </div>
       </div>
       
-      {/* 使用浮动式学习助手替代原来的侧边栏抽屉 */}
-      <FloatingAssistantChat
+      {/* 使用KhanmigoChat替代原来的FloatingAssistantChat */}
+      <KhanmigoChat
         courseName={courseData.title}
-        pageContent={pageContent}
+        courseContent={pageContent}
       />
     </div>
   );
