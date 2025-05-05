@@ -28,6 +28,7 @@ import {
   DragSortContent,
   ResourceLessonContent,
   FrameLessonContent,
+  HotspotLessonContent,
   LessonContent
 } from '@/types/course';
 import { LexicalEditor, BlockNoteEditor } from '@/components/editor';
@@ -36,6 +37,7 @@ import CardCreatorLessonEditor from './CardCreatorLessonEditor';
 import DragSortEditor from './creator/drag-sort/DragSortEditor';
 import ResourceLessonEditor from './ResourceLessonEditor';
 import FrameLessonEditor from './FrameLessonEditor';
+import HotspotEditor from './creator/hotspot/HotspotEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -109,6 +111,12 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
           description: (baseContent as FrameLessonContent)?.description || '',
           lessons: (baseContent as FrameLessonContent)?.lessons || []
         } as FrameLessonContent;
+      case 'hotspot':
+        return {
+          backgroundImage: (baseContent as HotspotLessonContent)?.backgroundImage || '',
+          introduction: (baseContent as HotspotLessonContent)?.introduction || '',
+          hotspots: (baseContent as HotspotLessonContent)?.hotspots || []
+        } as HotspotLessonContent;
       default:
         return baseContent;
     }
@@ -463,6 +471,19 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
             onContentChange(content);
           }}
           onCourseDataSaved={onCourseDataSaved}
+        />
+      );
+    }
+    
+    // 热点课程也有自己的UI和逻辑，单独处理
+    if (lesson.type === 'hotspot') {
+      return (
+        <HotspotEditor
+          lesson={lesson}
+          onUpdate={(updatedLesson) => {
+            setCurrentContent(updatedLesson.content);
+            onContentChange(updatedLesson.content);
+          }}
         />
       );
     }

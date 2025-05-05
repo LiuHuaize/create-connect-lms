@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle, Layers } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent, ResourceLessonContent, FrameLessonContent as FrameLessonContentType } from '@/types/course';
+import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent, ResourceLessonContent, FrameLessonContent as FrameLessonContentType, HotspotLessonContent as HotspotLessonContentType } from '@/types/course';
 // 临时注释掉不存在的导入
 // import { CardCreatorTask } from '@/types/card-creator';
 import LessonNavigation from './LessonNavigation';
@@ -18,6 +18,7 @@ import VideoLessonContent from '@/components/course/lessons/VideoLessonContent';
 import QuizLessonContent from '@/components/course/lessons/quiz/QuizLessonContent';
 import ResourceLessonView from '@/components/course/lessons/ResourceLessonView';
 import DragSortExercise from '@/components/course/components/drag-sort/DragSortExercise';
+import HotspotLessonView from '@/components/course/lessons/hotspot/HotspotLessonView';
 import { containsMarkdown } from '@/utils/markdownUtils';
 import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
 import { useCourseData } from '../hooks/useCourseData';
@@ -535,6 +536,22 @@ const LessonContent: React.FC<LessonContentProps> = ({
           );
         }
         return null;
+        
+      case 'hotspot':
+        return (
+          <HotspotLessonView
+            key={selectedLesson.id}
+            lesson={selectedLesson}
+            courseId={courseData?.id}
+            enrollmentId={enrollmentId}
+            onComplete={() => {
+              // 刷新课程数据以更新进度
+              if (refreshCourseData) {
+                refreshCourseData();
+              }
+            }}
+          />
+        );
         
       case 'card_creator':
         // 卡片创建功能已被隐藏

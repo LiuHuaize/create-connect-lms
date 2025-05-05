@@ -377,3 +377,47 @@
 [data-rbd-draggable-id][data-rbd-drag-handle-draggable-id] {
   @apply z-50 shadow-lg;
 }
+
+/* 防止热点拖动时选择文本 */
+.hotspot-dragging {
+  user-select: none !important;
+  cursor: grabbing !important;
+}
+
+.hotspot-dragging * {
+  pointer-events: none;
+}
+
+/* 确保输入框在热点编辑时可操作 */
+.pointer-events-auto {
+  pointer-events: auto !important;
+}
+
+/* 自定义编辑器样式 */
+[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+[contenteditable]:focus {
+  outline: none;
+}
+
+.custom-editor-container {
+  position: relative;
+  z-index: 100;
+  background-color: white;
+  pointer-events: auto !important;
+}
+
+.dark .custom-editor-container {
+  background-color: hsl(var(--card));
+}
+
+/* 确保编辑区域可交互 */
+.custom-editor-area {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 101;
+}
