@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import compression from "vite-plugin-compression";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -13,6 +14,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' &&
     componentTagger(),
+    // 添加Gzip/Brotli压缩插件
+    compression({ algorithm: 'gzip', ext: '.gz' }),
+    compression({ algorithm: 'brotliCompress', ext: '.br' }),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -40,11 +44,66 @@ export default defineConfig(({ mode }) => ({
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]',
         // 将常用库分组到单独的chunk中
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-toast', '@radix-ui/react-tooltip', '@radix-ui/react-tabs'],
-          'blocknote': ['@blocknote/react', '@blocknote/core', '@blocknote/mantine'],
-        },
+        manualChunks: (id) => {
+          // React核心库
+          if (id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/scheduler/')) {
+            return 'react-core';
+          }
+          
+          // 路由相关
+          if (id.includes('node_modules/react-router') ||
+              id.includes('node_modules/@remix-run')) {
+            return 'routing';
+          }
+          
+          // UI组件基础库
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'ui-primitives';
+          }
+          
+          // 编辑器组件（较大，适合单独分块）
+          if (id.includes('node_modules/@blocknote/') ||
+              id.includes('node_modules/lexical')) {
+            return 'editor';
+          }
+          
+          // 绘图和图形相关库
+          if (id.includes('node_modules/@excalidraw/') || 
+              id.includes('node_modules/fabric')) {
+            return 'graphics';
+          }
+          
+          // 动画库（可延迟加载）
+          if (id.includes('node_modules/framer-motion')) {
+            return 'animations';
+          }
+          
+          // 数据状态管理库
+          if (id.includes('node_modules/@tanstack/react-query') ||
+              id.includes('node_modules/zustand')) {
+            return 'state-management';
+          }
+          
+          // Supabase相关
+          if (id.includes('node_modules/@supabase/')) {
+            return 'supabase';
+          }
+          
+          // 工具库
+          if (id.includes('node_modules/date-fns') ||
+              id.includes('node_modules/clsx') ||
+              id.includes('node_modules/class-variance-authority') ||
+              id.includes('node_modules/tailwind-merge')) {
+            return 'utils';
+          }
+          
+          // 其他公共依赖
+          if (id.includes('node_modules/')) {
+            return 'vendor';
+          }
+        }
       }
     },
     // 减少文件大小

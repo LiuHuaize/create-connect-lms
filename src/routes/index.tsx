@@ -41,6 +41,36 @@ const MainLayoutWrapper = () => {
   );
 };
 
+// 预加载认证页面
+const AuthLoadingFallback = () => (
+  <div className="flex h-screen items-center justify-center bg-white">
+    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
+
+// 预加载主要路由
+const preloadRoutes = () => {
+  // 异步预加载主要路由组件
+  const preload = async () => {
+    const importPromises = [
+      import('@/pages/Dashboard'),
+      import('@/pages/Learning')
+    ];
+    try {
+      await Promise.all(importPromises);
+    } catch (e) {
+      console.error('路由预加载失败:', e);
+    }
+  };
+  
+  // 使用requestIdleCallback在浏览器空闲时预加载
+  if ('requestIdleCallback' in window) {
+    (window as any).requestIdleCallback(preload, { timeout: 2000 });
+  } else {
+    setTimeout(preload, 2000);
+  }
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -49,48 +79,136 @@ const AppRoutes = () => {
     if (user) {
       queryClient.prefetchQuery({ queryKey: ['courses'], staleTime: 5 * 60 * 1000 });
       queryClient.prefetchQuery({ queryKey: ['enrolledCourses', user.id], staleTime: 5 * 60 * 1000 });
+      
+      // 在用户登录后预加载常用路由
+      preloadRoutes();
     }
   }, [user, queryClient]);
 
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        
-        <Route path="/editor" element={<EditorLayout />}>
-          <Route path="test" element={
-            <ProtectedRoute>
+    <Routes>
+      {/* 认证页面有单独的Suspense边界 */}
+      <Route path="/auth" element={
+        <Suspense fallback={<AuthLoadingFallback />}>
+          <Auth />
+        </Suspense>
+      } />
+      
+      <Route path="/editor" element={<EditorLayout />}>
+        <Route path="test" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
               <BlockNoteEditorTest />
-            </ProtectedRoute>
-          } />
-        </Route>
+            </Suspense>
+          </ProtectedRoute>
+        } />
+      </Route>
 
-        <Route 
-          path="/editor-test" 
-          element={<Navigate to="/editor/test" replace />} 
-        />
+      <Route 
+        path="/editor-test" 
+        element={<Navigate to="/editor/test" replace />} 
+      />
 
-        <Route element={<MainLayoutWrapper />}>
-          <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/auth" replace />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
-          <Route path="/explore-courses" element={<ProtectedRoute><ExploreCourses /></ProtectedRoute>} />
-          <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
-          <Route path="/course/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
-          <Route path="/course/:courseId/lesson/:lessonId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-          <Route path="/trash" element={<ProtectedRoute><TrashPage /></ProtectedRoute>} />
-          <Route path="/course-selection" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><CourseSelection /></ProtectedRoute>} />
-          <Route path="/course-creator" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><CourseCreator /></ProtectedRoute>} />
-          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
-        </Route>
+      <Route element={<MainLayoutWrapper />}>
+        <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/auth" replace />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <Dashboard />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/learning" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <Learning />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/explore-courses" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <ExploreCourses />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/events" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <Events />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/course/:courseId" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <CoursePage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/course/:courseId/lesson/:lessonId" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <CoursePage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <ProfilePage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <SettingsPage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/trash" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingFallback />}>
+              <TrashPage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/course-selection" element={
+          <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+            <Suspense fallback={<LoadingFallback />}>
+              <CourseSelection />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/course-creator" element={
+          <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+            <Suspense fallback={<LoadingFallback />}>
+              <CourseCreator />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/users" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <Suspense fallback={<LoadingFallback />}>
+              <UserManagement />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+      </Route>
 
-        <Route path="/model-test" element={<ModelTestComponent />} />
+      <Route path="/model-test" element={
+        <Suspense fallback={<LoadingFallback />}>
+          <ModelTestComponent />
+        </Suspense>
+      } />
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+      <Route path="*" element={
+        <Suspense fallback={<LoadingFallback />}>
+          <NotFound />
+        </Suspense>
+      } />
+    </Routes>
   );
 };
 
