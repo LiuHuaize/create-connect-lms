@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -9,6 +9,8 @@ import {
 import AssignmentGrading from '@/components/ui/AssignmentGrading';
 import AssignmentSubmissionList from '@/components/ui/AssignmentSubmissionList';
 import { AssignmentSubmission } from '@/types/course';
+import { useToast } from '@/components/ui/use-toast';
+import { getSubmissionsByLessonId, getSubmissionsByCourseId, submitTeacherGrading } from '@/services/assignmentService';
 
 // 模拟数据
 const dummySubmissions: AssignmentSubmission[] = [
@@ -95,21 +97,82 @@ const dummySubmissions: AssignmentSubmission[] = [
 ];
 
 interface AssignmentSubmissionViewerProps {
-  lessonId: string;
+  lessonId?: string;
+  courseId?: string;
   aiGradingPrompt?: string;
   onBack?: () => void;
+  initialSubmission?: AssignmentSubmission;
+  onSubmissionUpdated?: (updatedSubmission: AssignmentSubmission) => void;
 }
 
-const AssignmentSubmissionViewer: React.FC<AssignmentSubmissionViewerProps> = ({
+export const AssignmentSubmissionViewer: React.FC<AssignmentSubmissionViewerProps> = ({
   lessonId,
+  courseId,
   aiGradingPrompt,
-  onBack
+  onBack,
+  initialSubmission,
+  onSubmissionUpdated
 }) => {
-  // 在实际应用中，这里应该从API获取提交数据
-  // 现在使用模拟数据
-  const [submissions] = useState<AssignmentSubmission[]>(dummySubmissions);
-  const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(null);
+  const { toast } = useToast();
+  const [submissions, setSubmissions] = useState<AssignmentSubmission[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(initialSubmission || null);
   const [isAIGradingLoading, setIsAIGradingLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!initialSubmission);
+  
+  // 加载提交
+  useEffect(() => {
+    if (!initialSubmission) {
+      loadSubmissions();
+    }
+  }, [lessonId, courseId, initialSubmission]);
+  
+  // 加载提交列表
+  const loadSubmissions = async () => {
+    try {
+      setIsLoading(true);
+      
+      let data;
+      if (lessonId) {
+        // 获取特定课时的提交
+        data = await getSubmissionsByLessonId(lessonId);
+      } else if (courseId) {
+        // 获取整个课程的提交
+        data = await getSubmissionsByCourseId(courseId);
+      } else {
+        toast({
+          title: '参数错误',
+          description: '必须提供 lessonId 或 courseId',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      if (data) {
+        // 将API返回数据转换为组件需要的格式
+        const formattedSubmissions = data.map((sub: any): AssignmentSubmission => ({
+          id: sub.id,
+          studentId: sub.student_id,
+          lessonId: sub.lesson_id,
+          content: sub.content || '',
+          submittedAt: sub.submitted_at,
+          fileSubmissions: sub.file_submissions || [],
+          teacherGrading: sub.teacher_grading,
+          aiGrading: sub.ai_grading
+        }));
+        
+        setSubmissions(formattedSubmissions);
+      }
+    } catch (error) {
+      console.error('加载提交列表失败:', error);
+      toast({
+        title: '加载失败',
+        description: '无法加载学生提交列表',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // 选择提交
   const handleSelectSubmission = (submission: AssignmentSubmission) => {
@@ -117,17 +180,17 @@ const AssignmentSubmissionViewer: React.FC<AssignmentSubmissionViewerProps> = ({
   };
   
   // 请求AI评分
-  const handleRequestAIGrading = () => {
+  const handleRequestAIGrading = async () => {
     if (!selectedSubmission) return;
     
     setIsAIGradingLoading(true);
     
-    // 模拟API请求
-    setTimeout(() => {
-      // 模拟更新提交的AI评分结果
-      const updatedSubmission = { 
-        ...selectedSubmission,
-        aiGrading: {
+    try {
+      // TODO: 实现实际的AI评分API调用
+      // 模拟API请求
+      setTimeout(() => {
+        // 模拟更新提交的AI评分结果
+        const aiGradingResult = {
           score: Math.floor(Math.random() * 20) + 80, // 模拟80-100之间的随机分数
           feedback: `这是AI生成的评语，实际应用中将由真实的AI大模型生成。
 
@@ -142,40 +205,92 @@ const AssignmentSubmissionViewer: React.FC<AssignmentSubmissionViewerProps> = ({
 - 考虑添加财务预测部分
 - 进一步阐述你的产品/服务的独特卖点`,
           timestamp: new Date().toISOString()
+        };
+        
+        // 更新选中的提交
+        const updatedSubmission = { 
+          ...selectedSubmission,
+          aiGrading: aiGradingResult
+        };
+        
+        setSelectedSubmission(updatedSubmission);
+        setIsAIGradingLoading(false);
+        
+        // 通知父组件
+        if (onSubmissionUpdated) {
+          onSubmissionUpdated(updatedSubmission);
         }
-      };
-      
-      // 更新选中的提交
-      setSelectedSubmission(updatedSubmission);
+        
+        toast({
+          title: 'AI评分完成',
+          description: `AI已为该作业评分: ${aiGradingResult.score}分`,
+        });
+      }, 2000); // 模拟2秒的API延迟
+    } catch (error) {
+      console.error('AI评分失败:', error);
+      toast({
+        title: 'AI评分失败',
+        description: '无法完成AI评分，请稍后重试',
+        variant: 'destructive',
+      });
       setIsAIGradingLoading(false);
-    }, 2000); // 模拟2秒的API延迟
+    }
   };
   
   // 批量AI评分
   const handleBatchAIGrading = () => {
     // 实际应用中，这里应该调用批量评分API
-    alert('批量AI评分功能已触发，实际应用中将调用API');
+    toast({
+      title: '批量评分已触发',
+      description: '系统将自动为所有未评分的作业进行AI评分',
+    });
   };
   
   // 提交教师评分
-  const handleTeacherGradingSubmit = (score: number, feedback: string) => {
+  const handleTeacherGradingSubmit = async (score: number, feedback: string) => {
     if (!selectedSubmission) return;
     
-    // 模拟更新提交的教师评分结果
-    const updatedSubmission = { 
-      ...selectedSubmission,
-      teacherGrading: {
+    try {
+      const grading = {
         score,
         feedback,
         timestamp: new Date().toISOString()
+      };
+      
+      // 调用API提交评分
+      await submitTeacherGrading(selectedSubmission.id, grading);
+      
+      // 更新本地状态
+      const updatedSubmission = { 
+        ...selectedSubmission,
+        teacherGrading: grading
+      };
+      
+      // 更新选中的提交
+      setSelectedSubmission(updatedSubmission);
+      
+      // 更新提交列表中的该提交
+      setSubmissions(prev => 
+        prev.map(sub => sub.id === updatedSubmission.id ? updatedSubmission : sub)
+      );
+      
+      // 通知父组件提交已更新
+      if (onSubmissionUpdated) {
+        onSubmissionUpdated(updatedSubmission);
       }
-    };
-    
-    // 更新选中的提交
-    setSelectedSubmission(updatedSubmission);
-    
-    // 实际应用中，这里应该调用API保存评分结果
-    alert('教师评分已提交！');
+      
+      toast({
+        title: '评分成功',
+        description: '教师评分已成功保存',
+      });
+    } catch (error) {
+      console.error('提交评分失败:', error);
+      toast({
+        title: '评分失败',
+        description: '保存教师评分时出错，请重试',
+        variant: 'destructive',
+      });
+    }
   };
   
   return (
@@ -198,43 +313,64 @@ const AssignmentSubmissionViewer: React.FC<AssignmentSubmissionViewerProps> = ({
         </div>
         
         <div className="text-sm text-gray-500">
-          课时ID: {lessonId}
+          {lessonId ? `课时ID: ${lessonId}` : courseId ? `课程ID: ${courseId}` : ''}
         </div>
       </div>
       
       <Separator />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 左侧提交列表 */}
-        <div className="lg:col-span-1">
-          <h3 className="text-md font-semibold mb-4">学生提交列表</h3>
-          <AssignmentSubmissionList 
-            submissions={submissions}
-            onSelectSubmission={handleSelectSubmission}
-            selectedSubmissionId={selectedSubmission?.id}
-            onRequestBatchAIGrading={handleBatchAIGrading}
+      {isLoading ? (
+        <div className="p-12 text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-500">加载中...</p>
+        </div>
+      ) : initialSubmission ? (
+        // 单一提交视图
+        <div>
+          <AssignmentGrading 
+            submission={selectedSubmission!}
+            aiGradingPrompt={aiGradingPrompt}
+            onTeacherGradingSubmit={handleTeacherGradingSubmit}
+            onRequestAIGrading={handleRequestAIGrading}
+            isAIGradingLoading={isAIGradingLoading}
+            onSubmissionUpdated={onSubmissionUpdated}
           />
         </div>
-        
-        {/* 右侧评分界面 */}
-        <div className="lg:col-span-2">
-          {selectedSubmission ? (
-            <AssignmentGrading 
-              submission={selectedSubmission}
-              aiGradingPrompt={aiGradingPrompt}
-              onTeacherGradingSubmit={handleTeacherGradingSubmit}
-              onRequestAIGrading={handleRequestAIGrading}
-              isAIGradingLoading={isAIGradingLoading}
+      ) : (
+        // 列表和详情视图
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 左侧提交列表 */}
+          <div className="lg:col-span-1">
+            <h3 className="text-md font-semibold mb-4">学生提交列表</h3>
+            <AssignmentSubmissionList 
+              submissions={submissions}
+              onSelectSubmission={handleSelectSubmission}
+              selectedSubmissionId={selectedSubmission?.id}
+              onRequestBatchAIGrading={handleBatchAIGrading}
             />
-          ) : (
-            <div className="flex flex-col items-center justify-center p-12 border border-dashed border-gray-300 rounded-lg bg-gray-50 h-full min-h-[400px]">
-              <Bot size={48} className="text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-2">从左侧列表选择一个提交来查看详情</p>
-              <p className="text-sm text-gray-500">每个提交可以使用AI自动评分和教师手动评分</p>
-            </div>
-          )}
+          </div>
+          
+          {/* 右侧评分界面 */}
+          <div className="lg:col-span-2">
+            {selectedSubmission ? (
+              <AssignmentGrading 
+                submission={selectedSubmission}
+                aiGradingPrompt={aiGradingPrompt}
+                onTeacherGradingSubmit={handleTeacherGradingSubmit}
+                onRequestAIGrading={handleRequestAIGrading}
+                isAIGradingLoading={isAIGradingLoading}
+                onSubmissionUpdated={onSubmissionUpdated}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-12 border border-dashed border-gray-300 rounded-lg bg-gray-50 h-full min-h-[400px]">
+                <Bot size={48} className="text-gray-400 mb-4" />
+                <p className="text-gray-600 mb-2">从左侧列表选择一个提交来查看详情</p>
+                <p className="text-sm text-gray-500">每个提交可以使用AI自动评分和教师手动评分</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

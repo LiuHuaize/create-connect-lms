@@ -21,9 +21,11 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const ExploreCourses = lazy(() => import('@/pages/ExploreCourses'));
 const TrashPage = lazy(() => import('@/pages/trash'));
+const TeacherAssignmentsPage = lazy(() => import('@/pages/teacher/AssignmentsPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const BlockNoteEditorTest = lazy(() => import('@/components/editor').then(module => ({ default: module.BlockNoteEditorTest })));
 const ModelTestComponent = lazy(() => import('@/components/ModelTestComponent'));
+const CourseAssignmentsPage = lazy(() => import('@/pages/teacher/CourseAssignmentsPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -178,6 +180,20 @@ const AppRoutes = () => {
           <ProtectedRoute allowedRoles={['teacher', 'admin']}>
             <Suspense fallback={<LoadingFallback />}>
               <CourseSelection />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/teacher/assignments" element={
+          <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+            <Suspense fallback={<LoadingFallback />}>
+              <TeacherAssignmentsPage />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/course/:courseId/assignments" element={
+          <ProtectedRoute allowedRoles={['teacher', 'admin']}>
+            <Suspense fallback={<LoadingFallback />}>
+              <CourseAssignmentsPage />
             </Suspense>
           </ProtectedRoute>
         } />

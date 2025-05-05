@@ -22,6 +22,9 @@ import {
 import { AIGradingResult, AssignmentSubmission, AssignmentFileSubmission } from '@/types/course';
 import { Badge } from './badge';
 import { supabase } from '@/integrations/supabase/client';
+import { submitTeacherGrading } from '@/services/assignmentService';
+import { useToast } from '@/components/ui/use-toast';
+import { Label } from '@/components/ui/label';
 
 interface AssignmentGradingProps {
   submission: AssignmentSubmission;
@@ -29,6 +32,7 @@ interface AssignmentGradingProps {
   onTeacherGradingSubmit: (score: number, feedback: string) => void;
   onRequestAIGrading: () => void;
   isAIGradingLoading?: boolean;
+  onSubmissionUpdated?: (updatedSubmission: AssignmentSubmission) => void;
 }
 
 const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
@@ -36,18 +40,58 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
   aiGradingPrompt,
   onTeacherGradingSubmit,
   onRequestAIGrading,
-  isAIGradingLoading = false
+  isAIGradingLoading = false,
+  onSubmissionUpdated
 }) => {
+  const { toast } = useToast();
   const [teacherScore, setTeacherScore] = useState<number>(
     submission.teacherGrading?.score || 0
   );
   const [teacherFeedback, setTeacherFeedback] = useState<string>(
     submission.teacherGrading?.feedback || ''
   );
+  const [isSubmittingGrade, setIsSubmittingGrade] = useState(false);
   
   // 处理教师评分提交
-  const handleTeacherGradingSubmit = () => {
-    onTeacherGradingSubmit(teacherScore, teacherFeedback);
+  const handleTeacherGradingSubmit = async () => {
+    try {
+      setIsSubmittingGrade(true);
+      
+      // 调用API提交评分
+      const grading = {
+        score: teacherScore,
+        feedback: teacherFeedback,
+        timestamp: new Date().toISOString()
+      };
+      
+      const updatedSubmission = await submitTeacherGrading(submission.id, grading);
+      
+      // 通知父组件评分已更新
+      if (onSubmissionUpdated) {
+        onSubmissionUpdated({
+          ...submission,
+          teacherGrading: grading
+        });
+      }
+      
+      // 调用原有的回调
+      onTeacherGradingSubmit(teacherScore, teacherFeedback);
+      
+      toast({
+        title: '评分成功',
+        description: '你的评分已成功保存',
+        variant: 'default',
+      });
+    } catch (error) {
+      console.error('提交评分失败:', error);
+      toast({
+        title: '评分失败',
+        description: '保存评分时出现错误，请重试',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmittingGrade(false);
+    }
   };
   
   // 根据分数返回颜色类名
@@ -303,8 +347,17 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
                   />
                 </div>
                 
-                <Button onClick={handleTeacherGradingSubmit} className="w-full">
-                  提交评分
+                <Button 
+                  onClick={handleTeacherGradingSubmit} 
+                  className="w-full"
+                  disabled={isSubmittingGrade}
+                >
+                  {isSubmittingGrade ? (
+                    <>
+                      <RefreshCw size={16} className="mr-2 animate-spin" />
+                      提交中...
+                    </>
+                  ) : '提交评分'}
                 </Button>
               </div>
             )}

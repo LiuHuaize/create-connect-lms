@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Trash2,
+  FileCheck,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -108,6 +109,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
       label: "创建课程",
       icon: <PenTool className="h-5 w-5" />,
       href: "/course-selection",
+    },
+    {
+      label: "作业评分",
+      icon: <FileCheck className="h-5 w-5" />,
+      href: "/teacher/assignments",
     },
   ];
 
