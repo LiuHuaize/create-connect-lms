@@ -53,7 +53,7 @@ const saveToLocalCache = (key: string, data: any) => {
 };
 
 // 清除所有课程相关缓存
-export const clearAllCoursesCache = () => {
+export const clearAllCoursesCache = (queryClient?: any) => {
   try {
     // 清除所有课程列表缓存
     localStorage.removeItem(`${LOCAL_STORAGE_PREFIX}all-courses`);
@@ -65,6 +65,14 @@ export const clearAllCoursesCache = () => {
         localStorage.removeItem(key);
       }
     });
+    
+    // 清除React Query缓存
+    if (queryClient) {
+      // 使所有课程查询缓存失效
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      // 使已加入的课程查询缓存失效
+      queryClient.invalidateQueries({ queryKey: ['enrolledCourses'] });
+    }
     
     console.log('已清除所有课程相关缓存');
   } catch (error) {

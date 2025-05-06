@@ -58,5 +58,6 @@ export const CATEGORY_MAP: Record<string, string> = {
 // 获取分类的显示名称
 export const getCategoryDisplayName = (categoryCode: string | null | undefined): string => {
   if (!categoryCode) return '未分类';
+  if (categoryCode === '测试') return ''; // 不显示"测试"标签
   return CATEGORY_MAP[categoryCode] || categoryCode; // 如果找不到映射，返回原始代码
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Eye, Loader2, Check, Clock, Archive, Undo, Redo, Save } from 'lucide-react';
+import { ArrowLeft, Eye, Loader2, Check, Clock, Archive, Undo, Redo, Save, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Course, CourseModule } from '@/types/course';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import CoursePreview from '../CoursePreview';
 import { clearAllCoursesCache } from '@/hooks/useCoursesData';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CourseHeaderProps {
   course: Course;
@@ -44,6 +45,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSave = async () => {
     try {
@@ -119,7 +121,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
       }
       
       // 清除所有课程相关缓存
-      clearAllCoursesCache();
+      clearAllCoursesCache(queryClient);
       
       // 更新发布成功提示
       toast.success('课程已成功发布，现在学生可以访问此课程', {
@@ -167,7 +169,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
       }
       
       // 清除所有课程相关缓存
-      clearAllCoursesCache();
+      clearAllCoursesCache(queryClient);
       
       // 更新取消发布成功提示
       toast.success('课程已取消发布，学生将无法访问此课程', {
