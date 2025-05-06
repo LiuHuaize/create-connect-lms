@@ -5,9 +5,13 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // 使用根路径作为基础路径
+  base: '/',
   server: {
     host: "::",
     port: 8080,
+    // 添加开发服务器的historyApiFallback配置，确保SPA路由正常工作
+    historyApiFallback: true
   },
   plugins: [
     react(),
