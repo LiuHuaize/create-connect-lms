@@ -32,14 +32,17 @@ export default defineConfig(({ mode }) => ({
   build: {
     // 出于更好的缓存考虑，启用长期缓存
     cssCodeSplit: true,
-    sourcemap: false,
+    sourcemap: true, // 开启sourcemap以便调试
     rollupOptions: {
       output: {
         // 为每个chunk生成带有内容哈希的文件名
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]',
-        // 将常用库分组到单独的chunk中
+        // 临时禁用代码分割
+        manualChunks: undefined
+        // 原来的代码分割配置，暂时注释掉
+        /*
         manualChunks: (id) => {
           // React核心库
           if (id.includes('node_modules/react/') || 
@@ -100,6 +103,7 @@ export default defineConfig(({ mode }) => ({
             return 'vendor';
           }
         }
+        */
       }
     },
     // 减少文件大小
