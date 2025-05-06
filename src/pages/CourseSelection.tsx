@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Edit, ExternalLink, BookOpen, PenLine, ChevronRight } from 'lucide-react';
+import { PlusCircle, Edit, ExternalLink, BookOpen, PenLine, ChevronRight, Eye } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -47,6 +47,13 @@ const CourseSelection = () => {
 
   const handleViewCourse = (courseId: string) => {
     // 刷新已加入课程列表，以防有新发布的课程
+    fetchEnrolledCourses();
+    // 修改：导航到课程详情页而不是直接进入课程
+    navigate(`/course/${courseId}/details`);
+  };
+
+  // 直接进入课程学习页面
+  const handleEnterCourse = (courseId: string) => {
     fetchEnrolledCourses();
     navigate(`/course/${courseId}`);
   };
@@ -149,7 +156,7 @@ const CourseSelection = () => {
                   className="rounded-full border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700"
                   onClick={() => handleViewCourse(course.id!)}
                 >
-                  <ExternalLink className="h-4 w-4 mr-1.5" /> 查看
+                  <Eye className="h-4 w-4 mr-1.5" /> 查看详情
                 </Button>
               </CardFooter>
             </Card>

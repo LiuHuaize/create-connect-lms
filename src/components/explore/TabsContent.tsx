@@ -9,7 +9,7 @@ interface TabsContentProps {
   activeTab: string;
   loading: boolean;
   filteredCourses: Course[];
-  handleEnrollCourse: (courseId: string) => void;
+  handleViewCourseDetails: (courseId: string) => void;
   loadingEnrollment: boolean;
 }
 
@@ -17,7 +17,7 @@ const ExploreTabsContent: React.FC<TabsContentProps> = ({
   activeTab,
   loading,
   filteredCourses,
-  handleEnrollCourse,
+  handleViewCourseDetails,
   loadingEnrollment
 }) => {
   return (
@@ -30,7 +30,7 @@ const ExploreTabsContent: React.FC<TabsContentProps> = ({
         ) : (
           <CourseList 
             courses={filteredCourses} 
-            onEnroll={handleEnrollCourse}
+            onEnroll={handleViewCourseDetails}
             loadingEnrollment={loadingEnrollment}
           />
         )}

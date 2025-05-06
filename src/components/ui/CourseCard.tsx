@@ -1,8 +1,11 @@
 import React from 'react';
-import { Clock, Award, BookOpen, BarChart, Star, Users, GraduationCap, Book } from 'lucide-react';
+import { Clock, Award, BookOpen, BarChart, Star, Users, GraduationCap, Book, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 interface CourseCardProps {
+  id?: string;
   type: 'skill' | 'free' | 'career';
   title: string;
   description: string;
@@ -21,6 +24,7 @@ interface CourseCardProps {
 }
 
 const CourseCard: React.FC<CourseCardProps> = ({
+  id,
   type,
   title,
   description,
@@ -37,6 +41,14 @@ const CourseCard: React.FC<CourseCardProps> = ({
   primarySubject,
   secondarySubject
 }) => {
+  const navigate = useNavigate();
+  
+  const handleViewDetails = () => {
+    if (id) {
+      navigate(`/course/${id}/details`);
+    }
+  };
+
   const getBadgeColor = () => {
     switch (type) {
       case 'skill':
@@ -90,12 +102,15 @@ const CourseCard: React.FC<CourseCardProps> = ({
   };
 
   return (
-    <div className={cn(
-      "glow-card hover-card group cursor-pointer",
-      "bg-white dark:bg-card border border-border rounded-2xl overflow-hidden",
-      "transition-all duration-500 hover:border-primary/50",
-      className
-    )}>
+    <div 
+      className={cn(
+        "glow-card hover-card group cursor-pointer",
+        "bg-white dark:bg-card border border-border rounded-2xl overflow-hidden",
+        "transition-all duration-500 hover:border-primary/50",
+        className
+      )}
+      onClick={id ? handleViewDetails : undefined}
+    >
       <div className={cn(
         "h-48 relative overflow-hidden",
         !coverImage && getGradientBackground()
@@ -215,6 +230,24 @@ const CourseCard: React.FC<CourseCardProps> = ({
             </div>
           )}
         </div>
+        
+        {/* 添加查看详情按钮 */}
+        {id && (
+          <div className="mt-4 flex justify-end">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs flex items-center gap-1 text-primary hover:text-primary/80"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewDetails();
+              }}
+            >
+              <Eye size={14} />
+              查看详情
+            </Button>
+          </div>
+        )}
         
         {/* 渐进效果的底部边框 */}
         <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-accent group-hover:w-full transition-all duration-500 rounded-full"></div>

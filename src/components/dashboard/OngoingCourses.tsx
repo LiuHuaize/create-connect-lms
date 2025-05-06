@@ -1,6 +1,6 @@
 import React from 'react';
-import { BookOpen, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { BookOpen, ArrowRight, Eye, Play } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,12 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
   ongoingCourses, 
   loadingEnrolled 
 }) => {
+  const navigate = useNavigate();
+  
+  const handleViewDetails = (courseId: string) => {
+    navigate(`/course/${courseId}/details`);
+  };
+  
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -39,7 +45,11 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
         ) : ongoingCourses.length > 0 ? (
           // 显示用户正在学习的课程
           ongoingCourses.map((course) => (
-            <Card key={course.id} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={course.id} 
+              className="hover:shadow-md transition-shadow border-gray-200 hover:border-blue-200 cursor-pointer"
+              onClick={() => handleViewDetails(course.id)}
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-medium">{course.title}</CardTitle>
@@ -54,9 +64,29 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
                   </div>
                   <Progress value={course.progress} className="h-2" />
                 </div>
-                <Link to={`/course/${course.id}`}>
-                  <Button className="w-full">继续学习</Button>
-                </Link>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 border-blue-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewDetails(course.id);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    详情
+                  </Button>
+                  <Link 
+                    to={`/course/${course.id}`} 
+                    className="flex-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button className="w-full">
+                      <Play className="h-4 w-4 mr-2" />
+                      继续
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           ))

@@ -22,13 +22,13 @@ const ExploreCourses = () => {
     
     // 方法
     handleCategoryChange,
-    handleEnrollCourse
+    handleViewCourseDetails,
   } = useExploreCoursesData();
 
   return (
     <PageContainer 
       title="探索课程" 
-      subtitle="发现并加入符合您兴趣的课程，开始您的学习之旅"
+      subtitle="发现并了解符合您兴趣的课程，开始您的学习之旅"
     >
       <SearchAndFilter
         searchQuery={searchQuery}
@@ -61,7 +61,7 @@ const ExploreCourses = () => {
           filteredCourses={filteredCourses}
           loading={loading} 
           loadingEnrollment={loadingEnrollment}
-          handleEnrollCourse={handleEnrollCourse}
+          handleViewCourseDetails={handleViewCourseDetails}
         />
       </Tabs>
     </PageContainer>

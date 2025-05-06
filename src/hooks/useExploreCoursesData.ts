@@ -3,6 +3,7 @@ import { useCoursesData } from './useCoursesData';
 import { filterCourses } from '@/utils/courseUtils';
 import { CourseCategory, COURSE_CATEGORIES, updateCourseCategories } from '@/types/course-enrollment';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 export const useExploreCoursesData = () => {
   // 状态管理
@@ -10,6 +11,7 @@ export const useExploreCoursesData = () => {
   const [selectedCategory, setSelectedCategory] = useState<CourseCategory>('全部');
   const [activeTab, setActiveTab] = useState("recommended");
   const [categories, setCategories] = useState<CourseCategory[]>(COURSE_CATEGORIES);
+  const navigate = useNavigate();
   
   // 获取课程数据
   const queryClient = useQueryClient();
@@ -61,6 +63,11 @@ export const useExploreCoursesData = () => {
   const handleCategoryChange = (category: CourseCategory) => {
     setSelectedCategory(category);
   };
+  
+  // 查看课程详情处理
+  const handleViewCourseDetails = (courseId: string) => {
+    navigate(`/course/${courseId}/details`);
+  };
 
   // 使用记忆化过滤结果
   const filteredCourses = filterCourses(courses, searchQuery, selectedCategory);
@@ -82,7 +89,8 @@ export const useExploreCoursesData = () => {
     
     // 方法
     handleCategoryChange,
-    handleEnrollCourse
+    handleEnrollCourse,
+    handleViewCourseDetails
   };
 };
 

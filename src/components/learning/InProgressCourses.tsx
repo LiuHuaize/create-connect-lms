@@ -1,7 +1,7 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { BookOpen, Play, Clock, GraduationCap, Book, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { getCategoryDisplayName } from '@/utils/courseUtils';
@@ -28,6 +28,18 @@ interface InProgressCoursesProps {
 const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading }) => {
   // 仅显示可用课程
   const availableCourses = courses.filter(course => course.isAvailable !== false);
+  const navigate = useNavigate();
+  
+  // 跳转到课程详情页
+  const handleViewCourse = (courseId: string) => {
+    navigate(`/course/${courseId}/details`);
+  };
+  
+  // 继续学习
+  const handleContinueLearning = (e: React.MouseEvent, courseId: string) => {
+    e.stopPropagation();
+    navigate(`/course/${courseId}`);
+  };
   
   return (
     <div className="space-y-6">
@@ -38,7 +50,11 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
       ) : availableCourses.length > 0 ? (
         // 显示用户已加入的课程
         availableCourses.map((course) => (
-          <div key={course.id} className="course-card bg-white rounded-xl shadow-sm border border-gray-100">
+          <div 
+            key={course.id} 
+            className="course-card bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 cursor-pointer"
+            onClick={() => handleViewCourse(course.id)}
+          >
             <div className="p-6">
               <div className="flex justify-between items-start">
                 <div>
@@ -82,12 +98,6 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
                     </div>
                   </div>
                 </div>
-                
-                <Link to={`/course/${course.id}`}>
-                  <button className="bg-ghibli-teal text-white p-3 rounded-full hover:bg-ghibli-deepTeal transition-colors">
-                    <Play size={20} fill="white" />
-                  </button>
-                </Link>
               </div>
               
               <div className="mt-2">
@@ -102,24 +112,18 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
             <div className="border-t border-ghibli-sand bg-ghibli-parchment p-4 rounded-b-xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium">继续学习</h4>
+                  <h4 className="font-medium">查看课程</h4>
                   <p className="text-sm text-gray-500">{course.title}</p>
                 </div>
                 
-                <div className="flex gap-2">
-                  <Link to={`/course/${course.id}/details`}>
-                    <button className="event-view-details-btn flex items-center gap-1">
-                      <Info size={14} />
-                      详情
-                    </button>
-                  </Link>
-                  
-                  <Link to={`/course/${course.id}`}>
-                    <button className="event-register-btn">
-                      继续
-                    </button>
-                  </Link>
-                </div>
+                <Button 
+                  className="event-view-details-btn"
+                  onClick={(e) => handleContinueLearning(e, course.id)}
+                  variant="default"
+                >
+                  <Play size={16} className="mr-2" />
+                  继续学习
+                </Button>
               </div>
             </div>
           </div>

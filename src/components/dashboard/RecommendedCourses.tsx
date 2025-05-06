@@ -14,6 +14,11 @@ interface Course {
   duration?: number;
   coursesCount?: number;
   certificate?: boolean;
+  coverImage?: string | null;
+  gradeRangeMin?: number | null;
+  gradeRangeMax?: number | null;
+  primarySubject?: string | null;
+  secondarySubject?: string | null;
 }
 
 interface RecommendedCoursesProps {
@@ -52,6 +57,7 @@ const RecommendedCourses: React.FC<RecommendedCoursesProps> = ({
           recommendedCourses.map((course) => (
             <CourseCard
               key={course.id}
+              id={course.id}
               type={course.courseType || 'skill'}
               title={course.title}
               description={course.shortDescription || ''}
@@ -59,6 +65,11 @@ const RecommendedCourses: React.FC<RecommendedCoursesProps> = ({
               certificate={course.certificate}
               level={course.level || '初级'}
               hours={course.duration || 0}
+              coverImage={course.coverImage}
+              gradeRangeMin={course.gradeRangeMin}
+              gradeRangeMax={course.gradeRangeMax}
+              primarySubject={course.primarySubject}
+              secondarySubject={course.secondarySubject}
             />
           ))
         ) : (
