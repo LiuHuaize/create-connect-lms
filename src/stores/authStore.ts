@@ -122,7 +122,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ loading: false });
           resolve();
         }
-      }, 100); // 添加100毫秒的延迟，让Supabase有时间初始化
+      }, 300); // 增加延迟时间从100毫秒到300毫秒，给Supabase更多初始化时间
     });
   }
 })); 

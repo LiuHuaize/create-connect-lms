@@ -44,7 +44,7 @@ const MainLayoutWrapper = () => {
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -53,6 +53,11 @@ const AppRoutes = () => {
       queryClient.prefetchQuery({ queryKey: ['enrolledCourses', user.id], staleTime: 5 * 60 * 1000 });
     }
   }, [user, queryClient]);
+
+  // 如果认证状态仍在加载中，显示加载界面，避免过早重定向
+  if (loading) {
+    return <LoadingFallback />;
+  }
 
   return (
     <Suspense fallback={<LoadingFallback />}>
