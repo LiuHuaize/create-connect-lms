@@ -12,7 +12,7 @@ interface CourseDetailsFormProps {
   setCourse: React.Dispatch<React.SetStateAction<Course>>;
 }
 
-const COURSE_CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   { value: 'business_planning', label: '商业规划' },
   { value: 'game_design', label: '游戏设计' },
   { value: 'product_development', label: '产品开发' },
@@ -25,6 +25,7 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
   const [customCategoryOpen, setCustomCategoryOpen] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
   const [selectedCategoryDisplay, setSelectedCategoryDisplay] = useState<string>('');
+  const [courseCategories, setCourseCategories] = useState(DEFAULT_CATEGORIES);
 
   // 更新分类显示值
   useEffect(() => {
@@ -34,14 +35,24 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
     }
     
     // 如果是预设分类，显示预设值，否则直接显示自定义分类值
-    const categoryItem = COURSE_CATEGORIES.find(cat => cat.value === course.category);
+    const categoryItem = courseCategories.find(cat => cat.value === course.category);
     if (categoryItem) {
       setSelectedCategoryDisplay(categoryItem.value);
     } else {
-      // 这是自定义分类
+      // 这是自定义分类，检查是否需要添加到分类列表
+      const categoryExists = courseCategories.some(cat => cat.value === course.category);
+      if (!categoryExists && course.category !== 'custom') {
+        // 添加自定义分类到列表
+        setCourseCategories(prev => [
+          ...prev.filter(cat => cat.value !== 'custom'),
+          { value: course.category, label: course.category },
+          { value: 'custom', label: '自定义分类...' }
+        ]);
+      }
+      // 设置显示值
       setSelectedCategoryDisplay(course.category);
     }
-  }, [course.category]);
+  }, [course.category, courseCategories]);
 
   const handleCategoryChange = (value: string) => {
     try {
@@ -60,6 +71,13 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
       if (customCategory.trim()) {
         const trimmedCategory = customCategory.trim();
         console.log('提交自定义分类:', trimmedCategory);
+        
+        // 添加自定义分类到下拉列表
+        setCourseCategories(prev => [
+          ...prev.filter(cat => cat.value !== 'custom' && cat.value !== trimmedCategory),
+          { value: trimmedCategory, label: trimmedCategory },
+          { value: 'custom', label: '自定义分类...' }
+        ]);
         
         setCourse(prev => {
           const updatedCourse = { ...prev, category: trimmedCategory };
@@ -121,14 +139,10 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
             onValueChange={handleCategoryChange}
           >
             <SelectTrigger id="category" className="focus:ring-2 focus:ring-connect-blue/20">
-              <SelectValue placeholder="选择课程分类">
-                {course.category && !COURSE_CATEGORIES.some(c => c.value === course.category) 
-                  ? course.category 
-                  : undefined}
-              </SelectValue>
+              <SelectValue placeholder="选择课程分类" />
             </SelectTrigger>
             <SelectContent>
-              {COURSE_CATEGORIES.map((category) => (
+              {courseCategories.map((category) => (
                 <SelectItem key={category.value} value={category.value}>
                   {category.label}
                 </SelectItem>
