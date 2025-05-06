@@ -63,55 +63,66 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   
   initialize: async () => {
-    try {
-      // 检查现有会话
-      const { data: { session: currentSession } } = await authService.getSession();
-      
-      set({ 
-        session: currentSession,
-        user: currentSession?.user ?? null,
-      });
-      
-      // 如果有用户会话，获取用户角色
-      if (currentSession?.user) {
-        const userRole = await authService.fetchUserRole(currentSession.user.id);
-        set({ role: userRole });
-      }
-      
-      // 设置认证状态监听器
-      const { data: { subscription } } = authService.onAuthStateChange(
-        async (event, currentSession) => {
+    // 添加延迟来解决Supabase会话加载问题
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        try {
+          // 检查现有会话
+          const { data: { session: currentSession } } = await authService.getSession();
+          
           set({ 
             session: currentSession,
-            user: currentSession?.user ?? null
+            user: currentSession?.user ?? null,
           });
           
-          // 处理用户登录
+          // 如果有用户会话，获取用户角色
           if (currentSession?.user) {
-            const userId = currentSession.user.id;
-            const userRole = await authService.fetchUserRole(userId);
+            const userRole = await authService.fetchUserRole(currentSession.user.id);
             set({ role: userRole });
-          } else {
-            // 用户登出
-            set({ role: null });
-            // 清除本地缓存
-            clearUserRoleCache();
           }
           
+          // 设置认证状态监听器
+          const { data: { subscription } } = authService.onAuthStateChange(
+            (event, currentSession) => {
+              set({ 
+                session: currentSession,
+                user: currentSession?.user ?? null
+              });
+              
+              // 使用setTimeout避免在回调函数中直接使用异步操作
+              setTimeout(async () => {
+                // 处理用户登录
+                if (currentSession?.user) {
+                  const userId = currentSession.user.id;
+                  const userRole = await authService.fetchUserRole(userId);
+                  set({ role: userRole });
+                } else {
+                  // 用户登出
+                  set({ role: null });
+                  // 清除本地缓存
+                  clearUserRoleCache();
+                }
+                
+                set({ loading: false });
+              }, 0);
+            }
+          );
+          
+          // 初始化完成
           set({ loading: false });
+          resolve();
+          
+          // 清理函数 (这里不会执行，因为store是持久的)
+          // 但可以在组件中使用useEffect进行清理
+          return () => {
+            subscription.unsubscribe();
+          };
+        } catch (error) {
+          console.error('初始化认证状态时出错:', error);
+          set({ loading: false });
+          resolve();
         }
-      );
-      
-      // 初始化完成
-      set({ loading: false });
-      
-      // 清理函数
-      return () => {
-        subscription.unsubscribe();
-      };
-    } catch (error) {
-      console.error('初始化认证状态时出错:', error);
-      set({ loading: false });
-    }
+      }, 100); // 添加100毫秒的延迟，让Supabase有时间初始化
+    });
   }
 })); 
