@@ -1,6 +1,6 @@
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Play, Clock, GraduationCap, Book } from 'lucide-react';
+import { BookOpen, Play, Clock, GraduationCap, Book, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
@@ -106,11 +106,20 @@ const InProgressCourses: React.FC<InProgressCoursesProps> = ({ courses, loading 
                   <p className="text-sm text-gray-500">{course.title}</p>
                 </div>
                 
-                <Link to={`/course/${course.id}`}>
-                  <button className="event-register-btn">
-                    继续
-                  </button>
-                </Link>
+                <div className="flex gap-2">
+                  <Link to={`/course/${course.id}/details`}>
+                    <button className="event-view-details-btn flex items-center gap-1">
+                      <Info size={14} />
+                      详情
+                    </button>
+                  </Link>
+                  
+                  <Link to={`/course/${course.id}`}>
+                    <button className="event-register-btn">
+                      继续
+                    </button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

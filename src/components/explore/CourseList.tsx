@@ -1,9 +1,10 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Book, Award } from 'lucide-react';
+import { GraduationCap, Book, Award, Info } from 'lucide-react';
 import { Course } from '@/types/course';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface CourseListProps {
   courses: Course[];
@@ -24,6 +25,12 @@ const CARD_COLORS = [
 ];
 
 const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrollment = false }) => {
+  const navigate = useNavigate();
+  
+  const handleViewDetails = (courseId: string) => {
+    navigate(`/course/${courseId}/details`);
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
       {courses.map((course, index) => {
@@ -34,7 +41,8 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrol
         return (
           <Card 
             key={course.id} 
-            className="overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 group relative"
+            className="overflow-hidden border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 group relative cursor-pointer"
+            onClick={() => handleViewDetails(course.id!)}
           >
             {/* 顶部彩色边框 */}
             <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${colorClass}`}></div>
@@ -101,16 +109,16 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrol
               </div>
             </CardContent>
             
-            <CardFooter className="p-5 pt-0 flex justify-end">
+            <CardFooter className="p-5 pt-0 flex justify-end" onClick={(e) => e.stopPropagation()}>
               <Button 
-                onClick={() => onEnroll(course.id!)} 
-                disabled={loadingEnrollment}
-                className={cn(
-                  "bg-blue-500 hover:bg-blue-600 text-white",
-                  loadingEnrollment && "opacity-70 cursor-not-allowed"
-                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewDetails(course.id!);
+                }}
+                className="bg-blue-500 hover:bg-blue-600 text-white"
               >
-                {loadingEnrollment ? '加入中...' : '加入课程'}
+                <Info size={16} className="mr-1.5" />
+                查看详情
               </Button>
             </CardFooter>
           </Card>

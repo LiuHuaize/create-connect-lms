@@ -16,6 +16,7 @@ const CourseCreator = lazy(() => import('@/pages/CourseCreator'));
 const CourseSelection = lazy(() => import('@/pages/CourseSelection'));
 const Auth = lazy(() => import('@/pages/Auth'));
 const CoursePage = lazy(() => import('@/pages/course/CoursePage'));
+const CourseDetailsPage = lazy(() => import('@/pages/course/CourseDetailsPage'));
 const UserManagement = lazy(() => import('@/pages/admin/UserManagement'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
@@ -83,6 +84,7 @@ const AppRoutes = () => {
           <Route path="/learning" element={<ProtectedRoute><Learning /></ProtectedRoute>} />
           <Route path="/explore-courses" element={<ProtectedRoute><ExploreCourses /></ProtectedRoute>} />
           <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+          <Route path="/course/:courseId/details" element={<ProtectedRoute><CourseDetailsPage /></ProtectedRoute>} />
           <Route path="/course/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
           <Route path="/course/:courseId/lesson/:lessonId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
