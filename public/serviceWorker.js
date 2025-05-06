@@ -1,5 +1,5 @@
 // 为应用程序定义一个缓存版本
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const CACHE_NAME = (self.location.port || 'default') + '-connect-lms-cache-' + CACHE_VERSION;
 const API_CACHE_NAME = (self.location.port || 'default') + '-connect-lms-api-cache-' + CACHE_VERSION;
 const CRITICAL_CACHE_NAME = (self.location.port || 'default') + '-connect-lms-critical-cache-' + CACHE_VERSION;
@@ -8,35 +8,30 @@ const CRITICAL_CACHE_NAME = (self.location.port || 'default') + '-connect-lms-cr
 const urlsToCache = [
   '/',
   '/index.html',
-  '/assets/vendor.js',
-  '/assets/index.css',
-  '/assets/index.js',
   '/logo-yi.svg'
 ];
 
 // 关键资源列表 - 最高优先级缓存和加载
 const criticalResources = [
-  '/assets/index.css',
   '/logo-yi.svg',
-  '/assets/vendor.js',
   '/index.html'
 ];
 
 // 不缓存的路径列表
 const noCachePaths = [
-  // '/auth',
-  // '/login',
-  // '/dashboard'
+  '/auth',
+  '/login',
+  '/dashboard'
 ];
 
-// 扩展预加载资源列表
+// Cloudflare相关路径，不处理
+const cloudflareResources = [
+  '/cdn-cgi/'
+];
+
+// 扩展预加载资源列表 - 只包含确认存在的资源
 const preloadResources = [
-  '/assets/index.css',
-  '/assets/vendor.js',
-  '/logo-yi.svg',
-  '/assets/BlockNoteRenderer.DZShM0QE.css',
-  '/assets/editor.CZ2bpOV-.css',
-  '/assets/index.ClxVaXAb.css'
+  '/logo-yi.svg'
 ];
 
 // 添加调试日志记录函数
@@ -61,6 +56,14 @@ function shouldCache(url) {
   for (const path of noCachePaths) {
     if (url.pathname.includes(path)) {
       swLog('在不缓存列表中的路径:', url.pathname);
+      return false;
+    }
+  }
+  
+  // 检查是否为Cloudflare资源
+  for (const path of cloudflareResources) {
+    if (url.pathname.includes(path)) {
+      swLog('Cloudflare资源，不缓存:', url.pathname);
       return false;
     }
   }
@@ -130,8 +133,23 @@ self.addEventListener('fetch', (event) => {
     return; // 不处理非http和https请求
   }
   
+  // 检查是否为Cloudflare资源 - 直接跳过处理
+  for (const path of cloudflareResources) {
+    if (url.pathname.includes(path)) {
+      swLog('Cloudflare资源，不处理:', url.pathname);
+      return; // 重要: 让浏览器默认处理
+    }
+  }
+  
   // 检查是否应该缓存此请求
   if (!shouldCache(url)) {
+    // 不使用event.respondWith，直接返回让浏览器处理
+    // 这对于auth路径特别重要，确保它总是从网络加载
+    if (noCachePaths.some(path => url.pathname.includes(path))) {
+      swLog('不缓存路径，退出处理:', url.pathname);
+      return; // 直接返回，让浏览器默认处理
+    }
+    
     event.respondWith(fetch(event.request)
       .then(response => {
         swLog('直接从网络获取 (不缓存):', url.toString());
@@ -382,23 +400,29 @@ self.addEventListener('activate', (event) => {
         });
       });
       
-      // 预加载关键资源
-      caches.open(CRITICAL_CACHE_NAME).then(cache => {
-        swLog('开始预加载关键资源...');
-        preloadResources.forEach(resource => {
-          swLog('尝试预加载:', resource);
-          fetch(resource).then(response => {
-            if (response.ok) {
-              cache.put(resource, response);
-              swLog('预加载资源成功:', resource);
-            } else {
-              swError('预加载资源失败 (状态码):', resource, response.status);
-            }
-          }).catch(err => {
-            swError('预加载资源失败 (网络错误):', resource, err);
+      // 延迟预加载资源，避免干扰关键导航流程
+      setTimeout(() => {
+        // 预加载关键资源
+        caches.open(CRITICAL_CACHE_NAME).then(cache => {
+          swLog('开始预加载关键资源...');
+          preloadResources.forEach(resource => {
+            swLog('尝试预加载:', resource);
+            fetch(resource)
+              .then(response => {
+                if (response.ok) {
+                  cache.put(resource, response);
+                  swLog('预加载资源成功:', resource);
+                } else {
+                  swError('预加载资源失败 (状态码):', resource, response.status);
+                }
+              })
+              .catch(err => {
+                swError('预加载资源失败 (网络错误):', resource, err);
+                // 失败继续，不中断其他资源的预加载
+              });
           });
         });
-      });
+      }, 3000); // 延迟3秒再进行预加载
     })
   );
 });
