@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from '@/contexts/AuthContext';
 
 // Import components
 import CourseHeader from './components/CourseHeader';
@@ -21,6 +22,7 @@ const CoursePage = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   
   // 使用localStorage记住用户的侧边栏折叠状态偏好
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -93,8 +95,8 @@ const CoursePage = () => {
     return <NotFoundCard />;
   }
   
-  // 检查课程是否可用（课程状态为已发布）
-  const isCourseAvailable = courseData.status === 'published';
+  // 检查课程是否可用：课程已发布或当前用户是课程创建者
+  const isCourseAvailable = courseData.status === 'published' || (user?.id && user.id === courseData.author_id);
   
   // 如果课程不可用，显示不可用信息
   if (!isCourseAvailable) {

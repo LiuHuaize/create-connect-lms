@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -144,16 +143,14 @@ const CourseSelection = () => {
                 >
                   <PenLine className="h-4 w-4 mr-1.5" /> 编辑
                 </Button>
-                {course.status === 'published' && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="rounded-full border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700"
-                    onClick={() => handleViewCourse(course.id!)}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-1.5" /> 查看
-                  </Button>
-                )}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="rounded-full border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700"
+                  onClick={() => handleViewCourse(course.id!)}
+                >
+                  <ExternalLink className="h-4 w-4 mr-1.5" /> 查看
+                </Button>
               </CardFooter>
             </Card>
           ))
