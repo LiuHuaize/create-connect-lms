@@ -114,7 +114,13 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
         <h3 className="font-medium text-macaron-deepLavender mb-2 flex items-center">
           <Check size={18} className="mr-2" /> 测验说明
         </h3>
-        <p className="text-macaron-darkGray text-sm">完成下面的题目来测试你的理解。每道题选择一个正确答案。</p>
+        <p className="text-macaron-darkGray text-sm">
+          完成下面的题目来测试你的理解。
+          {content?.questions?.some((q: any) => q.type === 'multiple_choice' || q.type === 'true_false') && 
+            '对于选择题，请选择一个正确答案。'}
+          {content?.questions?.some((q: any) => q.type === 'short_answer') && 
+            '对于简答题，请在文本框中输入您的答案。'}
+        </p>
       </div>
       
       {content?.questions && content.questions.length > 0 ? (

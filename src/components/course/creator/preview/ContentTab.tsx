@@ -150,7 +150,7 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
                         <h4 className="font-medium">{question.text || '未命名问题'}</h4>
                       </div>
                       
-                      {question.options && question.options.length > 0 && (
+                      {question.type !== 'short_answer' && question.options && question.options.length > 0 && (
                         <div className="ml-8 space-y-2">
                           {question.options.map((option: any) => (
                             <div key={option.id} className="flex items-center gap-2">

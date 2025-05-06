@@ -262,9 +262,23 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
   };
   
   const updateQuestion = (questionId: string, field: string, value: any) => {
-    const updatedQuestions = questions.map(q => 
-      q.id === questionId ? { ...q, [field]: value } : q
-    );
+    const updatedQuestions = questions.map(q => {
+      if (q.id === questionId) {
+        // 处理问题类型变更的特殊情况
+        if (field === 'type' && value === 'short_answer') {
+          // 对于简答题，移除选项并清除正确答案选择
+          return { 
+            ...q, 
+            [field]: value,
+            options: [], // 移除所有选项
+            correctOption: '', // 清除正确答案选择
+            sampleAnswer: q.sampleAnswer || '' // 保留示例答案
+          };
+        }
+        return { ...q, [field]: value };
+      }
+      return q;
+    });
     
     setQuestions(updatedQuestions);
     const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
@@ -771,22 +785,15 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                         {question.type === 'short_answer' && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              答案示例（仅供参考）
+                              示例答案
                             </label>
                             <Textarea
-                              placeholder="输入可能的正确答案示例"
+                              placeholder="输入示例正确答案，帮助学生理解期望的回答"
                               rows={3}
                               value={question.sampleAnswer || ''}
                               onChange={(e) => updateQuestion(question.id, 'sampleAnswer', e.target.value)}
                             />
-                            
-                            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                              <p className="text-xs text-yellow-700 font-medium mb-1">AI评分说明</p>
-                              <p className="text-xs text-yellow-600">
-                                简答题将使用AI进行自动评分。系统会根据问题和示例答案来评判学生的回答。
-                                您可以在作业的"AI评分提示"部分提供更详细的评分标准和要求。
-                              </p>
-                            </div>
+                            <p className="text-xs text-gray-500 mt-1">作为参考答案，可用于AI评分或学生自查</p>
                           </div>
                         )}
                       </div>

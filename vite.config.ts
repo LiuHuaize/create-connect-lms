@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    exclude: ['pinyin-pro'], // 排除pinyin-pro以避免依赖优化问题
+    exclude: ['pinyin-pro', 'chunk-GITHBTHW'], // 排除pinyin-pro以避免依赖优化问题
     esbuildOptions: {
       platform: 'browser', // 确保构建平台是浏览器
       define: {

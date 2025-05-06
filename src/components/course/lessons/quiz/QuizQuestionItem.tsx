@@ -72,8 +72,8 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
         </div>
       )}
       
-      {/* 选项列表 */}
-      {question.options && (
+      {/* 选项列表 - 只在非简答题类型时显示 */}
+      {question.type !== 'short_answer' && question.options && (
         <div className="space-y-3 mt-4">
           {question.options.map((option, oIndex) => {
             // 高亮显示选择但错误的答案
@@ -143,6 +143,18 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             onChange={(e) => onAnswerSelect(question.id, e.target.value)}
             disabled={quizSubmitted || showCorrectAnswer}
           ></textarea>
+          
+          {/* 显示正确答案示例（当需要显示正确答案时） */}
+          {showCorrectAnswer && question.sampleAnswer && (
+            <div className="mt-3 p-3 bg-macaron-mint/20 border border-macaron-mint/50 rounded-lg">
+              <p className="text-macaron-deepMint font-medium mb-1">参考答案:</p>
+              {containsMarkdown(question.sampleAnswer) ? (
+                <MarkdownRenderer>{question.sampleAnswer}</MarkdownRenderer>
+              ) : (
+                <p className="text-macaron-darkGray">{question.sampleAnswer}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
       
@@ -153,7 +165,7 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             variant="outline"
             className="text-macaron-darkGray border-macaron-lavender/30 hover:bg-macaron-lavender/20 transition-all duration-300"
             onClick={() => onCheckAnswer(question.id, question.correctOption || '')}
-            disabled={!selectedAnswer}
+            disabled={!selectedAnswer && question.type !== 'short_answer'}
           >
             检查答案
           </Button>
