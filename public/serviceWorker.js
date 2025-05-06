@@ -24,9 +24,9 @@ const criticalResources = [
 
 // 不缓存的路径列表
 const noCachePaths = [
-  '/auth',
-  '/login',
-  '/dashboard'
+  // '/auth',
+  // '/login',
+  // '/dashboard'
 ];
 
 // 扩展预加载资源列表
