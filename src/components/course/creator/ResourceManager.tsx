@@ -90,6 +90,8 @@ export function ResourceManager({ moduleId, courseId }: ResourceManagerProps) {
   // 初始加载
   useEffect(() => {
     if (moduleId) {
+      // 清空之前的资源，确保不会显示旧模块的资源
+      setResources([]);
       loadResources();
     }
   }, [moduleId]);
