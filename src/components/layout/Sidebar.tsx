@@ -132,11 +132,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
       href: "/profile",
     },
     {
-      label: "回收站",
-      icon: <Trash2 className="h-5 w-5" />,
-      href: "/trash",
-    },
-    {
       label: "设置",
       icon: <Settings className="h-5 w-5" />,
       href: "/settings",
