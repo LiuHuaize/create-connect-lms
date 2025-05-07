@@ -65,17 +65,19 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
                   <Progress value={course.progress} className="h-2" />
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 border-blue-200"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewDetails(course.id);
-                    }}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    详情
-                  </Button>
+                  <div className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-blue-200"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(course.id);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      详情
+                    </Button>
+                  </div>
                   <Link 
                     to={`/course/${course.id}`} 
                     className="flex-1"
