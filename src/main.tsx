@@ -2,6 +2,10 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// Service Worker相关功能已禁用
+// 以下代码保留但已注释，如需重新启用可取消注释
+
+/*
 // 定义清除所有缓存的函数
 const clearAllCaches = async () => {
   if (!navigator.serviceWorker) return;
@@ -56,7 +60,7 @@ if (navigator.serviceWorker) {
 }
 
 // 注册Service Worker以优化缓存
-if ('serviceWorker' in navigator && navigator.serviceWorker) { // Also check navigator.serviceWorker here
+if ('serviceWorker' in navigator && navigator.serviceWorker) {
   // 延迟注册Service Worker，确保页面完全加载
   window.addEventListener('load', () => {
     // 检查URL参数，如果有clear-cache参数，清除所有缓存
@@ -73,12 +77,12 @@ if ('serviceWorker' in navigator && navigator.serviceWorker) { // Also check nav
     }
 
     // 先检查是否已有Service Worker
-    navigator.serviceWorker.getRegistrations().then(registrations => { // Safe to call now due to the outer check
+    navigator.serviceWorker.getRegistrations().then(registrations => {
       // 如果已经有注册的Service Worker，强制更新
       if (registrations.length > 0) {
         console.log('更新已存在的Service Worker');
         // 为当前端口单独注册Service Worker
-        const swUrl = `/serviceWorker.js?port=${window.location.port}`;
+        const swUrl = `/sw.js?port=${window.location.port}`;
         navigator.serviceWorker.register(swUrl, {
           scope: '/',
           updateViaCache: 'none' 
@@ -92,7 +96,7 @@ if ('serviceWorker' in navigator && navigator.serviceWorker) { // Also check nav
         });
       } else {
         // 没有注册过，创建新的注册
-        const swUrl = `/serviceWorker.js?port=${window.location.port}`;
+        const swUrl = `/sw.js?port=${window.location.port}`;
         navigator.serviceWorker.register(swUrl, {
           scope: '/', // 明确设置作用域为根路径
           updateViaCache: 'none' // 禁用通过缓存更新
@@ -108,11 +112,25 @@ if ('serviceWorker' in navigator && navigator.serviceWorker) { // Also check nav
   });
 
   // 添加消息监听器，处理Service Worker消息
-  navigator.serviceWorker.addEventListener('message', (event) => { // Safe to call now due to the outer check
+  navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SW_ACTIVATED') {
       console.log('Service Worker已激活，版本:', event.data.version);
     } else if (event.data && event.data.type === 'CACHE_UPDATED') {
       console.log('缓存已更新:', event.data.url);
+    }
+  });
+}
+*/
+
+// 如果页面中存在已注册的Service Worker，将其注销
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      registration.unregister().then(success => {
+        if (success) {
+          console.log('Service Worker已注销');
+        }
+      });
     }
   });
 }

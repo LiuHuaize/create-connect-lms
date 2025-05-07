@@ -1,0 +1,105 @@
+---
+description: # Project Guidelines and Coding Standards  **This document provides an overview of the project, guidance for AI assistants, and establishes coding standards. It is crucial to keep this document updated with any changes to project scope, architecture, or coding practices.**
+globs: 
+alwaysApply: false
+---
+# Project Guidelines and Coding Standards
+
+**This document provides an overview of the project, guidance for AI assistants, and establishes coding standards. It is crucial to keep this document updated with any changes to project scope, architecture, or coding practices.**
+
+## 1. Project Overview
+
+This project is a **Learning Management System (LMS)** specifically designed for students in the **7-14 age group**. The platform aims to deliver an engaging, interactive, and effective online learning experience.
+
+Key features and goals include:
+- Interactive course content creation and delivery.
+- Student progress tracking and assessment.
+- Management tools for educators and administrators.
+- A user-friendly interface tailored to the target age group.
+
+## 2. Guidance for AI Assistants
+
+To effectively contribute, AI assistants should:
+- **Understand the Core Purpose:** Grasp that this is an LMS for young learners (ages 7-14).
+- **Analyze Codebase Structure:**
+    - Frontend: Review components in [src/components/](mdc:src/components) and page structures in [src/pages/](mdc:src/pages).
+    - Backend: Understand Supabase functions in [supabase/functions/](mdc:supabase/functions) and any API routes.
+    - Data Models: Familiarize with types defined in [src/types/](mdc:src/types).
+    - State Management: Observe patterns in [src/stores/](mdc:src/stores) (Zustand) and [src/contexts/](mdc:src/contexts) (React Context).
+- **Consult Supporting Documentation:**
+    - [Technology Stack Document](mdc:.cursor/rules/tech_stack_document.mdc)
+    - [Backend Structure Guide](mdc:.cursor/rules/backend_structure.mdc)
+- **Adhere to Coding Standards:** Strictly follow all guidelines outlined in Section 3 of this document.
+
+## 3. Coding Standards
+
+These standards are established to ensure code quality, consistency, and long-term maintainability.
+
+### 3.1. General Principles
+    - **Readability:** Write clear, concise, and simple code.
+    - **Consistency:** Adhere to established project patterns, naming conventions, and coding styles.
+    - **Modularity & Reusability:** Design components, functions, and modules to be self-contained, reusable, and focused on a single responsibility.
+    - **Maintainability:** Write code that is easy to debug, test, modify, and extend.
+    - **DRY (Don't Repeat Yourself):** Abstract common logic into reusable functions, components, or hooks.
+    - **Comments:**
+        - Explain complex logic, non-obvious decisions, or workarounds.
+        - Use JSDoc-style comments for functions and complex type definitions (purpose, parameters, return values).
+        - Remove commented-out code; use Git history for tracking changes.
+
+### 3.2. Language: TypeScript
+    - **Strong Typing:** Leverage TypeScript's static typing. Avoid `any` where specific types can be defined. Use clear interfaces and types.
+    - **Compiler Options:** Adhere to the rules in [tsconfig.json](mdc:tsconfig.json).
+    - **Linting:** Follow rules in [eslint.config.js](mdc:eslint.config.js). Address linting errors proactively.
+    - **Naming Conventions:**
+        - `camelCase` for variables, function names, object properties.
+        - `PascalCase` for React component names, class names, enums, types, interfaces.
+        - `UPPER_SNAKE_CASE` for constants (e.g., `API_URL`).
+        - Use descriptive and unambiguous names.
+    - **Modules & Imports:**
+        - Use ES6 module syntax (`import`/`export`).
+        - Organize imports (e.g., React, external libraries, internal modules, types, styles).
+        - Prefer named exports for better tree-shaking and refactoring (except for default exports like page components).
+
+### 3.3. Frontend: React
+    - **Functional Components & Hooks:** Exclusively use functional components with React Hooks.
+    - **Component Design:** Keep components small, focused, and decompose complex ones.
+    - **Props:** Clearly define prop types using TypeScript. Destructure props for clarity.
+    - **File Naming:** Use `PascalCase.tsx` for component files (e.g., `CourseCard.tsx`).
+    - **Styling:** Utilize [Tailwind CSS](mdc:tailwind.config.ts) and follow [Shadcn UI](mdc:components.json) conventions.
+    - **Accessibility (a11y):** Design with accessibility in mind. Use semantic HTML and ARIA attributes.
+
+### 3.4. State Management
+    - **Global State:** Use [Zustand](mdc:src/stores) (see existing stores in [src/stores/](mdc:src/stores)).
+    - **Local/Component Tree State:** Use React Context API (see [src/contexts/](mdc:src/contexts)).
+    - Avoid prop drilling by selecting the appropriate tool.
+
+### 3.5. Backend: Supabase
+    - **Edge Functions:** Write in TypeScript, located in [supabase/functions/](mdc:supabase/functions).
+    - **Database Migrations:** Manage all schema changes via migrations in [supabase/migrations/](mdc:supabase/migrations). Use clear, descriptive names.
+    - **Security:** Adhere to Supabase security best practices, especially for Row Level Security (RLS).
+    - Refer to the [Backend Structure Guide](mdc:.cursor/rules/backend_structure.mdc).
+
+### 3.6. API Communication
+    - Utilize the configured [Axios](mdc:package.json) instance for HTTP requests.
+    - Centralize API service calls (e.g., in `src/services/` or `src/lib/api/`).
+    - Implement proper error handling and loading states.
+
+### 3.7. Error Handling
+    - Implement robust error handling for asynchronous operations, API calls, and user inputs.
+    - Use `try...catch` blocks effectively.
+    - Provide user-friendly error messages; log technical details.
+
+### 3.8. Testing (To Be Expanded)
+    - Strive to write unit tests for critical functions and components.
+    - Consider integration tests for key user flows. (Further details on testing strategy will be added.)
+
+### 3.9. Version Control: Git
+    - **Commit Messages:** Write clear, concise, and descriptive messages. Consider Conventional Commits.
+    - **Branching Strategy:** (e.g., feature branches based on `main` or `develop`). (To be defined based on team workflow).
+    - **Pull Requests (PRs):**
+        - Create PRs for all changes intended for main branches.
+        - Provide a clear description of changes, the problem solved, and testing steps.
+        - Ensure code is reviewed before merging.
+
+---
+*This is a living document. All team members are encouraged to contribute to its improvement and ensure it stays up-to-date with the project's evolving needs, architectural changes, and best practices.*

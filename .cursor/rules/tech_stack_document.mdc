@@ -1,0 +1,62 @@
+---
+description: # Technology Stack Documentation  This document outlines the primary technologies and tools used in this project. **It is important to keep this document updated with any changes to the technology stack.**
+globs: 
+alwaysApply: false
+---
+# Technology Stack Documentation
+
+This document outlines the primary technologies and tools used in this project. **It is important to keep this document updated with any changes to the technology stack.**
+
+## Frontend
+
+- **Framework:** [React](mdc:package.json) (with [Vite](mdc:vite.config.ts))
+- **UI Components:**
+    - [Radix UI](mdc:package.json) (unstyled, accessible component primitives)
+    - [Shadcn UI](mdc:components.json) (built on Radix UI with Tailwind styling)
+    - Icons: [Lucide React](mdc:package.json)
+- **Styling:** [Tailwind CSS](mdc:tailwind.config.ts)
+- **Routing:** [React Router DOM](mdc:package.json)
+- **State Management:**
+    - [Zustand](mdc:package.json) (global state) - See [src/stores/](mdc:src/stores)
+    - [React Context API](mdc:src/contexts) (component-level state)
+- **Rich Text Editors:**
+    - [BlockNote](mdc:package.json)
+    - [Lexical](mdc:package.json)
+- **Canvas/Drawing:** [Excalidraw](mdc:public/excalidraw-assets)
+- **UI Utilities:**
+    - Drag and Drop: [@dnd-kit](mdc:package.json)
+    - Forms: [react-hook-form](mdc:package.json) with [zod](mdc:package.json) validation
+    - Dates: [date-fns](mdc:package.json)
+    - Charts: [Recharts](mdc:package.json)
+    - Animation: [Framer Motion](mdc:package.json)
+    - Notifications: [sonner](mdc:package.json)
+    - HTML to Images: [html2canvas](mdc:package.json)
+    - Chinese Language: [pinyin-pro](mdc:package.json)
+    - IDs: [uuid](mdc:package.json)
+
+## Backend
+
+- **Cloud Platform:** [Supabase](mdc:.cursor/rules/backend_structure.mdc)
+    - **Database:** PostgreSQL
+    - **Authentication:** Supabase Auth
+    - **Storage:** Supabase Storage
+    - **Serverless Functions:** TypeScript-based [Edge Functions](mdc:supabase/functions)
+- **API Client:** [Axios](mdc:package.json)
+
+## Build & Tooling
+
+- **Package Manager:** [Bun](mdc:bun.lockb)
+- **Build Tool:** [Vite](mdc:vite.config.ts)
+- **Language:** [TypeScript](mdc:tsconfig.json)
+- **Linting:** [ESLint](mdc:eslint.config.js)
+
+## Deployment & Hosting
+
+- **Platform:** [Vercel](mdc:vercel.json)
+
+## Version Control
+
+- **System:** Git
+- **Hosting:** GitHub
+
+**Note:** When adding new technologies or libraries to the project, please update this document accordingly to maintain an accurate overview of the technology stack.

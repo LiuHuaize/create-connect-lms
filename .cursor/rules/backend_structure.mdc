@@ -1,0 +1,30 @@
+---
+description: Backend Structure Guide The backend of this project is primarily managed using Supabase. **It is important to keep this document updated with any changes to the backend structure.**
+globs: 
+alwaysApply: false
+---
+# Backend Structure Guide
+
+The backend of this project is primarily managed using Supabase. **It is important to keep this document updated with any changes to the backend structure.**
+
+## Supabase
+
+The `supabase/` directory contains all Supabase-related configurations and code:
+
+- **`supabase/functions/`**: This directory holds the serverless functions. Each subdirectory typically represents a distinct function with its own logic. *Note: These are locally defined functions; deployment status may vary.*
+    - `_shared/`: Contains common code or utilities shared across multiple functions.
+    - `delete-course/`: Function to handle course deletion.
+    - `delete-module/`: Function to handle module deletion.
+    - `generate-card-html/`: Function to generate HTML for cards.
+    - `generate-card-image/`: Function to generate images for cards.
+    - `save-course/`: Function to save course data.
+    - `save-lessons/`: Function to save lesson data.
+- **`supabase/migrations/`**: This directory stores database schema migrations. Each file here represents a version of the database schema, allowing for controlled updates and versioning. The project "yixiaobu" (ID: `ooyklqqgnphynyrziqyh`) has numerous migrations, indicating active database development. The latest known migration at the time of this writing is `20250505115933_add_file_submissions_to_assignments`.
+
+## API Routes
+
+Additionally, the `src/pages/api/` directory may contain server-side API route handlers, which are part of the backend logic.
+
+## Deployed Edge Functions (Project: yixiaobu)
+
+As of the last check, there are no Edge Functions deployed for the project "yixiaobu". If Edge Functions are added, they should be documented here.
