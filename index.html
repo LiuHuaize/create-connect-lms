@@ -17,6 +17,25 @@
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
+    <!-- 全局404错误处理 -->
+    <script>
+      // 处理404错误，重定向到首页
+      window.addEventListener('error', function(e) {
+        if (document.title.includes('404') || (e && e.target && e.target.status === 404)) {
+          console.log('检测到404错误，重定向到首页');
+          window.location.href = '/';
+        }
+      });
+
+      // 监听HTTP请求错误
+      window.addEventListener('unhandledrejection', function(event) {
+        if (event.reason && event.reason.status === 404) {
+          console.log('检测到404请求错误，重定向到首页');
+          window.location.href = '/';
+        }
+      });
+    </script>
+
     <!-- 关键CSS内联 -->
     <style>
       /* 初始加载所需的最小CSS，减少闪烁 */
