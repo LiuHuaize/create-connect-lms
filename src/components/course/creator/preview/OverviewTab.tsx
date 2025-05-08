@@ -125,6 +125,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
         </div>
         
+        {course.preparation_materials && (
+          <div className="bg-white p-6 rounded-lg border">
+            <h2 className="text-lg font-bold mb-4">课前准备</h2>
+            <div className="text-gray-700 whitespace-pre-line">
+              {course.preparation_materials}
+            </div>
+          </div>
+        )}
+        
         <div className="bg-white p-6 rounded-lg border">
           <h2 className="text-lg font-bold mb-4">课程标签</h2>
           <div className="flex flex-wrap gap-2">

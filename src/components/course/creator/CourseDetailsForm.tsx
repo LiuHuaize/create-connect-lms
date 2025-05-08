@@ -133,6 +133,33 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
         </div>
         
         <div>
+          <Label htmlFor="preparation-materials" className="text-sm font-medium text-gray-700 mb-2">课前准备</Label>
+          <Textarea 
+            id="preparation-materials"
+            placeholder="列出学生需要准备的材料和工具，例如：笔记本、彩笔、纸张等" 
+            className="min-h-32 placeholder:text-gray-400 focus:ring-2 focus:ring-connect-blue/20" 
+            value={course.preparation_materials || ''}
+            onChange={(e) => setCourse(prev => ({ ...prev, preparation_materials: e.target.value }))}
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="duration-minutes" className="text-sm font-medium text-gray-700 mb-2">课程时长(分钟)</Label>
+          <Input 
+            id="duration-minutes"
+            type="number"
+            min="1"
+            placeholder="例如：30, 60, 90" 
+            className="placeholder:text-gray-400 focus:ring-2 focus:ring-connect-blue/20" 
+            value={course.duration_minutes || ''}
+            onChange={(e) => setCourse(prev => ({ 
+              ...prev, 
+              duration_minutes: e.target.value ? parseInt(e.target.value) : null 
+            }))}
+          />
+        </div>
+        
+        <div>
           <Label htmlFor="category" className="text-sm font-medium text-gray-700 mb-2">分类</Label>
           <Select
             value={selectedCategoryDisplay}

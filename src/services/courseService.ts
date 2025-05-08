@@ -56,6 +56,8 @@ export const courseService = {
       grade_range_max: courseData.grade_range_max,
       primary_subject: courseData.primary_subject,
       secondary_subject: courseData.secondary_subject,
+      preparation_materials: courseData.preparation_materials,
+      duration_minutes: courseData.duration_minutes,
       updated_at: new Date().toISOString()
     };
     

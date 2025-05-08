@@ -240,7 +240,7 @@ const CourseDetailsPage = () => {
           <div className="flex flex-wrap gap-6 mb-8 text-sm">
             <div className="flex items-center">
               <Clock size={18} className="mr-2 text-gray-500" />
-              <span className="text-gray-700">30分钟</span>
+              <span className="text-gray-700">{course.duration_minutes ? `${course.duration_minutes}分钟` : '时长未设置'}</span>
             </div>
             <div className="flex items-center">
               <GraduationCap size={18} className="mr-2 text-gray-500" />
@@ -271,6 +271,16 @@ const CourseDetailsPage = () => {
               <p>{course.description || '暂无详细描述'}</p>
             </div>
           </div>
+          
+          {/* 课前准备材料 */}
+          {course.preparation_materials && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">课前准备</h2>
+              <div className="text-gray-700 prose max-w-none whitespace-pre-line">
+                {course.preparation_materials}
+              </div>
+            </div>
+          )}
           
           {/* 课程大纲预览 */}
           <div className="mb-8">
@@ -356,6 +366,13 @@ const CourseDetailsPage = () => {
                       <span className="text-gray-500">课程模块</span>
                       <span className="font-medium">{modules.length}个</span>
                     </div>
+                    
+                    {course.preparation_materials && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">课前准备</span>
+                        <span className="font-medium text-blue-600">查看详情</span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* 底部的操作按钮 - 保留这个按钮，为课程创建者添加编辑选项 */}

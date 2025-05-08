@@ -22,6 +22,8 @@ export type Course = {
   grade_range_max?: number | null;
   primary_subject?: string | null;
   secondary_subject?: string | null;
+  preparation_materials?: string | null;
+  duration_minutes?: number | null;
 };
 
 // 课程模块类型定义
