@@ -1,7 +1,7 @@
 ---
-description: # Project Guidelines and Coding Standards  **This document provides an overview of the project, guidance for AI assistants, and establishes coding standards. It is crucial to keep this document updated with any changes to project scope, architecture, or coding practices.**
+description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Project Guidelines and Coding Standards
 

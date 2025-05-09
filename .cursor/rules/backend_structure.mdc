@@ -1,7 +1,7 @@
 ---
-description: Backend Structure Guide The backend of this project is primarily managed using Supabase. **It is important to keep this document updated with any changes to the backend structure.**
+description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Backend Structure Guide
 

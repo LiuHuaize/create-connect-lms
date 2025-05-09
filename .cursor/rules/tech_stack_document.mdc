@@ -1,7 +1,7 @@
 ---
-description: # Technology Stack Documentation  This document outlines the primary technologies and tools used in this project. **It is important to keep this document updated with any changes to the technology stack.**
+description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Technology Stack Documentation
 
