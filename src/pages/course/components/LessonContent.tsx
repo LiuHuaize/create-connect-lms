@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle, Layers } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,27 @@ import { toast } from 'sonner';
 // 临时注释掉不存在的导入
 // import { CardCreatorStudent } from '@/components/course/card-creator/CardCreatorStudent';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
-import TextLessonContent from '@/components/course/lessons/TextLessonContent';
-import VideoLessonContent from '@/components/course/lessons/VideoLessonContent';
-import QuizLessonContent from '@/components/course/lessons/quiz/QuizLessonContent';
-import ResourceLessonView from '@/components/course/lessons/ResourceLessonView';
-import DragSortExercise from '@/components/course/components/drag-sort/DragSortExercise';
-import HotspotLessonView from '@/components/course/lessons/hotspot/HotspotLessonView';
-import { AssignmentLessonContent } from '@/components/course/AssignmentLessonContent';
+
+// 创建一个加载指示器组件
+const LessonLoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-[200px]">
+    <div className="flex flex-col items-center gap-2">
+      <Loader2 className="h-8 w-8 text-macaron-pink animate-spin" />
+      <p className="text-sm text-macaron-brown">正在加载课程内容...</p>
+    </div>
+  </div>
+);
+
+// 使用React.lazy进行懒加载
+const TextLessonContent = React.lazy(() => import('@/components/course/lessons/TextLessonContent'));
+const VideoLessonContent = React.lazy(() => import('@/components/course/lessons/VideoLessonContent'));
+const QuizLessonContent = React.lazy(() => import('@/components/course/lessons/quiz/QuizLessonContent'));
+const ResourceLessonView = React.lazy(() => import('@/components/course/lessons/ResourceLessonView'));
+const DragSortExercise = React.lazy(() => import('@/components/course/components/drag-sort/DragSortExercise'));
+const HotspotLessonView = React.lazy(() => import('@/components/course/lessons/hotspot/HotspotLessonView'));
+// 修正 AssignmentLessonContent 的导入方式
+const AssignmentLessonContent = React.lazy(() => import('@/components/course/AssignmentLessonContent').then(module => ({ default: module.AssignmentLessonContent })));
+
 import { containsMarkdown } from '@/utils/markdownUtils';
 import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
 import { useCourseData } from '../hooks/useCourseData';
@@ -766,156 +780,159 @@ const LessonContent: React.FC<LessonContentProps> = ({
     
     const { prevLesson, nextLesson } = findNeighborLessons();
 
-    // 根据课时类型渲染不同内容
-    switch (selectedLesson.type) {
-      case 'frame':
-        return (
-          <FrameLessonView
-            content={selectedLesson.content as FrameLessonContentType}
-            courseId={courseData?.id || ''}
-            enrollmentId={enrollmentId}
-            navigate={navigate}
-            nextLesson={nextLesson}
-            prevLesson={prevLesson}
-            frameLessonId={selectedLesson.id}
-          />
-        );
-      
-      case 'text':
-        return (
-          <>
-            <TextLessonContent 
-              key={selectedLesson.id}
-              content={selectedLesson.content as any} 
-            />
-          </>
-        );
-      
-      case 'video':
-        return (
-          <>
-            <VideoLessonContent 
-              key={selectedLesson.id}
-              content={selectedLesson.content as any} 
-              videoFilePath={selectedLesson.video_file_path} 
-            />
-          </>
-        );
-      
-      case 'quiz':
-        return (
-          <QuizLessonContent 
-            key={selectedLesson.id}
-            lessonId={selectedLesson.id}
-            courseId={courseData?.id || ''}
-            enrollmentId={enrollmentId}
-            content={selectedLesson.content}
-            userAnswers={userAnswers} 
-            quizSubmitted={quizSubmitted}
-            quizResult={quizResult}
-            isLoading={isLoading}
-            attemptCounts={attemptCounts}
-            showHints={showHints}
-            showCorrectAnswers={showCorrectAnswers}
-            selectedAnswer={selectedAnswer}
-            onAnswerSelect={handleAnswerSelect}
-            onCheckSingleAnswer={handleCheckSingleAnswer}
-            onQuizSubmit={handleQuizSubmit}
-            onUnmarkComplete={async () => {
-              // 空的异步函数，返回Promise
-              return Promise.resolve();
-            }}
-            isCompletionLoading={isCompletionLoading}
-            navigate={navigate}
-            refreshCourseData={refreshCourseData}
-          />
-        );
-      
-      case 'resource':
-        return (
-          <ResourceLessonView 
-            key={selectedLesson.id}
-            lesson={selectedLesson}
-            onComplete={() => {
-              // 不再需要在这里标记完成，由统一的完成按钮处理
-            }}
-            isCompleted={lessonIsCompleted}
-            courseId={courseData?.id}
-            enrollmentId={enrollmentId}
-          />
-        );
-      
-      case 'assignment':
-        return (
-          <AssignmentLessonContent
-            key={selectedLesson.id}
-            lessonId={selectedLesson.id}
-            content={selectedLesson.content as AssignmentLessonContentType}
-            userId={currentUserId}
-            onComplete={() => {
-              // 刷新课程数据以更新进度
-              if (refreshCourseData) {
-                refreshCourseData();
+    // 使用Suspense包装不同类型的课时内容
+    return (
+      <Suspense fallback={<LessonLoadingSpinner />}>
+        {(() => {
+          // 根据课时类型渲染不同内容
+          switch (selectedLesson.type) {
+            case 'frame':
+              return (
+                <FrameLessonView
+                  content={selectedLesson.content as FrameLessonContentType}
+                  courseId={courseData?.id || ''}
+                  enrollmentId={enrollmentId}
+                  navigate={navigate}
+                  nextLesson={nextLesson}
+                  prevLesson={prevLesson}
+                  frameLessonId={selectedLesson.id}
+                />
+              );
+            
+            case 'text':
+              return (
+                <TextLessonContent 
+                  key={selectedLesson.id}
+                  content={selectedLesson.content as any} 
+                />
+              );
+            
+            case 'video':
+              return (
+                <VideoLessonContent 
+                  key={selectedLesson.id}
+                  content={selectedLesson.content as any} 
+                  videoFilePath={selectedLesson.video_file_path} 
+                />
+              );
+            
+            case 'quiz':
+              return (
+                <QuizLessonContent 
+                  key={selectedLesson.id}
+                  lessonId={selectedLesson.id}
+                  courseId={courseData?.id || ''}
+                  enrollmentId={enrollmentId}
+                  content={selectedLesson.content}
+                  userAnswers={userAnswers} 
+                  quizSubmitted={quizSubmitted}
+                  quizResult={quizResult}
+                  isLoading={isLoading}
+                  attemptCounts={attemptCounts}
+                  showHints={showHints}
+                  showCorrectAnswers={showCorrectAnswers}
+                  selectedAnswer={selectedAnswer}
+                  onAnswerSelect={handleAnswerSelect}
+                  onCheckSingleAnswer={handleCheckSingleAnswer}
+                  onQuizSubmit={handleQuizSubmit}
+                  onUnmarkComplete={async () => {
+                    // 空的异步函数，返回Promise
+                    return Promise.resolve();
+                  }}
+                  isCompletionLoading={isCompletionLoading}
+                  navigate={navigate}
+                  refreshCourseData={refreshCourseData}
+                />
+              );
+            
+            case 'resource':
+              return (
+                <ResourceLessonView 
+                  key={selectedLesson.id}
+                  lesson={selectedLesson}
+                  onComplete={() => {
+                    // 不再需要在这里标记完成，由统一的完成按钮处理
+                  }}
+                  isCompleted={lessonIsCompleted}
+                  courseId={courseData?.id}
+                  enrollmentId={enrollmentId}
+                />
+              );
+            
+            case 'assignment':
+              return (
+                <AssignmentLessonContent
+                  key={selectedLesson.id}
+                  lessonId={selectedLesson.id}
+                  content={selectedLesson.content as AssignmentLessonContentType}
+                  userId={currentUserId}
+                  onComplete={() => {
+                    // 刷新课程数据以更新进度
+                    if (refreshCourseData) {
+                      refreshCourseData();
+                    }
+                  }}
+                  isCompleted={lessonIsCompleted}
+                />
+              );
+            
+            case 'drag_sort':
+              if (selectedLesson.content) {
+                const dragSortContent = selectedLesson.content as DragSortContent;
+                return (
+                  <DragSortExercise 
+                    lesson={selectedLesson}
+                    onComplete={(isCorrect, mappings) => {
+                      console.log('拖拽练习完成回调被触发', { isCorrect, mappingsCount: mappings.length });
+                    }}
+                  />
+                );
               }
-            }}
-            isCompleted={lessonIsCompleted}
-          />
-        );
-      
-      case 'drag_sort':
-        if (selectedLesson.content) {
-          const dragSortContent = selectedLesson.content as DragSortContent;
-          return (
-            <DragSortExercise 
-              lesson={selectedLesson}
-              onComplete={(isCorrect, mappings) => {
-                console.log('拖拽练习完成回调被触发', { isCorrect, mappingsCount: mappings.length });
-              }}
-            />
-          );
-        }
-        return null;
-        
-      case 'hotspot':
-        return (
-          <HotspotLessonView
-            key={selectedLesson.id}
-            lesson={selectedLesson}
-            enrollmentId={enrollmentId || undefined}
-            isPreview={false}
-          />
-        );
-        
-      case 'card_creator':
-        // 卡片创建功能已被隐藏
-        return (
-          <Card className="p-5 bg-white rounded-xl shadow-sm overflow-hidden">
-            <CardContent>
-              <div className="py-10 text-center">
-                <AlertTriangle className="h-12 w-12 text-amber-500 mb-4 mx-auto" />
-                <h3 className="text-xl font-bold mb-2">此功能已被禁用</h3>
-                <p className="text-gray-600 mb-4">卡片创建功能当前不可用。</p>
-              </div>
-            </CardContent>
-          </Card>
-        );
-        
-      default:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>{selectedLesson.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>此类型的内容暂不支持显示</p>
-            </CardContent>
-          </Card>
-        );
-    }
+              return null;
+              
+            case 'hotspot':
+              return (
+                <HotspotLessonView
+                  key={selectedLesson.id}
+                  lesson={selectedLesson}
+                  enrollmentId={enrollmentId || undefined}
+                  isPreview={false}
+                />
+              );
+              
+            case 'card_creator':
+              // 卡片创建功能已被隐藏
+              return (
+                <Card className="p-5 bg-white rounded-xl shadow-sm overflow-hidden">
+                  <CardContent>
+                    <div className="py-10 text-center">
+                      <AlertTriangle className="h-12 w-12 text-amber-500 mb-4 mx-auto" />
+                      <h3 className="text-xl font-bold mb-2">此功能已被禁用</h3>
+                      <p className="text-gray-600 mb-4">卡片创建功能当前不可用。</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+              
+            default:
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{selectedLesson.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p>此类型的内容暂不支持显示</p>
+                  </CardContent>
+                </Card>
+              );
+          }
+        })()}
+      </Suspense>
+    );
   };
 
   return (
-    <div ref={contentRef}>
+    <div className="flex-1 relative bg-white rounded-xl shadow-sm overflow-hidden">
       {selectedLesson && selectedUnit ? (
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <Card className="border-none shadow-md overflow-hidden">
