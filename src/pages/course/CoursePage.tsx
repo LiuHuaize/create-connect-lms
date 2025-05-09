@@ -17,6 +17,15 @@ import LoadingSkeleton from './components/LoadingSkeleton';
 import NotFoundCard from './components/NotFoundCard';
 import { useCourseData } from './hooks/useCourseData';
 
+/**
+ * CoursePage组件 - 课程学习的主页面
+ * 
+ * 修复：解决当鼠标悬停在左侧导航菜单时热点卡片闪烁的问题
+ * 1. 优化左侧侧边栏的展开/收起效果，避免对主内容区造成布局影响
+ * 2. 使用固定宽度和绝对定位维持内容区域的稳定性
+ * 3. 为侧边栏添加CSS隔离，确保其hover效果不会影响主内容区
+ * 4. 保证主内容容器有一个固定的左侧padding，与侧边栏分离
+ */
 const CoursePage = () => {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId?: string }>();
   const navigate = useNavigate();
@@ -120,6 +129,8 @@ const CoursePage = () => {
     );
   }
   
+  const sidebarWidth = sidebarCollapsed ? 64 : 320; // 16rem = 64px, 80rem = 320px
+  
   return (
     <div className="flex flex-col h-screen bg-macaron-cream">
       <CourseHeader 
@@ -138,12 +149,16 @@ const CoursePage = () => {
         />
       )}
       
-      <div className="flex flex-1 overflow-hidden">
+      {/* 使用相对定位的容器，确保内部的绝对定位元素能够正确定位 */}
+      <div className="flex flex-1 overflow-hidden relative">
         {!isMobile && (
           <div 
-            className={`bg-macaron-cream border-r border-muted flex-shrink-0 transition-all duration-300 ease-in-out h-full flex flex-col ${
-              sidebarCollapsed ? 'w-16' : 'w-80'
-            }`}
+            className={`fixed top-[56px] bottom-0 left-0 bg-macaron-cream border-r border-muted flex-shrink-0 transition-all duration-300 ease-in-out h-[calc(100vh-56px)] flex flex-col z-20`}
+            style={{ 
+              width: `${sidebarWidth}px`, 
+              willChange: 'width', // 提示浏览器此元素的宽度会变化，提高性能
+              isolation: 'isolate', // 创建新的堆叠上下文，隔离其hover效果
+            }}
           >
             {/* 侧边栏顶部控制栏 */}
             <div className="flex items-center justify-between p-4 border-b border-muted">
@@ -190,7 +205,16 @@ const CoursePage = () => {
           </div>
         )}
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* 主内容区域 - 使用margin-left保持与侧边栏的间距，确保内容稳定性 */}
+        <div 
+          className="flex-1 flex flex-col overflow-hidden" 
+          style={{ 
+            marginLeft: isMobile ? 0 : `${sidebarWidth}px`,
+            transition: 'margin-left 0.3s ease-in-out',
+            paddingLeft: '1px', // 增加极小的填充，防止内容紧贴边缘
+            isolation: 'isolate', // 创建新的堆叠上下文，避免与侧边栏的z-index冲突
+          }}
+        >
           {/* 内容区域顶部控制栏 */}
           <div className="flex justify-between items-center px-6 py-3 border-b border-muted bg-white shadow-sm">
             {isMobile && (

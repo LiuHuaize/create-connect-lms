@@ -12,7 +12,16 @@ export interface HotspotCardProps {
   position: { x: number; y: number };
 }
 
-const HotspotCard: React.FC<HotspotCardProps> = ({
+/**
+ * HotspotCard组件 - 显示热点详情的卡片
+ * 
+ * 修复：解决当鼠标悬停在左侧导航菜单上时卡片闪烁的问题
+ * 1. 确保卡片使用fixed定位，完全基于视口
+ * 2. 使用高z-index确保其显示在最上层
+ * 3. 阻止卡片内部事件传播到外部元素
+ * 4. 使用useMemo确保props变化不会导致不必要的重渲染
+ */
+const HotspotCard: React.FC<HotspotCardProps> = React.memo(({
   hotspot,
   isVisible,
   onClose,
@@ -77,6 +86,11 @@ const HotspotCard: React.FC<HotspotCardProps> = ({
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
+  
+  // 阻止点击事件冒泡，避免触发外部事件
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
 
   return (
     <AnimatePresence>
@@ -84,7 +98,7 @@ const HotspotCard: React.FC<HotspotCardProps> = ({
         <>
           {/* 半透明背景遮罩 */}
           <motion.div
-            className="fixed inset-0 bg-black/50 z-50"
+            className="fixed inset-0 bg-black/50 z-[100]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -94,17 +108,24 @@ const HotspotCard: React.FC<HotspotCardProps> = ({
           {/* 卡片内容 */}
           <motion.div
             ref={cardRef}
-            className="fixed inset-0 flex items-center justify-center z-50"
+            className="fixed inset-0 flex items-center justify-center z-[101]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
+            style={{
+              pointerEvents: "none" // 允许点击穿透到遮罩层
+            }}
           >
             <motion.div 
               className="w-[90%] max-w-[500px] max-h-[80vh]"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
+              onClick={handleCardClick}
+              style={{
+                pointerEvents: "auto" // 恢复卡片自身的点击事件
+              }}
             >
               <div className="bg-white dark:bg-card rounded-xl shadow-lg overflow-hidden border border-border">
                 {/* 卡片头部 */}
@@ -116,7 +137,10 @@ const HotspotCard: React.FC<HotspotCardProps> = ({
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={onClose}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClose();
+                    }}
                   >
                     <X size={16} />
                   </Button>
@@ -154,7 +178,10 @@ const HotspotCard: React.FC<HotspotCardProps> = ({
                       
                       <div className="flex items-center space-x-2">
                         <Button
-                          onClick={toggleAudio}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleAudio();
+                          }}
                           variant="outline"
                           size="icon"
                           className={cn(
@@ -192,6 +219,6 @@ const HotspotCard: React.FC<HotspotCardProps> = ({
       )}
     </AnimatePresence>
   );
-};
+});
 
 export default HotspotCard; 

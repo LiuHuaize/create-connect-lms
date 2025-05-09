@@ -39,8 +39,7 @@ const FrameLessonView: React.FC<{
   enrollmentId: string | null;
   navigate: NavigateFunction;
   onComplete?: () => void;
-  nextLesson?: Lesson | null;
-}> = ({ content, courseId, enrollmentId, navigate, onComplete, nextLesson }) => {
+}> = ({ content, courseId, enrollmentId, navigate, onComplete }) => {
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [renderedLesson, setRenderedLesson] = useState<Lesson | null>(null);
   const { refreshCourseData } = useCourseData(courseId);
@@ -59,16 +58,12 @@ const FrameLessonView: React.FC<{
     }
   }, [currentLessonIndex, content.lessons]);
   
-  // 导航到下一个框架内课时或下一课
+  // 导航到下一个框架内课时
   const goToNextLesson = () => {
     if (currentLessonIndex < content.lessons.length - 1) {
-      // 如果不是最后一页，进入下一页
       setCurrentLessonIndex(prevIndex => prevIndex + 1);
-    } else if (nextLesson) {
-      // 如果是最后一页且有下一课，跳转到下一课
-      navigate(`/course/${courseId}/lesson/${nextLesson.id}`);
     } else if (onComplete) {
-      // 如果是最后一页且没有下一课，执行完成回调
+      // 如果是最后一个课时，执行完成回调
       onComplete();
     }
   };
@@ -141,15 +136,22 @@ const FrameLessonView: React.FC<{
           onClick={goToPreviousLesson}
           disabled={currentLessonIndex === 0}
         >
-          <ChevronLeft className="mr-2 h-5 w-5" /> 上一页
+          <ChevronLeft className="mr-2 h-5 w-5" /> 上一步
         </Button>
+        
+        {currentLessonIndex === content.lessons.length - 1 && (
+          <div className="flex justify-center">
+            {/* 移除这里的完成按钮 */}
+          </div>
+        )}
         
         <Button 
           variant="outline" 
           className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
           onClick={goToNextLesson}
+          disabled={currentLessonIndex === content.lessons.length - 1}
         >
-          下一页 <ChevronRight className="ml-2 h-5 w-5" />
+          下一步 <ChevronRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
     </div>
@@ -452,51 +454,6 @@ const LessonContent: React.FC<LessonContentProps> = ({
       );
     }
 
-    // 找到前一个和后一个课时
-    const findNeighborLessons = () => {
-      if (!courseData?.modules || !selectedLesson) return { prevLesson: null, nextLesson: null };
-      
-      // 获取所有模块和课时信息
-      const modules = [...courseData.modules];
-      
-      // 按模块序号排序
-      modules.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
-      
-      // 创建有序的课时列表
-      let allLessons: { lesson: Lesson, moduleIndex: number }[] = [];
-      
-      modules.forEach((module, moduleIndex) => {
-        if (!module.lessons || module.lessons.length === 0) return;
-        
-        // 按课时序号排序课时
-        const sortedLessons = [...module.lessons].sort((a, b) => a.order_index - b.order_index);
-        
-        // 添加到全局列表
-        sortedLessons.forEach(lesson => {
-          // 直接添加所有顶层课时
-          allLessons.push({
-            lesson, 
-            moduleIndex
-          });
-        });
-      });
-      
-      // 查找当前课时的索引
-      const currentIndex = allLessons.findIndex(item => item.lesson.id === selectedLesson.id);
-      if (currentIndex === -1) return { prevLesson: null, nextLesson: null };
-      
-      // 获取前一个和后一个课时
-      const prevItem = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
-      const nextItem = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
-      
-      return { 
-        prevLesson: prevItem ? prevItem.lesson : null, 
-        nextLesson: nextItem ? nextItem.lesson : null 
-      };
-    };
-    
-    const { prevLesson, nextLesson } = findNeighborLessons();
-
     // 根据课时类型渲染不同内容
     switch (selectedLesson.type) {
       case 'frame':
@@ -506,7 +463,6 @@ const LessonContent: React.FC<LessonContentProps> = ({
             courseId={courseData?.id || ''}
             enrollmentId={enrollmentId}
             navigate={navigate}
-            nextLesson={nextLesson}
             onComplete={() => {
               // 刷新课程数据以更新进度
               if (refreshCourseData) {
@@ -664,14 +620,12 @@ const LessonContent: React.FC<LessonContentProps> = ({
             <CardContent className="p-4 sm:p-6">
               {renderLessonContent()}
               
-              {/* 在非框架课时模式下才显示课程级别导航 */}
-              {selectedLesson.type !== 'frame' && (
-                <LessonNavigation 
-                  courseData={courseData}
-                  selectedLesson={selectedLesson}
-                  enrollmentId={enrollmentId}
-                />
-              )}
+              {/* 移除类型条件，对所有课时类型都显示导航和完成按钮 */}
+              <LessonNavigation 
+                courseData={courseData}
+                selectedLesson={selectedLesson}
+                enrollmentId={enrollmentId}
+              />
             </CardContent>
           </Card>
         </div>
