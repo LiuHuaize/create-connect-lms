@@ -33,15 +33,25 @@ interface LessonContentProps {
 }
 
 // 框架内容视图组件
-const FrameLessonView: React.FC<{
+interface FrameLessonViewProps {
   content: FrameLessonContentType;
   courseId: string;
   enrollmentId: string | null;
   navigate: NavigateFunction;
-  onComplete?: () => void;
   nextLesson?: Lesson | null;
   prevLesson?: Lesson | null;
-}> = ({ content, courseId, enrollmentId, navigate, onComplete, nextLesson, prevLesson }) => {
+  frameLessonId: string;
+}
+
+const FrameLessonView: React.FC<FrameLessonViewProps> = ({
+  content,
+  courseId,
+  enrollmentId,
+  navigate,
+  nextLesson,
+  prevLesson,
+  frameLessonId,
+}) => {
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [renderedLesson, setRenderedLesson] = useState<Lesson | null>(null);
   const { refreshCourseData } = useCourseData(courseId);
@@ -60,22 +70,15 @@ const FrameLessonView: React.FC<{
     }
   }, [currentLessonIndex, content.lessons]);
   
-  // 导航到下一个框架内课时或下一课
-  const goToNextLesson = () => {
+  // 导航到下一个框架内课时
+  const goToNextFramePage = () => {
     if (currentLessonIndex < content.lessons.length - 1) {
-      // 如果不是最后一页，进入下一页
       setCurrentLessonIndex(prevIndex => prevIndex + 1);
-    } else if (nextLesson) {
-      // 如果是最后一页且有下一课，跳转到下一课
-      navigate(`/course/${courseId}/lesson/${nextLesson.id}`);
-    } else if (onComplete) {
-      // 如果是最后一页且没有下一课，执行完成回调
-      onComplete();
     }
   };
-  
+
   // 导航到上一个框架内课时或上一课
-  const goToPreviousLesson = () => {
+  const goToPreviousLessonOrFramePage = () => {
     if (currentLessonIndex > 0) {
       // 如果不是第一页，去上一页
       setCurrentLessonIndex(prevIndex => prevIndex - 1);
@@ -89,6 +92,8 @@ const FrameLessonView: React.FC<{
     return <div>此框架中没有课时内容</div>;
   }
   
+  const isLastPageOfFrame = currentLessonIndex === content.lessons.length - 1;
+
   return (
     <div>
       {/* 框架描述信息 */}
@@ -139,23 +144,53 @@ const FrameLessonView: React.FC<{
       </div>
       
       {/* 框架内导航按钮 */}
-      <div className="flex justify-between mt-6">
-        <Button 
-          variant="outline" 
-          className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
-          onClick={goToPreviousLesson}
-          disabled={currentLessonIndex === 0 && !prevLesson}
-        >
-          <ChevronLeft className="mr-2 h-5 w-5" /> 上一页
-        </Button>
+      <div className="grid grid-cols-3 items-center mt-6">
+        {/* 左侧按钮 */}
+        <div className="justify-self-start">
+          <Button
+            variant="outline"
+            className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
+            onClick={goToPreviousLessonOrFramePage}
+            disabled={currentLessonIndex === 0 && !prevLesson}
+          >
+            <ChevronLeft className="mr-2 h-5 w-5" /> 上一页
+          </Button>
+        </div>
         
-        <Button 
-          variant="outline" 
-          className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
-          onClick={goToNextLesson}
-        >
-          下一页 <ChevronRight className="ml-2 h-5 w-5" />
-        </Button>
+        {/* 中间完成按钮 */}
+        <div className="justify-self-center">
+          {isLastPageOfFrame && (
+            <LessonCompletionButton
+              lessonId={frameLessonId}
+              courseId={courseId}
+              enrollmentId={enrollmentId}
+              refreshCourseData={refreshCourseData}
+              className="px-6 py-2.5 rounded-xl"
+            />
+          )}
+        </div>
+        
+        {/* 右侧按钮 */}
+        <div className="justify-self-end">
+          {!isLastPageOfFrame && (
+            <Button
+              variant="outline"
+              className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
+              onClick={goToNextFramePage}
+            >
+              下一页 <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          )}
+          {isLastPageOfFrame && nextLesson && (
+            <Button
+              variant="outline"
+              className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
+              onClick={() => navigate(`/course/${courseId}/lesson/${nextLesson.id}`)}
+            >
+              下一课 <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -506,19 +541,14 @@ const LessonContent: React.FC<LessonContentProps> = ({
     switch (selectedLesson.type) {
       case 'frame':
         return (
-          <FrameLessonView 
+          <FrameLessonView
             content={selectedLesson.content as FrameLessonContentType}
             courseId={courseData?.id || ''}
             enrollmentId={enrollmentId}
             navigate={navigate}
             nextLesson={nextLesson}
             prevLesson={prevLesson}
-            onComplete={() => {
-              // 刷新课程数据以更新进度
-              if (refreshCourseData) {
-                refreshCourseData();
-              }
-            }}
+            frameLessonId={selectedLesson.id}
           />
         );
       
