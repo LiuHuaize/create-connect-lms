@@ -87,8 +87,7 @@ const FrameLessonView: React.FC<{
           <div className="flex items-start gap-3">
             <Layers className="h-5 w-5 text-ghibli-purple mt-1" />
             <div>
-              <h3 className="font-medium text-ghibli-deepTeal mb-1">框架介绍</h3>
-              <div className="text-sm text-ghibli-brown">
+              <div className="text-base text-ghibli-brown">
                 <MarkdownRenderer>{content.description || ''}</MarkdownRenderer>
               </div>
             </div>
