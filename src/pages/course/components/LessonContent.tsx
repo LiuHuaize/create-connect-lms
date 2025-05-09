@@ -40,7 +40,8 @@ const FrameLessonView: React.FC<{
   navigate: NavigateFunction;
   onComplete?: () => void;
   nextLesson?: Lesson | null;
-}> = ({ content, courseId, enrollmentId, navigate, onComplete, nextLesson }) => {
+  prevLesson?: Lesson | null;
+}> = ({ content, courseId, enrollmentId, navigate, onComplete, nextLesson, prevLesson }) => {
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [renderedLesson, setRenderedLesson] = useState<Lesson | null>(null);
   const { refreshCourseData } = useCourseData(courseId);
@@ -73,10 +74,14 @@ const FrameLessonView: React.FC<{
     }
   };
   
-  // 导航到上一个框架内课时
+  // 导航到上一个框架内课时或上一课
   const goToPreviousLesson = () => {
     if (currentLessonIndex > 0) {
+      // 如果不是第一页，去上一页
       setCurrentLessonIndex(prevIndex => prevIndex - 1);
+    } else if (prevLesson) {
+      // 如果是第一页且有上一课，跳转到上一课
+      navigate(`/course/${courseId}/lesson/${prevLesson.id}`);
     }
   };
   
@@ -139,7 +144,7 @@ const FrameLessonView: React.FC<{
           variant="outline" 
           className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
           onClick={goToPreviousLesson}
-          disabled={currentLessonIndex === 0}
+          disabled={currentLessonIndex === 0 && !prevLesson}
         >
           <ChevronLeft className="mr-2 h-5 w-5" /> 上一页
         </Button>
@@ -507,6 +512,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
             enrollmentId={enrollmentId}
             navigate={navigate}
             nextLesson={nextLesson}
+            prevLesson={prevLesson}
             onComplete={() => {
               // 刷新课程数据以更新进度
               if (refreshCourseData) {

@@ -33,6 +33,9 @@ const CoursePage = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   
+  // 添加一个状态变量来存储header高度
+  const [headerHeight, setHeaderHeight] = useState(60); // 默认60px
+  
   // 使用localStorage记住用户的侧边栏折叠状态偏好
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const savedState = localStorage.getItem('course_sidebar_collapsed');
@@ -43,6 +46,27 @@ const CoursePage = () => {
   useEffect(() => {
     localStorage.setItem('course_sidebar_collapsed', JSON.stringify(sidebarCollapsed));
   }, [sidebarCollapsed]);
+  
+  // 动态计算header高度
+  useEffect(() => {
+    if (!isMobile) {
+      const headerElement = document.querySelector('header');
+      if (headerElement) {
+        // 监听窗口尺寸变化，重新计算header高度
+        const updateHeaderHeight = () => {
+          const height = headerElement.offsetHeight;
+          setHeaderHeight(height || 60); // 如果无法获取，使用默认值60px
+        };
+        
+        updateHeaderHeight(); // 初始计算
+        window.addEventListener('resize', updateHeaderHeight);
+        
+        return () => {
+          window.removeEventListener('resize', updateHeaderHeight);
+        };
+      }
+    }
+  }, [isMobile]);
   
   const { loading, courseData, progress, enrollmentId, findCurrentLesson, refreshCourseData } = useCourseData(courseId);
   const { selectedLesson, selectedUnit } = findCurrentLesson(lessonId);
@@ -153,9 +177,11 @@ const CoursePage = () => {
       <div className="flex flex-1 overflow-hidden relative">
         {!isMobile && (
           <div 
-            className={`fixed top-[56px] bottom-0 left-0 bg-macaron-cream border-r border-muted flex-shrink-0 transition-all duration-300 ease-in-out h-[calc(100vh-56px)] flex flex-col z-20`}
+            className={`fixed bottom-0 left-0 bg-macaron-cream border-r border-muted flex-shrink-0 transition-all duration-300 ease-in-out flex flex-col z-20`}
             style={{ 
-              width: `${sidebarWidth}px`, 
+              width: `${sidebarWidth}px`,
+              top: `${headerHeight}px`,
+              height: `calc(100vh - ${headerHeight}px)`,
               willChange: 'width', // 提示浏览器此元素的宽度会变化，提高性能
               isolation: 'isolate', // 创建新的堆叠上下文，隔离其hover效果
             }}
