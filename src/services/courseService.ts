@@ -154,6 +154,7 @@ export const courseService = {
   async getCourseDetails(courseId: string): Promise<Course & { modules?: CourseModule[] }> {
     try {
       console.time('getCourseDetails'); // 性能计时开始
+      console.log(`开始获取课程详情 (优化版本): ${courseId}`);
       
       // 获取课程基本信息
       const courseData = await this.getCourseBasicInfo(courseId);
@@ -164,24 +165,31 @@ export const courseService = {
       // 如果没有模块，直接返回课程信息
       if (!modulesData || modulesData.length === 0) {
         console.timeEnd('getCourseDetails');
+        console.log(`课程 ${courseId} 没有模块，直接返回`);
         return {
           ...courseData,
           modules: []
         };
       }
 
-      // 获取每个模块的课时
-      const modulesWithLessons = await Promise.all(
-        modulesData.map(async (module) => {
-          const lessonsData = await this.getModuleLessons(module.id);
-          return {
-            ...module,
-            lessons: lessonsData
-          };
-        })
-      );
+      // 性能优化：批量获取所有模块的课时，而不是逐个获取
+      // 1. 收集所有模块ID
+      const moduleIds = modulesData.map(module => module.id!).filter(Boolean);
+      console.log(`批量获取 ${moduleIds.length} 个模块的课时数据`);
+      
+      // 2. 批量获取所有课时
+      const allLessonsByModuleId = await this.getModuleLessonsBatch(moduleIds);
+      
+      // 3. 将课时数据分配给相应的模块
+      const modulesWithLessons = modulesData.map(module => {
+        return {
+          ...module,
+          lessons: module.id ? allLessonsByModuleId[module.id] || [] : []
+        };
+      });
 
       console.timeEnd('getCourseDetails'); // 性能计时结束
+      console.log(`课程详情获取完成，包含 ${modulesWithLessons.length} 个模块`);
       
       return {
         ...courseData,
