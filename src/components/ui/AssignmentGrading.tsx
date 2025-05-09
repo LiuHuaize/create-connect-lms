@@ -340,7 +340,7 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
             </h3>
             <Card className="p-4 bg-gray-50">
               <div className="prose prose-sm max-w-none dark:prose-invert">
-                <div dangerouslySetInnerHTML={{ __html: submission.content }} />
+                <div className="whitespace-pre-line" dangerouslySetInnerHTML={{ __html: submission.content }} />
               </div>
             </Card>
           </div>

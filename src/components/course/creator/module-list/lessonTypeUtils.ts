@@ -71,7 +71,7 @@ export const getInitialContentByType = (type: LessonType) => {
     case 'quiz':
       return { questions: [] };
     case 'assignment':
-      return { instructions: '', criteria: '' };
+      return { instructions: '', criteria: '', aiGradingPrompt: '', allowFileUpload: true };
     case 'card_creator':
       return { 
         instructions: '',

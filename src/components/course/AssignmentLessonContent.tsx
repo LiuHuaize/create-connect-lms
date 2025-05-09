@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { AssignmentLessonContent as AssignmentContent, AssignmentSubmission, AssignmentFileSubmission, AIGradingResult } from '@/types/course';
 import { AssignmentFileUploader } from '@/components/course/learning/AssignmentFileUploader';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Save, Upload, CheckCircle, Star, BookOpen, Award, Rocket } from 'lucide-react';
+import { Loader2, Save, Upload, CheckCircle, Star, BookOpen, Award, Rocket, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { motion } from 'framer-motion';
@@ -81,6 +81,9 @@ export function AssignmentLessonContent({
   isCompleted = false
 }: AssignmentLessonContentProps) {
   const { toast } = useToast();
+  
+  // 添加文件上传启用状态，默认为 true (兼容旧数据)
+  const isFileUploadEnabled = content.allowFileUpload !== false;
   
   // 验证userId和lessonId
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -518,7 +521,7 @@ export function AssignmentLessonContent({
           </CardHeader>
           <CardContent className="pt-6">
             <div className="prose prose-sm max-w-none dark:prose-invert">
-              <div dangerouslySetInnerHTML={{ __html: content.instructions }} />
+              <div className="whitespace-pre-line" dangerouslySetInnerHTML={{ __html: content.instructions }} />
             </div>
             
             {content.criteria && (
@@ -530,7 +533,7 @@ export function AssignmentLessonContent({
                     评分标准
                   </h3>
                   <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-lg">
-                    <div dangerouslySetInnerHTML={{ __html: content.criteria }} />
+                    <div className="whitespace-pre-line" dangerouslySetInnerHTML={{ __html: content.criteria }} />
                   </div>
                 </div>
               </>
@@ -543,68 +546,72 @@ export function AssignmentLessonContent({
       {renderSubmissionStatus()}
       
       {/* 作业提交区域 */}
-      {!validationError && (
+      {!isCompleted && !submission?.submittedAt && (
         <motion.div variants={itemVariants}>
           <Card className="border-0 overflow-hidden shadow-md bg-card">
-            <CardHeader className="bg-muted text-foreground border-b">
+            <CardHeader className="bg-blue-50 text-foreground border-b">
               <div className="flex items-center gap-3">
-                <Upload size={24} />
+                <Upload size={24} className="text-blue-500" />
                 <div>
-                  <CardTitle className="text-xl">作业提交</CardTitle>
+                  <CardTitle className="text-xl">提交作业</CardTitle>
                   <CardDescription>
-                    在这里上传你的作业文件，准备好后点击提交按钮
+                    上传你完成的作业文件进行提交
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="min-h-[250px]">
-                <AssignmentFileUploader
-                  lessonId={lessonId}
-                  studentId={userId}
-                  onFileUploaded={handleFileUploaded}
-                  onFileDeleted={handleFileDeleted}
-                  files={fileSubmissions}
-                  disabled={hasSubmitted || isCompleted || !!validationError}
-                />
+              <AssignmentFileUploader 
+                lessonId={lessonId}
+                studentId={userId}
+                onFileUploaded={handleFileUploaded}
+                onFileDeleted={handleFileDeleted}
+                files={fileSubmissions}
+                disabled={!isFileUploadEnabled}
+              />
+              
+              <div className="flex justify-between items-center mt-8">
+                <Button 
+                  variant="outline" 
+                  className="text-gray-600"
+                  onClick={handleSaveDraft}
+                  disabled={isSaving || isSubmitting || fileSubmissions.length === 0}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      保存中...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      保存草稿
+                    </>
+                  )}
+                </Button>
+                
+                <div className="space-x-2">
+                  <Button
+                    variant="default"
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={handleSubmitAssignment}
+                    disabled={isSubmitting || isSaving || fileSubmissions.length === 0}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        提交中...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        提交作业
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between bg-muted/20 p-6">
-              <Button
-                variant="outline"
-                onClick={handleSaveDraft}
-                disabled={isSaving || isSubmitting || hasSubmitted || isCompleted || !!validationError}
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    正在保存...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    保存草稿
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                onClick={handleSubmitAssignment}
-                disabled={isSubmitting || isSaving || hasSubmitted || isCompleted || fileSubmissions.length === 0 || !!validationError}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    正在提交...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    提交作业
-                  </>
-                )}
-              </Button>
-            </CardFooter>
           </Card>
         </motion.div>
       )}

@@ -124,6 +124,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
   };
   
   const [currentContent, setCurrentContent] = useState<LessonContent>(initializeContent());
+  const [isResourceSaving, setIsResourceSaving] = useState(false);
   
   // Form setup for lesson details
   const form = useForm({
@@ -452,6 +453,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
           onChange={handleResourceContentChange}
           onSave={async () => {
             try {
+              setIsResourceSaving(true);
               if (onCourseDataSaved) {
                 // 创建更新后的课时对象
                 const updatedResourceLesson = {
@@ -468,9 +470,11 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
             } catch (error) {
               console.error('保存资源模块失败:', error);
               toast.error('保存失败，请稍后重试');
+            } finally {
+              setIsResourceSaving(false);
             }
           }}
-          isSaving={false}
+          isSaving={isResourceSaving}
           courseId={courseId}
         />
       );

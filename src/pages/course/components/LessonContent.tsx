@@ -85,13 +85,20 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   useEffect(() => {
     if (content.lessons && content.lessons.length > 0) {
       setRenderedLesson(content.lessons[0]);
+      // 确保初始化时currentLessonIndex为0
+      setCurrentLessonIndex(0);
     }
   }, [content]);
   
   // 当currentLessonIndex变化时，更新显示的课时
   useEffect(() => {
-    if (content.lessons && content.lessons[currentLessonIndex]) {
-      setRenderedLesson(content.lessons[currentLessonIndex]);
+    if (content.lessons && content.lessons.length > 0) {
+      // 防御性检查：确保currentLessonIndex不超出范围
+      const safeIndex = Math.min(currentLessonIndex, content.lessons.length - 1);
+      if (safeIndex !== currentLessonIndex) {
+        setCurrentLessonIndex(safeIndex);
+      }
+      setRenderedLesson(content.lessons[safeIndex]);
     }
   }, [currentLessonIndex, content.lessons]);
   
@@ -110,7 +117,8 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   
   // 导航到下一个框架内课时
   const goToNextFramePage = () => {
-    if (currentLessonIndex < content.lessons.length - 1) {
+    // 确保有下一页才能导航
+    if (content.lessons && currentLessonIndex < content.lessons.length - 1) {
       setCurrentLessonIndex(prevIndex => prevIndex + 1);
     }
   };
@@ -130,7 +138,10 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
     return <div>此框架中没有课时内容</div>;
   }
   
-  const isLastPageOfFrame = currentLessonIndex === content.lessons.length - 1;
+  // 确保isLastPageOfFrame逻辑正确，即使在边界情况
+  const validLessonsLength = content.lessons?.length || 0;
+  const safeCurrentIndex = Math.min(currentLessonIndex, Math.max(0, validLessonsLength - 1));
+  const isLastPageOfFrame = safeCurrentIndex >= validLessonsLength - 1;
 
   // 处理用户选择答案
   const handleAnswerSelect = (questionId: string, optionId: string) => {
@@ -245,7 +256,11 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
             <div className="text-xs text-ghibli-brown mb-1">
-              第 {currentLessonIndex + 1}/{content.lessons.length} 课时
+              {content.lessons && content.lessons.length > 0 ? (
+                <>第 {Math.min(currentLessonIndex + 1, content.lessons.length)} 课时，共 {content.lessons.length} 课时</>
+              ) : (
+                <>课时信息加载中...</>
+              )}
             </div>
             <CardTitle className="text-xl text-ghibli-deepTeal">
               {renderedLesson.title}
@@ -308,7 +323,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
                 case 'assignment':
                   return <AssignmentLessonContent
                     key={lesson.id}
-                    lessonId={lesson.id}
+                    lessonId={frameLessonId}
                     content={lesson.content as AssignmentLessonContentType}
                     userId={currentUserId}
                     onComplete={() => {
@@ -385,7 +400,8 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
         
         {/* 右侧按钮 */}
         <div className="justify-self-end">
-          {!isLastPageOfFrame && (
+          {/* 只有当确实有下一页时才显示下一页按钮 */}
+          {!isLastPageOfFrame && content.lessons && currentLessonIndex < content.lessons.length - 1 && (
             <Button
               variant="outline"
               className="flex items-center border-ghibli-teal/30 text-ghibli-brown hover:bg-ghibli-cream/30 transition-all"
