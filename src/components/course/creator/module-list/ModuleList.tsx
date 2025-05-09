@@ -231,6 +231,9 @@ const ModuleList: React.FC<ModuleListProps> = ({
 
     // --- Lesson Reordering --- 
     if (activeData?.type !== 'module' && activeModuleId) {
+      let updatedSourceModule: CourseModule | undefined;
+      let updatedTargetModule: CourseModule | undefined;
+      
       setModules((prevModules) => {
         const sourceModuleIndex = prevModules.findIndex(m => m.id === activeModuleId);
         if (sourceModuleIndex === -1) return prevModules; // Source module not found
@@ -241,6 +244,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
         if (lessonIndex === -1) return prevModules; // Lesson not found
 
         const movedLesson = sourceLessons[lessonIndex];
+        let updatedModules = [...prevModules];
 
         // Scenario 1: Same Module Drag
         if (!overIsModule && activeModuleId === overModuleId) {
@@ -251,9 +255,12 @@ const ModuleList: React.FC<ModuleListProps> = ({
             .map((lesson, index) => ({ ...lesson, order_index: index }));
             
           // Return new modules array with updated source module
-          return prevModules.map((mod, index) => 
+          updatedModules = prevModules.map((mod, index) => 
             index === sourceModuleIndex ? { ...sourceModule, lessons: newSourceLessons } : mod
           );
+          
+          // 保存更新后的模块引用，用于后续API调用
+          updatedSourceModule = updatedModules[sourceModuleIndex];
         }
         // Scenario 2: Cross-Module Drag (or drop onto module)
         else {
@@ -296,7 +303,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
             .map((lesson, index) => ({ ...lesson, order_index: index }));
 
           // Return new modules array with updated source and target modules
-          return prevModules.map((mod, index) => {
+          updatedModules = prevModules.map((mod, index) => {
             if (index === sourceModuleIndex) {
               return { ...sourceModule, lessons: finalSourceLessons };
             }
@@ -305,8 +312,53 @@ const ModuleList: React.FC<ModuleListProps> = ({
             }
             return mod;
           });
+          
+          // 保存更新后的模块引用，用于后续API调用
+          updatedSourceModule = updatedModules[sourceModuleIndex];
+          updatedTargetModule = updatedModules[targetModuleIndex];
         }
+        
+        return updatedModules;
       });
+      
+      // 在状态更新后，立即保存更改到后端
+      // 使用setTimeout确保状态更新已完成
+      setTimeout(() => {
+        // 保存源模块课时顺序
+        if (updatedSourceModule) {
+          // 获取课程ID
+          const courseId = updatedSourceModule.course_id;
+          if (courseId && updatedSourceModule.id) {
+            courseService.saveModuleLessonsOrder(
+              updatedSourceModule.id,
+              courseId,
+              updatedSourceModule.lessons || []
+            ).then(() => {
+              toast.success('课时顺序已保存');
+            }).catch((error) => {
+              console.error('保存课时顺序失败:', error);
+              toast.error('保存课时顺序失败，请稍后再试');
+            });
+          }
+        }
+        
+        // 如果是跨模块拖拽，也保存目标模块课时顺序
+        if (updatedTargetModule && updatedTargetModule.id !== updatedSourceModule?.id) {
+          const courseId = updatedTargetModule.course_id;
+          if (courseId && updatedTargetModule.id) {
+            courseService.saveModuleLessonsOrder(
+              updatedTargetModule.id,
+              courseId,
+              updatedTargetModule.lessons || []
+            ).then(() => {
+              // 目标模块保存成功，无需再次提示
+            }).catch((error) => {
+              console.error('保存目标模块课时顺序失败:', error);
+              toast.error('保存部分课时顺序失败，请稍后再试');
+            });
+          }
+        }
+      }, 0);
     }
   };
 
@@ -358,6 +410,104 @@ const ModuleList: React.FC<ModuleListProps> = ({
     });
   };
 
+  // 上移课时
+  const moveLessonUp = (moduleId: string, lessonId: string) => {
+    setModules((prevModules) => {
+      // 找到目标模块
+      const moduleIndex = prevModules.findIndex(m => m.id === moduleId);
+      if (moduleIndex === -1) return prevModules;
+      
+      const module = prevModules[moduleIndex];
+      const lessons = [...(module.lessons || [])];
+      
+      // 找到课时索引
+      const lessonIndex = lessons.findIndex(l => l.id === lessonId);
+      if (lessonIndex <= 0) return prevModules; // 已经是第一个，不能上移
+      
+      // 交换位置
+      [lessons[lessonIndex - 1], lessons[lessonIndex]] = [lessons[lessonIndex], lessons[lessonIndex - 1]];
+      
+      // 更新order_index
+      const updatedLessons = lessons.map((lesson, index) => ({
+        ...lesson,
+        order_index: index
+      }));
+      
+      // 创建新的模块数组
+      const updatedModules = [...prevModules];
+      updatedModules[moduleIndex] = {
+        ...module,
+        lessons: updatedLessons
+      };
+      
+      // 保存更改到后端
+      const updatedModule = updatedModules[moduleIndex];
+      if (updatedModule.course_id && updatedModule.id) {
+        courseService.saveModuleLessonsOrder(
+          updatedModule.id,
+          updatedModule.course_id,
+          updatedModule.lessons || []
+        ).then(() => {
+          toast.success('课时顺序已保存');
+        }).catch((error) => {
+          console.error('保存课时顺序失败:', error);
+          toast.error('保存课时顺序失败，请稍后再试');
+        });
+      }
+      
+      return updatedModules;
+    });
+  };
+
+  // 下移课时
+  const moveLessonDown = (moduleId: string, lessonId: string) => {
+    setModules((prevModules) => {
+      // 找到目标模块
+      const moduleIndex = prevModules.findIndex(m => m.id === moduleId);
+      if (moduleIndex === -1) return prevModules;
+      
+      const module = prevModules[moduleIndex];
+      const lessons = [...(module.lessons || [])];
+      
+      // 找到课时索引
+      const lessonIndex = lessons.findIndex(l => l.id === lessonId);
+      if (lessonIndex === -1 || lessonIndex >= lessons.length - 1) return prevModules; // 已经是最后一个，不能下移
+      
+      // 交换位置
+      [lessons[lessonIndex], lessons[lessonIndex + 1]] = [lessons[lessonIndex + 1], lessons[lessonIndex]];
+      
+      // 更新order_index
+      const updatedLessons = lessons.map((lesson, index) => ({
+        ...lesson,
+        order_index: index
+      }));
+      
+      // 创建新的模块数组
+      const updatedModules = [...prevModules];
+      updatedModules[moduleIndex] = {
+        ...module,
+        lessons: updatedLessons
+      };
+      
+      // 保存更改到后端
+      const updatedModule = updatedModules[moduleIndex];
+      if (updatedModule.course_id && updatedModule.id) {
+        courseService.saveModuleLessonsOrder(
+          updatedModule.id,
+          updatedModule.course_id,
+          updatedModule.lessons || []
+        ).then(() => {
+          toast.success('课时顺序已保存');
+        }).catch((error) => {
+          console.error('保存课时顺序失败:', error);
+          toast.error('保存课时顺序失败，请稍后再试');
+        });
+      }
+      
+      return updatedModules;
+    });
+  };
+
   return (
     <DndContext 
       sensors={sensors}
@@ -390,6 +540,8 @@ const ModuleList: React.FC<ModuleListProps> = ({
                 onUpdateLesson={updateLesson}
                 onDeleteLesson={deleteLesson}
                 onAddLesson={addLesson}
+                onMoveLessonUp={moveLessonUp}
+                onMoveLessonDown={moveLessonDown}
               />
             ))}
           </SortableContext>

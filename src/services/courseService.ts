@@ -3,6 +3,7 @@ import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
 import { Json } from "@/integrations/supabase/types";
 import { Database } from '@/types/database.types';
+import { v4 as uuidv4 } from 'uuid';
 
 // 全局课程完成状态缓存
 export const lessonCompletionCache: Record<string, Record<string, boolean>> = {};
@@ -853,6 +854,58 @@ export const courseService = {
     } catch (error) {
       console.error('获取课时完成状态失败:', error);
       return {};
+    }
+  },
+
+  // 保存模块内课时顺序
+  async saveModuleLessonsOrder(moduleId: string, courseId: string, lessons: Lesson[]): Promise<void> {
+    try {
+      // 检查当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      console.log(`开始保存模块 ${moduleId} 的课时顺序`, lessons);
+      
+      // 准备课时数据，确保order_index正确
+      const lessonsToSave = lessons.map((lesson, index) => ({
+        ...lesson,
+        module_id: moduleId,
+        order_index: index,
+        content: typeof lesson.content === 'object' ? JSON.stringify(lesson.content) : lesson.content
+      }));
+      
+      // 准备请求数据
+      const requestData = {
+        moduleId,
+        courseId,
+        lessons: lessonsToSave,
+        idempotencyKey: uuidv4(),
+        requesterId: user.id
+      };
+      
+      console.log('发送保存课时顺序请求:', {
+        moduleId,
+        courseId,
+        lessonsCount: lessonsToSave.length,
+        requesterId: user.id
+      });
+      
+      // 调用Edge Function
+      const { data, error } = await supabase.functions.invoke('save-lessons', {
+        body: requestData
+      });
+      
+      if (error) {
+        console.error('保存课时顺序失败:', error);
+        throw error;
+      }
+      
+      console.log('课时顺序保存成功:', data);
+    } catch (error) {
+      console.error('保存课时顺序出错:', error);
+      throw error;
     }
   },
 

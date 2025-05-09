@@ -18,6 +18,8 @@ interface ModuleItemProps {
   onUpdateLesson?: (lesson: Lesson) => void;
   onDeleteLesson: (moduleId: string, lessonId: string) => void;
   onAddLesson: (moduleId: string, lessonType: LessonType) => void;
+  onMoveLessonUp?: (moduleId: string, lessonId: string) => void;
+  onMoveLessonDown?: (moduleId: string, lessonId: string) => void;
 }
 
 const ModuleItem: React.FC<ModuleItemProps> = ({
@@ -29,7 +31,9 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   onEditLesson,
   onUpdateLesson,
   onDeleteLesson,
-  onAddLesson
+  onAddLesson,
+  onMoveLessonUp,
+  onMoveLessonDown
 }) => {
   const isExpanded = expandedModule === module.id;
   
@@ -103,6 +107,10 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
                       onEditLesson={onEditLesson}
                       onUpdateLesson={onUpdateLesson}
                       onDeleteLesson={onDeleteLesson}
+                      onMoveUp={onMoveLessonUp}
+                      onMoveDown={onMoveLessonDown}
+                      isFirst={index === 0}
+                      isLast={index === module.lessons.length - 1}
                     />
                   ))
                 }

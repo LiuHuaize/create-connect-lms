@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Pencil, GripVertical } from 'lucide-react';
+import { Trash2, Pencil, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import { Lesson } from '@/types/course';
 import { getLessonTypeIcon, getLessonTypeName } from './lessonTypeUtils';
 import { useSortable } from '@dnd-kit/sortable';
@@ -13,6 +13,10 @@ interface LessonItemProps {
   onEditLesson: (lesson: Lesson) => void;
   onUpdateLesson?: (lesson: Lesson) => void;
   onDeleteLesson: (moduleId: string, lessonId: string) => void;
+  onMoveUp?: (moduleId: string, lessonId: string) => void;
+  onMoveDown?: (moduleId: string, lessonId: string) => void;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
 const LessonItem: React.FC<LessonItemProps> = ({
@@ -21,7 +25,11 @@ const LessonItem: React.FC<LessonItemProps> = ({
   index,
   onEditLesson,
   onUpdateLesson,
-  onDeleteLesson
+  onDeleteLesson,
+  onMoveUp,
+  onMoveDown,
+  isFirst = false,
+  isLast = false
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(lesson.title);
@@ -152,9 +160,47 @@ const LessonItem: React.FC<LessonItemProps> = ({
       </div>
       
       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* 上移按钮 */}
+        {onMoveUp && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isFirst && onMoveUp) onMoveUp(moduleId, lesson.id);
+            }}
+            className={`p-1 rounded ${
+              isFirst 
+                ? 'text-gray-300 cursor-not-allowed' 
+                : 'text-gray-500 hover:text-blue-500 hover:bg-gray-100'
+            }`}
+            disabled={isFirst}
+            title="上移课时"
+          >
+            <ChevronUp size={14} />
+          </button>
+        )}
+        
+        {/* 下移按钮 */}
+        {onMoveDown && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isLast && onMoveDown) onMoveDown(moduleId, lesson.id);
+            }}
+            className={`p-1 rounded ${
+              isLast 
+                ? 'text-gray-300 cursor-not-allowed' 
+                : 'text-gray-500 hover:text-blue-500 hover:bg-gray-100'
+            }`}
+            disabled={isLast}
+            title="下移课时"
+          >
+            <ChevronDown size={14} />
+          </button>
+        )}
+        
         <button
           onClick={handleFullLessonEdit}
-          className="p-1 text-gray-500 hover:text-blue-500 focus:outline-none"
+          className="p-1 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded"
           aria-label="编辑课时内容"
         >
           <Pencil size={14} />
@@ -162,7 +208,7 @@ const LessonItem: React.FC<LessonItemProps> = ({
         
         <button
           onClick={() => onDeleteLesson(moduleId, lesson.id)}
-          className="p-1 text-gray-500 hover:text-red-500 focus:outline-none"
+          className="p-1 text-gray-500 hover:text-red-500 hover:bg-gray-100 rounded"
           aria-label="删除课时"
         >
           <Trash2 size={14} />
