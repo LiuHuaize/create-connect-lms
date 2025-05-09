@@ -55,6 +55,31 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [renderedLesson, setRenderedLesson] = useState<Lesson | null>(null);
   const { refreshCourseData } = useCourseData(courseId);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [lessonCompletionStatus, setLessonCompletionStatus] = useState<{[key: string]: boolean}>({});
+  
+  // 测验相关状态
+  const [userAnswers, setUserAnswers] = useState<{[key: string]: string}>({});
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizResult, setQuizResult] = useState<{score: number, totalQuestions: number} | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCompletionLoading, setIsCompletionLoading] = useState(false);
+  const [attemptCounts, setAttemptCounts] = useState<{[key: string]: number}>({});
+  const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState<{[key: string]: boolean}>({});
+  const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string}>({});
+  
+  // 获取当前用户ID
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data && data.user) {
+        setCurrentUserId(data.user.id);
+      }
+    };
+    
+    getUserId();
+  }, []);
   
   // 初始化时设置第一个子课时
   useEffect(() => {
@@ -69,6 +94,19 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
       setRenderedLesson(content.lessons[currentLessonIndex]);
     }
   }, [currentLessonIndex, content.lessons]);
+  
+  // 获取框架内子课时的完成状态
+  useEffect(() => {
+    if (courseId && content.lessons && content.lessons.length > 0) {
+      courseService.getLessonCompletionStatus(courseId)
+        .then(status => {
+          setLessonCompletionStatus(status);
+        })
+        .catch(error => {
+          console.error('获取子课时完成状态失败:', error);
+        });
+    }
+  }, [courseId, content.lessons]);
   
   // 导航到下一个框架内课时
   const goToNextFramePage = () => {
@@ -94,6 +132,98 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   
   const isLastPageOfFrame = currentLessonIndex === content.lessons.length - 1;
 
+  // 处理用户选择答案
+  const handleAnswerSelect = (questionId: string, optionId: string) => {
+    setUserAnswers(prev => ({
+      ...prev,
+      [questionId]: optionId
+    }));
+    
+    setSelectedAnswer(prev => ({
+      ...prev,
+      [questionId]: optionId
+    }));
+  };
+  
+  // 检查单个问题答案
+  const handleCheckSingleAnswer = (questionId: string, correctOptionId: string) => {
+    const userAnswer = selectedAnswer[questionId];
+    
+    if (userAnswer !== correctOptionId) {
+      const currentAttempts = attemptCounts[questionId] || 0;
+      const newAttempts = currentAttempts + 1;
+      
+      setAttemptCounts(prev => ({
+        ...prev,
+        [questionId]: newAttempts
+      }));
+      
+      if (newAttempts === 1) {
+        setShowHints(prev => ({
+          ...prev,
+          [questionId]: true
+        }));
+      } else {
+        setShowHints(prev => ({
+          ...prev,
+          [questionId]: false
+        }));
+        setShowCorrectAnswers(prev => ({
+          ...prev,
+          [questionId]: true
+        }));
+      }
+      return false;
+    } else {
+      setUserAnswers(prev => ({
+        ...prev,
+        [questionId]: userAnswer
+      }));
+      
+      setShowCorrectAnswers(prev => ({
+        ...prev,
+        [questionId]: true
+      }));
+      return true;
+    }
+  };
+  
+  // 处理测验提交
+  const handleQuizSubmit = async () => {
+    if (!renderedLesson || renderedLesson.type !== 'quiz') return;
+    
+    const quizContent = renderedLesson.content as any;
+    if (!quizContent?.questions) return;
+    
+    setIsLoading(true);
+    
+    try {
+      let correctAnswers = 0;
+      const totalQuestions = quizContent.questions.length;
+      
+      const userAnswersData = { ...userAnswers };
+      const correctAnswersData = {};
+      
+      quizContent.questions.forEach((question: any) => {
+        correctAnswersData[question.id] = question.correctOption;
+        if (userAnswers[question.id] === question.correctOption) {
+          correctAnswers++;
+        }
+      });
+      
+      const score = Math.round((correctAnswers / totalQuestions) * 100);
+      setQuizResult({score, totalQuestions});
+      setQuizSubmitted(true);
+      
+      // 框架内的子课时完成逻辑可以后续处理
+      // 这里只关注测验状态的更新
+    } catch (error) {
+      console.error('提交测验结果失败:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   return (
     <div>
       {/* 框架描述信息 */}
@@ -133,6 +263,89 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
                     key={lesson.id}
                     content={lesson.content as any} 
                     videoFilePath={lesson.video_file_path} 
+                  />;
+                case 'quiz':
+                  return <QuizLessonContent 
+                    key={lesson.id}
+                    lessonId={lesson.id}
+                    courseId={courseId}
+                    enrollmentId={enrollmentId}
+                    content={lesson.content}
+                    userAnswers={userAnswers} 
+                    quizSubmitted={quizSubmitted}
+                    quizResult={quizResult}
+                    isLoading={isLoading}
+                    attemptCounts={attemptCounts}
+                    showHints={showHints}
+                    showCorrectAnswers={showCorrectAnswers}
+                    selectedAnswer={selectedAnswer}
+                    onAnswerSelect={handleAnswerSelect}
+                    onCheckSingleAnswer={handleCheckSingleAnswer}
+                    onQuizSubmit={handleQuizSubmit}
+                    onUnmarkComplete={async () => Promise.resolve()}
+                    isCompletionLoading={isCompletionLoading}
+                    navigate={navigate}
+                    refreshCourseData={refreshCourseData}
+                  />;
+                case 'resource':
+                  return <ResourceLessonView 
+                    key={lesson.id}
+                    lesson={lesson}
+                    onComplete={() => {
+                      if (refreshCourseData) {
+                        refreshCourseData();
+                        // 更新本地状态，实时反映完成状态
+                        setLessonCompletionStatus(prev => ({
+                          ...prev,
+                          [lesson.id]: true
+                        }));
+                      }
+                    }}
+                    isCompleted={lessonCompletionStatus[lesson.id] || false}
+                    courseId={courseId}
+                    enrollmentId={enrollmentId}
+                  />;
+                case 'assignment':
+                  return <AssignmentLessonContent
+                    key={lesson.id}
+                    lessonId={lesson.id}
+                    content={lesson.content as AssignmentLessonContentType}
+                    userId={currentUserId}
+                    onComplete={() => {
+                      if (refreshCourseData) {
+                        refreshCourseData();
+                        // 更新本地状态，实时反映完成状态
+                        setLessonCompletionStatus(prev => ({
+                          ...prev,
+                          [lesson.id]: true
+                        }));
+                      }
+                    }}
+                    isCompleted={lessonCompletionStatus[lesson.id] || false}
+                  />;
+                case 'drag_sort':
+                  if (lesson.content) {
+                    return <DragSortExercise 
+                      lesson={lesson}
+                      onComplete={(isCorrect, mappings) => {
+                        if (refreshCourseData) {
+                          refreshCourseData();
+                          // 更新本地状态，实时反映完成状态
+                          setLessonCompletionStatus(prev => ({
+                            ...prev,
+                            [lesson.id]: true
+                          }));
+                        }
+                      }}
+                    />;
+                  }
+                  return null;
+                case 'hotspot':
+                  return <HotspotLessonView
+                    key={lesson.id}
+                    lesson={lesson}
+                    enrollmentId={enrollmentId || undefined}
+                    isPreview={false}
                   />;
                 // 可以根据需要添加其他类型
                 default:
