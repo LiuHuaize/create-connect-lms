@@ -283,6 +283,116 @@ export type Database = {
           }
         ]
       }
+      assignment_submissions: {
+        Row: {
+          id: string
+          student_id: string
+          lesson_id: string
+          content: string
+          file_url: string | null
+          file_name: string | null
+          file_type: string | null
+          file_size: number | null
+          submitted_at: string | null
+          created_at: string | null
+          updated_at: string | null
+          file_submissions: Json | null
+          teacher_grading: Json | null
+          ai_grading: Json | null
+          status: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          lesson_id: string
+          content: string
+          file_url?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_size?: number | null
+          submitted_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          file_submissions?: Json | null
+          teacher_grading?: Json | null
+          ai_grading?: Json | null
+          status: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          lesson_id?: string
+          content?: string
+          file_url?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          file_size?: number | null
+          submitted_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          file_submissions?: Json | null
+          teacher_grading?: Json | null
+          ai_grading?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_submissions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      assignment_lesson_contents: {
+        Row: {
+          id: string
+          lesson_id: string
+          instructions: string
+          criteria: string
+          ai_grading_prompt: string | null
+          allow_file_upload: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          lesson_id: string
+          instructions: string
+          criteria: string
+          ai_grading_prompt?: string | null
+          allow_file_upload?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          lesson_id?: string
+          instructions?: string
+          criteria?: string
+          ai_grading_prompt?: string | null
+          allow_file_upload?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_lesson_contents_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

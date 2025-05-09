@@ -3,13 +3,14 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { AssignmentLessonContent as AssignmentContent, AssignmentSubmission, AssignmentFileSubmission } from '@/types/course';
+import { AssignmentLessonContent as AssignmentContent, AssignmentSubmission, AssignmentFileSubmission, AIGradingResult } from '@/types/course';
 import { AssignmentFileUploader } from '@/components/course/learning/AssignmentFileUploader';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Save, Upload, CheckCircle, Star, BookOpen, Award, Rocket } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { motion } from 'framer-motion';
+import { isValidUUID } from '@/utils/validators';
 
 // 动画变体
 const containerVariants = {
@@ -17,8 +18,8 @@ const containerVariants = {
   visible: { 
     opacity: 1,
     transition: { 
-      delayChildren: 0.2,
-      staggerChildren: 0.1
+      delayChildren: 0.3,
+      staggerChildren: 0.2
     }
   }
 };
@@ -32,11 +33,43 @@ const itemVariants = {
   }
 };
 
+// 从数据库获取的提交数据类型
+type SubmissionData = {
+  id: string;
+  student_id: string;
+  lesson_id: string;
+  content: string;
+  submitted_at: string | null;
+  file_submissions: AssignmentFileSubmission[] | null;
+  teacher_grading: {
+    score: number;
+    feedback: string;
+    timestamp: string;
+  } | null;
+  ai_grading: AIGradingResult | null;
+};
+
+// 组件内部使用的提交类型
+type InternalAssignmentSubmission = {
+  id: string;
+  studentId: string;
+  lessonId: string;
+  content: string;
+  submittedAt: string | null;
+  fileSubmissions: AssignmentFileSubmission[];
+  teacherGrading?: {
+    score: number;
+    feedback: string;
+    timestamp: string;
+  };
+  aiGrading?: AIGradingResult;
+};
+
 interface AssignmentLessonContentProps {
   lessonId: string;
   content: AssignmentContent;
   userId: string;
-  onComplete?: (data?: any) => void;
+  onComplete?: (data: { submittedAt: string }) => void;
   isCompleted?: boolean;
 }
 
@@ -48,66 +81,100 @@ export function AssignmentLessonContent({
   isCompleted = false
 }: AssignmentLessonContentProps) {
   const { toast } = useToast();
-  const [submission, setSubmission] = useState<AssignmentSubmission | null>(null);
+  
+  // 验证userId和lessonId
+  const [validationError, setValidationError] = useState<string | null>(null);
+  
+  // 检查ID是否有效
+  useEffect(() => {
+    if (!userId || userId === '') {
+      setValidationError('用户ID无效，请尝试重新登录');
+      return;
+    }
+    
+    if (!lessonId || lessonId === '') {
+      setValidationError('课时ID无效，请尝试刷新页面');
+      return;
+    }
+    
+    if (!isValidUUID(userId)) {
+      setValidationError('用户ID格式无效，请尝试重新登录');
+      return;
+    }
+    
+    if (!isValidUUID(lessonId)) {
+      setValidationError('课时ID格式无效，请尝试刷新页面');
+      return;
+    }
+    
+    setValidationError(null);
+  }, [userId, lessonId]);
+  
+  // 作业提交状态
   const [fileSubmissions, setFileSubmissions] = useState<AssignmentFileSubmission[]>([]);
+  const [submission, setSubmission] = useState<InternalAssignmentSubmission | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // 加载已有的提交
+  // 加载已有提交内容
   useEffect(() => {
-    loadSubmission();
-  }, [lessonId, userId]);
-  
-  // 加载提交内容
-  const loadSubmission = async () => {
-    try {
-      // 查询学生的提交记录
-      const { data, error } = await supabase
-        .from('assignment_submissions')
-        .select('*')
-        .eq('lesson_id', lessonId)
-        .eq('student_id', userId)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') { // PGRST116 是没有找到记录的错误
-        console.error('加载提交时出错:', error);
-        toast({
-          title: '加载失败',
-          description: '无法加载已有的提交内容',
-          variant: 'destructive'
-        });
+    const loadSubmission = async () => {
+      if (!userId || !lessonId || validationError) {
+        setIsLoading(false);
         return;
       }
       
-      if (data) {
-        const fileSubmissions = data.file_submissions || [];
+      try {
+        const { data, error } = await supabase
+          .from('assignment_submissions')
+          .select('*')
+          .eq('student_id', userId)
+          .eq('lesson_id', lessonId)
+          .maybeSingle();
         
-        // 设置提交内容
-        setSubmission({
-          id: data.id,
-          studentId: data.student_id,
-          lessonId: data.lesson_id,
-          content: '',
-          submittedAt: data.submitted_at,
-          fileSubmissions: fileSubmissions,
-          teacherGrading: data.teacher_grading,
-          aiGrading: data.ai_grading
-        });
+        if (error && error.code !== 'PGRST116') { // PGRST116 是没有找到记录的错误
+          throw error;
+        }
         
-        setFileSubmissions(fileSubmissions);
+        if (data) {
+          // 安全地处理数据类型
+          const submissionData = data as unknown as SubmissionData;
+          
+          setSubmission({
+            id: submissionData.id,
+            studentId: submissionData.student_id,
+            lessonId: submissionData.lesson_id,
+            content: submissionData.content || '',
+            submittedAt: submissionData.submitted_at,
+            fileSubmissions: submissionData.file_submissions || [],
+            teacherGrading: submissionData.teacher_grading || undefined,
+            aiGrading: submissionData.ai_grading || undefined
+          });
+          
+          setFileSubmissions(submissionData.file_submissions || []);
+        }
+      } catch (err) {
+        console.error('加载作业提交时出错:', err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      console.error('加载提交时出错:', err);
-      toast({
-        title: '加载失败',
-        description: '无法加载已有的提交内容',
-        variant: 'destructive'
-      });
-    }
-  };
+    };
+    
+    loadSubmission();
+  }, [userId, lessonId, validationError]);
   
   // 保存草稿
   const handleSaveDraft = async () => {
+    if (validationError) {
+      toast({
+        title: '保存失败',
+        description: validationError,
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     setIsSaving(true);
     
     try {
@@ -129,7 +196,7 @@ export function AssignmentLessonContent({
           .insert({
             lesson_id: lessonId,
             student_id: userId,
-            content: {},
+            content: JSON.stringify({}), // 确保content是有效的JSON字符串
             file_submissions: fileSubmissions,
             status: 'draft',
             submitted_at: null
@@ -140,13 +207,18 @@ export function AssignmentLessonContent({
         if (error) throw error;
         
         if (data) {
+          // 安全地处理数据类型
+          const submissionData = data as unknown as SubmissionData;
+          
           setSubmission({
-            id: data.id,
-            studentId: data.student_id,
-            lessonId: data.lesson_id,
+            id: submissionData.id,
+            studentId: submissionData.student_id,
+            lessonId: submissionData.lesson_id,
             content: '',
-            submittedAt: data.submitted_at,
-            fileSubmissions: fileSubmissions
+            submittedAt: submissionData.submitted_at,
+            fileSubmissions: submissionData.file_submissions || [],
+            teacherGrading: submissionData.teacher_grading || undefined,
+            aiGrading: submissionData.ai_grading || undefined
           });
         }
       }
@@ -169,6 +241,15 @@ export function AssignmentLessonContent({
   
   // 提交作业
   const handleSubmitAssignment = async () => {
+    if (validationError) {
+      toast({
+        title: '提交失败',
+        description: validationError,
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     if (fileSubmissions.length === 0) {
       toast({
         title: '提交失败',
@@ -211,7 +292,7 @@ export function AssignmentLessonContent({
           .insert({
             lesson_id: lessonId,
             student_id: userId,
-            content: {},
+            content: JSON.stringify({}), // 确保content是有效的JSON字符串
             file_submissions: fileSubmissions,
             status: 'submitted',
             submitted_at: now
@@ -222,13 +303,18 @@ export function AssignmentLessonContent({
         if (error) throw error;
         
         if (data) {
+          // 安全地处理数据类型
+          const submissionData = data as unknown as SubmissionData;
+          
           setSubmission({
-            id: data.id,
-            studentId: data.student_id,
-            lessonId: data.lesson_id,
+            id: submissionData.id,
+            studentId: submissionData.student_id,
+            lessonId: submissionData.lesson_id,
             content: '',
             submittedAt: now,
-            fileSubmissions: fileSubmissions
+            fileSubmissions: submissionData.file_submissions || [],
+            teacherGrading: submissionData.teacher_grading || undefined,
+            aiGrading: submissionData.ai_grading || undefined
           });
         }
       }
@@ -309,8 +395,8 @@ export function AssignmentLessonContent({
               <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
             </h3>
             <p className="text-sm text-gray-600">
-              提交时间: {new Date(submission.submittedAt).toLocaleString()}
-              （{formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true, locale: zhCN })}）
+              提交时间: {new Date(submission.submittedAt || '').toLocaleString()}
+              （{formatDistanceToNow(new Date(submission.submittedAt || ''), { addSuffix: true, locale: zhCN })}）
             </p>
           </div>
         </div>
@@ -369,6 +455,43 @@ export function AssignmentLessonContent({
     );
   };
   
+  // 渲染验证错误
+  const renderValidationError = () => {
+    if (!validationError) return null;
+    
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
+      >
+        <div className="flex items-start gap-2">
+          <div className="shrink-0 w-5 h-5 mt-0.5 text-red-600">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <div>
+            <h4 className="font-medium">无法加载作业提交功能</h4>
+            <p className="text-sm mt-1">{validationError}</p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+  
+  // 加载中状态
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-gray-600">加载中...</span>
+      </div>
+    );
+  }
+  
   return (
     <motion.div 
       variants={containerVariants}
@@ -376,6 +499,9 @@ export function AssignmentLessonContent({
       animate="visible"
       className="space-y-6"
     >
+      {/* 验证错误 */}
+      {renderValidationError()}
+      
       {/* 作业说明 */}
       <motion.div variants={itemVariants}>
         <Card className="border-0 overflow-hidden shadow-md bg-card">
@@ -417,69 +543,71 @@ export function AssignmentLessonContent({
       {renderSubmissionStatus()}
       
       {/* 作业提交区域 */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-0 overflow-hidden shadow-md bg-card">
-          <CardHeader className="bg-muted text-foreground border-b">
-            <div className="flex items-center gap-3">
-              <Upload size={24} />
-              <div>
-                <CardTitle className="text-xl">作业提交</CardTitle>
-                <CardDescription>
-                  在这里上传你的作业文件，准备好后点击提交按钮
-                </CardDescription>
+      {!validationError && (
+        <motion.div variants={itemVariants}>
+          <Card className="border-0 overflow-hidden shadow-md bg-card">
+            <CardHeader className="bg-muted text-foreground border-b">
+              <div className="flex items-center gap-3">
+                <Upload size={24} />
+                <div>
+                  <CardTitle className="text-xl">作业提交</CardTitle>
+                  <CardDescription>
+                    在这里上传你的作业文件，准备好后点击提交按钮
+                  </CardDescription>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="min-h-[250px]">
-              <AssignmentFileUploader
-                lessonId={lessonId}
-                studentId={userId}
-                onFileUploaded={handleFileUploaded}
-                onFileDeleted={handleFileDeleted}
-                files={fileSubmissions}
-                disabled={hasSubmitted || isCompleted}
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between bg-muted/20 p-6">
-            <Button
-              variant="outline"
-              onClick={handleSaveDraft}
-              disabled={isSaving || isSubmitting || hasSubmitted || isCompleted}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  正在保存...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  保存草稿
-                </>
-              )}
-            </Button>
-            
-            <Button
-              onClick={handleSubmitAssignment}
-              disabled={isSubmitting || isSaving || hasSubmitted || isCompleted || fileSubmissions.length === 0}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  正在提交...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  提交作业
-                </>
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      </motion.div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="min-h-[250px]">
+                <AssignmentFileUploader
+                  lessonId={lessonId}
+                  studentId={userId}
+                  onFileUploaded={handleFileUploaded}
+                  onFileDeleted={handleFileDeleted}
+                  files={fileSubmissions}
+                  disabled={hasSubmitted || isCompleted || !!validationError}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between bg-muted/20 p-6">
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isSaving || isSubmitting || hasSubmitted || isCompleted || !!validationError}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    正在保存...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    保存草稿
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                onClick={handleSubmitAssignment}
+                disabled={isSubmitting || isSaving || hasSubmitted || isCompleted || fileSubmissions.length === 0 || !!validationError}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    正在提交...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    提交作业
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      )}
     </motion.div>
   );
 } 

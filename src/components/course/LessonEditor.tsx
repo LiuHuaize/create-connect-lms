@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,7 @@ import {
   FileText, Video, FileQuestion, 
   Plus, Trash2, AlertCircle, Download, Layers
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { 
   Lesson, 
   QuizQuestion, 
@@ -39,7 +40,6 @@ import ResourceLessonEditor from './ResourceLessonEditor';
 import FrameLessonEditor from './FrameLessonEditor';
 import HotspotEditor from './creator/hotspot/HotspotEditor';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
@@ -451,13 +451,23 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
           lesson={lesson}
           onChange={handleResourceContentChange}
           onSave={async () => {
-            if (onCourseDataSaved) {
-              // 创建更新后的课时对象
-              const updatedResourceLesson = {
-                ...lesson,
-                content: currentContent
-              };
-              await onCourseDataSaved(updatedResourceLesson);
+            try {
+              if (onCourseDataSaved) {
+                // 创建更新后的课时对象
+                const updatedResourceLesson = {
+                  ...lesson,
+                  content: currentContent
+                };
+                console.log('保存资源模块，课时内容:', updatedResourceLesson);
+                await onCourseDataSaved(updatedResourceLesson);
+                toast.success('资源模块保存成功');
+              } else {
+                console.error('无法保存: onCourseDataSaved未定义');
+                toast.error('保存失败: 系统错误');
+              }
+            } catch (error) {
+              console.error('保存资源模块失败:', error);
+              toast.error('保存失败，请稍后重试');
             }
           }}
           isSaving={false}
