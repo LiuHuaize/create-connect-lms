@@ -91,10 +91,10 @@ export const fetchAllCourses = async (): Promise<Course[]> => {
     return cachedCourses;
   }
   
-  // 从数据库获取 - 只选择列表视图所需的字段，不加载完整内容
+  // 从数据库获取
   const { data, error } = await supabase
     .from('courses')
-    .select('id, title, description, short_description, author_id, cover_image, status, price, tags')
+    .select('*')
     .eq('status', 'published');
     
   if (error) {
@@ -131,7 +131,7 @@ export const fetchEnrolledCourses = async (userId: string): Promise<EnrolledCour
     return cachedEnrolledCourses;
   }
   
-  // 联合查询课程和注册信息，添加对已发布课程的过滤，限制选择的字段
+  // 联合查询课程和注册信息，添加对已发布课程的过滤
   const { data, error } = await supabase
     .from('course_enrollments')
     .select(`
@@ -139,7 +139,7 @@ export const fetchEnrolledCourses = async (userId: string): Promise<EnrolledCour
       status,
       progress,
       enrolled_at,
-      courses:course_id(id, title, description, short_description, author_id, cover_image, status, price, tags)
+      courses:course_id(*)
     `)
     .eq('user_id', userId);
     

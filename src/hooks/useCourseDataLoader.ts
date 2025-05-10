@@ -7,7 +7,6 @@ import { useLocalBackup } from './useLocalBackup';
 interface UseCourseDataLoaderProps {
   courseId: string | null | undefined;
   onDataLoaded?: (course: Course, modules: CourseModule[]) => void;
-  previewMode?: boolean;
 }
 
 interface UseCourseDataLoaderResult {
@@ -32,8 +31,7 @@ interface UseCourseDataLoaderResult {
  */
 export const useCourseDataLoader = ({
   courseId,
-  onDataLoaded,
-  previewMode = false
+  onDataLoaded
 }: UseCourseDataLoaderProps): UseCourseDataLoaderResult => {
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<CourseModule[]>([]);
@@ -113,28 +111,6 @@ export const useCourseDataLoader = ({
       setLoadingMessage('加载课程模块信息...');
       setLoadingDetails(false);
 
-      // 如果是预览模式，使用轻量级加载方式
-      if (previewMode) {
-        setLoadingMessage('加载课程轻量级预览...');
-        
-        const coursePreview = await courseService.getCourseLightPreview(courseId);
-        if (coursePreview.modules) {
-          setModules(coursePreview.modules);
-        }
-        
-        setModuleDataLoaded(true);
-        setIsLoading(false);
-        setLoadingProgress(100);
-        setLoadingMessage('课程预览加载完成');
-        
-        if (onDataLoaded) {
-          onDataLoaded(courseDetails, coursePreview.modules || []);
-        }
-        
-        return;
-      }
-
-      // 正常模式，继续原来的分段加载过程
       // 阶段2: 加载模块信息 (不包含课时内容)
       const modulesData = await courseService.getCourseModules(courseId);
       setLoadingProgress(50);
@@ -218,7 +194,7 @@ export const useCourseDataLoader = ({
         }
       }
     }
-  }, [courseId, onDataLoaded, hasBackup, restoreFromBackup, saveLocalBackup, previewMode]);
+  }, [courseId, onDataLoaded, hasBackup, restoreFromBackup, saveLocalBackup]);
 
   // 提供一个方法来重新加载课程
   const reloadCourse = useCallback(async () => {
