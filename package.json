@@ -64,6 +64,7 @@
     "@upstash/redis": "^1.34.8",
     "ai": "^4.3.9",
     "axios": "^1.8.4",
+    "browser-image-compression": "^2.0.2",
     "caniuse-lite": "^1.0.30001713",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",

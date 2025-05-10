@@ -2,17 +2,24 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useCreateBlockNote } from "@blocknote/react";
 import { zhDictionary } from "@/components/editor/locales/zh";
 import { handleBlockNoteFileUpload } from "@/services/fileUploadService";
+import { toast } from 'sonner';
 
 interface UseBlockNoteEditorProps {
   initialContent?: string;
   onChange?: (content: string) => void;
   theme?: 'light' | 'dark';
+  maxImageSize?: number; // 新增最大图片大小限制，单位MB
 }
 
+/**
+ * BlockNote编辑器自定义Hook
+ * 集中管理编辑器逻辑，支持图片优化上传至Supabase
+ */
 export const useBlockNoteEditor = ({
   initialContent = '',
   onChange,
-  theme = 'light'
+  theme = 'light',
+  maxImageSize = 10 // 默认限制图片大小为10MB
 }: UseBlockNoteEditorProps) => {
   // 编辑器全屏状态
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -55,11 +62,48 @@ export const useBlockNoteEditor = ({
     // 使用BlockNote默认侧边菜单，不再覆盖原生行为
     return () => {}; // 返回空的清理函数
   };
+
+  // 自定义图片上传处理函数（附带预处理）
+  const handleOptimizedImageUpload = useCallback(async (file: File): Promise<string> => {
+    try {
+      // 检查文件类型是否为图片
+      if (!file.type.startsWith('image/')) {
+        return handleBlockNoteFileUpload(file);
+      }
+
+      // 验证图片大小
+      const maxSizeBytes = maxImageSize * 1024 * 1024; // 转换为字节
+      if (file.size > maxSizeBytes) {
+        toast.error(`图片太大(${(file.size / (1024 * 1024)).toFixed(2)}MB)，请上传小于${maxImageSize}MB的图片`);
+        throw new Error(`图片大小超过限制(${maxImageSize}MB)`);
+      }
+
+      // 对特别大的图片提示可能会导致性能问题
+      if (file.size > maxSizeBytes * 0.7) {
+        toast.warning(`图片较大，可能会影响页面性能`);
+      }
+
+      // 使用处理过的上传函数，直接上传到Supabase Storage而非使用Base64
+      const imageUrl = await handleBlockNoteFileUpload(file);
+      
+      // 成功上传后清除一些可能的临时对象以释放内存
+      setTimeout(() => {
+        // 调用可能的垃圾回收（在调试模式下可能有效）
+        if (window.gc) window.gc();
+      }, 500);
+      
+      return imageUrl;
+    } catch (error) {
+      console.error("图片处理失败:", error);
+      toast.error("图片处理失败，请重试");
+      throw error;
+    }
+  }, [maxImageSize]);
   
   // 创建BlockNote编辑器实例
   const editor = useCreateBlockNote({
     initialContent: initialContent ? safelyParseContent(initialContent) : undefined,
-    uploadFile: handleBlockNoteFileUpload, // 使用文件上传服务
+    uploadFile: handleOptimizedImageUpload, // 使用优化后的图片上传处理
     dictionary: {
       ...zhDictionary,
       placeholders: {
