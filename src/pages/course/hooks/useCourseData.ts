@@ -57,31 +57,36 @@ const fetchEnrollmentInfo = async (courseId: string, userId: string) => {
 };
 
 // 带重试和性能优化的获取课程详情
-const fetchCourseDetails = async (courseId: string | undefined) => {
+const fetchCourseDetails = async (courseId: string | undefined, preview: boolean = true) => {
   if (!courseId) return null;
   
-  console.log('正在获取课程详情:', courseId);
+  console.log(`正在获取课程${preview ? '轻量级预览' : '详情'}:`, courseId);
   
   // 尝试从IndexedDB缓存获取
   const cachedData = await indexedDBCache.getCourseDetails(courseId);
   if (cachedData) {
-    console.log('从IndexedDB缓存返回课程详情');
+    console.log('从IndexedDB缓存返回课程数据');
     return cachedData;
   }
   
   try {
     console.time('fetchCourseDetails');
-    const courseDetails = await courseService.getCourseDetails(courseId);
+    
+    // 使用轻量级预览或完整详情加载
+    const courseData = preview 
+      ? await courseService.getCourseLightPreview(courseId)
+      : await courseService.getCourseDetails(courseId);
+      
     console.timeEnd('fetchCourseDetails');
     
     // 保存到IndexedDB缓存
-    if (courseDetails) {
-      await indexedDBCache.saveCourseDetails(courseId, courseDetails);
+    if (courseData) {
+      await indexedDBCache.saveCourseDetails(courseId, courseData);
     }
     
-    return courseDetails;
+    return courseData;
   } catch (error) {
-    console.error('获取课程详情失败:', error);
+    console.error(`获取课程${preview ? '轻量级预览' : '详情'}失败:`, error);
     console.timeEnd('fetchCourseDetails');
     throw error;
   }
@@ -105,7 +110,7 @@ const CACHE_CONFIG = {
   }
 };
 
-export const useCourseData = (courseId: string | undefined) => {
+export const useCourseData = (courseId: string | undefined, fullDetails: boolean = false) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
@@ -116,8 +121,8 @@ export const useCourseData = (courseId: string | undefined) => {
     refetch: refetchCourseData,
     error: courseError
   } = useQuery({
-    queryKey: ['courseDetails', courseId],
-    queryFn: () => fetchCourseDetails(courseId),
+    queryKey: ['courseDetails', courseId, fullDetails],
+    queryFn: () => fetchCourseDetails(courseId, !fullDetails),
     enabled: !!courseId,
     ...CACHE_CONFIG.courseDetails
   });
@@ -145,7 +150,7 @@ export const useCourseData = (courseId: string | undefined) => {
       await indexedDBCache.clearCourseCache(courseId);
       
       // 使用 React Query 的 invalidateQueries 使缓存失效
-      queryClient.invalidateQueries({ queryKey: ['courseDetails', courseId] });
+      queryClient.invalidateQueries({ queryKey: ['courseDetails', courseId, fullDetails] });
       if (user?.id) {
         queryClient.invalidateQueries({ queryKey: ['enrollment', courseId, user.id] });
       }
