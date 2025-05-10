@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import EditorLayout from '@/components/layout/EditorLayout';
+import TestCourseOptimization from '../pages/TestCourseOptimization';
 
 // Lazy load page components
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -98,6 +99,8 @@ const AppRoutes = () => {
         </Route>
 
         <Route path="/model-test" element={<ModelTestComponent />} />
+
+        <Route path="/test-optimization" element={<TestCourseOptimization />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

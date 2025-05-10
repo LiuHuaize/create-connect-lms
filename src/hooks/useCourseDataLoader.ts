@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Course, CourseModule, Lesson } from '@/types/course';
+import { Course, CourseModule, Lesson, LessonContent } from '@/types/course';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
 import { useLocalBackup } from './useLocalBackup';
@@ -101,80 +101,156 @@ export const useCourseDataLoader = ({
       setLoadingDetails(true);
       setModuleDataLoaded(false);
       setLoadingProgress(0);
-      setLoadingMessage('加载课程基本信息...');
+      setLoadingMessage('正在加载课程数据...');
       setError(null);
 
-      // 阶段1: 加载课程基本信息
-      const courseDetails = await courseService.getCourseBasicInfo(courseId);
-      setCourse(courseDetails);
-      setLoadingProgress(30);
-      setLoadingMessage('加载课程模块信息...');
-      setLoadingDetails(false);
-
-      // 阶段2: 加载模块信息 (不包含课时内容)
-      const modulesData = await courseService.getCourseModules(courseId);
-      setLoadingProgress(50);
-      
-      // 设置模块但暂不设置课时
-      const modulesWithoutLessons = modulesData.map(module => ({
-        ...module,
-        lessons: []
-      }));
-      setModules(modulesWithoutLessons);
-
-      // 获取所有模块的数量，用于计算进度
-      const totalModules = modulesData.length;
-      let loadedModules = 0;
-
-      // 阶段3: 分批加载每个模块的课时
-      const batchSize = 2; // 每批加载的模块数
-      const modulesWithLessons = [...modulesWithoutLessons];
-
-      // 分批处理每个模块的课时
-      for (let i = 0; i < totalModules; i += batchSize) {
-        const currentBatch = modulesData.slice(i, i + batchSize);
+      // 首先尝试使用Edge Function优化版本加载课程数据
+      try {
+        const moduleId = null; // 首次加载时没有当前模块
+        const mode = 'learning'; // 使用学习模式加载
         
-        setLoadingMessage(`加载模块 ${i + 1}-${Math.min(i + batchSize, totalModules)} 的课时 (共${totalModules}个)...`);
+        setLoadingProgress(20);
+        setLoadingMessage('请求优化课程数据...');
         
-        // 并行加载当前批次中每个模块的课时
-        const lessonsPromises = currentBatch.map(module => 
-          courseService.getModuleLessons(module.id)
-        );
+        // 使用优化的方法获取所有必要数据
+        const courseWithModules = await courseService.getCourseOptimized(courseId, mode, moduleId);
         
-        const lessonsBatch = await Promise.all(lessonsPromises);
+        // 更新课程信息
+        setCourse(courseWithModules);
+        setLoadingProgress(60);
         
-        // 更新进度
-        loadedModules += currentBatch.length;
-        const progressPercentage = 50 + Math.floor((loadedModules / totalModules) * 50);
-        setLoadingProgress(progressPercentage);
-        
-        // 更新对应模块的课时
-        for (let j = 0; j < currentBatch.length; j++) {
-          const moduleIndex = modulesWithLessons.findIndex(m => m.id === currentBatch[j].id);
-          if (moduleIndex !== -1) {
-            modulesWithLessons[moduleIndex].lessons = lessonsBatch[j];
+        // 更新模块信息
+        if (courseWithModules.modules && courseWithModules.modules.length > 0) {
+          setModules(courseWithModules.modules);
+          setLoadingProgress(100);
+          
+          // 找到知识学习模块或第一个模块作为默认展开
+          const knowledgeModule = courseWithModules.modules.find(m => m.title.includes('知识学习'));
+          const defaultExpandedModule = knowledgeModule || courseWithModules.modules[0];
+          
+          // 全部加载完成
+          setModuleDataLoaded(true);
+          setIsLoading(false);
+          setLoadingMessage('课程加载完成');
+          
+          // 加载完成后创建一个本地备份
+          setTimeout(() => {
+            if (typeof window.gc === 'function') {
+              try {
+                window.gc();
+              } catch (e) {}
+            }
+            
+            saveLocalBackup();
+          }, 1000);
+          
+          // 调用回调函数
+          if (onDataLoaded) {
+            onDataLoaded(courseWithModules, courseWithModules.modules);
           }
           
-          // 每加载一个模块就更新状态，而不是等待全部加载完成
-          // 这样用户可以更快地看到部分内容
-          setModules([...modulesWithLessons]);
+          return; // 成功使用优化方法，直接返回
+        }
+      } catch (error) {
+        console.warn('优化加载方法失败，回退到传统方法:', error);
+        // 回退到传统方法，继续执行
+      }
+      
+      // 如果优化方法失败，使用传统方法进行批量加载
+      setLoadingMessage('正在使用传统方法加载课程...');
+      setLoadingProgress(10);
+      
+      // 1. 获取课程基本信息
+      const courseInfo = await courseService.getCourseBasicInfo(courseId);
+      setCourse(courseInfo);
+      setLoadingProgress(20);
+      
+      // 2. 获取课程模块结构 (不包含课时)
+      const moduleStructures = await courseService.getCourseModules(courseId);
+      setLoadingProgress(30);
+      
+      if (!moduleStructures || moduleStructures.length === 0) {
+        // 没有模块，直接完成
+        setModules([]);
+        setModuleDataLoaded(true);
+        setIsLoading(false);
+        setLoadingProgress(100);
+        setLoadingMessage('课程加载完成 (无模块)');
+        
+        if (onDataLoaded) {
+          onDataLoaded(courseInfo, []);
+        }
+        return;
+      }
+      
+      // 3. 分批加载模块数据
+      setLoadingMessage('分批加载模块内容...');
+      
+      // 初始化带空课时列表的模块
+      const allModules = moduleStructures.map(module => ({ ...module, lessons: [] }));
+      setModules(allModules);
+      
+      // 分批次加载，每批次1个模块，并添加延迟
+      // 修改为每批1个模块，让UI线程有机会执行，减轻内存压力
+      const batchSize = 1;
+      let loadedModulesCount = 0;
+      
+      for (let i = 0; i < moduleStructures.length; i += batchSize) {
+        const batch = moduleStructures.slice(i, i + batchSize);
+        const batchModuleIds = batch.map(m => m.id!).filter(Boolean);
+        
+        try {
+          setLoadingMessage(`加载模块 ${i+1} - ${Math.min(i+batchSize, moduleStructures.length)} / ${moduleStructures.length}`);
+          
+          // 批量获取课时
+          const lessonsByModuleId = await courseService.getModuleLessonsBatch(batchModuleIds);
+          
+          // 更新模块列表
+          setModules(currentModules => {
+            return currentModules.map(module => {
+              if (module.id && batchModuleIds.includes(module.id)) {
+                return {
+                  ...module,
+                  lessons: module.id ? (lessonsByModuleId[module.id] || []) : []
+                };
+              }
+              return module;
+            });
+          });
+          
+          loadedModulesCount += batch.length;
+          const progress = Math.min(30 + Math.floor((loadedModulesCount / moduleStructures.length) * 70), 100);
+          setLoadingProgress(progress);
+          
+          // 添加150ms延迟，让UI线程有机会执行，减轻内存压力
+          if (i + batchSize < moduleStructures.length) {
+            await new Promise(resolve => setTimeout(resolve, 150));
+          }
+        } catch (batchError) {
+          console.error(`加载模块批次 ${i+1}-${Math.min(i+batchSize, moduleStructures.length)} 失败:`, batchError);
+          // 继续加载其他批次，不中断整体流程
         }
       }
-
-      // 全部加载完成
+      
+      // 4. 全部加载完成
       setModuleDataLoaded(true);
       setIsLoading(false);
       setLoadingProgress(100);
       setLoadingMessage('课程加载完成');
       
-      // 加载完成后创建一个本地备份
-      setTimeout(() => {
-        saveLocalBackup();
-      }, 1000);
+      // 尝试回收内存
+      if (typeof window.gc === 'function') {
+        try {
+          window.gc();
+        } catch (e) {}
+      }
+      
+      // 保存本地备份
+      setTimeout(() => saveLocalBackup(), 1000);
       
       // 调用回调函数
       if (onDataLoaded) {
-        onDataLoaded(courseDetails, modulesWithLessons);
+        onDataLoaded(courseInfo, allModules);
       }
     } catch (error) {
       console.error('加载课程失败:', error);

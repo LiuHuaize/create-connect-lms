@@ -1224,4 +1224,183 @@ export const courseService = {
       throw error;
     }
   },
+
+  // 测试方法：比较常规加载和优化加载的性能
+  async compareCourseLoading(courseId: string): Promise<{
+    traditional: { time: number; dataSize: number };
+    optimized: { time: number; dataSize: number };
+    improvement: { time: string; dataSize: string };
+  }> {
+    console.log(`开始性能比较测试: ${courseId}`);
+    
+    // 测试传统方法
+    const traditionalStart = performance.now();
+    const traditionalResult = await this.getCourseDetails(courseId);
+    const traditionalEnd = performance.now();
+    const traditionalTime = traditionalEnd - traditionalStart;
+    const traditionalSize = JSON.stringify(traditionalResult).length;
+    
+    // 短暂延迟，确保浏览器有时间回收内存
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // 测试优化方法
+    const optimizedStart = performance.now();
+    const optimizedResult = await this.getCourseOptimized(courseId);
+    const optimizedEnd = performance.now();
+    const optimizedTime = optimizedEnd - optimizedStart;
+    const optimizedSize = JSON.stringify(optimizedResult).length;
+    
+    // 计算改进百分比
+    const timeImprovement = ((traditionalTime - optimizedTime) / traditionalTime * 100).toFixed(2);
+    const sizeImprovement = ((traditionalSize - optimizedSize) / traditionalSize * 100).toFixed(2);
+    
+    const result = {
+      traditional: {
+        time: traditionalTime,
+        dataSize: traditionalSize
+      },
+      optimized: {
+        time: optimizedTime,
+        dataSize: optimizedSize
+      },
+      improvement: {
+        time: `${timeImprovement}%`,
+        dataSize: `${sizeImprovement}%`
+      }
+    };
+    
+    console.table({
+      '传统方法': { 
+        '加载时间(ms)': traditionalTime.toFixed(2), 
+        '数据大小(bytes)': traditionalSize 
+      },
+      '优化方法': { 
+        '加载时间(ms)': optimizedTime.toFixed(2), 
+        '数据大小(bytes)': optimizedSize 
+      },
+      '性能提升': { 
+        '加载时间': `${timeImprovement}%`, 
+        '数据大小': `${sizeImprovement}%` 
+      }
+    });
+    
+    return result;
+  },
+
+  // 新增 - 使用Edge Function优化课程数据加载
+  async getCourseOptimized(
+    courseId: string, 
+    mode: 'learning' | 'editing' | 'preview' = 'learning', 
+    moduleId?: string, 
+    lessonId?: string
+  ): Promise<Course & { modules?: CourseModule[] }> {
+    console.time('getCourseOptimized'); // 性能计时开始
+    console.log(`开始获取优化课程数据: ${courseId}, mode: ${mode}`);
+    
+    try {
+      // 暂时不使用Edge Function，而是实现相同的逻辑来测试
+      // 1. 获取课程基本信息
+      const courseData = await this.getCourseBasicInfo(courseId);
+      
+      // 2. 获取所有模块的基本信息（不包含课时）
+      const modulesData = await this.getCourseModules(courseId);
+      
+      if (!modulesData || modulesData.length === 0) {
+        console.timeEnd('getCourseOptimized');
+        console.log(`课程 ${courseId} 没有模块，直接返回`);
+        return {
+          ...courseData,
+          modules: []
+        };
+      }
+      
+      // 确定当前关注的模块ID
+      let focusedModuleId = moduleId;
+      
+      // 如果没有指定模块ID但指定了课时ID，找到对应的模块
+      if (!focusedModuleId && lessonId) {
+        const { data: lessonData } = await supabase
+          .from('lessons')
+          .select('module_id')
+          .eq('id', lessonId)
+          .is('deleted_at', null)
+          .single();
+        
+        if (lessonData?.module_id) {
+          focusedModuleId = lessonData.module_id;
+        }
+      }
+      
+      // 如果仍然没有焦点模块ID，尝试找到"知识学习"模块或第一个模块
+      if (!focusedModuleId && modulesData.length > 0) {
+        const knowledgeModule = modulesData.find(m => m.title.includes('知识学习'));
+        focusedModuleId = knowledgeModule?.id || modulesData[0].id;
+      }
+      
+      // 智能决定需要加载详细数据的模块
+      const detailedModuleIds: string[] = [];
+      
+      if (mode === 'editing') {
+        // 编辑模式下，加载所有模块的详细数据
+        detailedModuleIds.push(...modulesData.map(m => m.id!).filter(Boolean));
+      } else {
+        // 学习模式下，只加载关注模块及相邻模块
+        if (focusedModuleId) {
+          const focusedIndex = modulesData.findIndex(m => m.id === focusedModuleId);
+          if (focusedIndex !== -1) {
+            // 添加前一个、当前和后一个模块
+            for (let i = Math.max(0, focusedIndex - 1); i <= Math.min(modulesData.length - 1, focusedIndex + 1); i++) {
+              detailedModuleIds.push(modulesData[i].id!);
+            }
+          } else {
+            // 找不到指定模块，使用第一个模块
+            if (modulesData.length > 0) {
+              detailedModuleIds.push(modulesData[0].id!);
+              if (modulesData.length > 1) detailedModuleIds.push(modulesData[1].id!);
+            }
+          }
+        }
+      }
+      
+      console.log(`将加载 ${detailedModuleIds.length} 个模块的详细数据，模块IDs: ${detailedModuleIds.join(', ')}`);
+      
+      // 批量获取所需模块的课时
+      const lessonsByModuleId = await this.getModuleLessonsBatch(detailedModuleIds);
+      
+      // 为每个模块添加课时
+      const modulesWithLessons = modulesData.map(module => {
+        if (detailedModuleIds.includes(module.id!)) {
+          // 这是需要详细信息的模块，添加课时
+          return {
+            ...module,
+            lessons: module.id ? lessonsByModuleId[module.id] || [] : []
+          };
+        } else {
+          // 这是非焦点模块，仅返回基本信息，并标记课时需要按需加载
+          return {
+            ...module,
+            lessons: []
+          };
+        }
+      });
+      
+      // 构建响应数据
+      const responseData = {
+        ...courseData,
+        modules: modulesWithLessons
+      };
+      
+      console.timeEnd('getCourseOptimized'); // 性能计时结束
+      console.log(`优化课程数据获取完成，包含 ${responseData.modules.length} 个模块`);
+      
+      return responseData;
+    } catch (error) {
+      console.error('获取优化课程数据时出错:', error);
+      console.timeEnd('getCourseOptimized'); // 确保在发生异常时也能结束计时器
+      
+      // 失败时回退到原始方法
+      console.log('回退到原始课程加载方法...');
+      return this.getCourseDetails(courseId);
+    }
+  },
 };
