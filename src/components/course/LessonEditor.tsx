@@ -172,7 +172,14 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         text: data.text
       } as TextLessonContent;
     } else if (lesson.type === 'quiz') {
-      // Quiz is handled by the quiz editor
+      // 添加处理测验内容的逻辑 - 使用最新的questions状态
+      updatedLesson.content = {
+        // 确保使用最新的questions数组
+        questions: questions
+      } as QuizLessonContent;
+      
+      // 记录日志，以便调试
+      console.log('保存测验数据，题目数量:', questions.length, '内容:', JSON.stringify(questions));
     } else if (lesson.type === 'assignment') {
       // 处理作业内容
       updatedLesson.content = {

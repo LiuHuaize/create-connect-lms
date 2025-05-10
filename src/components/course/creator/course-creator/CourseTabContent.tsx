@@ -80,6 +80,21 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
     // 更新模块状态
     setModules(updatedModules);
     
+    // 在状态更新后，立即保存到数据库
+    if (onSaveCourse) {
+      // 使用setTimeout确保状态已更新
+      setTimeout(async () => {
+        try {
+          console.log('正在将更新后的课时保存到数据库:', updatedLesson);
+          await onSaveCourse(updatedLesson);
+          console.log('课时已成功保存到数据库');
+        } catch (error) {
+          console.error('保存课时到数据库失败:', error);
+          // 错误已在onSaveCourse内部处理
+        }
+      }, 0);
+    }
+    
     // 重置当前课时
     setCurrentLesson(null);
     

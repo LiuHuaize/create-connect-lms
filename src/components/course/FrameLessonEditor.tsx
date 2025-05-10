@@ -74,10 +74,16 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     
     setContent(newContent);
     onSave(newContent);
+    
+    // 主动保存框架内容到数据库
+    saveFrameToDatabase(newContent, `已添加新${getLessonTypeName(type)}`);
   };
 
   // 删除课时
   const removeLesson = (lessonId: string) => {
+    const lessonToRemove = content.lessons.find(l => l.id === lessonId);
+    const lessonTitle = lessonToRemove?.title || '课时';
+    
     const newLessons = content.lessons.filter(l => l.id !== lessonId);
     const reorderedLessons = newLessons.map((l, index) => ({
       ...l,
@@ -87,6 +93,9 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const newContent = { ...content, lessons: reorderedLessons };
     setContent(newContent);
     onSave(newContent);
+    
+    // 主动保存框架内容到数据库
+    saveFrameToDatabase(newContent, `已删除 "${lessonTitle}"`);
   };
 
   // 更新课时标题
@@ -98,6 +107,8 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const newContent = { ...content, lessons: newLessons };
     setContent(newContent);
     onSave(newContent);
+    
+    // 这里不主动保存，因为用户可能正在连续编辑标题
   };
 
   // 上移课时
@@ -115,6 +126,9 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const newContent = { ...content, lessons: reorderedLessons };
     setContent(newContent);
     onSave(newContent);
+    
+    // 主动保存框架内容到数据库
+    saveFrameToDatabase(newContent, `已调整课时顺序`);
   };
 
   // 下移课时
@@ -132,6 +146,9 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const newContent = { ...content, lessons: reorderedLessons };
     setContent(newContent);
     onSave(newContent);
+    
+    // 主动保存框架内容到数据库
+    saveFrameToDatabase(newContent, `已调整课时顺序`);
   };
 
   // 编辑子课时内容
@@ -155,6 +172,29 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const newContent = { ...content, lessons: newLessons };
     setContent(newContent);
     onSave(newContent);
+    
+    // 立即保存子课时到数据库以确保内容不丢失
+    if (onCourseDataSaved) {
+      // 创建一个包含最新内容的框架课时对象
+      const frameLessonToSave: Lesson = {
+        ...lesson,
+        title: newContent.title,
+        content: newContent
+      };
+      
+      // 使用setTimeout以确保React状态已更新
+      setTimeout(async () => {
+        try {
+          console.log('正在保存框架课时到数据库，包含更新的子课时:', updatedLesson.title);
+          await onCourseDataSaved(frameLessonToSave);
+          console.log('框架课时已成功保存到数据库');
+          toast.success(`子课时 "${updatedLesson.title}" 已保存至数据库`);
+        } catch (error) {
+          console.error('保存框架课时失败:', error);
+          toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
+        }
+      }, 100);
+    }
     
     // 返回到列表视图
     setCurrentEditingLesson(null);
@@ -200,6 +240,30 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // 公共的框架保存函数，用于复用
+  const saveFrameToDatabase = (newContent: FrameLessonContent, successMessage: string) => {
+    if (!onCourseDataSaved) return;
+    
+    // 创建一个包含最新内容的框架课时对象
+    const frameLessonToSave: Lesson = {
+      ...lesson,
+      title: newContent.title,
+      content: newContent
+    };
+    
+    // 使用setTimeout以确保React状态已更新
+    setTimeout(async () => {
+      try {
+        await onCourseDataSaved(frameLessonToSave);
+        console.log('框架课时已成功保存到数据库，课时数量:', newContent.lessons.length);
+        toast.success(successMessage);
+      } catch (error) {
+        console.error('保存框架课时失败:', error);
+        toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      }
+    }, 100);
   };
 
   // 如果有正在编辑的子课时，显示该课时的编辑界面

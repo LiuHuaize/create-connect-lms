@@ -402,40 +402,71 @@ export const useCourseCreator = () => {
         
         if (moduleWithLesson) {
           try {
+            // 创建一个变量来存储更新后的模块状态
+            let updatedModulesState: CourseModule[] = [];
+            
             // 在保存前先更新React状态，确保最新的数据被保存
             setModules(prevModules => {
-              const updatedModules = prevModules.map(module => {
+              const newModules = prevModules.map(module => {
                 if (module.id === moduleWithLesson.id) {
                   return {
                     ...module,
                     lessons: module.lessons.map(lesson => 
-                      lesson.id === updatedLesson.id ? { ...updatedLesson } : lesson
+                      lesson.id === updatedLesson.id 
+                        ? { 
+                            ...updatedLesson,
+                            // 确保content是对象而不是字符串
+                            content: typeof updatedLesson.content === 'string' 
+                              ? JSON.parse(updatedLesson.content) 
+                              : updatedLesson.content
+                          } 
+                        : lesson
                     )
                   };
                 }
                 return module;
               });
               
-              console.log('更新后的模块状态:', updatedModules);
-              return updatedModules;
+              // 存储更新后的状态
+              updatedModulesState = [...newModules];
+              console.log('更新后的模块状态:', newModules);
+              return newModules;
             });
+            
+            // 如果是当前编辑的课时，也更新currentLesson
+            if (currentLesson?.id === updatedLesson.id) {
+              setCurrentLesson({
+                ...updatedLesson,
+                // 确保content是对象而不是字符串
+                content: typeof updatedLesson.content === 'string'
+                  ? JSON.parse(updatedLesson.content)
+                  : updatedLesson.content
+              });
+            }
             
             // 等待状态更新完成
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            // 直接保存课时到数据库，使用传入的updatedLesson而不是从状态中读取
-            const savedLesson = await courseService.addLesson({
+            // 直接保存课时到数据库，使用传入的updatedLesson并确保内容正确
+            const lessonToSave = {
               ...updatedLesson,
-              module_id: moduleWithLesson.id
-            });
+              module_id: moduleWithLesson.id,
+              // 确保content是正确格式
+              content: typeof updatedLesson.content === 'string'
+                ? JSON.parse(updatedLesson.content)
+                : updatedLesson.content
+            };
+            
+            console.log('准备保存到数据库的课时对象:', lessonToSave);
+            
+            const savedLesson = await courseService.addLesson(lessonToSave);
             
             console.log('课时单独保存成功:', savedLesson);
             toast.success(`课时 "${savedLesson.title}" 已保存`);
             
-            // 保存完成，更新引用
-            setTimeout(() => {
-              previousModulesRef.current = JSON.parse(JSON.stringify(modules));
-            }, 0);
+            // 保存完成，更新引用，使用捕获的最新模块状态
+            previousModulesRef.current = JSON.parse(JSON.stringify(updatedModulesState));
+            setLastSaved(new Date());
             
             return savedLesson.id;
           } catch (error) {
