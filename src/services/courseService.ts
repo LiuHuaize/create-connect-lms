@@ -1124,5 +1124,104 @@ export const courseService = {
       // 不抛出异常，确保课程复制过程能继续
       // 将错误记录下来，但不中断流程
     }
-  }
+  },
+
+  // 永久删除课程（不经过回收站）
+  async permanentlyDeleteCourse(courseId: string): Promise<void> {
+    try {
+      // 检查当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      console.log(`开始永久删除课程: ${courseId}`);
+      
+      // 1. 获取课程的所有模块
+      const { data: modules, error: modulesError } = await supabase
+        .from("course_modules")
+        .select("id")
+        .eq("course_id", courseId);
+        
+      if (modulesError) {
+        console.error('获取课程模块失败:', modulesError);
+        throw modulesError;
+      }
+      
+      // 2. 如果有模块，则删除每个模块下的课时和资源
+      if (modules && modules.length > 0) {
+        const moduleIds = modules.map(m => m.id);
+        
+        // 删除所有课时
+        const { error: lessonsError } = await supabase
+          .from("lessons")
+          .delete()
+          .in("module_id", moduleIds);
+          
+        if (lessonsError) {
+          console.error('删除课时失败:', lessonsError);
+          throw lessonsError;
+        }
+        
+        // 删除所有资源
+        try {
+          const { error: resourcesError } = await supabase
+            .from("course_resources")
+            .delete()
+            .in("module_id", moduleIds);
+            
+          if (resourcesError) {
+            console.error('删除资源失败:', resourcesError);
+            // 继续执行，不中断流程
+          }
+        } catch (e) {
+          console.error('删除资源过程中出错:', e);
+          // 继续执行，不中断流程
+        }
+        
+        // 删除所有模块
+        const { error: modulesDeleteError } = await supabase
+          .from("course_modules")
+          .delete()
+          .in("id", moduleIds);
+          
+        if (modulesDeleteError) {
+          console.error('删除模块失败:', modulesDeleteError);
+          throw modulesDeleteError;
+        }
+      }
+      
+      // 3. 删除课程完成记录
+      try {
+        const { error: completionsError } = await supabase
+          .from("lesson_completions")
+          .delete()
+          .eq("course_id", courseId);
+          
+        if (completionsError) {
+          console.error('删除课程完成记录失败:', completionsError);
+          // 继续执行，不中断流程
+        }
+      } catch (e) {
+        console.error('删除课程完成记录过程中出错:', e);
+        // 继续执行，不中断流程
+      }
+      
+      // 4. 最后删除课程本身
+      const { error: courseError } = await supabase
+        .from("courses")
+        .delete()
+        .eq("id", courseId);
+        
+      if (courseError) {
+        console.error('删除课程失败:', courseError);
+        throw courseError;
+      }
+      
+      console.log(`课程 ${courseId} 及其关联内容已被永久删除`);
+    } catch (error) {
+      console.error('永久删除课程过程中出错:', error);
+      throw error;
+    }
+  },
 };

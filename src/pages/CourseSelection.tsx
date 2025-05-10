@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Edit, ExternalLink, BookOpen, PenLine, ChevronRight, Eye, Copy, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit, ExternalLink, BookOpen, PenLine, ChevronRight, Eye, Copy, CheckCircle, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -11,6 +11,16 @@ import { toast } from 'sonner';
 import { useCoursesData } from '@/hooks/useCoursesData';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 
 // 定义复制进度状态的类型
 type CopyStatus = {
@@ -20,6 +30,14 @@ type CopyStatus = {
   progress: number;
   statusText: string;
   error?: string;
+};
+
+// 定义删除确认状态的类型
+type DeleteConfirmState = {
+  isOpen: boolean;
+  courseId?: string;
+  courseName?: string;
+  isDeleting: boolean;
 };
 
 const CourseSelection = () => {
@@ -37,6 +55,14 @@ const CourseSelection = () => {
     isFailed: false,
     progress: 0,
     statusText: '准备复制课程...'
+  });
+  
+  // 添加删除确认状态
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>({
+    isOpen: false,
+    courseId: undefined,
+    courseName: undefined,
+    isDeleting: false
   });
 
   useEffect(() => {
@@ -148,6 +174,63 @@ const CourseSelection = () => {
     }
   };
 
+  // 处理删除课程
+  const handleDeleteCourse = (courseId: string, courseTitle: string) => {
+    // 打开确认对话框
+    setDeleteConfirm({
+      isOpen: true,
+      courseId,
+      courseName: courseTitle,
+      isDeleting: false
+    });
+  };
+  
+  // 执行永久删除
+  const confirmDeleteCourse = async () => {
+    if (!deleteConfirm.courseId) return;
+    
+    try {
+      // 设置删除中状态
+      setDeleteConfirm(prev => ({ ...prev, isDeleting: true }));
+      
+      // 调用服务永久删除课程
+      await courseService.permanentlyDeleteCourse(deleteConfirm.courseId);
+      
+      // 更新课程列表
+      if (user?.id) {
+        const userCourses = await courseService.getUserCourses(user.id);
+        setCourses(userCourses);
+      }
+      
+      // 关闭确认对话框
+      setDeleteConfirm({
+        isOpen: false,
+        courseId: undefined,
+        courseName: undefined,
+        isDeleting: false
+      });
+      
+      toast.success("课程已永久删除");
+    } catch (error) {
+      console.error('删除课程失败:', error);
+      
+      // 重置删除状态
+      setDeleteConfirm(prev => ({ ...prev, isDeleting: false }));
+      
+      toast.error("删除课程失败，请重试");
+    }
+  };
+  
+  // 取消删除
+  const cancelDeleteCourse = () => {
+    setDeleteConfirm({
+      isOpen: false,
+      courseId: undefined,
+      courseName: undefined,
+      isDeleting: false
+    });
+  };
+
   const handleViewCourse = (courseId: string) => {
     fetchEnrolledCourses();
     navigate(`/course/${courseId}/details`);
@@ -226,6 +309,32 @@ const CourseSelection = () => {
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
+                
+                {/* 添加复制按钮到左上角 */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 left-2 h-8 w-8 rounded-full bg-white/90 text-blue-500 hover:bg-white hover:text-blue-600 shadow-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDuplicateCourse(course.id!);
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                
+                {/* 添加删除按钮 */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 text-red-500 hover:bg-white hover:text-red-600 shadow-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteCourse(course.id!, course.title);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
               <CardHeader className="pb-2 relative">
                 <CardTitle className="text-lg sm:text-xl line-clamp-1 font-semibold">{course.title}</CardTitle>
@@ -253,14 +362,6 @@ const CourseSelection = () => {
                     onClick={() => handleEditCourse(course.id!)}
                   >
                     <PenLine className="h-4 w-4 mr-1.5" /> 编辑
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-full border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700"
-                    onClick={() => handleDuplicateCourse(course.id!)}
-                  >
-                    <Copy className="h-4 w-4 mr-1.5" /> 复制
                   </Button>
                 </div>
                 <Button 
@@ -335,6 +436,42 @@ const CourseSelection = () => {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* 删除课程确认对话框 */}
+      <AlertDialog open={deleteConfirm.isOpen} onOpenChange={cancelDeleteCourse}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认永久删除</AlertDialogTitle>
+            <AlertDialogDescription>
+              您确定要永久删除课程 <span className="font-semibold">{deleteConfirm.courseName}</span> 吗？
+              <p className="mt-2 text-red-500">警告：此操作无法撤销，课程及其所有内容将被立即删除。</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteConfirm.isDeleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDeleteCourse();
+              }}
+              disabled={deleteConfirm.isDeleting}
+              className="bg-red-500 hover:bg-red-600 text-white focus:ring-red-500"
+            >
+              {deleteConfirm.isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  删除中...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  永久删除
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
