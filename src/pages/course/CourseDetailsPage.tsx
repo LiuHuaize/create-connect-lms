@@ -267,8 +267,8 @@ const CourseDetailsPage = () => {
           {/* 详细描述 */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">课程介绍</h2>
-            <div className="text-gray-700 prose max-w-none">
-              <p>{course.description || '暂无详细描述'}</p>
+            <div className="text-gray-700 prose max-w-none whitespace-pre-line">
+              {course.description || '暂无详细描述'}
             </div>
           </div>
           
