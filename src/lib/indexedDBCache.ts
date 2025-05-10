@@ -129,6 +129,21 @@ const db = new CourseCache();
 // 缓存服务默认配置
 const DEFAULT_CACHE_EXPIRY = 5 * 60 * 1000; // 5分钟缓存过期时间
 
+// 自动清理过期缓存 - 添加自动清理机制
+(function setupAutoCleaning() {
+  // 启动时立即清理一次
+  setTimeout(() => {
+    db.clearExpiredCache(DEFAULT_CACHE_EXPIRY);
+    console.log('启动时自动清理过期缓存');
+  }, 5000);
+  
+  // 设置定时器，每30分钟清理一次
+  setInterval(() => {
+    db.clearExpiredCache(DEFAULT_CACHE_EXPIRY);
+    console.log('定时自动清理过期缓存');
+  }, 30 * 60 * 1000);
+})();
+
 // 缓存服务API
 export const indexedDBCache = {
   // 保存课程详情到缓存
@@ -139,8 +154,8 @@ export const indexedDBCache = {
       // 计算数据大小
       const jsonSize = JSON.stringify(data).length;
       
-      // 如果数据过大，跳过缓存
-      if (jsonSize > 10 * 1024 * 1024) { // 10MB限制
+      // 如果数据过大，跳过缓存 - 从10MB改为5MB
+      if (jsonSize > 5 * 1024 * 1024) { // 5MB限制
         console.warn(`缓存数据过大 (${Math.round(jsonSize/1024)}KB)，跳过缓存`);
         return;
       }
@@ -250,19 +265,5 @@ export const indexedDBCache = {
   // 获取缓存统计信息
   getCacheStats: () => db.getCacheStats()
 };
-
-// 自动定期清理过期缓存
-const startAutoCacheCleanup = () => {
-  // 应用启动时清理一次
-  indexedDBCache.clearExpiredCache();
-  
-  // 每10分钟清理一次过期缓存
-  setInterval(() => {
-    indexedDBCache.clearExpiredCache();
-  }, 10 * 60 * 1000);
-};
-
-// 启动自动清理
-startAutoCacheCleanup();
 
 export default indexedDBCache; 

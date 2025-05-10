@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -132,10 +132,29 @@ export const useCourseCreator = () => {
     moduleDataLoaded: true
   });
   
-  // 当用户重新加载页面或离开页面时，保存备份
-  window.addEventListener('beforeunload', () => {
-    saveLocalBackup();
-  });
+  // 清除之前的备份
+  useEffect(() => {
+    // 清理所有备份
+    clearBackup();
+    console.log('已禁用自动备份功能并清除现有备份');
+  }, [clearBackup]);
+  
+  // 删除自动保存逻辑，改为在离开时提示用户保存
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges()) {
+        const message = "您有未保存的更改，如果离开页面将丢失这些更改。";
+        e.returnValue = message;
+        return message;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [course, modules]);
   
   // 导航到创建新课程页面
   const handleCreateNewCourse = () => {

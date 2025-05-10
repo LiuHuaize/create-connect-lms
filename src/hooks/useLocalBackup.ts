@@ -65,19 +65,26 @@ export const useLocalBackup = ({
     }
   }, [courseId, isLoading, moduleDataLoaded]);
 
-  // 自动备份课程数据
+  // 自动备份课程数据 - 已禁用
   useEffect(() => {
     if (!courseId || isLoading || !moduleDataLoaded) return;
 
-    // 在课程加载完成后，定时保存备份
-    const intervalId = setInterval(() => {
-      saveLocalBackup();
-    }, 60000); // 每分钟保存一次
+    // 禁用自动备份 - 启动时清除现有备份
+    clearBackup();
+    
+    // 删除旧代码：不再设置定时备份
+    // const intervalId = setInterval(() => {
+    //   saveLocalBackup();
+    // }, 300000); // 从60000(1分钟)改为300000(5分钟)
+    // 
+    // return () => {
+    //   clearInterval(intervalId);
+    // };
 
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [courseId, course, modules, isLoading, moduleDataLoaded]);
+    // 记录禁用备份的信息
+    console.log('自动备份功能已禁用，如需保存请手动点击保存按钮');
+    
+  }, [courseId, isLoading, moduleDataLoaded]);
 
   // 保存本地备份
   const saveLocalBackup = () => {
@@ -85,13 +92,40 @@ export const useLocalBackup = ({
     if (!backupId || isLoading || !moduleDataLoaded) return;
 
     try {
+      // 进行简单备份，不进行复杂的内容处理
       const backupData: CourseBackupData = {
         course,
         modules,
         timestamp: Date.now()
       };
 
-      localStorage.setItem(backupId, JSON.stringify(backupData));
+      // 限制备份大小，避免内存问题
+      const backupString = JSON.stringify(backupData);
+      if (backupString.length > 2 * 1024 * 1024) { // 超过2MB的备份进行精简
+        console.warn('备份数据过大，仅保存基本信息');
+        // 只保存课程基本信息和模块标题
+        const simplifiedBackup = {
+          course: {
+            id: course.id,
+            title: course.title,
+            description: '',
+            author_id: course.author_id,
+            status: course.status
+          },
+          modules: modules.map(m => ({
+            id: m.id,
+            title: m.title,
+            order_index: m.order_index,
+            course_id: m.course_id,
+            lessons: [] // 不保存课时内容
+          })),
+          timestamp: Date.now()
+        };
+        localStorage.setItem(backupId, JSON.stringify(simplifiedBackup));
+      } else {
+        localStorage.setItem(backupId, backupString);
+      }
+
       setHasBackup(true);
       setBackupTimestamp(backupData.timestamp);
       console.log('课程本地备份已保存:', new Date(backupData.timestamp).toLocaleString());
@@ -124,14 +158,25 @@ export const useLocalBackup = ({
 
   // 清除备份
   const clearBackup = () => {
-    const backupId = getBackupId();
-    if (!backupId) return;
-
     try {
-      localStorage.removeItem(backupId);
+      // 清除特定课程备份
+      const backupId = getBackupId();
+      if (backupId) {
+        localStorage.removeItem(backupId);
+      }
+      
+      // 清除所有以course_backup_开头的localStorage项
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('course_backup_')) {
+          localStorage.removeItem(key);
+          console.log('已清除备份:', key);
+        }
+      }
+      
       setHasBackup(false);
       setBackupTimestamp(null);
-      console.log('已清除本地备份');
+      console.log('已清除所有本地备份');
     } catch (error) {
       console.error('清除本地备份失败:', error);
     }

@@ -17,7 +17,7 @@ interface UseCourseSaveProps {
 
 interface UseCourseSaveResult {
   isSaving: boolean;
-  handleSaveCourse: () => Promise<string | undefined>;
+  handleSaveCourse: (updatedLesson?: Lesson) => Promise<string | undefined>;
   saveCourseStatus: 'idle' | 'saving' | 'success' | 'error';
   lastSavedTime: Date | null;
 }
@@ -36,15 +36,26 @@ export const useCourseSave = ({
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
 
   // 保存课程函数
-  const handleSaveCourse = async (): Promise<string | undefined> => {
+  const handleSaveCourse = async (updatedLesson?: Lesson): Promise<string | undefined> => {
+    // 避免重复保存
+    if (isSaving) {
+      console.log('正在保存中，跳过重复保存请求');
+      return;
+    }
+    
+    // 清理保存前不必要的内存占用
+    setTimeout(() => { 
+      try {
+        console.log('正在清理保存前的内存...');
+        // 尝试强制进行垃圾回收
+        if (window.gc) window.gc();
+      } catch (e) {}
+    }, 0);
+    
+    setIsSaving(true);
+    setSaveCourseStatus('saving');
+    
     try {
-      // 避免重复保存
-      if (isSaving) return;
-      
-      console.log('开始保存课程:', course);
-      setIsSaving(true);
-      setSaveCourseStatus('saving');
-      
       if (!course.author_id) {
         throw new Error('用户未登录或无法获取用户ID，请重新登录后再试');
       }

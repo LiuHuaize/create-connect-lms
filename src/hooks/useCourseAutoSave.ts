@@ -28,6 +28,9 @@ interface UseCourseAutoSaveResult {
 // 自动保存状态本地存储键
 const AUTO_SAVE_ENABLED_KEY = 'course_auto_save_enabled';
 
+// 手动禁用自动保存
+localStorage.setItem(AUTO_SAVE_ENABLED_KEY, 'false');
+
 export const useCourseAutoSave = ({
   courseId,
   course,
@@ -37,15 +40,12 @@ export const useCourseAutoSave = ({
   isLoading,
   moduleDataLoaded,
   saveCourse,
-  enabled = true // 默认启用自动保存
+  enabled = false // 默认为false
 }: UseCourseAutoSaveProps): UseCourseAutoSaveResult => {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  // 从本地存储获取自动保存状态，默认为enabled参数值
-  const [autoSaveEnabled, setAutoSaveEnabledState] = useState(() => {
-    const savedPref = localStorage.getItem(AUTO_SAVE_ENABLED_KEY);
-    return savedPref !== null ? savedPref === 'true' : enabled;
-  });
+  // 禁用自动保存功能
+  const [autoSaveEnabled, setAutoSaveEnabledState] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error' | 'retry'>('idle');
   const [retryCount, setRetryCount] = useState(0);
   const [timeUntilNextSave, setTimeUntilNextSave] = useState<number | null>(null);

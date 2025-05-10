@@ -47,6 +47,33 @@ const ModuleList: React.FC<ModuleListProps> = ({
   );
 
   const addModule = () => {
+    // 添加简单的内存优化 - 尝试清理一些内存
+    if (modules.length > 0) {
+      // 当模块数量较多时显示提醒
+      if (modules.length >= 5) {
+        toast(`请注意：模块数量较多(${modules.length})，建议保存课程`, { 
+          description: "保存后再添加新模块可避免闪退问题",
+          duration: 5000 
+        });
+      }
+      
+      // 模块数量过多时强制提醒保存
+      if (modules.length >= 10) {
+        const confirmed = window.confirm(`您已创建了${modules.length}个模块，继续添加可能导致内存问题和闪退。建议先保存课程再继续。是否继续添加？`);
+        if (!confirmed) {
+          return; // 用户取消添加
+        }
+      }
+      
+      // 在添加新模块前尝试强制清理不必要的内存
+      try {
+        setTimeout(() => {
+          console.log('执行内存清理...');
+          if (window.gc) window.gc();
+        }, 0);
+      } catch (e) {}
+    }
+    
     const newModule: CourseModule = {
       id: uuidv4(),
       course_id: modules[0]?.course_id || 'temp-course-id',
