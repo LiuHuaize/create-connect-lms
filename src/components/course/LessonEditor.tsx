@@ -434,12 +434,13 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         .single();
       
       if (error) {
-        throw error;
+        console.log('获取课程ID失败:', error);
+        return '';
       }
       
       return data?.course_id || '';
     } catch (error) {
-      console.error('获取课程ID失败:', error);
+      console.log('获取课程ID失败:', error);
       return '';
     }
   };

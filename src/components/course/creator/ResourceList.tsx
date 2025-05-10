@@ -112,14 +112,24 @@ export function ResourceList({ resources, onResourceDeleted, onResourceDownloade
     setIsDeleting(true);
     
     try {
-      // 首先从数据库中删除记录
-      const { error: dbError } = await supabase
-        .from('course_resources')
-        .delete()
-        .eq('id', resourceToDelete.id);
+      // 获取当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
       
-      if (dbError) {
-        throw new Error(`删除数据库记录失败: ${dbError.message}`);
+      // 调用 RPC 函数删除资源
+      const { data, error } = await supabase.rpc('delete_resource', {
+        resource_id: resourceToDelete.id,
+        user_id: user.id
+      });
+      
+      if (error) {
+        throw new Error(`删除资源失败: ${error.message}`);
+      }
+      
+      if (!data) {
+        throw new Error('删除失败：可能没有权限或资源不存在');
       }
       
       // 然后从存储中删除文件

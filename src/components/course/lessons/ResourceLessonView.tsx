@@ -53,7 +53,6 @@ export function ResourceLessonView({ lesson, onComplete, isCompleted = false, co
           .from('course_resources')
           .select('*')
           .eq('module_id', lesson.module_id)
-          .is('deleted_at', null)
           .order('order_index', { ascending: true })
           .order('created_at', { ascending: false });
         

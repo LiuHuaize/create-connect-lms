@@ -299,48 +299,66 @@ export const useCourseSave = ({
         }
       });
       
-      // 1. 批量软删除已移除的课时
+      // 1. 硬删除已移除的课时
       const allDeletedLessonIds = Object.values(deletedLessonIdsMap).flat();
       if (allDeletedLessonIds.length > 0) {
-        console.log(`开始软删除 ${allDeletedLessonIds.length} 个课时`);
+        console.log(`开始硬删除 ${allDeletedLessonIds.length} 个课时`);
         try {
-          // 批量删除所有课时，使用软删除（设置deleted_at字段）
+          // 获取当前用户ID
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error('用户未登录');
+          }
+          
+          // 批量删除所有课时
           for (let i = 0; i < allDeletedLessonIds.length; i += 20) {
             const batch = allDeletedLessonIds.slice(i, i + 20);
-            const { error } = await supabase
-              .from("lessons")
-              .update({ deleted_at: new Date().toISOString() })
-              .in("id", batch);
-              
-            if (error) {
-              console.error('批量软删除课时失败:', error);
+            for (const lessonId of batch) {
+              try {
+                // 调用直接删除课时的RPC
+                await supabase.rpc('delete_lesson', {
+                  lesson_id: lessonId,
+                  user_id: user.id
+                });
+              } catch (error) {
+                console.error(`删除课时 ${lessonId} 失败:`, error);
+              }
             }
           }
           console.log('已删除课时批处理完成');
         } catch (error) {
-          console.error('批量软删除课时过程中出错:', error);
+          console.error('批量删除课时过程中出错:', error);
         }
       }
       
-      // 2. 批量软删除已移除的模块
+      // 2. 硬删除已移除的模块
       if (deletedModuleIds.length > 0) {
-        console.log(`开始软删除 ${deletedModuleIds.length} 个模块`);
+        console.log(`开始硬删除 ${deletedModuleIds.length} 个模块`);
         try {
-          // 批量删除所有模块，使用软删除（设置deleted_at字段）
+          // 获取当前用户ID
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error('用户未登录');
+          }
+          
+          // 批量删除所有模块
           for (let i = 0; i < deletedModuleIds.length; i += 20) {
             const batch = deletedModuleIds.slice(i, i + 20);
-            const { error } = await supabase
-              .from("course_modules")
-              .update({ deleted_at: new Date().toISOString() })
-              .in("id", batch);
-              
-            if (error) {
-              console.error('批量软删除模块失败:', error);
+            for (const moduleId of batch) {
+              try {
+                // 调用直接删除模块的RPC
+                await supabase.rpc('delete_module', {
+                  module_id: moduleId,
+                  user_id: user.id
+                });
+              } catch (error) {
+                console.error(`删除模块 ${moduleId} 失败:`, error);
+              }
             }
           }
           console.log('已删除模块批处理完成');
         } catch (error) {
-          console.error('批量软删除模块过程中出错:', error);
+          console.error('批量删除模块过程中出错:', error);
         }
       }
     } catch (error) {
