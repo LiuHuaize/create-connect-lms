@@ -210,6 +210,9 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         await onCourseDataSaved(updatedLesson);
         toast.success('保存成功', { id: toastId });
         form.reset(data); // 重置表单状态，避免意外的isDirty状态
+        
+        // 保存成功后，返回到课程结构页面
+        onSave(null);
       } catch (error) {
         console.error('保存失败:', error);
         toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);

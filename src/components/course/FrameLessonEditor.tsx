@@ -234,6 +234,9 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
       
       toast.success('保存成功', { id: toastId });
       console.log('框架课时保存成功，包含子课时：', content.lessons.length);
+      
+      // 保存成功后，返回到课程结构页面
+      onSave(null);
     } catch (error) {
       console.error('保存框架课时失败：', error);
       toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
