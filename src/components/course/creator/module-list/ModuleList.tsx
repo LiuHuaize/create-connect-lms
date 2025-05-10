@@ -46,7 +46,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
     })
   );
 
-  const addModule = () => {
+  const addModule = async () => {
     // 添加简单的内存优化 - 尝试清理一些内存
     if (modules.length > 0) {
       // 当模块数量较多时显示提醒
@@ -61,7 +61,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
       if (modules.length >= 10) {
         const confirmed = window.confirm(`您已创建了${modules.length}个模块，继续添加可能导致内存问题和闪退。建议先保存课程再继续。是否继续添加？`);
         if (!confirmed) {
-          return; // 用户取消添加
+          return null; // 用户取消添加
         }
       }
       
@@ -83,6 +83,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
     };
     setModules([...modules, newModule]);
     setExpandedModule(newModule.id);
+    return newModule.id;
   };
 
   const updateModuleTitle = (moduleId: string, newTitle: string) => {
@@ -535,6 +536,30 @@ const ModuleList: React.FC<ModuleListProps> = ({
     });
   };
 
+  // 处理添加模块
+  const handleAddModule = async () => {
+    console.log('===== ModuleList.handleAddModule: 开始添加模块 =====');
+    console.log('当前模块列表:', modules);
+    
+    try {
+      // 添加新模块并获取模块ID
+      console.log('调用addModule函数...');
+      const newModuleId = await addModule();
+      console.log('addModule函数返回:', newModuleId);
+      
+      // 如果模块添加失败，newModuleId可能为null
+      if (!newModuleId) {
+        console.log('模块创建失败，newModuleId为null');
+        return;
+      }
+      
+      console.log('模块创建成功，ID:', newModuleId);
+      // 如果需要在模块创建后执行其他操作，可以在这里添加
+    } catch (error) {
+      console.error('处理添加模块时出错:', error);
+    }
+  };
+
   return (
     <DndContext 
       sensors={sensors}
@@ -545,7 +570,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold">课程结构</h2>
-          <Button onClick={addModule} className="bg-connect-blue hover:bg-blue-600">
+          <Button onClick={handleAddModule} className="bg-connect-blue hover:bg-blue-600">
             <Plus size={16} className="mr-2" /> 添加模块
           </Button>
         </div>

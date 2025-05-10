@@ -3,6 +3,8 @@ import { CourseModule, Lesson } from '@/types/course';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
 
+import moduleService from '@/services/moduleService';
+
 interface ExpandedModulesState {
   [moduleId: string]: boolean;
 }
@@ -20,6 +22,7 @@ const useModuleManagement = ({
   const [expandedModules, setExpandedModules] = useState<ExpandedModulesState>({});
   const [updatingTitle, setUpdatingTitle] = useState<boolean>(false);
   const [lastTitleUpdate, setLastTitleUpdate] = useState<Date | null>(null);
+  const [isAddingModule, setIsAddingModule] = useState<boolean>(false);
 
   // 当初始模块变化时，更新状态
   useEffect(() => {
@@ -41,26 +44,77 @@ const useModuleManagement = ({
   }, [modules, onModulesChange]);
 
   // 添加新模块
-  const addModule = useCallback(() => {
-    const newModuleId = `m_${uuidv4()}`;
-    const newModule: CourseModule = {
-      id: newModuleId,
-      title: '新模块',
-      order_index: modules.length,
-      lessons: []
-    };
-
-    setModules(prevModules => [...prevModules, newModule]);
-    setExpandedModules(prevExpanded => ({
-      ...prevExpanded,
-      [newModuleId]: true  // 添加后自动展开
-    }));
-
-    // 提供反馈
-    toast.success('已添加新模块');
+  const addModule = useCallback(async () => {
+    if (isAddingModule) {
+      toast.info('正在创建模块，请稍候...');
+      return null;
+    }
     
-    return newModuleId;
-  }, [modules]);
+    setIsAddingModule(true);
+    
+    try {
+      // 调试信息
+      console.log('useModuleManagement.addModule: 正在尝试添加模块');
+      
+      // 获取模块列表中最后一个模块的课程ID
+      // 如果没有模块，course_id需要由调用方传入
+      let course_id: string | undefined;
+      if (modules.length > 0) {
+        course_id = modules[0].course_id;
+        console.log('从现有模块获取课程ID:', course_id);
+      }
+      
+      if (!course_id) {
+        console.error('无法创建模块：缺少课程ID');
+        toast.error('无法创建模块：缺少课程ID');
+        setIsAddingModule(false);
+        return null;
+      }
+      
+      // 显示网络请求状态
+      toast.info('正在通过Edge Function创建模块...');
+      
+      // 调用Edge Function创建模块
+      console.log('开始调用moduleService.createModule');
+      const result = await moduleService.createModule({
+        title: '新模块',
+        course_id,
+        order_index: modules.length
+      });
+      console.log('moduleService.createModule返回结果:', result);
+      
+      if (!result.success || !result.module) {
+        console.error('创建模块失败:', result.error);
+        toast.error(result.error || '创建模块失败');
+        setIsAddingModule(false);
+        return null;
+      }
+      
+      const newModule = result.module;
+      console.log('成功创建模块:', newModule);
+      
+      // 更新本地状态
+      setModules(prevModules => [...prevModules, {
+        ...newModule,
+        lessons: [] // 确保lessons属性存在
+      }]);
+      
+      // 自动展开新模块
+      setExpandedModules(prevExpanded => ({
+        ...prevExpanded,
+        [newModule.id]: true
+      }));
+      
+      toast.success('已添加新模块');
+      setIsAddingModule(false);
+      return newModule.id;
+    } catch (error) {
+      console.error('创建模块时出错:', error);
+      toast.error('创建模块失败，请重试');
+      setIsAddingModule(false);
+      return null;
+    }
+  }, [modules, isAddingModule]);
 
   // 更新模块标题
   const updateModuleTitle = useCallback((moduleId: string, title: string) => {
