@@ -67,6 +67,15 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
     }
   }, [quizSubmitted, quizResult]);
 
+  // 检查是否所有问题都已回答
+  const allQuestionsAnswered = () => {
+    if (!content?.questions || content.questions.length === 0) return false;
+    
+    return content.questions.every((question: any) => 
+      selectedAnswer[question.id] && selectedAnswer[question.id].trim() !== ''
+    );
+  };
+
   return (
     <div className="space-y-6">
       {quizSubmitted && quizResult && (
@@ -87,7 +96,7 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
             <div className="flex items-center justify-between mb-2">
               <span className="text-macaron-darkGray">得分</span>
               <span className="font-bold text-lg">
-                {quizResult.score}/{quizResult.totalQuestions}
+                {Math.round((quizResult.score / 100) * quizResult.totalQuestions)}/{quizResult.totalQuestions}
               </span>
             </div>
             <div className="h-3 w-full bg-macaron-lightGray rounded-full overflow-hidden">
@@ -145,7 +154,7 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
               <Button 
                 className="bg-macaron-deepLavender hover:bg-macaron-deepLavender/80 text-white transition-all duration-300 px-6 py-2 text-sm rounded-xl shadow-md hover:shadow-lg btn-hover-effect"
                 onClick={onQuizSubmit}
-                disabled={isLoading}
+                disabled={isLoading || !allQuestionsAnswered()}
               >
                 {isLoading ? (
                   <div className="flex items-center">

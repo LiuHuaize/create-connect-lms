@@ -536,7 +536,24 @@ const LessonContent: React.FC<LessonContentProps> = ({
         
         // 恢复用户答案
         if (quizData?.userAnswers) {
-          setUserAnswers(quizData.userAnswers as Record<string, string>);
+          const userAnswersData = quizData.userAnswers as Record<string, string>;
+          setUserAnswers(userAnswersData);
+          
+          // 同时设置selectedAnswer，以便显示用户的错误答案
+          setSelectedAnswer(userAnswersData);
+          
+          // 为所有问题启用显示正确答案
+          const correctAnswersVisibility = {};
+          
+          // 假设selectedLesson.content包含问题列表
+          const questions = (selectedLesson.content as any)?.questions || [];
+          questions.forEach((question: any) => {
+            if (question.id) {
+              correctAnswersVisibility[question.id] = true;
+            }
+          });
+          
+          setShowCorrectAnswers(correctAnswersVisibility);
         }
       }
     } catch (error) {
