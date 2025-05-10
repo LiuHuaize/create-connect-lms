@@ -2,13 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Edit, ExternalLink, BookOpen, PenLine, ChevronRight, Eye } from 'lucide-react';
+import { PlusCircle, Edit, ExternalLink, BookOpen, PenLine, ChevronRight, Eye, Copy, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { courseService } from '@/services/courseService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Course } from '@/types/course';
 import { toast } from 'sonner';
 import { useCoursesData } from '@/hooks/useCoursesData';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+
+// 定义复制进度状态的类型
+type CopyStatus = {
+  isOpen: boolean;
+  isCompleted: boolean;
+  isFailed: boolean;
+  progress: number;
+  statusText: string;
+  error?: string;
+};
 
 const CourseSelection = () => {
   const { user } = useAuth();
@@ -17,6 +29,15 @@ const CourseSelection = () => {
   const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
   const { fetchEnrolledCourses } = useCoursesData();
+  
+  // 添加复制状态
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>({
+    isOpen: false,
+    isCompleted: false,
+    isFailed: false,
+    progress: 0,
+    statusText: '准备复制课程...'
+  });
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -45,17 +66,101 @@ const CourseSelection = () => {
     navigate(`/course-creator?id=${courseId}`);
   };
 
+  // 修改复制课程函数，添加进度更新逻辑
+  const handleDuplicateCourse = async (courseId: string) => {
+    // 打开进度弹窗并重置状态
+    setCopyStatus({
+      isOpen: true,
+      isCompleted: false,
+      isFailed: false,
+      progress: 0,
+      statusText: '准备复制课程...'
+    });
+    
+    try {
+      // 添加事件监听器来捕获复制过程中的日志更新
+      const originalConsoleLog = console.log;
+      console.log = function(...args) {
+        const message = args.join(' ');
+        originalConsoleLog.apply(console, args);
+        
+        // 根据日志内容更新进度
+        if (message.includes('开始复制课程')) {
+          setCopyStatus(prev => ({ ...prev, progress: 5, statusText: '开始复制课程...' }));
+        } else if (message.includes('获取到原课程')) {
+          setCopyStatus(prev => ({ ...prev, progress: 15, statusText: '获取原课程信息...' }));
+        } else if (message.includes('创建新课程成功')) {
+          setCopyStatus(prev => ({ ...prev, progress: 30, statusText: '创建新课程...' }));
+        } else if (message.includes('准备复制模块')) {
+          setCopyStatus(prev => ({ ...prev, progress: 40, statusText: '准备复制课程模块...' }));
+        } else if (message.includes('创建新模块成功')) {
+          setCopyStatus(prev => ({ ...prev, progress: 50, statusText: '复制课程模块...' }));
+        } else if (message.includes('开始复制模块') && message.includes('课时')) {
+          setCopyStatus(prev => ({ ...prev, progress: 60, statusText: '复制课时内容...' }));
+        } else if (message.includes('开始复制模块资源文件')) {
+          setCopyStatus(prev => ({ ...prev, progress: 75, statusText: '复制课程资源文件...' }));
+        } else if (message.includes('模块资源文件复制完成')) {
+          setCopyStatus(prev => ({ ...prev, progress: 85, statusText: '资源文件复制完成...' }));
+        } else if (message.includes('课程复制完成')) {
+          setCopyStatus(prev => ({ ...prev, progress: 95, statusText: '课程复制完成，更新列表...' }));
+        }
+      };
+      
+      // 复制课程
+      const duplicatedCourse = await courseService.duplicateCourse(courseId);
+      
+      // 更新课程列表
+      const userCourses = await courseService.getUserCourses(user!.id);
+      setCourses(userCourses);
+      
+      // 恢复原始控制台输出
+      console.log = originalConsoleLog;
+      
+      // 更新复制完成状态
+      setCopyStatus(prev => ({ 
+        ...prev, 
+        isCompleted: true, 
+        progress: 100, 
+        statusText: `课程已成功复制：${duplicatedCourse.title}` 
+      }));
+      
+      // 3秒后自动关闭弹窗
+      setTimeout(() => {
+        setCopyStatus(prev => ({ ...prev, isOpen: false }));
+        toast.success("课程复制成功");
+      }, 3000);
+      
+    } catch (error) {
+      // 恢复原始控制台输出
+      console.log = console.log;
+      console.error('复制课程失败:', error);
+      
+      // 更新失败状态
+      setCopyStatus(prev => ({ 
+        ...prev, 
+        isFailed: true, 
+        progress: 100, 
+        statusText: '复制课程失败', 
+        error: error instanceof Error ? error.message : '未知错误' 
+      }));
+      
+      toast.error("复制课程失败，请重试");
+    }
+  };
+
   const handleViewCourse = (courseId: string) => {
-    // 刷新已加入课程列表，以防有新发布的课程
     fetchEnrolledCourses();
-    // 修改：导航到课程详情页而不是直接进入课程
     navigate(`/course/${courseId}/details`);
   };
 
-  // 直接进入课程学习页面
   const handleEnterCourse = (courseId: string) => {
     fetchEnrolledCourses();
     navigate(`/course/${courseId}`);
+  };
+
+  // 关闭进度弹窗
+  const handleCloseDialog = () => {
+    setCopyStatus(prev => ({ ...prev, isOpen: false }));
   };
 
   return (
@@ -66,7 +171,6 @@ const CourseSelection = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-        {/* 创建新课程卡片 */}
         <Card className="group border border-gray-200 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-all duration-300 overflow-hidden">
           <CardContent className="pt-8 flex flex-col items-center justify-center h-60">
             <div className="rounded-full bg-blue-50 p-4 mb-5 group-hover:bg-blue-100 transition-colors">
@@ -87,7 +191,6 @@ const CourseSelection = () => {
           </CardFooter>
         </Card>
 
-        {/* 现有课程卡片列表 */}
         {isLoading ? (
           Array.from({ length: 2 }).map((_, index) => (
             <Card key={`skeleton-${index}`} className="border border-gray-200 bg-white overflow-hidden">
@@ -142,14 +245,24 @@ const CourseSelection = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="rounded-full border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700"
-                  onClick={() => handleEditCourse(course.id!)}
-                >
-                  <PenLine className="h-4 w-4 mr-1.5" /> 编辑
-                </Button>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-full border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700"
+                    onClick={() => handleEditCourse(course.id!)}
+                  >
+                    <PenLine className="h-4 w-4 mr-1.5" /> 编辑
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-full border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700"
+                    onClick={() => handleDuplicateCourse(course.id!)}
+                  >
+                    <Copy className="h-4 w-4 mr-1.5" /> 复制
+                  </Button>
+                </div>
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -175,6 +288,53 @@ const CourseSelection = () => {
           </Button>
         </div>
       )}
+
+      {/* 课程复制进度弹窗 */}
+      <Dialog open={copyStatus.isOpen} onOpenChange={handleCloseDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{copyStatus.isCompleted ? '课程复制完成' : copyStatus.isFailed ? '复制失败' : '正在复制课程'}</DialogTitle>
+            <DialogDescription>
+              {copyStatus.statusText}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Progress value={copyStatus.progress} className="h-2 mb-4" />
+            
+            <div className="flex items-center justify-center mt-4">
+              {!copyStatus.isCompleted && !copyStatus.isFailed ? (
+                <div className="flex flex-col items-center">
+                  <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-2" />
+                  <p className="text-sm text-gray-500">{copyStatus.statusText}</p>
+                </div>
+              ) : copyStatus.isCompleted ? (
+                <div className="flex flex-col items-center">
+                  <CheckCircle className="h-10 w-10 text-green-500 mb-2" />
+                  <p className="text-sm text-gray-600 text-center">{copyStatus.statusText}</p>
+                  <p className="text-xs text-gray-500 mt-2">弹窗将自动关闭...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
+                  <p className="text-sm text-gray-600 text-center">复制失败</p>
+                  {copyStatus.error && (
+                    <p className="text-xs text-red-500 mt-2 text-center">{copyStatus.error}</p>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={handleCloseDialog}
+                  >
+                    关闭
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

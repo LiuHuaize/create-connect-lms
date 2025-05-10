@@ -929,12 +929,18 @@ export const courseService = {
       console.log(`批量保存 ${lessons.length} 个课时到模块 ${moduleId}`);
       
       // 准备批量保存数据，确保每个课时都有正确的模块ID
-      const lessonsToSave = lessons.map(lesson => ({
-        ...lesson,
-        module_id: moduleId,
-        content: typeof lesson.content === 'object' ? lesson.content : {},
-        updated_at: new Date().toISOString()
-      }));
+      const lessonsToSave = lessons.map(lesson => {
+        // 确保ID字段被完全移除，而不是设为undefined，这样数据库会自动生成新ID
+        const { id, ...lessonWithoutId } = lesson;
+        return {
+          ...lessonWithoutId,
+          module_id: moduleId,
+          // 修复：确保内容是JSON字符串，而不是直接传对象
+          content: typeof lesson.content === 'object' ? JSON.stringify(lesson.content) : (lesson.content || '{}'),
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        };
+      });
       
       // 批量保存课时
       const { data, error } = await supabase
@@ -955,6 +961,168 @@ export const courseService = {
     } catch (error) {
       console.error('批量保存课时出错:', error);
       throw error;
+    }
+  },
+
+  // 复制课程功能
+  async duplicateCourse(courseId: string): Promise<Course> {
+    try {
+      console.log(`开始复制课程: ${courseId}`);
+      
+      // 1. 获取原课程详情（包括模块和课时）
+      const sourceCourse = await this.getCourseDetails(courseId);
+      console.log(`获取到原课程，包含 ${sourceCourse.modules?.length || 0} 个模块`);
+      
+      // 2. 创建新课程基本信息（删除ID而不是设置为undefined）
+      const { id: _, ...courseWithoutId } = sourceCourse;
+      const newCourse: Course = {
+        ...courseWithoutId,
+        title: `${sourceCourse.title} (副本)`,
+        status: 'draft',  // 新课程默认为草稿状态
+        updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      };
+      
+      // 3. 保存新课程基本信息并获取新ID
+      const createdCourse = await this.saveCourse(newCourse);
+      console.log(`创建新课程成功，ID: ${createdCourse.id}`);
+      
+      // 4. 复制课程模块和课时
+      if (sourceCourse.modules && sourceCourse.modules.length > 0) {
+        // 创建模块ID映射表，用于关联新旧ID
+        const moduleIdMap: Record<string, string> = {};
+        
+        // 使用Promise.all并行复制所有模块
+        await Promise.all(sourceCourse.modules.map(async (sourceModule) => {
+          console.log(`准备复制模块: ${sourceModule.title}，包含 ${sourceModule.lessons?.length || 0} 个课时`);
+          
+          // 创建新模块对象（删除ID而不是设置为undefined）
+          const { id: __, lessons: ___, ...moduleWithoutId } = sourceModule;
+          const newModule: CourseModule = {
+            ...moduleWithoutId,
+            course_id: createdCourse.id,  // 关联到新课程
+            updated_at: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          };
+          
+          // 保存新模块
+          const createdModule = await this.addCourseModule(newModule);
+          console.log(`创建新模块成功，ID: ${createdModule.id}, 标题: ${createdModule.title}`);
+          
+          // 记录新旧模块ID的映射关系
+          if (sourceModule.id) {
+            moduleIdMap[sourceModule.id] = createdModule.id!;
+          }
+          
+          // 复制模块下的所有课时
+          if (sourceModule.lessons && sourceModule.lessons.length > 0) {
+            console.log(`开始复制模块 ${createdModule.title} 的 ${sourceModule.lessons.length} 个课时`);
+            
+            // 创建批量保存的课时数组，确保移除原始ID
+            const newLessons: Lesson[] = sourceModule.lessons.map(sourceLesson => {
+              // 使用解构赋值明确移除原始ID
+              const { id: ___, ...lessonWithoutId } = sourceLesson;
+              return {
+                ...lessonWithoutId,
+                module_id: createdModule.id,  // 关联到新模块
+                updated_at: new Date().toISOString(),
+                created_at: new Date().toISOString()
+              };
+            });
+            
+            // 批量保存课时
+            const savedLessons = await this.saveLessonsInBatch(newLessons, createdModule.id!);
+            console.log(`模块 ${createdModule.title} 下复制了 ${savedLessons.length} 个课时`);
+          }
+          
+          // 复制模块的资源文件
+          if (sourceModule.id) {
+            await this.duplicateModuleResources(sourceModule.id, createdModule.id!);
+          }
+        }));
+      }
+      
+      console.log(`课程复制完成，新课程ID: ${createdCourse.id}`);
+      
+      // 返回新创建的课程信息
+      return createdCourse;
+    } catch (error) {
+      console.error('复制课程失败:', error);
+      throw error;
+    }
+  },
+  
+  // 复制模块资源文件
+  async duplicateModuleResources(sourceModuleId: string, targetModuleId: string): Promise<void> {
+    try {
+      console.log(`开始复制模块资源文件，源模块: ${sourceModuleId}, 目标模块: ${targetModuleId}`);
+      
+      // 1. 获取源模块的所有资源文件
+      const { data: sourceResources, error } = await supabase
+        .from("course_resources")
+        .select("*")
+        .eq("module_id", sourceModuleId)
+        .is("deleted_at", null);
+      
+      if (error) {
+        console.error('获取模块资源文件失败:', error);
+        throw error;
+      }
+      
+      if (!sourceResources || sourceResources.length === 0) {
+        console.log(`模块 ${sourceModuleId} 没有资源文件需要复制`);
+        return;
+      }
+      
+      console.log(`找到 ${sourceResources.length} 个资源文件需要复制`);
+      
+      // 2. 复制每个资源文件
+      for (const resource of sourceResources) {
+        // 从源资源对象中删除ID和时间戳，准备创建新记录
+        const { id, created_at, updated_at, ...resourceWithoutId } = resource;
+        
+        // 3. 如果文件存储在Supabase Storage中，复制实际文件
+        // 注意：这里假设文件路径是相对于某个存储桶的路径
+        if (resource.file_path) {
+          // 文件已经存在于存储中，我们只需要复用同样的路径
+          // 如果需要复制文件本身（创建副本），这里需要添加Storage复制逻辑
+          console.log(`资源文件路径: ${resource.file_path} (假设文件已存在，仅创建引用)`);
+          
+          // 如果需要真正复制文件，可以使用以下代码（取决于具体的存储结构）
+          // const bucket = 'course-resources';
+          // const newFilePath = `${targetModuleId}/${resource.file_name}`;
+          // await supabase.storage.from(bucket).copy(resource.file_path, newFilePath);
+          // resourceWithoutId.file_path = newFilePath;
+        }
+        
+        // 4. 创建新的资源记录
+        const newResource = {
+          ...resourceWithoutId,
+          module_id: targetModuleId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        // 5. 保存新资源记录到数据库
+        const { data, error: insertError } = await supabase
+          .from("course_resources")
+          .insert(newResource)
+          .select("*")
+          .single();
+        
+        if (insertError) {
+          console.error(`复制资源文件记录失败:`, insertError);
+          continue; // 继续尝试复制其他资源
+        }
+        
+        console.log(`成功复制资源文件: ${data.title}, ID: ${data.id}`);
+      }
+      
+      console.log(`模块资源文件复制完成`);
+    } catch (error) {
+      console.error('复制模块资源文件失败:', error);
+      // 不抛出异常，确保课程复制过程能继续
+      // 将错误记录下来，但不中断流程
     }
   }
 };
