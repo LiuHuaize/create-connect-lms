@@ -21,6 +21,13 @@ const DEFAULT_CATEGORIES = [
   { value: 'custom', label: '自定义分类...' }
 ];
 
+// 难度级别选项
+const DIFFICULTY_LEVELS = [
+  { value: 'beginner', label: '初级' },
+  { value: 'intermediate', label: '中级' },
+  { value: 'advanced', label: '高级' }
+];
+
 const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse }) => {
   const [customCategoryOpen, setCustomCategoryOpen] = useState(false);
   const [customCategory, setCustomCategory] = useState('');
@@ -234,6 +241,25 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
             onChange={(e) => setCourse(prev => ({ ...prev, secondary_subject: e.target.value }))}
             className="placeholder:text-gray-400 focus:ring-2 focus:ring-connect-blue/20"
           />
+        </div>
+        
+        <div>
+          <Label htmlFor="difficulty" className="text-sm font-medium text-gray-700 mb-2">难度级别</Label>
+          <Select
+            value={course.difficulty || 'beginner'}
+            onValueChange={(value) => setCourse(prev => ({ ...prev, difficulty: value }))}
+          >
+            <SelectTrigger id="difficulty" className="focus:ring-2 focus:ring-connect-blue/20">
+              <SelectValue placeholder="选择难度级别" />
+            </SelectTrigger>
+            <SelectContent>
+              {DIFFICULTY_LEVELS.map((level) => (
+                <SelectItem key={level.value} value={level.value}>
+                  {level.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

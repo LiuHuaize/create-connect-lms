@@ -256,7 +256,11 @@ const CourseDetailsPage = () => {
             </div>
             <div className="flex items-center">
               <Award size={18} className="mr-2 text-gray-500" />
-              <span className="text-gray-700">初级难度</span>
+              <span className="text-gray-700">
+                {course.difficulty === 'intermediate' ? '中级难度' : 
+                 course.difficulty === 'advanced' ? '高级难度' : 
+                 '初级难度'}
+              </span>
             </div>
             <div className="flex items-center">
               <User size={18} className="mr-2 text-gray-500" />
@@ -338,7 +342,11 @@ const CourseDetailsPage = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">难度级别</span>
-                      <span className="font-medium">初级</span>
+                      <span className="font-medium">
+                        {course.difficulty === 'intermediate' ? '中级' : 
+                         course.difficulty === 'advanced' ? '高级' : 
+                         '初级'}
+                      </span>
                     </div>
                     
                     <div className="flex justify-between text-sm">

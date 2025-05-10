@@ -59,10 +59,12 @@ export const courseService = {
       secondary_subject: courseData.secondary_subject,
       preparation_materials: courseData.preparation_materials,
       duration_minutes: courseData.duration_minutes,
+      difficulty: courseData.difficulty,
       updated_at: new Date().toISOString()
     };
     
     console.log('Saving course data:', dataToSave);
+    console.log('Course difficulty:', courseData.difficulty);
     
     const { data, error } = await supabase
       .from("courses")

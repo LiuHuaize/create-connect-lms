@@ -24,6 +24,7 @@ export type Course = {
   secondary_subject?: string | null;
   preparation_materials?: string | null;
   duration_minutes?: number | null;
+  difficulty?: string | null;
 };
 
 // 课程模块类型定义
