@@ -29,6 +29,10 @@
   ],
   "rewrites": [
     {
+      "source": "/static/(.*)",
+      "destination": "https://qingsongqiuzhi.cn/static/$1"
+    },
+    {
       "source": "/auth",
       "destination": "/index.html"
     },
