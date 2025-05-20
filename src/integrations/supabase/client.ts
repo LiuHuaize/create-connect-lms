@@ -2,10 +2,46 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://ooyklqqgnphynyrziqyh.supabase.co";
+// 使用环境变量或开发环境下的代理
+const isDev = import.meta.env.DEV;
+// 使用完整URL而不是相对路径
+const SUPABASE_URL = isDev 
+  ? (typeof window !== 'undefined' ? `${window.location.origin}/supabase-proxy` : 'http://localhost:8080/supabase-proxy')
+  : "https://ooyklqqgnphynyrziqyh.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9veWtscXFnbnBoeW55cnppcXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1NzkyNDgsImV4cCI6MjA1OTE1NTI0OH0.d4Awen-9PnzlZTP51TpjjBkhrI3Dog4YELcbGlQs8jE";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+console.log(`Using Supabase URL: ${SUPABASE_URL} (${isDev ? 'development proxy' : 'production'})`);
+
+// 更详细的客户端配置
+export const supabase = createClient<Database>(
+  SUPABASE_URL, 
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    },
+    global: {
+      headers: {
+        'x-application-name': 'create-connect-lms'
+      },
+      // 增加超时时间
+      fetch: (url, options) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
+        return fetch(url, {
+          ...options,
+          signal: controller.signal
+        }).finally(() => clearTimeout(timeoutId));
+      }
+    },
+    db: {
+      schema: 'public'
+    }
+  }
+);

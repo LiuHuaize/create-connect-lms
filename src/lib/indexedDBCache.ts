@@ -131,17 +131,27 @@ const DEFAULT_CACHE_EXPIRY = 5 * 60 * 1000; // 5分钟缓存过期时间
 
 // 自动清理过期缓存 - 添加自动清理机制
 (function setupAutoCleaning() {
-  // 启动时立即清理一次
+  // 启动时立即清理所有缓存
   setTimeout(() => {
-    db.clearExpiredCache(DEFAULT_CACHE_EXPIRY);
-    console.log('启动时自动清理过期缓存');
-  }, 5000);
+    db.delete().then(() => db.open()).then(() => {
+      console.log('启动时自动清理所有缓存');
+    }).catch(err => {
+      console.error('清理所有缓存失败:', err);
+    });
+    
+    // 原来的代码改为注释
+    // db.clearExpiredCache(DEFAULT_CACHE_EXPIRY);
+    // console.log('启动时自动清理过期缓存');
+  }, 2000);
   
+  // 原来的定时器也注释掉
+  /*
   // 设置定时器，每30分钟清理一次
   setInterval(() => {
     db.clearExpiredCache(DEFAULT_CACHE_EXPIRY);
     console.log('定时自动清理过期缓存');
   }, 30 * 60 * 1000);
+  */
 })();
 
 // 缓存服务API

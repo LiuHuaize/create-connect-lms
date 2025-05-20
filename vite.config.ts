@@ -11,7 +11,16 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     // 添加开发服务器的historyApiFallback配置，确保SPA路由正常工作
-    historyApiFallback: true
+    historyApiFallback: true,
+    // 添加代理配置，解决CORS问题
+    proxy: {
+      '/supabase-proxy': {
+        target: 'https://ooyklqqgnphynyrziqyh.supabase.co',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/supabase-proxy/, '')
+      }
+    }
   },
   plugins: [
     react(),
