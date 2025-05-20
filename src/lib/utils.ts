@@ -6,6 +6,31 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * 创建一个防抖函数，限制函数的执行频率
+ * @param fn 要执行的函数
+ * @param wait 等待时间（毫秒）
+ * @returns 防抖后的函数
+ */
+export function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  
+  return function(...args: Parameters<T>): void {
+    const later = () => {
+      timeout = null;
+      fn(...args);
+    };
+    
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(later, wait);
+  };
+}
+
+/**
  * 清除所有应用缓存
  * @returns Promise<boolean> - 是否成功清除缓存
  */

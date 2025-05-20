@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,6 +22,127 @@ import { LESSON_TYPES, getLessonTypeIcon, getLessonTypeName, getInitialContentBy
 import { v4 as uuidv4 } from 'uuid';
 import LessonEditor from './LessonEditor';
 import { toast } from 'sonner';
+import { debounce } from '@/lib/utils';
+
+// 创建一个带节流功能的输入组件
+const ThrottledInput = ({ 
+  value, 
+  onChange, 
+  className, 
+  placeholder, 
+  id 
+}: { 
+  value: string; 
+  onChange: (value: string) => void; 
+  className?: string; 
+  placeholder?: string; 
+  id?: string; 
+}) => {
+  const [inputValue, setInputValue] = useState(value);
+  const [isDebouncing, setIsDebouncing] = useState(false);
+  
+  // 存储最新的回调函数引用
+  const onChangeRef = React.useRef(onChange);
+  
+  // 每当onChange更新时，更新其引用
+  React.useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  
+  // 使用debounce函数处理输入，减少更新频率
+  const debouncedOnChange = useCallback(
+    debounce((newValue: string) => {
+      setIsDebouncing(false);
+      // 使用ref中存储的最新回调，避免闭包问题
+      onChangeRef.current(newValue);
+    }, 300),
+    []
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    setIsDebouncing(true);
+    debouncedOnChange(newValue);
+  };
+
+  // 当外部传入的值变化时，更新内部状态
+  React.useEffect(() => {
+    if (!isDebouncing) {
+      setInputValue(value);
+    }
+  }, [value, isDebouncing]);
+
+  return (
+    <Input
+      id={id}
+      value={inputValue}
+      onChange={handleChange}
+      className={className}
+      placeholder={placeholder}
+    />
+  );
+};
+
+// 创建一个带节流功能的文本区域组件
+const ThrottledTextarea = ({ 
+  value, 
+  onChange, 
+  className, 
+  placeholder, 
+  id 
+}: { 
+  value: string; 
+  onChange: (value: string) => void; 
+  className?: string; 
+  placeholder?: string; 
+  id?: string; 
+}) => {
+  const [textValue, setTextValue] = useState(value || '');
+  const [isDebouncing, setIsDebouncing] = useState(false);
+  
+  // 存储最新的回调函数引用
+  const onChangeRef = React.useRef(onChange);
+  
+  // 每当onChange更新时，更新其引用
+  React.useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  
+  // 使用debounce函数处理输入，减少更新频率
+  const debouncedOnChange = useCallback(
+    debounce((newValue: string) => {
+      setIsDebouncing(false);
+      // 使用ref中存储的最新回调，避免闭包问题
+      onChangeRef.current(newValue);
+    }, 300),
+    []
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setTextValue(newValue);
+    setIsDebouncing(true);
+    debouncedOnChange(newValue);
+  };
+
+  // 当外部传入的值变化时，更新内部状态
+  React.useEffect(() => {
+    if (!isDebouncing) {
+      setTextValue(value || '');
+    }
+  }, [value, isDebouncing]);
+
+  return (
+    <Textarea
+      id={id}
+      value={textValue}
+      onChange={handleChange}
+      className={className}
+      placeholder={placeholder}
+    />
+  );
+};
 
 interface FrameLessonEditorProps {
   lesson: Lesson;
@@ -44,15 +165,15 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // 处理描述变更
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = { ...content, description: e.target.value };
+  const handleDescriptionChange = (value: string) => {
+    const newContent = { ...content, description: value };
     setContent(newContent);
     onSave(newContent);
   };
 
   // 处理标题变更
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newContent = { ...content, title: e.target.value };
+  const handleTitleChange = (value: string) => {
+    const newContent = { ...content, title: value };
     setContent(newContent);
     onSave(newContent);
   };
@@ -229,14 +350,15 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
       setIsSaving(true);
       const toastId = toast.loading('正在保存框架和子课时到数据库...');
       
+      // 强制延迟一小段时间，确保所有输入框的防抖更新已完成
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
       // 保存框架课时
       await onCourseDataSaved(updatedLesson);
       
       toast.success('保存成功', { id: toastId });
       console.log('框架课时保存成功，包含子课时：', content.lessons.length);
       
-      // 保存成功后，返回到课程结构页面
-      onSave(null);
     } catch (error) {
       console.error('保存框架课时失败：', error);
       toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
@@ -256,9 +378,12 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
       content: newContent
     };
     
-    // 使用setTimeout以确保React状态已更新
+    // 使用setTimeout以确保React状态已更新，并增加延迟
     setTimeout(async () => {
       try {
+        // 增加小延迟，确保可能的防抖输入已完成
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         await onCourseDataSaved(frameLessonToSave);
         console.log('框架课时已成功保存到数据库，课时数量:', newContent.lessons.length);
         toast.success(successMessage);
@@ -266,7 +391,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
         console.error('保存框架课时失败:', error);
         toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
       }
-    }, 100);
+    }, 300); // 增加延迟时间
   };
 
   // 如果有正在编辑的子课时，显示该课时的编辑界面
@@ -338,7 +463,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="frame-title">框架标题</Label>
-            <Input 
+            <ThrottledInput 
               id="frame-title" 
               value={content.title} 
               onChange={handleTitleChange}
@@ -347,7 +472,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
           </div>
           <div>
             <Label htmlFor="frame-description">框架描述</Label>
-            <Textarea 
+            <ThrottledTextarea 
               id="frame-description" 
               value={content.description || ''}
               onChange={handleDescriptionChange}
@@ -383,9 +508,9 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
                     <div className="mr-2">
                       {getLessonTypeIcon(frameLessonItem.type)}
                     </div>
-                    <Input
+                    <ThrottledInput
                       value={frameLessonItem.title}
-                      onChange={(e) => updateLessonTitle(frameLessonItem.id, e.target.value)}
+                      onChange={(value) => updateLessonTitle(frameLessonItem.id, value)}
                       className="flex-1"
                     />
                     <div className="flex gap-1">

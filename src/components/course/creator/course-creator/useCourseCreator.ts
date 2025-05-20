@@ -548,8 +548,6 @@ export const useCourseCreator = () => {
         return moduleToSave;
       });
       
-      // --- MODIFICATION: Comment out implicit deletion logic --- 
-      /*
       // 收集需要删除的模块和课时ID
       let deletedModuleIds: string[] = [];
       let deletedLessonIdsMap: Record<string, string[]> = {};
@@ -658,8 +656,6 @@ export const useCourseCreator = () => {
           // 继续执行不中断
         }
       }
-      */
-      // --- END MODIFICATION ---
       
       // 4. 保存所有模块 - 批量处理模块
       console.log('开始保存课程模块，数量:', modulesToProcess.length);
