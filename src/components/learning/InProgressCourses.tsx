@@ -4,7 +4,7 @@ import { BookOpen, Play, Clock, GraduationCap, Book, Info } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { getCategoryDisplayName } from '@/utils/courseUtils';
+import { getCategoryDisplayName } from '@/types/course-enrollment';
 
 interface Course {
   id: string;

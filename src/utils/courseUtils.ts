@@ -1,5 +1,5 @@
 import { Course } from '@/types/course';
-import { CourseCategory, getCategoryDisplayName } from '@/types/course-enrollment';
+import { CourseCategory, getCategoryDisplayName, CATEGORY_MAP } from '@/types/course-enrollment';
 
 // 过滤课程的逻辑
 export const filterCourses = (
@@ -46,18 +46,5 @@ export const filterCourses = (
   }
 };
 
-// 课程分类映射 - 将英文代码转换为中文显示名称
-export const CATEGORY_MAP: Record<string, string> = {
-  'business_planning': '商业规划',
-  'game_design': '游戏设计',
-  'product_development': '产品开发',
-  'marketing': '市场营销',
-  'project_management': '项目管理'
-};
-
-// 获取分类的显示名称
-export const getCategoryDisplayName = (categoryCode: string | null | undefined): string => {
-  if (!categoryCode) return '未分类';
-  if (categoryCode === '测试') return ''; // 不显示"测试"标签
-  return CATEGORY_MAP[categoryCode] || categoryCode; // 如果找不到映射，返回原始代码
-};
+// 注意：不再需要重复定义CATEGORY_MAP和getCategoryDisplayName
+// 这些已从@/types/course-enrollment导入

@@ -2,7 +2,7 @@ import React from 'react';
 import { Award, GraduationCap, Book } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { getCategoryDisplayName } from '@/utils/courseUtils';
+import { getCategoryDisplayName } from '@/types/course-enrollment';
 
 interface Course {
   id: string;
