@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Upload, Image, Music, Info, X, Trash } from 'lucide-react';
@@ -13,13 +13,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import CustomEditor from './CustomEditor';
+import HotspotSaveButton from './HotspotSaveButton';
 
 interface HotspotEditorProps {
   lesson: Lesson;
   onUpdate: (updatedLesson: Lesson) => void;
+  onSave?: () => Promise<void | string | undefined>;
+  isSaving?: boolean;
 }
 
-const HotspotEditor: React.FC<HotspotEditorProps> = ({ lesson, onUpdate }) => {
+const HotspotEditor: React.FC<HotspotEditorProps> = ({ 
+  lesson, 
+  onUpdate, 
+  onSave, 
+  isSaving = false 
+}) => {
   // 获取课程内容，如果不存在则初始化
   const initialContent: HotspotLessonContent = lesson.content as HotspotLessonContent || {
     backgroundImage: '',
@@ -297,12 +305,34 @@ const HotspotEditor: React.FC<HotspotEditorProps> = ({ lesson, onUpdate }) => {
     toast.success('已删除图片');
   };
 
+  // 强制立即保存当前内容（不使用防抖）
+  const forceSave = useCallback(() => {
+    // 先清除可能存在的防抖计时器
+    if (debounceTimeoutRef.current) {
+      window.clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    // 立即更新课时内容
+    onUpdate({
+      ...lesson,
+      content: content
+    });
+    
+    console.log('热点课程内容已强制更新', content);
+    
+    // 如果提供了外部保存函数，调用它
+    return onSave?.();
+  }, [content, lesson, onSave, onUpdate]);
+
   return (
     <div className="space-y-6">
       {/* 基本信息 */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>交互式热点课程编辑器</CardTitle>
+          {onSave && (
+            <HotspotSaveButton onSave={forceSave} isSaving={isSaving} />
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 介绍文字 */}
@@ -601,6 +631,11 @@ const HotspotEditor: React.FC<HotspotEditorProps> = ({ lesson, onUpdate }) => {
               ))}
             </div>
           </CardContent>
+          {onSave && (
+            <CardFooter className="flex justify-end border-t pt-4">
+              <HotspotSaveButton onSave={forceSave} isSaving={isSaving} />
+            </CardFooter>
+          )}
         </Card>
       )}
     </div>

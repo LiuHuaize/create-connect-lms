@@ -540,6 +540,17 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
             setCurrentContent(updatedLesson.content);
             onContentChange(updatedLesson.content);
           }}
+          onSave={async () => {
+            if (onCourseDataSaved) {
+              const updatedLesson = {
+                ...lesson,
+                content: currentContent
+              };
+              return onCourseDataSaved(updatedLesson);
+            }
+            return undefined;
+          }}
+          isSaving={isResourceSaving}
         />
       );
     }

@@ -384,6 +384,52 @@ export const courseService = {
         }
       }
       
+      // 热点数据安全保护 - 对热点类型课时进行特殊处理
+      if (isUpdate && lesson.type === 'hotspot' && lesson.id) {
+        try {
+          console.log('检测到热点类型课时更新，正在进行数据保护检查...');
+          // 获取数据库中现有的课时数据
+          const { data: existingLesson, error: fetchError } = await supabase
+            .from("lessons")
+            .select("content")
+            .eq("id", lesson.id)
+            .single();
+          
+          if (fetchError) {
+            console.error('获取现有热点课时数据失败:', fetchError);
+          } else if (existingLesson && existingLesson.content) {
+            console.log('获取到现有热点课时数据:', existingLesson);
+            const existingContent = existingLesson.content as any;
+            const newContentObj = typeof contentToSave === 'string' 
+              ? JSON.parse(contentToSave) 
+              : contentToSave;
+              
+            // 检查背景图片是否丢失
+            if (!newContentObj?.backgroundImage && existingContent?.backgroundImage) {
+              console.warn('检测到热点背景图片丢失，从数据库恢复:', existingContent.backgroundImage);
+              if (typeof newContentObj === 'object') {
+                newContentObj.backgroundImage = existingContent.backgroundImage;
+              }
+            }
+            
+            // 检查热点数据是否丢失
+            if ((!newContentObj?.hotspots || newContentObj.hotspots.length === 0) && 
+                existingContent?.hotspots && existingContent.hotspots.length > 0) {
+              console.warn(`检测到热点数据丢失，从数据库恢复 ${existingContent.hotspots.length} 个热点`);
+              if (typeof newContentObj === 'object') {
+                newContentObj.hotspots = [...existingContent.hotspots];
+              }
+            }
+            
+            // 更新要保存的内容
+            contentToSave = newContentObj;
+          }
+        } catch (error) {
+          console.error('热点数据保护检查失败:', error);
+          // 继续正常保存流程，不中断
+        }
+      }
+
       const lessonToSave = {
         id: lesson.id,
         module_id: lesson.module_id,

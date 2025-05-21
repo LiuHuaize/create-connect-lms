@@ -457,6 +457,38 @@ export const useCourseCreator = () => {
                 : updatedLesson.content
             };
             
+            // 热点数据特殊处理 - 如果是热点类型课时，添加额外的检查
+            if (updatedLesson.type === 'hotspot') {
+              console.log('检测到热点类型课时，对热点数据进行特殊处理...');
+              const contentObj = lessonToSave.content as any;
+              
+              // 如果热点数据似乎不完整，检查当前显示中的课时数据
+              if (!contentObj.backgroundImage || !contentObj.hotspots || contentObj.hotspots.length === 0) {
+                console.warn('热点数据可能不完整，尝试从currentLesson恢复');
+                
+                if (currentLesson?.id === updatedLesson.id && currentLesson?.content) {
+                  const currentContent = currentLesson.content as any;
+                  
+                  // 恢复背景图片
+                  if (!contentObj.backgroundImage && currentContent.backgroundImage) {
+                    console.log('从currentLesson恢复背景图片:', currentContent.backgroundImage);
+                    contentObj.backgroundImage = currentContent.backgroundImage;
+                  }
+                  
+                  // 恢复热点数据
+                  if ((!contentObj.hotspots || contentObj.hotspots.length === 0) && 
+                      currentContent.hotspots && currentContent.hotspots.length > 0) {
+                    console.log(`从currentLesson恢复 ${currentContent.hotspots.length} 个热点`);
+                    contentObj.hotspots = [...currentContent.hotspots];
+                  }
+                }
+              }
+              
+              // 最后的保护机制：确保至少有基本结构
+              if (!contentObj.hotspots) contentObj.hotspots = [];
+              if (!contentObj.introduction) contentObj.introduction = '点击图像上的热点以了解更多信息';
+            }
+            
             console.log('准备保存到数据库的课时对象:', lessonToSave);
             
             const savedLesson = await courseService.addLesson(lessonToSave);

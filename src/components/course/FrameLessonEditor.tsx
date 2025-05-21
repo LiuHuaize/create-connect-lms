@@ -16,7 +16,8 @@ import {
   Lesson, 
   FrameLessonContent,
   LessonType,
-  LessonContent
+  LessonContent,
+  HotspotLessonContent
 } from '@/types/course';
 import { LESSON_TYPES, getLessonTypeIcon, getLessonTypeName, getInitialContentByType } from '../course/creator/module-list/lessonTypeUtils';
 import { v4 as uuidv4 } from 'uuid';
@@ -285,9 +286,54 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
       return;
     }
 
+    // 确保对热点图类型课时进行特殊处理，防止内容丢失
+    let finalLessonToUpdate = updatedLesson;
+    
+    // 特殊处理热点图类型课时
+    if (updatedLesson.type === 'hotspot') {
+      console.log('正在处理热点图类型子课时的保存...', updatedLesson.id);
+      // 查找原始课时以避免数据丢失
+      const originalLesson = content.lessons.find(l => l.id === updatedLesson.id);
+      
+      if (originalLesson && originalLesson.type === 'hotspot') {
+        // 添加类型断言，将content转换为HotspotLessonContent
+        const hotspotContent = updatedLesson.content as HotspotLessonContent;
+        const originalContent = originalLesson.content as HotspotLessonContent;
+        
+        // 检查热点内容是否完整
+        if (!hotspotContent.hotspots || hotspotContent.hotspots.length === 0) {
+          // 如果新的内容中没有热点数据，但原始数据中有，则保留原始数据
+          if (originalContent.hotspots && originalContent.hotspots.length > 0) {
+            console.warn(`检测到框架内热点数据可能丢失，从原始数据恢复 ${originalContent.hotspots.length} 个热点`);
+            finalLessonToUpdate = {
+              ...updatedLesson,
+              content: {
+                ...hotspotContent,
+                hotspots: originalContent.hotspots
+              }
+            };
+          }
+        }
+        
+        // 检查背景图片是否丢失
+        if (!hotspotContent.backgroundImage && originalContent.backgroundImage) {
+          console.warn(`检测到框架内热点背景图片可能丢失，从原始数据恢复`);
+          finalLessonToUpdate = {
+            ...finalLessonToUpdate,
+            content: {
+              ...(finalLessonToUpdate.content as HotspotLessonContent),
+              backgroundImage: originalContent.backgroundImage
+            }
+          };
+        }
+      }
+      
+      console.log('热点图课时最终保存内容:', finalLessonToUpdate.content);
+    }
+
     // 更新课时内容
     const newLessons = content.lessons.map(l => 
-      l.id === updatedLesson.id ? updatedLesson : l
+      l.id === finalLessonToUpdate.id ? finalLessonToUpdate : l
     );
     
     const newContent = { ...content, lessons: newLessons };
@@ -306,10 +352,10 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
       // 使用setTimeout以确保React状态已更新
       setTimeout(async () => {
         try {
-          console.log('正在保存框架课时到数据库，包含更新的子课时:', updatedLesson.title);
+          console.log('正在保存框架课时到数据库，包含更新的子课时:', finalLessonToUpdate.title);
           await onCourseDataSaved(frameLessonToSave);
           console.log('框架课时已成功保存到数据库');
-          toast.success(`子课时 "${updatedLesson.title}" 已保存至数据库`);
+          toast.success(`子课时 "${finalLessonToUpdate.title}" 已保存至数据库`);
         } catch (error) {
           console.error('保存框架课时失败:', error);
           toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
