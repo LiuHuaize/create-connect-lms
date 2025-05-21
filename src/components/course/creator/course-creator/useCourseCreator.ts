@@ -464,8 +464,9 @@ export const useCourseCreator = () => {
               
               // 如果热点数据似乎不完整，检查当前显示中的课时数据
               if (!contentObj.backgroundImage || !contentObj.hotspots || contentObj.hotspots.length === 0) {
-                console.warn('热点数据可能不完整，尝试从currentLesson恢复');
+                console.warn('热点数据可能不完整，尝试从多个来源恢复');
                 
+                // 1. 首先尝试从currentLesson恢复
                 if (currentLesson?.id === updatedLesson.id && currentLesson?.content) {
                   const currentContent = currentLesson.content as any;
                   
@@ -482,11 +483,47 @@ export const useCourseCreator = () => {
                     contentObj.hotspots = [...currentContent.hotspots];
                   }
                 }
+                
+                // 2. 如果仍然不完整，尝试从模块历史中恢复
+                if (!contentObj.backgroundImage || !contentObj.hotspots || contentObj.hotspots.length === 0) {
+                  // 尝试从模块数据中恢复此课时的最初内容
+                  const originalModule = previousModulesRef.current?.find(m => 
+                    m.lessons.some(l => l.id === updatedLesson.id)
+                  );
+                  
+                  const originalLesson = originalModule?.lessons.find(l => l.id === updatedLesson.id);
+                  
+                  if (originalLesson?.content) {
+                    const originalContent = originalLesson.content as any;
+                    console.log('尝试从模块历史恢复热点数据', originalContent);
+                    
+                    // 恢复背景图片
+                    if (!contentObj.backgroundImage && originalContent.backgroundImage) {
+                      console.log('从模块历史恢复背景图片:', originalContent.backgroundImage);
+                      contentObj.backgroundImage = originalContent.backgroundImage;
+                    }
+                    
+                    // 恢复热点数据
+                    if ((!contentObj.hotspots || contentObj.hotspots.length === 0) && 
+                        originalContent.hotspots && originalContent.hotspots.length > 0) {
+                      console.log(`从模块历史恢复 ${originalContent.hotspots.length} 个热点`);
+                      contentObj.hotspots = [...originalContent.hotspots];
+                    }
+                  }
+                }
+                
+                // 3. 最后，如果仍然无法恢复，记录错误并创建基本结构
+                if (!contentObj.backgroundImage && (!contentObj.hotspots || contentObj.hotspots.length === 0)) {
+                  console.error('无法恢复热点数据，将使用基本结构');
+                }
               }
               
               // 最后的保护机制：确保至少有基本结构
               if (!contentObj.hotspots) contentObj.hotspots = [];
               if (!contentObj.introduction) contentObj.introduction = '点击图像上的热点以了解更多信息';
+              
+              // 记录最终要保存的热点数据
+              console.log('最终保存的热点数据:', JSON.stringify(contentObj));
             }
             
             console.log('准备保存到数据库的课时对象:', lessonToSave);

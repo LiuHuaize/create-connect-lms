@@ -148,7 +148,7 @@ const ThrottledTextarea = ({
 interface FrameLessonEditorProps {
   lesson: Lesson;
   onSave: (content: FrameLessonContent) => void;
-  onCourseDataSaved?: (updatedLesson: Lesson) => Promise<string | undefined | void>;
+  onCourseDataSaved?: (updatedFrameLesson: Lesson) => Promise<string | undefined | void>;
 }
 
 const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, onCourseDataSaved }) => {
@@ -160,26 +160,61 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     }
   );
   
-  // 添加状态来跟踪当前正在编辑的子课时
   const [currentEditingLesson, setCurrentEditingLesson] = useState<Lesson | null>(null);
-  // 添加保存状态
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  // 处理描述变更
+  // Debounced save function for title and description
+  const debouncedSaveFrameDetails = useCallback(
+    debounce((newFrameContent: FrameLessonContent) => {
+      if (onCourseDataSaved) {
+        const frameLessonToSave: Lesson = {
+          ...lesson,
+          content: newFrameContent,
+        };
+        onCourseDataSaved(frameLessonToSave)
+          .then(() => toast.success('框架信息已自动保存'))
+          .catch(() => toast.error('框架信息自动保存失败'));
+      }
+    }, 1000),
+    [lesson, onCourseDataSaved] // Dependencies for useCallback
+  );
+  
   const handleDescriptionChange = (value: string) => {
     const newContent = { ...content, description: value };
     setContent(newContent);
-    onSave(newContent);
+    onSave(newContent); // Inform parent about content change
+    debouncedSaveFrameDetails(newContent);
   };
 
-  // 处理标题变更
   const handleTitleChange = (value: string) => {
     const newContent = { ...content, title: value };
     setContent(newContent);
-    onSave(newContent);
+    onSave(newContent); // Inform parent about content change
+    debouncedSaveFrameDetails(newContent);
   };
+  
+  const saveFrameToDatabase = useCallback(async (newFrameContent: FrameLessonContent, successMessage: string) => {
+    if (!onCourseDataSaved) return;
+    
+    setIsSaving(true);
+    const frameLessonToSave: Lesson = {
+      ...lesson, // 'lesson' is the prop for FrameLessonEditor (the FrameLesson itself)
+      content: newFrameContent,
+    };
 
-  // 添加新课时
+    try {
+      const toastId = toast.loading("正在保存框架内容...");
+      await onCourseDataSaved(frameLessonToSave);
+      toast.success(successMessage, { id: toastId });
+    } catch (error) {
+      console.error('保存框架课时失败:', error);
+      toast.error('保存框架内容失败，请重试');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [lesson, onCourseDataSaved]);
+
+
   const addLesson = (type: LessonType) => {
     const newLessonId = uuidv4();
     const newLesson: Lesson = {
@@ -187,7 +222,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
       title: `新${getLessonTypeName(type)}`,
       type,
       content: getInitialContentByType(type),
-      module_id: lesson.module_id,
+      module_id: lesson.module_id, // Should this be the FrameLesson's id or its module_id?
       order_index: content.lessons.length
     };
 
@@ -195,249 +230,122 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const newContent = { ...content, lessons: newLessons };
     
     setContent(newContent);
-    onSave(newContent);
+    onSave(newContent); // Update parent's state (LessonEditor for Frame)
     
-    // 主动保存框架内容到数据库
-    saveFrameToDatabase(newContent, `已添加新${getLessonTypeName(type)}`);
+    // Save the whole frame lesson
+    saveFrameToDatabase(newContent, `已添加新课时: ${newLesson.title}`);
   };
 
-  // 删除课时
   const removeLesson = (lessonId: string) => {
     const lessonToRemove = content.lessons.find(l => l.id === lessonId);
     const lessonTitle = lessonToRemove?.title || '课时';
     
-    const newLessons = content.lessons.filter(l => l.id !== lessonId);
-    const reorderedLessons = newLessons.map((l, index) => ({
-      ...l,
-      order_index: index
-    }));
+    const newLessons = content.lessons.filter(l => l.id !== lessonId)
+      .map((l, index) => ({ ...l, order_index: index }));
     
-    const newContent = { ...content, lessons: reorderedLessons };
+    const newContent = { ...content, lessons: newLessons };
     setContent(newContent);
     onSave(newContent);
-    
-    // 主动保存框架内容到数据库
-    saveFrameToDatabase(newContent, `已删除 "${lessonTitle}"`);
+    saveFrameToDatabase(newContent, `已删除课时: "${lessonTitle}"`);
   };
-
-  // 更新课时标题
+  
   const updateLessonTitle = (lessonId: string, newTitle: string) => {
     const newLessons = content.lessons.map(l => 
       l.id === lessonId ? { ...l, title: newTitle } : l
     );
-    
     const newContent = { ...content, lessons: newLessons };
     setContent(newContent);
     onSave(newContent);
-    
-    // 这里不主动保存，因为用户可能正在连续编辑标题
+    // Title changes are often intermediate, save themまとめて
+    // Consider debouncing this save or saving on blur/explicit action
+    saveFrameToDatabase(newContent, `课时 "${newTitle}" 标题已更新`);
   };
 
-  // 上移课时
   const moveLessonUp = (index: number) => {
-    if (index <= 0) return; // 已经是第一个
-    
+    if (index <= 0) return;
     const newLessons = [...content.lessons];
     [newLessons[index - 1], newLessons[index]] = [newLessons[index], newLessons[index - 1]];
-    
-    const reorderedLessons = newLessons.map((l, idx) => ({
-      ...l,
-      order_index: idx
-    }));
-    
+    const reorderedLessons = newLessons.map((l, idx) => ({ ...l, order_index: idx }));
     const newContent = { ...content, lessons: reorderedLessons };
     setContent(newContent);
     onSave(newContent);
-    
-    // 主动保存框架内容到数据库
-    saveFrameToDatabase(newContent, `已调整课时顺序`);
+    saveFrameToDatabase(newContent, '课时顺序已更新');
   };
 
-  // 下移课时
   const moveLessonDown = (index: number) => {
-    if (index >= content.lessons.length - 1) return; // 已经是最后一个
-    
+    if (index >= content.lessons.length - 1) return;
     const newLessons = [...content.lessons];
-    [newLessons[index], newLessons[index + 1]] = [newLessons[index + 1], newLessons[index]];
-    
-    const reorderedLessons = newLessons.map((l, idx) => ({
-      ...l,
-      order_index: idx
-    }));
-    
+    [newLessons[index + 1], newLessons[index]] = [newLessons[index], newLessons[index + 1]];
+    const reorderedLessons = newLessons.map((l, idx) => ({ ...l, order_index: idx }));
     const newContent = { ...content, lessons: reorderedLessons };
     setContent(newContent);
     onSave(newContent);
-    
-    // 主动保存框架内容到数据库
-    saveFrameToDatabase(newContent, `已调整课时顺序`);
+    saveFrameToDatabase(newContent, '课时顺序已更新');
   };
 
-  // 编辑子课时内容
   const editLesson = (lessonToEdit: Lesson) => {
     setCurrentEditingLesson(lessonToEdit);
   };
 
-  // 保存子课时内容
-  const handleSaveSubLesson = (updatedLesson: Lesson | null) => {
-    if (!updatedLesson) {
-      // 如果取消编辑，只返回到列表视图
-      setCurrentEditingLesson(null);
-      return;
+  // Called when the child LessonEditor (for sub-lesson) calls its onSave (e.g., "Back" button)
+  const handleSaveSubLessonAndExit = (updatedSubLesson: Lesson | null) => {
+    if (updatedSubLesson) {
+      const newLessons = content.lessons.map(l =>
+        l.id === updatedSubLesson.id ? updatedSubLesson : l
+      );
+      const newContent = { ...content, lessons: newLessons };
+      setContent(newContent);
+      onSave(newContent); 
+      // Here, we assume the sub-lesson's content is finalized by the sub-editor.
+      // We now save the entire frame.
+      saveFrameToDatabase(newContent, `子课时 "${updatedSubLesson.title}" 已更新并关闭编辑器`);
     }
-
-    // 确保对热点图类型课时进行特殊处理，防止内容丢失
-    let finalLessonToUpdate = updatedLesson;
-    
-    // 特殊处理热点图类型课时
-    if (updatedLesson.type === 'hotspot') {
-      console.log('正在处理热点图类型子课时的保存...', updatedLesson.id);
-      // 查找原始课时以避免数据丢失
-      const originalLesson = content.lessons.find(l => l.id === updatedLesson.id);
-      
-      if (originalLesson && originalLesson.type === 'hotspot') {
-        // 添加类型断言，将content转换为HotspotLessonContent
-        const hotspotContent = updatedLesson.content as HotspotLessonContent;
-        const originalContent = originalLesson.content as HotspotLessonContent;
-        
-        // 检查热点内容是否完整
-        if (!hotspotContent.hotspots || hotspotContent.hotspots.length === 0) {
-          // 如果新的内容中没有热点数据，但原始数据中有，则保留原始数据
-          if (originalContent.hotspots && originalContent.hotspots.length > 0) {
-            console.warn(`检测到框架内热点数据可能丢失，从原始数据恢复 ${originalContent.hotspots.length} 个热点`);
-            finalLessonToUpdate = {
-              ...updatedLesson,
-              content: {
-                ...hotspotContent,
-                hotspots: originalContent.hotspots
-              }
-            };
-          }
-        }
-        
-        // 检查背景图片是否丢失
-        if (!hotspotContent.backgroundImage && originalContent.backgroundImage) {
-          console.warn(`检测到框架内热点背景图片可能丢失，从原始数据恢复`);
-          finalLessonToUpdate = {
-            ...finalLessonToUpdate,
-            content: {
-              ...(finalLessonToUpdate.content as HotspotLessonContent),
-              backgroundImage: originalContent.backgroundImage
-            }
-          };
-        }
-      }
-      
-      console.log('热点图课时最终保存内容:', finalLessonToUpdate.content);
-    }
-
-    // 更新课时内容
-    const newLessons = content.lessons.map(l => 
-      l.id === finalLessonToUpdate.id ? finalLessonToUpdate : l
-    );
-    
-    const newContent = { ...content, lessons: newLessons };
-    setContent(newContent);
-    onSave(newContent);
-    
-    // 立即保存子课时到数据库以确保内容不丢失
-    if (onCourseDataSaved) {
-      // 创建一个包含最新内容的框架课时对象
-      const frameLessonToSave: Lesson = {
-        ...lesson,
-        title: newContent.title,
-        content: newContent
-      };
-      
-      // 使用setTimeout以确保React状态已更新
-      setTimeout(async () => {
-        try {
-          console.log('正在保存框架课时到数据库，包含更新的子课时:', finalLessonToUpdate.title);
-          await onCourseDataSaved(frameLessonToSave);
-          console.log('框架课时已成功保存到数据库');
-          toast.success(`子课时 "${finalLessonToUpdate.title}" 已保存至数据库`);
-        } catch (error) {
-          console.error('保存框架课时失败:', error);
-          toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
-        }
-      }, 100);
-    }
-    
-    // 返回到列表视图
     setCurrentEditingLesson(null);
   };
-
-  // 处理子课时内容变化
-  const handleSubLessonContentChange = (newContent: LessonContent) => {
-    if (!currentEditingLesson) return;
-    
-    // 更新当前编辑的课时内容
-    setCurrentEditingLesson({
-      ...currentEditingLesson,
-      content: newContent
-    });
+  
+  // Called when the child LessonEditor (for sub-lesson) calls its onContentChange
+  const handleSubLessonContentChange = (subLessonId: string, newSubLessonContent: LessonContent) => {
+    const newLessons = content.lessons.map(l =>
+      l.id === subLessonId ? { ...l, content: newSubLessonContent } : l
+    );
+    const newFrameContent = { ...content, lessons: newLessons };
+    setContent(newFrameContent);
+    // Propagate the change upwards immediately for real-time updates or auto-save features in parent
+    onSave(newFrameContent); 
+    // Optionally, debounce a full save of the frame here if needed for auto-save
+    // debouncedSaveFrameDetails(newFrameContent); 
   };
 
-  // 保存框架和所有子课时到数据库
-  const handleSaveToDatabase = async () => {
-    if (!onCourseDataSaved) {
-      toast.warning('保存功能不可用');
-      return;
-    }
-
-    // 更新框架课时
-    const updatedLesson: Lesson = {
-      ...lesson,
-      title: content.title,
-      content: content
-    };
-
-    try {
-      setIsSaving(true);
-      const toastId = toast.loading('正在保存框架和子课时到数据库...');
-      
-      // 强制延迟一小段时间，确保所有输入框的防抖更新已完成
-      await new Promise(resolve => setTimeout(resolve, 400));
-      
-      // 保存框架课时
-      await onCourseDataSaved(updatedLesson);
-      
-      toast.success('保存成功', { id: toastId });
-      console.log('框架课时保存成功，包含子课时：', content.lessons.length);
-      
-    } catch (error) {
-      console.error('保存框架课时失败：', error);
-      toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // 公共的框架保存函数，用于复用
-  const saveFrameToDatabase = (newContent: FrameLessonContent, successMessage: string) => {
-    if (!onCourseDataSaved) return;
+  // This is called when the "Save" button INSIDE the sub-lesson's editor is clicked
+  const handleSubLessonEditorDirectSave = async (updatedSubLessonFromEditor: Lesson): Promise<string | undefined | void> => {
+    console.log('FrameLessonEditor: handleSubLessonEditorDirectSave received updated sub-lesson:', updatedSubLessonFromEditor);
     
-    // 创建一个包含最新内容的框架课时对象
-    const frameLessonToSave: Lesson = {
-      ...lesson,
-      title: newContent.title,
-      content: newContent
-    };
-    
-    // 使用setTimeout以确保React状态已更新，并增加延迟
-    setTimeout(async () => {
-      try {
-        // 增加小延迟，确保可能的防抖输入已完成
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        await onCourseDataSaved(frameLessonToSave);
-        console.log('框架课时已成功保存到数据库，课时数量:', newContent.lessons.length);
-        toast.success(successMessage);
-      } catch (error) {
-        console.error('保存框架课时失败:', error);
-        toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
-      }
-    }, 300); // 增加延迟时间
+    // 1. Update the sub-lesson within the FrameLessonEditor's content state
+    const newLessons = content.lessons.map(l =>
+      l.id === updatedSubLessonFromEditor.id
+        ? updatedSubLessonFromEditor // Use the complete updated sub-lesson from the editor
+        : l
+    );
+    const newFrameContent = { ...content, lessons: newLessons };
+    setContent(newFrameContent); // Update FrameLessonEditor's local state
+
+    // 2. Propagate the updated FrameLessonContent upwards to FrameLessonEditor's parent (e.g., LessonEditor for Frame)
+    // This onSave is FrameLessonEditor's own prop
+    onSave(newFrameContent);
+
+    // 3. Now, trigger the save of the entire FrameLesson (which includes the updated sub-lesson) to the database.
+    // This onCourseDataSaved is FrameLessonEditor's own prop.
+    if (onCourseDataSaved) {
+      const frameLessonToSave: Lesson = {
+        ...lesson, // 'lesson' is the FrameLesson prop passed to FrameLessonEditor
+        content: newFrameContent, // Embed the updated FrameLessonContent which now has the new sub-lesson data
+      };
+      console.log('FrameLessonEditor: Calling its own onCourseDataSaved (for the FrameLesson) with:', frameLessonToSave);
+      // The promise returned by onCourseDataSaved (which eventually calls useCourseCreator) will be returned
+      return onCourseDataSaved(frameLessonToSave);
+    }
+    console.warn('FrameLessonEditor: onCourseDataSaved prop is not defined. Cannot save frame to DB.');
+    return undefined;
   };
 
   // 如果有正在编辑的子课时，显示该课时的编辑界面
@@ -461,9 +369,11 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
         
         <LessonEditor 
           lesson={currentEditingLesson}
-          onSave={handleSaveSubLesson}
-          onContentChange={handleSubLessonContentChange}
-          onCourseDataSaved={onCourseDataSaved}
+          onSave={handleSaveSubLessonAndExit}
+          onContentChange={(newSubLessonC) => {
+            handleSubLessonContentChange(currentEditingLesson.id, newSubLessonC);
+          }}
+          onCourseDataSaved={handleSubLessonEditorDirectSave}
         />
       </div>
     );
@@ -478,7 +388,11 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
           框架编辑器
         </h2>
         <Button 
-          onClick={handleSaveToDatabase}
+          onClick={() => {
+            if (onCourseDataSaved) {
+              saveFrameToDatabase(content, '框架课时已成功保存到数据库');
+            }
+          }}
           disabled={isSaving || !onCourseDataSaved}
           className="bg-connect-blue hover:bg-blue-600"
         >

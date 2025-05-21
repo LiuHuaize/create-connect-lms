@@ -57,13 +57,21 @@ const HotspotEditor: React.FC<HotspotEditorProps> = ({
     }
     
     debounceTimeoutRef.current = window.setTimeout(() => {
+      // 添加数据有效性检查
+      const isEmptyContent = !updatedContent.backgroundImage || !updatedContent.hotspots || updatedContent.hotspots.length === 0;
+      
+      if (isEmptyContent && initialContent.backgroundImage && initialContent.hotspots && initialContent.hotspots.length > 0) {
+        console.warn('防抖更新检测到空数据，跳过更新');
+        return;
+      }
+      
       onUpdate({
         ...lesson,
         content: updatedContent
       });
       console.log('热点课程已更新', updatedContent);
-    }, 500); // 500ms防抖
-  }, [lesson, onUpdate]);
+    }, 800); // 增加防抖时间到800ms
+  }, [lesson, onUpdate, initialContent]);
 
   useEffect(() => {
     debouncedUpdate(content);
@@ -312,7 +320,37 @@ const HotspotEditor: React.FC<HotspotEditorProps> = ({
       window.clearTimeout(debounceTimeoutRef.current);
     }
     
-    // 立即更新课时内容
+    // 检查热点数据完整性
+    const isEmptyContent = !content.backgroundImage || content.hotspots.length === 0;
+    
+    if (isEmptyContent) {
+      console.warn('检测到热点数据不完整，尝试恢复...');
+      
+      // 尝试从初始内容恢复
+      if (initialContent.backgroundImage || (initialContent.hotspots && initialContent.hotspots.length > 0)) {
+        console.log('从初始内容恢复热点数据', initialContent);
+        
+        // 更新本地状态
+        setContent(initialContent);
+        
+        // 立即更新课时内容
+        onUpdate({
+          ...lesson,
+          content: initialContent
+        });
+        
+        console.log('已恢复热点课程内容', initialContent);
+        
+        // 延迟调用保存，确保更新已完成
+        return new Promise<void | string | undefined>(resolve => {
+          setTimeout(() => {
+            resolve(onSave?.());
+          }, 100);
+        });
+      }
+    }
+    
+    // 正常更新课时内容
     onUpdate({
       ...lesson,
       content: content
@@ -322,7 +360,7 @@ const HotspotEditor: React.FC<HotspotEditorProps> = ({
     
     // 如果提供了外部保存函数，调用它
     return onSave?.();
-  }, [content, lesson, onSave, onUpdate]);
+  }, [content, initialContent, lesson, onSave, onUpdate]);
 
   return (
     <div className="space-y-6">
