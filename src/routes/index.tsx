@@ -28,6 +28,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const BlockNoteEditorTest = lazy(() => import('@/components/editor').then(module => ({ default: module.BlockNoteEditorTest })));
 const ModelTestComponent = lazy(() => import('@/components/ModelTestComponent'));
 const CourseAssignmentsPage = lazy(() => import('@/pages/teacher/CourseAssignmentsPage'));
+const TestVideoUploadPage = lazy(() => import('@/pages/test-video-upload'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -101,6 +102,8 @@ const AppRoutes = () => {
         <Route path="/model-test" element={<ModelTestComponent />} />
 
         <Route path="/test-optimization" element={<TestCourseOptimization />} />
+
+        <Route path="/test-video-upload" element={<TestVideoUploadPage />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
