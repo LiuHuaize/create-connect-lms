@@ -684,7 +684,7 @@ export const courseService = {
     }
   },
 
-  // 保存模块内课时顺序
+  // 保存模块课时顺序 - 使用直接数据库操作替代Edge Function
   async saveModuleLessonsOrder(moduleId: string, courseId: string, lessons: Lesson[]): Promise<void> {
     try {
       // 检查当前用户ID
@@ -696,40 +696,30 @@ export const courseService = {
       console.log(`开始保存模块 ${moduleId} 的课时顺序`, lessons);
       
       // 准备课时数据，确保order_index正确
-      const lessonsToSave = lessons.map((lesson, index) => ({
-        ...lesson,
-        module_id: moduleId,
+      const lessonsToUpdate = lessons.map((lesson, index) => ({
+        id: lesson.id,
         order_index: index,
-        content: typeof lesson.content === 'object' ? JSON.stringify(lesson.content) : lesson.content
+        updated_at: new Date().toISOString()
       }));
-      
-      // 准备请求数据
-      const requestData = {
-        moduleId,
-        courseId,
-        lessons: lessonsToSave,
-        idempotencyKey: uuidv4(),
-        requesterId: user.id
-      };
-      
-      console.log('发送保存课时顺序请求:', {
-        moduleId,
-        courseId,
-        lessonsCount: lessonsToSave.length,
-        requesterId: user.id
-      });
-      
-      // 调用Edge Function
-      const { data, error } = await supabase.functions.invoke('save-lessons', {
-        body: requestData
-      });
-      
-      if (error) {
-        console.error('保存课时顺序失败:', error);
-        throw error;
+
+      // 批量更新课时的order_index
+      for (const lessonUpdate of lessonsToUpdate) {
+        const { error } = await supabase
+          .from('lessons')
+          .update({ 
+            order_index: lessonUpdate.order_index,
+            updated_at: lessonUpdate.updated_at
+          })
+          .eq('id', lessonUpdate.id)
+          .eq('module_id', moduleId); // 额外的安全检查
+
+        if (error) {
+          console.error(`更新课时 ${lessonUpdate.id} 顺序失败:`, error);
+          throw error;
+        }
       }
       
-      console.log('课时顺序保存成功:', data);
+      console.log(`课时顺序保存成功，更新了 ${lessonsToUpdate.length} 个课时`);
     } catch (error) {
       console.error('保存课时顺序出错:', error);
       throw error;
