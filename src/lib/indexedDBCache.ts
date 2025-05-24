@@ -131,6 +131,8 @@ const DEFAULT_CACHE_EXPIRY = 5 * 60 * 1000; // 5分钟缓存过期时间
 
 // 自动清理过期缓存 - 添加自动清理机制
 (function setupAutoCleaning() {
+  // 暂时禁用自动清理，让缓存真正生效
+  /*
   // 启动时立即清理所有缓存
   setTimeout(() => {
     db.delete().then(() => db.open()).then(() => {
@@ -145,13 +147,14 @@ const DEFAULT_CACHE_EXPIRY = 5 * 60 * 1000; // 5分钟缓存过期时间
   }, 2000);
   
   // 原来的定时器也注释掉
-  /*
   // 设置定时器，每30分钟清理一次
   setInterval(() => {
     db.clearExpiredCache(DEFAULT_CACHE_EXPIRY);
     console.log('定时自动清理过期缓存');
   }, 30 * 60 * 1000);
   */
+  
+  console.log('IndexedDB缓存已启用，不进行启动清理');
 })();
 
 // 缓存服务API

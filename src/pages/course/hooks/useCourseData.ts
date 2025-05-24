@@ -10,49 +10,42 @@ import indexedDBCache from '@/lib/indexedDBCache';
 const fetchEnrollmentInfo = async (courseId: string, userId: string) => {
   if (!courseId || !userId) return null;
   
+  // 暂时移除IndexedDB缓存，专注React Query
+  /*
   // 尝试从IndexedDB缓存获取
   const cachedData = await indexedDBCache.getEnrollment(courseId, userId);
   if (cachedData) {
     console.log('从IndexedDB缓存返回课程注册信息');
     return cachedData;
   }
+  */
   
-  // 使用自定义重试逻辑
-  let attempts = 0;
-  const maxAttempts = 2;
-  
-  while (attempts < maxAttempts) {
-    try {
-      const { data: enrollments, error } = await supabase
-        .from('course_enrollments')
-        .select('id, progress, status')
-        .eq('user_id', userId)
-        .eq('course_id', courseId)
-        .maybeSingle();
-        
-      if (error) {
-        console.error(`获取课程注册信息失败 (尝试 ${attempts + 1}/${maxAttempts}):`, error);
-        attempts++;
-        if (attempts < maxAttempts) {
-          // 指数退避重试策略
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts)));
-          continue;
-        }
-        throw error;
-      }
+  // 简化重试逻辑，让React Query统一处理重试
+  try {
+    const { data: enrollments, error } = await supabase
+      .from('course_enrollments')
+      .select('id, progress, status')
+      .eq('user_id', userId)
+      .eq('course_id', courseId)
+      .maybeSingle();
       
-      // 保存到IndexedDB缓存
-      if (enrollments) {
-        await indexedDBCache.saveEnrollment(courseId, userId, enrollments);
-      }
-      
-      return enrollments;
-    } catch (error) {
-      if (attempts >= maxAttempts - 1) throw error;
-      attempts++;
-      // 指数退避重试
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts)));
+    if (error) {
+      console.error('获取课程注册信息失败:', error);
+      throw error;
     }
+    
+    // 暂时移除IndexedDB缓存保存
+    /*
+    // 保存到IndexedDB缓存
+    if (enrollments) {
+      await indexedDBCache.saveEnrollment(courseId, userId, enrollments);
+    }
+    */
+    
+    return enrollments;
+  } catch (error) {
+    console.error('获取课程注册信息失败:', error);
+    throw error;
   }
 };
 
@@ -61,23 +54,29 @@ const fetchCourseDetails = async (courseId: string | undefined) => {
   if (!courseId) return null;
   
   console.log('正在获取课程详情:', courseId);
+  console.time('fetchCourseDetails');
   
+  // 暂时移除IndexedDB缓存，专注React Query
+  /*
   // 尝试从IndexedDB缓存获取
   const cachedData = await indexedDBCache.getCourseDetails(courseId);
   if (cachedData) {
     console.log('从IndexedDB缓存返回课程详情');
     return cachedData;
   }
+  */
   
   try {
-    console.time('fetchCourseDetails');
     const courseDetails = await courseService.getCourseDetails(courseId);
     console.timeEnd('fetchCourseDetails');
     
+    // 暂时移除IndexedDB缓存保存
+    /*
     // 保存到IndexedDB缓存
     if (courseDetails) {
       await indexedDBCache.saveCourseDetails(courseId, courseDetails);
     }
+    */
     
     return courseDetails;
   } catch (error) {
@@ -87,21 +86,25 @@ const fetchCourseDetails = async (courseId: string | undefined) => {
   }
 };
 
-// 定义不同类型数据的缓存配置常量
+// 定义不同类型数据的缓存配置常量 - 根据优化建议更新
 const CACHE_CONFIG = {
-  // 课程详情 - 长时间缓存，因为不频繁更新
+  // 课程详情 - 优化缓存配置，减少不必要请求
   courseDetails: {
-    staleTime: 10 * 60 * 1000,  // 10分钟内保持新鲜(原为2分钟)
-    gcTime: 60 * 60 * 1000,     // 1小时内保留缓存(原为10分钟)
-    retry: 2,
-    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 10000),
+    staleTime: 5 * 60 * 1000,    // 5分钟内认为是新鲜的
+    gcTime: 30 * 60 * 1000,      // 30分钟后清理
+    retry: 1,                     // 只重试1次
+    retryDelay: 1000,            // 固定1秒延迟
+    refetchOnWindowFocus: false, // 窗口聚焦时不重新获取
   },
-  // 课程注册信息 - 短时间缓存，因为会随用户进度变化
+  // 课程注册信息 - 优化缓存配置，减少自动刷新
   enrollment: {
-    staleTime: 1 * 60 * 1000,   // 1分钟内保持新鲜(原为2分钟)
-    gcTime: 5 * 60 * 1000,      // 5分钟内保留缓存(原为10分钟)
-    retry: 2,
-    retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 10000),
+    staleTime: 2 * 60 * 1000,    // 2分钟内认为是新鲜的  
+    gcTime: 10 * 60 * 1000,      // 10分钟后清理
+    retry: 1,
+    retryDelay: 1000,
+    refetchOnWindowFocus: false,
+    // 移除自动刷新，减少不必要请求
+    // refetchInterval: user?.id ? 3 * 60 * 1000 : false,
   }
 };
 
@@ -132,17 +135,17 @@ export const useCourseData = (courseId: string | undefined) => {
     queryKey: ['enrollment', courseId, user?.id],
     queryFn: () => fetchEnrollmentInfo(courseId || '', user?.id || ''),
     enabled: !!courseId && !!user?.id,
-    ...CACHE_CONFIG.enrollment,
-    // 针对课程注册信息添加自动刷新功能
-    refetchInterval: user?.id ? 3 * 60 * 1000 : false,  // 每3分钟自动刷新一次
-    refetchOnWindowFocus: true,  // 页面获得焦点时刷新
+    ...CACHE_CONFIG.enrollment
   });
   
   // 强制刷新课程数据，清除缓存并重新获取
   const refreshCourseData = async () => {
     if (courseId) {
+      // 暂时移除IndexedDB缓存清理，专注React Query
+      /*
       // 清除IndexedDB缓存
       await indexedDBCache.clearCourseCache(courseId);
+      */
       
       // 使用 React Query 的 invalidateQueries 使缓存失效
       queryClient.invalidateQueries({ queryKey: ['courseDetails', courseId] });
@@ -222,6 +225,7 @@ export const useCourseData = (courseId: string | undefined) => {
     enrollmentStatus: enrollmentData?.status,
     findCurrentLesson,
     refreshCourseData,
-    clearCourseCache: (courseId: string) => indexedDBCache.clearCourseCache(courseId)
+    // 暂时移除IndexedDB缓存清理功能
+    // clearCourseCache: (courseId: string) => indexedDBCache.clearCourseCache(courseId)
   };
 };
