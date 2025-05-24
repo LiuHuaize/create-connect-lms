@@ -100,6 +100,9 @@ export const courseService = {
 
   // 获取课程基本信息（不包括模块和课时）
   async getCourseBasicInfo(courseId: string): Promise<Course> {
+    console.log(`获取课程基本信息: ${courseId}`);
+    console.time('getCourseBasicInfo');
+    
     const { data, error } = await supabase
       .from("courses")
       .select("*")
@@ -108,8 +111,12 @@ export const courseService = {
 
     if (error) {
       console.error('获取课程基本信息失败:', error);
+      console.timeEnd('getCourseBasicInfo');
       throw error;
     }
+    
+    console.timeEnd('getCourseBasicInfo');
+    console.log(`课程基本信息获取完成: ${data.title}`);
     
     return data as Course;
   },
@@ -128,6 +135,29 @@ export const courseService = {
     }
     
     return data as CourseModule[] || [];
+  },
+
+  // 获取课程最核心信息（用于学习页面快速加载）
+  async getCourseEssentialInfo(courseId: string): Promise<Pick<Course, 'id' | 'title' | 'description' | 'cover_image' | 'status' | 'author_id'>> {
+    console.log(`获取课程核心信息（最小化）: ${courseId}`);
+    console.time('getCourseEssentialInfo');
+    
+    const { data, error } = await supabase
+      .from("courses")
+      .select("id, title, description, cover_image, status, author_id")
+      .eq("id", courseId)
+      .single();
+
+    if (error) {
+      console.error('获取课程核心信息失败:', error);
+      console.timeEnd('getCourseEssentialInfo');
+      throw error;
+    }
+    
+    console.timeEnd('getCourseEssentialInfo');
+    console.log(`课程核心信息获取完成: ${data.title}`);
+    
+    return data as Pick<Course, 'id' | 'title' | 'description' | 'cover_image' | 'status' | 'author_id'>;
   },
 
   // 获取单个模块的所有课时
@@ -158,10 +188,14 @@ export const courseService = {
       console.log(`开始获取课程详情 (优化版本): ${courseId}`);
       
       // 获取课程基本信息
+      console.time('getCourseBasicInfo-stage');
       const courseData = await this.getCourseBasicInfo(courseId);
+      console.timeEnd('getCourseBasicInfo-stage');
       
       // 获取课程模块 - 不包含课时，先获取模块结构
+      console.time('getCourseModules-stage');
       const modulesData = await this.getCourseModules(courseId);
+      console.timeEnd('getCourseModules-stage');
 
       // 如果没有模块，直接返回课程信息
       if (!modulesData || modulesData.length === 0) {
@@ -179,7 +213,9 @@ export const courseService = {
       console.log(`批量获取 ${moduleIds.length} 个模块的课时数据`);
       
       // 2. 批量获取所有课时
+      console.time('getModuleLessonsBatch-stage');
       const allLessonsByModuleId = await this.getModuleLessonsBatch(moduleIds);
+      console.timeEnd('getModuleLessonsBatch-stage');
       
       // 3. 将课时数据分配给相应的模块
       const modulesWithLessons = modulesData.map(module => {
@@ -204,17 +240,22 @@ export const courseService = {
   },
 
   // 优化版本：批量获取模块的课时
+  // 批量获取多个模块的课时（优化查询性能：只获取必要字段）
   async getModuleLessonsBatch(moduleIds: string[]): Promise<Record<string, Lesson[]>> {
     if (!moduleIds.length) return {};
     
+    console.log(`批量获取 ${moduleIds.length} 个模块的课时（优化版）`);
+    console.time('getModuleLessonsBatch');
+    
     const { data, error } = await supabase
       .from("lessons")
-      .select("*")
+      .select("id, title, type, order_index, module_id, content, video_file_path, bilibili_url")
       .in("module_id", moduleIds)
       .order("order_index");
       
     if (error) {
       console.error(`批量获取模块课时失败:`, error);
+      console.timeEnd('getModuleLessonsBatch');
       throw error;
     }
     
@@ -236,6 +277,9 @@ export const courseService = {
         lessonsByModule[moduleId].sort((a, b) => a.order_index - b.order_index);
       });
     }
+    
+    console.timeEnd('getModuleLessonsBatch');
+    console.log(`课时批量获取完成，共 ${data?.length || 0} 个课时`);
     
     return lessonsByModule;
   },
@@ -1148,4 +1192,56 @@ export const courseService = {
       return this.getCourseDetails(courseId);
     }
   },
+
+  // 性能测试：比较优化前后的查询效果
+  async testQueryOptimization(courseId: string): Promise<{
+    traditional: { time: number; dataSize: number };
+    optimized: { time: number; dataSize: number };
+    improvement: { timeImprovement: string; dataSizeReduction: string };
+  }> {
+    console.log('开始测试查询优化效果...');
+    
+    // 测试传统查询（select *）
+    console.time('traditional-query');
+    const traditionalStart = Date.now();
+    const { data: traditionalData } = await supabase
+      .from("lessons")
+      .select("*")
+      .eq("module_id", "test");
+    const traditionalEnd = Date.now();
+    console.timeEnd('traditional-query');
+    
+    // 测试优化查询（只选择必要字段）
+    console.time('optimized-query');
+    const optimizedStart = Date.now();
+    const { data: optimizedData } = await supabase
+      .from("lessons")
+      .select("id, title, type, order_index, module_id, content, video_file_path, bilibili_url")
+      .eq("module_id", "test");
+    const optimizedEnd = Date.now();
+    console.timeEnd('optimized-query');
+    
+    // 计算数据大小（粗略估算）
+    const traditionalSize = JSON.stringify(traditionalData || []).length;
+    const optimizedSize = JSON.stringify(optimizedData || []).length;
+    
+    const traditionalTime = traditionalEnd - traditionalStart;
+    const optimizedTime = optimizedEnd - optimizedStart;
+    
+    const timeImprovement = traditionalTime > 0 
+      ? `${((1 - optimizedTime / traditionalTime) * 100).toFixed(1)}%` 
+      : '无显著差异';
+    const dataSizeReduction = traditionalSize > 0 
+      ? `${((1 - optimizedSize / traditionalSize) * 100).toFixed(1)}%` 
+      : '无显著差异';
+    
+    const result = {
+      traditional: { time: traditionalTime, dataSize: traditionalSize },
+      optimized: { time: optimizedTime, dataSize: optimizedSize },
+      improvement: { timeImprovement, dataSizeReduction }
+    };
+    
+    console.log('查询优化测试结果:', result);
+    return result;
+  }
 };
