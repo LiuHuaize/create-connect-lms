@@ -277,6 +277,7 @@ const ResumableVideoUploader: React.FC<ResumableVideoUploaderProps> = ({
         </div>
         <div className="mt-2 flex justify-end">
           <Button 
+            type="button"
             variant="destructive" 
             size="sm" 
             onClick={handleRemove}
@@ -338,6 +339,7 @@ const ResumableVideoUploader: React.FC<ResumableVideoUploaderProps> = ({
           <div className="flex justify-center gap-2">
             {uploading && !paused && (
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={pauseUpload}
@@ -350,6 +352,7 @@ const ResumableVideoUploader: React.FC<ResumableVideoUploaderProps> = ({
             
             {paused && (
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={resumeUpload}
@@ -361,6 +364,7 @@ const ResumableVideoUploader: React.FC<ResumableVideoUploaderProps> = ({
             )}
             
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={cancelUpload}

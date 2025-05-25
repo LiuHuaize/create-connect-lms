@@ -109,6 +109,7 @@
     "@lexical/selection": "^0.29.0",
     "@lexical/table": "^0.29.0",
     "@tailwindcss/typography": "^0.5.15",
+    "@tanstack/react-query-devtools": "^5.77.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.5.5",
