@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 // 导入拆分后的钩子
 import { useCourseHistory } from './useCourseHistory';
 import { useCourseSave } from './useCourseSave';
-import { useCourseAutoSave } from './useCourseAutoSave';
+
 import { useLocalBackup } from './useLocalBackup';
 import { useCourseBasics } from './useCourseBasics';
 import { useCourseModules } from './useCourseModules';
@@ -22,9 +22,7 @@ export const useCourseCreator = () => {
   const location = useLocation();
   const courseId = new URLSearchParams(location.search).get('id');
   
-  // 前一个状态的引用，用于状态比较
-  const previousCourseRef = useRef(null);
-  const previousModulesRef = useRef(null);
+
   
   // 使用课程基本信息Hook
   const {
@@ -88,8 +86,6 @@ export const useCourseCreator = () => {
   } = useCourseSave({
     course,
     modules,
-    previousCourseRef,
-    previousModulesRef,
     onCourseSaved: (savedCourse, savedModules) => {
       if (!course.id && savedCourse.id) {
         setCourse({ ...course, id: savedCourse.id });
@@ -97,26 +93,7 @@ export const useCourseCreator = () => {
     }
   });
   
-  // 使用自动保存Hook
-  const {
-    isAutoSaving,
-    lastSaved,
-    autoSaveEnabled,
-    setAutoSaveEnabled,
-    autoSaveStatus,
-    retryCount,
-    timeUntilNextSave
-  } = useCourseAutoSave({
-    courseId,
-    course,
-    modules,
-    previousCourseRef,
-    previousModulesRef,
-    isLoading: false,
-    moduleDataLoaded: true,
-    saveCourse,
-    enabled: false // 默认关闭自动保存
-  });
+
   
   // 使用本地备份Hook (只提供API，不使用其内部状态，因为我们已在其他Hook中使用)
   const {
@@ -199,20 +176,11 @@ export const useCourseCreator = () => {
     window.open(`/course/${course.id}?preview=true`, '_blank');
   };
   
-  // 检查是否有未保存的更改
+  // 检查是否有未保存的更改 - 简化版本
   const hasUnsavedChanges = () => {
-    if (!previousCourseRef.current || !previousModulesRef.current) return false;
-    
-    // 这里简化了比较逻辑
-    return JSON.stringify(course) !== JSON.stringify(previousCourseRef.current) ||
-           JSON.stringify(modules) !== JSON.stringify(previousModulesRef.current);
+    // 简化逻辑：如果课程有标题但没有ID，认为有未保存的更改
+    return course.title.trim() !== '' && !course.id;
   };
-  
-  // 更新引用，用于比较是否有更改
-  if (course && modules) {
-    previousCourseRef.current = { ...course };
-    previousModulesRef.current = [...modules];
-  }
   
   return {
     // 基本状态
@@ -236,14 +204,7 @@ export const useCourseCreator = () => {
     undo,
     redo,
     
-    // 自动保存状态和方法
-    isAutoSaving,
-    lastSaved,
-    autoSaveEnabled,
-    setAutoSaveEnabled,
-    autoSaveStatus,
-    retryCount,
-    timeUntilNextSave,
+
     
     // 本地备份状态和方法
     hasBackup,

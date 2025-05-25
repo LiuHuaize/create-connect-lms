@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // 存储桶名称常量
-export const COURSE_ASSETS_BUCKET = 'Course Assets';
+export const COURSE_ASSETS_BUCKET = 'course-assets';
 export const COURSE_VIDEOS_BUCKET = 'course_videos';
 
 /**

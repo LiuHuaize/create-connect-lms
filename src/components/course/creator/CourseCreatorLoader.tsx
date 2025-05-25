@@ -4,7 +4,7 @@ import { useCourseDataLoader } from '@/hooks/useCourseDataLoader';
 import { Course, CourseModule } from '@/types/course';
 import { useCourseCreator } from '@/hooks/useCourseCreator';
 import CourseLoadingIndicator from './CourseLoadingIndicator';
-import AutoSaveStatus from './AutoSaveStatus';
+
 import { toast } from 'sonner';
 
 interface CourseCreatorLoaderProps {
@@ -25,13 +25,6 @@ const CourseCreatorLoader: React.FC<CourseCreatorLoaderProps> = ({ children }) =
   const {
     setCourse,
     setModules,
-    isAutoSaving,
-    lastSaved,
-    autoSaveEnabled,
-    setAutoSaveEnabled,
-    autoSaveStatus,
-    retryCount,
-    timeUntilNextSave,
   } = useCourseCreator();
   
   // 使用优化的课程数据加载器
@@ -97,18 +90,7 @@ const CourseCreatorLoader: React.FC<CourseCreatorLoaderProps> = ({ children }) =
         loadingMessage={loadingMessage}
       />
       
-      {/* 自动保存状态显示 */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <AutoSaveStatus
-          autoSaveEnabled={autoSaveEnabled}
-          setAutoSaveEnabled={setAutoSaveEnabled}
-          isAutoSaving={isAutoSaving}
-          lastSaved={lastSaved}
-          autoSaveStatus={autoSaveStatus}
-          retryCount={retryCount}
-          timeUntilNextSave={timeUntilNextSave}
-        />
-      </div>
+
       
       {/* 渲染子组件 */}
       {children}

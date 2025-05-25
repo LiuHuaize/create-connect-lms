@@ -14,8 +14,6 @@ export type SaveStatus = 'idle' | 'saving' | 'success' | 'error';
 interface UseCourseSaveProps {
   course: Course;
   modules: CourseModule[];
-  previousCourseRef: React.MutableRefObject<Course | null>;
-  previousModulesRef: React.MutableRefObject<CourseModule[] | null>;
   onCourseSaved?: (savedCourse: Course, savedModules: CourseModule[]) => void;
 }
 
@@ -34,8 +32,6 @@ interface UseCourseSaveResult {
 export const useCourseSave = ({
   course,
   modules,
-  previousCourseRef,
-  previousModulesRef,
   onCourseSaved
 }: UseCourseSaveProps): UseCourseSaveResult => {
   // 保存状态
@@ -242,9 +238,7 @@ export const useCourseSave = ({
         onCourseSaved(savedCourse, modules);
       }
       
-      // 更新引用，用于比较是否有更改
-      previousCourseRef.current = { ...savedCourse };
-      previousModulesRef.current = [...modules];
+
       
       return savedCourse.id;
     } catch (error) {

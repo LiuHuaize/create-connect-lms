@@ -15,15 +15,13 @@ interface CourseHeaderProps {
   modules: CourseModule[];
   handleBackToSelection: () => void;
   handleSaveCourse: () => Promise<string | undefined>;
-  isAutoSaving?: boolean;
-  lastSaved?: Date | null;
+
   setCourse?: React.Dispatch<React.SetStateAction<Course>>;
   canUndo?: boolean;
   canRedo?: boolean;
   handleUndo?: () => void;
   handleRedo?: () => void;
-  autoSaveEnabled?: boolean;
-  setAutoSaveEnabled?: React.Dispatch<React.SetStateAction<boolean>>;
+
 }
 
 const CourseHeader: React.FC<CourseHeaderProps> = ({
@@ -31,15 +29,11 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
   modules,
   handleBackToSelection,
   handleSaveCourse,
-  isAutoSaving = false,
-  lastSaved = null,
   setCourse,
   canUndo = false,
   canRedo = false,
   handleUndo = () => {},
-  handleRedo = () => {},
-  autoSaveEnabled = false,
-  setAutoSaveEnabled
+  handleRedo = () => {}
 }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -191,23 +185,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
     }
   };
 
-  // 格式化上次保存时间
-  const getLastSavedText = () => {
-    if (!lastSaved) return '';
-    
-    const now = new Date();
-    const diffMs = now.getTime() - lastSaved.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) {
-      return '刚刚保存';
-    } else if (diffMins < 60) {
-      return `${diffMins}分钟前保存`;
-    } else {
-      const hours = Math.floor(diffMins / 60);
-      return `${hours}小时前保存`;
-    }
-  };
+
 
   // 判断当前是否已发布
   const isPublished = course.status === 'published';
@@ -253,41 +231,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
             </Button>
           </div>
 
-          {/* 自动保存开关 */}
-          {setAutoSaveEnabled && (
-            <div className="flex items-center space-x-2 mr-3">
-              <Switch
-                id="auto-save"
-                checked={autoSaveEnabled}
-                onCheckedChange={setAutoSaveEnabled}
-              />
-              <Label htmlFor="auto-save" className="text-sm cursor-pointer">
-                自动保存
-              </Label>
-            </div>
-          )}
 
-          {/* 自动保存状态指示器 */}
-          {course.id && (
-            <div className="flex items-center mr-3 text-sm text-gray-500">
-              {isAutoSaving ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin text-gray-400" />
-                  <span>自动保存中...</span>
-                </>
-              ) : lastSaved ? (
-                <>
-                  <Check className="h-3 w-3 mr-1 text-green-500" />
-                  <span>{getLastSavedText()}</span>
-                </>
-              ) : (
-                <>
-                  <Clock className="h-3 w-3 mr-1 text-gray-400" />
-                  <span>未保存</span>
-                </>
-              )}
-            </div>
-          )}
           
           <Button 
             variant="outline" 

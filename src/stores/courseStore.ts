@@ -20,12 +20,9 @@ interface CourseCreatorState {
   isSaving: boolean;
   lastSavedTime: Date | null;
   
-  // 历史记录和自动保存状态
+  // 历史记录状态
   canUndo: boolean;
   canRedo: boolean;
-  autoSaveEnabled: boolean;
-  isAutoSaving: boolean;
-  lastSaved: Date | null;
   
   // 本地备份状态
   hasBackup: boolean;
@@ -50,8 +47,7 @@ interface CourseCreatorState {
   undo: () => void;
   redo: () => void;
   
-  // 自动保存和备份操作
-  toggleAutoSave: (enabled: boolean) => void;
+  // 备份操作
   saveLocalBackup: () => void;
   restoreFromBackup: () => { course: Course; modules: CourseModule[] } | null;
   clearBackup: () => void;
@@ -82,12 +78,9 @@ export const useCourseStore = create<CourseCreatorState>((set, get) => ({
   isSaving: false,
   lastSavedTime: null,
   
-  // 历史记录和自动保存状态
+  // 历史记录状态
   canUndo: false,
   canRedo: false,
-  autoSaveEnabled: false,
-  isAutoSaving: false,
-  lastSaved: null,
   
   // 本地备份状态
   hasBackup: false,
@@ -235,10 +228,7 @@ export const useCourseStore = create<CourseCreatorState>((set, get) => ({
     console.log('Redo操作待实现');
   },
   
-  // 自动保存和备份 - 简化实现，后续完善
-  toggleAutoSave: (enabled) => {
-    set({ autoSaveEnabled: enabled });
-  },
+
   
   saveLocalBackup: () => {
     const { course, modules } = get();
