@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthContextType, UserRole } from '@/types/auth';
@@ -33,18 +33,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // 监听认证状态变化，处理缓存失效
+  // 使用ref来跟踪上一次的用户状态，避免重复操作
+  const prevUserRef = useRef<User | null>(null);
+  
+  // 监听认证状态变化，处理缓存失效 - 优化版本
   useEffect(() => {
+    // 只有在用户状态真正发生变化时才执行操作
+    if (prevUserRef.current === user) {
+      return;
+    }
+    
     // 处理用户登录
-    if (user) {
+    if (user && !prevUserRef.current) {
       console.log('用户已登录，刷新查询缓存');
       queryClient.invalidateQueries({ queryKey: ['enrolledCourses'] });
       queryClient.invalidateQueries({ queryKey: ['courses'] });
-    } else {
+    } else if (!user && prevUserRef.current) {
       // 用户登出，清除缓存
       console.log('用户已登出，清除查询缓存');
       queryClient.clear();
     }
+    
+    // 更新上一次的用户状态
+    prevUserRef.current = user;
   }, [user, queryClient]);
   
   // 包装signOut方法，确保清理React Query缓存

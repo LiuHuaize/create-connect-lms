@@ -2,20 +2,29 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// 使用环境变量或开发环境下的代理
-const isDev = import.meta.env.DEV;
-// 使用完整URL而不是相对路径
-const SUPABASE_URL = isDev 
-  ? (typeof window !== 'undefined' ? `${window.location.origin}/supabase-proxy` : 'http://localhost:8080/supabase-proxy')
-  : "https://ooyklqqgnphynyrziqyh.supabase.co";
+// 根据环境决定是否使用代理
+const isDevelopment = import.meta.env.DEV;
+
+// 动态获取当前端口并构建代理URL
+const getCurrentPort = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.port || '8080';
+  }
+  return '8080';
+};
+
+const SUPABASE_URL = isDevelopment 
+  ? `http://localhost:${getCurrentPort()}/supabase-proxy`  // 开发环境使用动态端口代理
+  : "https://ooyklqqgnphynyrziqyh.supabase.co";  // 生产环境直接连接
+
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9veWtscXFnbnBoeW55cnppcXloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1NzkyNDgsImV4cCI6MjA1OTE1NTI0OH0.d4Awen-9PnzlZTP51TpjjBkhrI3Dog4YELcbGlQs8jE";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-console.log(`Using Supabase URL: ${SUPABASE_URL} (${isDev ? 'development proxy' : 'production'})`);
+console.log(`Using Supabase URL: ${SUPABASE_URL} ${isDevelopment ? '(via proxy)' : '(direct connection)'}`);
 
-// 更详细的客户端配置
+// 客户端配置
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
@@ -27,24 +36,22 @@ export const supabase = createClient<Database>(
     },
     global: {
       headers: {
-        'x-application-name': 'create-connect-lms'
+        'x-application-name': 'create-connect-lms',
+        // 开发环境下的额外配置
+        ...(isDevelopment && {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        })
       },
-      // 修复AbortController冲突：只在没有外部signal时创建超时机制
-      fetch: (url, options) => {
-        // 如果React Query或其他库已经提供了signal，直接使用
-        if (options?.signal) {
-          return fetch(url, options);
-        }
-        
-        // 只在没有外部signal时创建我们自己的超时机制
-        const controller = new AbortController();
+      // 开发环境下增加超时时间
+      fetch: (url: RequestInfo | URL, options: RequestInit = {}) => {
         const timeoutId = setTimeout(() => {
-          controller.abort();
-        }, 30000);
+          console.warn(`Request timeout for ${url}`);
+        }, isDevelopment ? 30000 : 10000);
         
         return fetch(url, {
           ...options,
-          signal: controller.signal
+          signal: AbortSignal.timeout(isDevelopment ? 30000 : 10000)
         }).finally(() => {
           clearTimeout(timeoutId);
         });
@@ -52,6 +59,12 @@ export const supabase = createClient<Database>(
     },
     db: {
       schema: 'public'
+    },
+    // 减少实时连接的事件频率
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
     }
   }
 );

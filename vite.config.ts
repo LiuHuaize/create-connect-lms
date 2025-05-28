@@ -12,14 +12,54 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     // 添加开发服务器的historyApiFallback配置，确保SPA路由正常工作
     historyApiFallback: true,
-    // 添加代理配置，解决CORS问题
+    // 改进代理配置，解决CORS问题
     proxy: {
       '/supabase-proxy': {
         target: 'https://ooyklqqgnphynyrziqyh.supabase.co',
         changeOrigin: true,
         secure: true,
-        rewrite: (path) => path.replace(/^\/supabase-proxy/, '')
+        rewrite: (path) => path.replace(/^\/supabase-proxy/, ''),
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.error('Proxy error:', err);
+            console.error('Request URL:', req.url);
+            res.writeHead(500, {
+              'Content-Type': 'text/plain',
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type,Authorization,apikey'
+            });
+            res.end('Proxy server error');
+          });
+
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`Proxying request: ${req.method} ${req.url} -> ${proxyReq.path}`);
+            // 添加必要的头
+            proxyReq.setHeader('Origin', 'https://ooyklqqgnphynyrziqyh.supabase.co');
+            proxyReq.setHeader('Referer', 'https://ooyklqqgnphynyrziqyh.supabase.co');
+          });
+
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log(`Response from ${req.url}: ${proxyRes.statusCode}`);
+            // 添加 CORS 头
+            proxyRes.headers['access-control-allow-origin'] = '*';
+            proxyRes.headers['access-control-allow-methods'] = 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS';
+            proxyRes.headers['access-control-allow-headers'] = 'Content-Type,Authorization,apikey,x-client-info,x-application-name';
+            proxyRes.headers['access-control-expose-headers'] = 'content-range,x-supabase-api-version';
+          });
+        },
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type,Authorization,apikey,x-client-info,x-application-name'
+        }
       }
+    },
+    // 添加 CORS 配置
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'apikey', 'x-client-info', 'x-application-name']
     }
   },
   plugins: [

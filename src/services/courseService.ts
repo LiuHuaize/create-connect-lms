@@ -254,11 +254,12 @@ export const courseService = {
     const timerId = `getModuleLessonsBatch_${moduleIds.join(',')}_${Date.now()}`;
     console.time(timerId);
     
+    // 优化：只选择必要的字段，利用新建的索引
     const { data, error } = await supabase
       .from("lessons")
       .select("id, title, type, order_index, module_id, content, video_file_path, bilibili_url")
       .in("module_id", moduleIds)
-      .order("order_index");
+      .order("module_id, order_index"); // 优化排序，利用复合索引
       
     if (error) {
       console.error(`批量获取模块课时失败:`, error);
@@ -266,22 +267,17 @@ export const courseService = {
       throw error;
     }
     
-    // 按模块ID组织课时
+    // 按模块ID组织课时 - 优化算法，减少排序开销
     const lessonsByModule: Record<string, Lesson[]> = {};
     moduleIds.forEach(id => lessonsByModule[id] = []);
     
-    // 转换并分组课时
+    // 转换并分组课时 - 由于查询已排序，无需再次排序
     if (data && data.length > 0) {
       data.forEach(lesson => {
         const moduleId = lesson.module_id;
         if (moduleId && lessonsByModule[moduleId]) {
           lessonsByModule[moduleId].push(convertDbLessonToLesson(lesson));
         }
-      });
-      
-      // 确保每个模块的课时都按顺序排列
-      Object.keys(lessonsByModule).forEach(moduleId => {
-        lessonsByModule[moduleId].sort((a, b) => a.order_index - b.order_index);
       });
     }
     
