@@ -163,34 +163,16 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
   const [currentEditingLesson, setCurrentEditingLesson] = useState<Lesson | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
-  // Debounced save function for title and description
-  const debouncedSaveFrameDetails = useCallback(
-    debounce((newFrameContent: FrameLessonContent) => {
-      if (onCourseDataSaved) {
-        const frameLessonToSave: Lesson = {
-          ...lesson,
-          content: newFrameContent,
-        };
-        onCourseDataSaved(frameLessonToSave)
-          .then(() => toast.success('框架信息已自动保存'))
-          .catch(() => toast.error('框架信息自动保存失败'));
-      }
-    }, 1000),
-    [lesson, onCourseDataSaved] // Dependencies for useCallback
-  );
-  
   const handleDescriptionChange = (value: string) => {
     const newContent = { ...content, description: value };
     setContent(newContent);
-    onSave(newContent); // Inform parent about content change
-    debouncedSaveFrameDetails(newContent);
+    onSave(newContent); // 只更新父组件状态，不自动保存到数据库
   };
 
   const handleTitleChange = (value: string) => {
     const newContent = { ...content, title: value };
     setContent(newContent);
-    onSave(newContent); // Inform parent about content change
-    debouncedSaveFrameDetails(newContent);
+    onSave(newContent); // 只更新父组件状态，不自动保存到数据库
   };
   
   const saveFrameToDatabase = useCallback(async (newFrameContent: FrameLessonContent, successMessage: string) => {
@@ -230,10 +212,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const newContent = { ...content, lessons: newLessons };
     
     setContent(newContent);
-    onSave(newContent); // Update parent's state (LessonEditor for Frame)
-    
-    // Save the whole frame lesson
-    saveFrameToDatabase(newContent, `已添加新课时: ${newLesson.title}`);
+    onSave(newContent); // 只更新父组件状态，不自动保存
   };
 
   const removeLesson = (lessonId: string) => {
@@ -245,8 +224,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     
     const newContent = { ...content, lessons: newLessons };
     setContent(newContent);
-    onSave(newContent);
-    saveFrameToDatabase(newContent, `已删除课时: "${lessonTitle}"`);
+    onSave(newContent); // 只更新父组件状态，不自动保存
   };
   
   const updateLessonTitle = (lessonId: string, newTitle: string) => {
@@ -255,10 +233,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     );
     const newContent = { ...content, lessons: newLessons };
     setContent(newContent);
-    onSave(newContent);
-    // Title changes are often intermediate, save themまとめて
-    // Consider debouncing this save or saving on blur/explicit action
-    saveFrameToDatabase(newContent, `课时 "${newTitle}" 标题已更新`);
+    onSave(newContent); // 只更新父组件状态，不自动保存
   };
 
   const moveLessonUp = (index: number) => {
@@ -268,8 +243,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const reorderedLessons = newLessons.map((l, idx) => ({ ...l, order_index: idx }));
     const newContent = { ...content, lessons: reorderedLessons };
     setContent(newContent);
-    onSave(newContent);
-    saveFrameToDatabase(newContent, '课时顺序已更新');
+    onSave(newContent); // 只更新父组件状态，不自动保存
   };
 
   const moveLessonDown = (index: number) => {
@@ -279,8 +253,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     const reorderedLessons = newLessons.map((l, idx) => ({ ...l, order_index: idx }));
     const newContent = { ...content, lessons: reorderedLessons };
     setContent(newContent);
-    onSave(newContent);
-    saveFrameToDatabase(newContent, '课时顺序已更新');
+    onSave(newContent); // 只更新父组件状态，不自动保存
   };
 
   const editLesson = (lessonToEdit: Lesson) => {
@@ -295,10 +268,7 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
       );
       const newContent = { ...content, lessons: newLessons };
       setContent(newContent);
-      onSave(newContent); 
-      // Here, we assume the sub-lesson's content is finalized by the sub-editor.
-      // We now save the entire frame.
-      saveFrameToDatabase(newContent, `子课时 "${updatedSubLesson.title}" 已更新并关闭编辑器`);
+      onSave(newContent); // 只更新父组件状态，不自动保存
     }
     setCurrentEditingLesson(null);
   };
@@ -312,8 +282,6 @@ const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, o
     setContent(newFrameContent);
     // Propagate the change upwards immediately for real-time updates or auto-save features in parent
     onSave(newFrameContent); 
-    // Optionally, debounce a full save of the frame here if needed for auto-save
-    // debouncedSaveFrameDetails(newFrameContent); 
   };
 
   // This is called when the "Save" button INSIDE the sub-lesson's editor is clicked

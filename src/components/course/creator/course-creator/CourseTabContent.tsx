@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useIncrementalSave } from '@/hooks/useIncrementalSave';
 
 // Lazy loaded components
 const LessonEditor = React.lazy(() => import('@/components/course/LessonEditor'));
@@ -52,7 +53,8 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
   onEditorFullscreenChange,
   onSaveCourse,
 }) => {
-  const updateLesson = (moduleId: string, lessonId: string, updatedLesson: Lesson | null) => {
+  const { saveLesson } = useIncrementalSave({ courseId: course.id });
+  const updateLesson = async (moduleId: string, lessonId: string, updatedLesson: Lesson | null) => {
     if (!updatedLesson) {
       setCurrentLesson(null);
       return;
@@ -61,45 +63,23 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
     console.log(`CourseTabContent - 更新课时: ${lessonId}`, updatedLesson);
     console.log(`课时标题更新: 从 "${modules.find(m => m.id === moduleId)?.lessons.find(l => l.id === lessonId)?.title}" 到 "${updatedLesson.title}"`);
     
-    // 创建模块的深拷贝，确保状态更新正确触发
+    // 更新本地状态
     const updatedModules = modules.map(module => {
       if (module.id === moduleId) {
-        // 创建课时的深拷贝
         const updatedLessons = module.lessons.map(lesson => 
           lesson.id === lessonId ? { ...updatedLesson } : lesson
         );
-        
-        return { 
-          ...module, 
-          lessons: updatedLessons
-        };
+        return { ...module, lessons: updatedLessons };
       }
       return module;
     });
     
-    // 更新模块状态
     setModules(updatedModules);
     
-    // 在状态更新后，立即保存到数据库
-    if (onSaveCourse) {
-      // 使用setTimeout确保状态已更新
-      setTimeout(async () => {
-        try {
-          console.log('正在将更新后的课时保存到数据库:', updatedLesson);
-          await onSaveCourse(updatedLesson);
-          console.log('课时已成功保存到数据库');
-        } catch (error) {
-          console.error('保存课时到数据库失败:', error);
-          // 错误已在onSaveCourse内部处理
-        }
-      }, 0);
-    }
+    // 使用增量保存，只保存这个课时
+    await saveLesson(updatedLesson);
     
-    // 重置当前课时
     setCurrentLesson(null);
-    
-    // 显示成功通知
-    toast.success(`课时 "${updatedLesson.title}" 已更新`, { duration: 2000 });
   };
   
   // Add a new handler for content changes
@@ -169,13 +149,13 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
             
             <LessonEditor 
               lesson={currentLesson}
-              onSave={(updatedLesson) => {
+              onSave={async (updatedLesson) => {
                 const moduleId = modules.find(m => 
                   m.lessons.some(l => l.id === currentLesson.id)
                 )?.id;
                 
                 if (moduleId) {
-                  updateLesson(moduleId, currentLesson.id, updatedLesson);
+                  await updateLesson(moduleId, currentLesson.id, updatedLesson);
                 }
               }}
               onContentChange={(newContent) => {

@@ -198,26 +198,13 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
       });
     }
     
-    // 首先更新课程内容的状态
+    // 只使用增量保存
     onSave(updatedLesson);
     
-    // 然后如果提供了数据库保存回调，则调用它保存到数据库
-    // 直接传递更新后的课时对象，确保保存的是最新数据
-    if (onCourseDataSaved) {
-      try {
-        const toastId = toast.loading('正在保存课程到数据库...');
-        console.log('即将保存到数据库的课时数据:', JSON.stringify(updatedLesson));
-        await onCourseDataSaved(updatedLesson);
-        toast.success('保存成功', { id: toastId });
-        form.reset(data); // 重置表单状态，避免意外的isDirty状态
-        
-        // 保存成功后，返回到课程结构页面
-        onSave(null);
-      } catch (error) {
-        console.error('保存失败:', error);
-        toast.error(`保存失败: ${error instanceof Error ? error.message : '未知错误'}`);
-      }
-    }
+    // 显示保存成功消息并返回
+    toast.success('课时已保存');
+    form.reset(data);
+    onSave(null); // 返回到课程结构页面
   };
   
   // 处理Lexical编辑器内容变化
@@ -923,7 +910,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
               取消
             </Button>
             <Button type="submit" className="bg-connect-blue hover:bg-blue-600">
-              保存课程
+              保存课时
             </Button>
           </div>
         </form>

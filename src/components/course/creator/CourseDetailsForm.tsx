@@ -6,6 +6,7 @@ import { Course } from '@/types/course';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useIncrementalSave } from '@/hooks/useIncrementalSave';
 
 interface CourseDetailsFormProps {
   course: Course;
@@ -33,6 +34,9 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
   const [customCategory, setCustomCategory] = useState('');
   const [selectedCategoryDisplay, setSelectedCategoryDisplay] = useState<string>('');
   const [courseCategories, setCourseCategories] = useState(DEFAULT_CATEGORIES);
+  
+  // 增量保存钩子
+  const { saveCourseInfo, isSaving } = useIncrementalSave({ courseId: course.id });
 
   // 更新分类显示值
   useEffect(() => {
@@ -101,9 +105,23 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
     }
   };
 
+  // 处理保存课程基础信息
+  const handleSaveCourseInfo = async () => {
+    await saveCourseInfo(course);
+  };
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">课程基本信息</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-gray-900">课程基本信息</h2>
+        <Button 
+          onClick={handleSaveCourseInfo}
+          disabled={isSaving}
+          className="ml-auto"
+        >
+          {isSaving ? '保存中...' : '保存基础信息'}
+        </Button>
+      </div>
       
       <div className="space-y-4">
         <div>
