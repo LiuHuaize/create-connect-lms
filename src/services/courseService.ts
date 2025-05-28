@@ -101,7 +101,8 @@ export const courseService = {
   // 获取课程基本信息（不包括模块和课时）
   async getCourseBasicInfo(courseId: string): Promise<Course> {
     console.log(`获取课程基本信息: ${courseId}`);
-    console.time('getCourseBasicInfo');
+    const timerId = `getCourseBasicInfo_${courseId}_${Date.now()}`;
+    console.time(timerId);
     
     const { data, error } = await supabase
       .from("courses")
@@ -111,11 +112,11 @@ export const courseService = {
 
     if (error) {
       console.error('获取课程基本信息失败:', error);
-      console.timeEnd('getCourseBasicInfo');
+      console.timeEnd(timerId);
       throw error;
     }
     
-    console.timeEnd('getCourseBasicInfo');
+    console.timeEnd(timerId);
     console.log(`课程基本信息获取完成: ${data.title}`);
     
     return data as Course;
@@ -140,7 +141,8 @@ export const courseService = {
   // 获取课程最核心信息（用于学习页面快速加载）
   async getCourseEssentialInfo(courseId: string): Promise<Pick<Course, 'id' | 'title' | 'description' | 'cover_image' | 'status' | 'author_id'>> {
     console.log(`获取课程核心信息（最小化）: ${courseId}`);
-    console.time('getCourseEssentialInfo');
+    const timerId = `getCourseEssentialInfo_${courseId}_${Date.now()}`;
+    console.time(timerId);
     
     const { data, error } = await supabase
       .from("courses")
@@ -150,11 +152,11 @@ export const courseService = {
 
     if (error) {
       console.error('获取课程核心信息失败:', error);
-      console.timeEnd('getCourseEssentialInfo');
+      console.timeEnd(timerId);
       throw error;
     }
     
-    console.timeEnd('getCourseEssentialInfo');
+    console.timeEnd(timerId);
     console.log(`课程核心信息获取完成: ${data.title}`);
     
     return data as Pick<Course, 'id' | 'title' | 'description' | 'cover_image' | 'status' | 'author_id'>;
@@ -184,22 +186,25 @@ export const courseService = {
   // 获取单个课程详情（包括模块和课时）- 原始完整加载方法
   async getCourseDetails(courseId: string): Promise<Course & { modules?: CourseModule[] }> {
     try {
-      console.time('getCourseDetails'); // 性能计时开始
+      const timerId = `getCourseDetails_${courseId}_${Date.now()}`;
+      console.time(timerId); // 性能计时开始
       console.log(`开始获取课程详情 (优化版本): ${courseId}`);
       
       // 获取课程基本信息
-      console.time('getCourseBasicInfo-stage');
+      const stageTimer1 = `getCourseBasicInfo-stage_${courseId}_${Date.now()}`;
+      console.time(stageTimer1);
       const courseData = await this.getCourseBasicInfo(courseId);
-      console.timeEnd('getCourseBasicInfo-stage');
+      console.timeEnd(stageTimer1);
       
       // 获取课程模块 - 不包含课时，先获取模块结构
-      console.time('getCourseModules-stage');
+      const stageTimer2 = `getCourseModules-stage_${courseId}_${Date.now()}`;
+      console.time(stageTimer2);
       const modulesData = await this.getCourseModules(courseId);
-      console.timeEnd('getCourseModules-stage');
+      console.timeEnd(stageTimer2);
 
       // 如果没有模块，直接返回课程信息
       if (!modulesData || modulesData.length === 0) {
-        console.timeEnd('getCourseDetails');
+        console.timeEnd(timerId);
         console.log(`课程 ${courseId} 没有模块，直接返回`);
         return {
           ...courseData,
@@ -213,9 +218,10 @@ export const courseService = {
       console.log(`批量获取 ${moduleIds.length} 个模块的课时数据`);
       
       // 2. 批量获取所有课时
-      console.time('getModuleLessonsBatch-stage');
+      const stageTimer3 = `getModuleLessonsBatch-stage_${courseId}_${Date.now()}`;
+      console.time(stageTimer3);
       const allLessonsByModuleId = await this.getModuleLessonsBatch(moduleIds);
-      console.timeEnd('getModuleLessonsBatch-stage');
+      console.timeEnd(stageTimer3);
       
       // 3. 将课时数据分配给相应的模块
       const modulesWithLessons = modulesData.map(module => {
@@ -225,7 +231,7 @@ export const courseService = {
         };
       });
 
-      console.timeEnd('getCourseDetails'); // 性能计时结束
+      console.timeEnd(timerId); // 性能计时结束
       console.log(`课程详情获取完成，包含 ${modulesWithLessons.length} 个模块`);
       
       return {
@@ -234,7 +240,7 @@ export const courseService = {
       };
     } catch (error) {
       console.error('获取课程详情时出错:', error);
-      console.timeEnd('getCourseDetails'); // 确保在发生异常时也能结束计时器
+      // 注意：这里不能调用console.timeEnd，因为timerId在try块中定义
       throw error;
     }
   },
@@ -245,7 +251,8 @@ export const courseService = {
     if (!moduleIds.length) return {};
     
     console.log(`批量获取 ${moduleIds.length} 个模块的课时（优化版）`);
-    console.time('getModuleLessonsBatch');
+    const timerId = `getModuleLessonsBatch_${moduleIds.join(',')}_${Date.now()}`;
+    console.time(timerId);
     
     const { data, error } = await supabase
       .from("lessons")
@@ -255,7 +262,7 @@ export const courseService = {
       
     if (error) {
       console.error(`批量获取模块课时失败:`, error);
-      console.timeEnd('getModuleLessonsBatch');
+      console.timeEnd(timerId);
       throw error;
     }
     
@@ -278,7 +285,7 @@ export const courseService = {
       });
     }
     
-    console.timeEnd('getModuleLessonsBatch');
+    console.timeEnd(timerId);
     console.log(`课时批量获取完成，共 ${data?.length || 0} 个课时`);
     
     return lessonsByModule;

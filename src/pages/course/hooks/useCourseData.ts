@@ -90,19 +90,21 @@ const fetchCourseDetails = async (courseId: string | undefined) => {
 const CACHE_CONFIG = {
   // 课程详情 - 优化缓存配置，减少不必要请求
   courseDetails: {
-    staleTime: 5 * 60 * 1000,    // 5分钟内认为是新鲜的
-    gcTime: 30 * 60 * 1000,      // 30分钟后清理
+    staleTime: 30 * 1000,        // 降低到30秒，确保数据及时更新
+    gcTime: 5 * 60 * 1000,       // 降低到5分钟
     retry: 1,                     // 只重试1次
     retryDelay: 1000,            // 固定1秒延迟
     refetchOnWindowFocus: false, // 窗口聚焦时不重新获取
+    refetchOnMount: true,        // 确保挂载时重新获取
   },
   // 课程注册信息 - 优化缓存配置，减少自动刷新
   enrollment: {
-    staleTime: 2 * 60 * 1000,    // 2分钟内认为是新鲜的  
-    gcTime: 10 * 60 * 1000,      // 10分钟后清理
+    staleTime: 30 * 1000,        // 降低到30秒
+    gcTime: 2 * 60 * 1000,       // 降低到2分钟
     retry: 1,
     retryDelay: 1000,
     refetchOnWindowFocus: false,
+    refetchOnMount: true,        // 确保挂载时重新获取
     // 移除自动刷新，减少不必要请求
     // refetchInterval: user?.id ? 3 * 60 * 1000 : false,
   }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { BookOpen, ChevronLeft, ChevronRight, Loader2, MessageSquare, X, AlertCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const CoursePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   // 添加一个状态变量来存储header高度
   const [headerHeight, setHeaderHeight] = useState(60); // 默认60px
@@ -71,12 +73,14 @@ const CoursePage = () => {
   const { loading, courseData, progress, enrollmentId, findCurrentLesson, refreshCourseData } = useCourseData(courseId);
   const { selectedLesson, selectedUnit } = findCurrentLesson(lessonId);
   
-  // 确保当lessonId变化时刷新课程数据，解决内容不更新问题
+  // 正确处理courseId变化时的数据刷新，确保获取正确的课程数据
   useEffect(() => {
-    if (lessonId) {
-      refreshCourseData();
+    if (courseId) {
+      // 清除可能的旧缓存，确保获取正确的课程数据
+      queryClient.removeQueries({ queryKey: ['courseDetails'] });
+      queryClient.removeQueries({ queryKey: ['enrollment'] });
     }
-  }, [lessonId, refreshCourseData]);
+  }, [courseId, queryClient]);
   
   // 添加进度加载状态
   const [isProgressLoading, setIsProgressLoading] = useState(true);

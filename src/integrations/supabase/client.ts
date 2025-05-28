@@ -29,15 +29,25 @@ export const supabase = createClient<Database>(
       headers: {
         'x-application-name': 'create-connect-lms'
       },
-      // 增加超时时间
+      // 修复AbortController冲突：只在没有外部signal时创建超时机制
       fetch: (url, options) => {
+        // 如果React Query或其他库已经提供了signal，直接使用
+        if (options?.signal) {
+          return fetch(url, options);
+        }
+        
+        // 只在没有外部signal时创建我们自己的超时机制
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, 30000);
         
         return fetch(url, {
           ...options,
           signal: controller.signal
-        }).finally(() => clearTimeout(timeoutId));
+        }).finally(() => {
+          clearTimeout(timeoutId);
+        });
       }
     },
     db: {

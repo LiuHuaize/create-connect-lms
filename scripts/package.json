@@ -1,0 +1,14 @@
+{
+  "name": "base64-converter",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Convert base64 images in database to Supabase Storage URLs",
+  "main": "convert-base64-to-storage.js",
+  "scripts": {
+    "convert": "node convert-base64-to-storage.js",
+    "dry-run": "node convert-base64-to-storage.js --dry-run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8"
+  }
+}
