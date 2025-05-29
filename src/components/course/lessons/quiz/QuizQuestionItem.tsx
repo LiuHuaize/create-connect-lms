@@ -164,8 +164,16 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
           <Button 
             variant="outline"
             className="text-macaron-darkGray border-macaron-lavender/30 hover:bg-macaron-lavender/20 transition-all duration-300"
-            onClick={() => onCheckAnswer(question.id, question.correctOption || '')}
-            disabled={!selectedAnswer && question.type !== 'short_answer'}
+            onClick={() => {
+              if (question.type === 'short_answer') {
+                // 对于简答题，只要有内容就算正确
+                const hasContent = userAnswer && userAnswer.trim() !== '';
+                onCheckAnswer(question.id, hasContent ? 'correct' : '');
+              } else {
+                onCheckAnswer(question.id, question.correctOption || '');
+              }
+            }}
+            disabled={!selectedAnswer && question.type !== 'short_answer' && (!userAnswer || userAnswer.trim() === '')}
           >
             检查答案
           </Button>

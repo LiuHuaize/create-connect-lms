@@ -5,6 +5,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { toast } from 'sonner';
 import { courseService } from '@/services/courseService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { appConfig } from '@/config/appConfig';
 
 interface LessonCompletionButtonProps {
   lessonId: string;
@@ -79,9 +80,16 @@ const LessonCompletionButton: React.FC<LessonCompletionButtonProps> = ({
         }
       }
       
-      // 刷新课程数据和进度
-      if (refreshCourseData) {
+      // 根据配置决定是否自动刷新
+      if (appConfig.courseData.autoRefreshAfterCompletion && refreshCourseData) {
+        if (appConfig.debug.logRefreshEvents) {
+          console.log('LessonCompletionButton: 根据配置执行自动刷新');
+        }
         refreshCourseData();
+      } else {
+        if (appConfig.debug.logRefreshEvents) {
+          console.log('LessonCompletionButton: 根据配置跳过自动刷新');
+        }
       }
     } catch (error) {
       console.error('更新完成状态失败:', error);

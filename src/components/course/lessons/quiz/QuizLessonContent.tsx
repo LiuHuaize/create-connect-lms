@@ -164,12 +164,9 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
                 ) : '提交答案'}
               </Button>
             ) : (
-              <Button 
-                className="bg-macaron-pink hover:bg-macaron-deepPink text-white transition-all duration-300 px-6 py-2 text-sm rounded-xl shadow-md hover:shadow-lg btn-hover-effect"
-                onClick={() => navigate('/learning')}
-              >
-                返回课程
-              </Button>
+              <div className="text-center text-macaron-darkGray">
+                <p>测验已完成</p>
+              </div>
             )}
           </div>
         </div>

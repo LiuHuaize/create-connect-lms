@@ -13,6 +13,9 @@ import { toast } from 'sonner';
 // 临时注释掉不存在的导入
 // import { CardCreatorStudent } from '@/components/course/card-creator/CardCreatorStudent';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import confetti from 'canvas-confetti';
+import { appConfig } from '@/config/appConfig';
+import { useCourseData } from '@/pages/course/hooks/useCourseData';
 
 // 创建一个加载指示器组件
 const LessonLoadingSpinner = () => (
@@ -36,7 +39,6 @@ const AssignmentLessonContent = React.lazy(() => import('@/components/course/Ass
 
 import { containsMarkdown } from '@/utils/markdownUtils';
 import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
-import { useCourseData } from '../hooks/useCourseData';
 
 interface LessonContentProps {
   selectedLesson: Lesson | null;
@@ -164,6 +166,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
       [questionId]: optionId
     }));
     
+    // 记录用户选择的答案，但还没有提交
     setSelectedAnswer(prev => ({
       ...prev,
       [questionId]: optionId
@@ -231,8 +234,17 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
       
       quizContent.questions.forEach((question: any) => {
         correctAnswersData[question.id] = question.correctOption;
-        if (userAnswers[question.id] === question.correctOption) {
-          correctAnswers++;
+        
+        // 对于简答题，只要有内容就算正确
+        if (question.type === 'short_answer') {
+          if (userAnswers[question.id] && userAnswers[question.id].trim() !== '') {
+            correctAnswers++;
+          }
+        } else {
+          // 对于选择题，按原逻辑判断
+          if (userAnswers[question.id] === question.correctOption) {
+            correctAnswers++;
+          }
         }
       });
       
@@ -241,9 +253,23 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
       setQuizSubmitted(true);
       
       // 框架内的子课时完成逻辑可以后续处理
-      // 这里只关注测验状态的更新
+      // 这里只关注测验状态的更新，不触发刷新
+      toast.success('测验答案已保存');
+      
+      // 根据配置决定是否自动刷新
+      if (appConfig.courseData.autoRefreshAfterQuizSubmit && refreshCourseData) {
+        if (appConfig.debug.logRefreshEvents) {
+          console.log('根据配置执行自动刷新');
+        }
+        refreshCourseData();
+      } else {
+        if (appConfig.debug.logRefreshEvents) {
+          console.log('根据配置跳过自动刷新');
+        }
+      }
     } catch (error) {
       console.error('提交测验结果失败:', error);
+      toast.error('保存测验结果失败，请重试');
     } finally {
       setIsLoading(false);
     }
@@ -605,22 +631,23 @@ const LessonContent: React.FC<LessonContentProps> = ({
     }
   };
   
-  // 处理用户选择答案
-  const handleAnswerSelect = (questionId: string, optionId: string) => {
-    setUserAnswers(prev => ({
-      ...prev,
-      [questionId]: optionId
-    }));
-    
-    // 记录用户选择的答案，但还没有提交
-    setSelectedAnswer(prev => ({
-      ...prev,
-      [questionId]: optionId
-    }));
-  };
-  
   // 检查单个问题答案并显示提示
   const checkAnswer = (questionId: string, correctOptionId: string) => {
+    // 对于简答题的特殊处理
+    if (correctOptionId === 'correct') {
+      // 简答题只要有内容就算正确
+      setUserAnswers(prev => ({
+        ...prev,
+        [questionId]: selectedAnswer[questionId] || userAnswers[questionId] || ''
+      }));
+      
+      setShowCorrectAnswers(prev => ({
+        ...prev,
+        [questionId]: true
+      }));
+      return true;
+    }
+    
     const userAnswer = selectedAnswer[questionId];
     
     if (userAnswer !== correctOptionId) {
@@ -688,8 +715,17 @@ const LessonContent: React.FC<LessonContentProps> = ({
       
       quizContent.questions.forEach((question: any) => {
         correctAnswersData[question.id] = question.correctOption;
-        if (userAnswers[question.id] === question.correctOption) {
-          correctAnswers++;
+        
+        // 对于简答题，只要有内容就算正确
+        if (question.type === 'short_answer') {
+          if (userAnswers[question.id] && userAnswers[question.id].trim() !== '') {
+            correctAnswers++;
+          }
+        } else {
+          // 对于选择题，按原逻辑判断
+          if (userAnswers[question.id] === question.correctOption) {
+            correctAnswers++;
+          }
         }
       });
       
@@ -717,15 +753,21 @@ const LessonContent: React.FC<LessonContentProps> = ({
           quizData
         );
         
-        // 刷新课程数据以更新进度
-        if (refreshCourseData) {
+        // 根据配置决定是否自动刷新
+        if (appConfig.courseData.autoRefreshAfterQuizSubmit && refreshCourseData) {
+          if (appConfig.debug.logRefreshEvents) {
+            console.log('根据配置执行自动刷新');
+          }
           refreshCourseData();
+        } else {
+          if (appConfig.debug.logRefreshEvents) {
+            console.log('根据配置跳过自动刷新');
+          }
         }
-        
-        console.log('测验完成并标记为已完成');
       }
     } catch (error) {
       console.error('提交测验结果失败:', error);
+      toast.error('保存测验结果失败，请重试');
     } finally {
       setIsLoading(false);
     }

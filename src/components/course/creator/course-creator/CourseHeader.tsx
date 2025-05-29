@@ -91,6 +91,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         toast.error('课程需要至少包含一个模块才能发布', {
           id: toastId
         });
+        setIsPublishing(false);
         return;
       }
       
@@ -100,6 +101,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         toast.error('所有模块都必须包含至少一个课时才能发布', {
           id: toastId
         });
+        setIsPublishing(false);
         return;
       }
       
@@ -123,10 +125,10 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         duration: 3000
       });
       
-      // 短暂延迟后强制刷新页面以显示最新状态
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // 移除强制页面刷新，改为更优雅的状态更新
+      // setTimeout(() => {
+      //   window.location.reload();
+      // }, 1500);
     } catch (error) {
       console.error('发布课程失败:', error);
       toast.error('发布课程失败，请稍后重试', {
@@ -171,10 +173,10 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         duration: 3000
       });
       
-      // 短暂延迟后强制刷新页面以显示最新状态
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // 移除强制页面刷新，改为更优雅的状态更新
+      // setTimeout(() => {
+      //   window.location.reload();
+      // }, 1500);
     } catch (error) {
       console.error('取消发布课程失败:', error);
       toast.error('取消发布课程失败，请稍后重试', {
