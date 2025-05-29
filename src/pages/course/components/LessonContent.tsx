@@ -455,6 +455,10 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [lessonIsCompleted, setLessonIsCompleted] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
   
+  // 添加新状态：存储完整加载的课时内容
+  const [loadedLessonContent, setLoadedLessonContent] = useState<Record<string, any>>({});
+  const [isContentLoading, setIsContentLoading] = useState(false);
+  
   // 添加ref，用于获取组件的根元素
   const contentRef = useRef<HTMLDivElement>(null);
   
@@ -466,6 +470,46 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
   const [showCorrectAnswers, setShowCorrectAnswers] = useState<{[key: string]: boolean}>({});
   const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string}>({});
+  
+  // 按需加载课时内容
+  useEffect(() => {
+    const loadLessonContent = async () => {
+      if (!selectedLesson) return;
+      
+      // 检查是否已经加载过内容
+      if (loadedLessonContent[selectedLesson.id]) {
+        return;
+      }
+      
+      // 检查课时内容是否为空对象
+      const isContentEmpty = !selectedLesson.content || 
+        (typeof selectedLesson.content === 'object' && Object.keys(selectedLesson.content).length === 0);
+      
+      if (isContentEmpty) {
+        setIsContentLoading(true);
+        try {
+          console.log(`加载课时内容: ${selectedLesson.id}`);
+          const content = await courseService.getLessonContent(selectedLesson.id);
+          
+          // 更新课时内容
+          selectedLesson.content = content;
+          
+          // 缓存已加载的内容
+          setLoadedLessonContent(prev => ({
+            ...prev,
+            [selectedLesson.id]: content
+          }));
+        } catch (error) {
+          console.error('加载课时内容失败:', error);
+          toast.error('加载课时内容失败，请重试');
+        } finally {
+          setIsContentLoading(false);
+        }
+      }
+    };
+    
+    loadLessonContent();
+  }, [selectedLesson?.id]);
   
   // 获取课时的完成状态
   useEffect(() => {
@@ -750,6 +794,11 @@ const LessonContent: React.FC<LessonContentProps> = ({
           </CardContent>
         </Card>
       );
+    }
+
+    // 如果内容正在加载，显示加载状态
+    if (isContentLoading) {
+      return <LessonLoadingSpinner />;
     }
 
     // 找到前一个和后一个课时

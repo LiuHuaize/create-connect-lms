@@ -255,9 +255,10 @@ export const courseService = {
     console.time(timerId);
     
     // 优化：只选择必要的字段，利用新建的索引
+    // 不再获取content字段，大幅减少数据传输量
     const { data, error } = await supabase
       .from("lessons")
-      .select("id, title, type, order_index, module_id, content, video_file_path, bilibili_url")
+      .select("id, title, type, order_index, module_id, video_file_path, bilibili_url")
       .in("module_id", moduleIds)
       .order("module_id, order_index"); // 优化排序，利用复合索引
       
@@ -276,7 +277,11 @@ export const courseService = {
       data.forEach(lesson => {
         const moduleId = lesson.module_id;
         if (moduleId && lessonsByModule[moduleId]) {
-          lessonsByModule[moduleId].push(convertDbLessonToLesson(lesson));
+          // 对于没有content的课时，提供一个空的内容对象
+          lessonsByModule[moduleId].push({
+            ...convertDbLessonToLesson(lesson),
+            content: {} // 初始化为空对象，稍后按需加载
+          });
         }
       });
     }
@@ -285,6 +290,33 @@ export const courseService = {
     console.log(`课时批量获取完成，共 ${data?.length || 0} 个课时`);
     
     return lessonsByModule;
+  },
+
+  // 按需获取单个课时的完整内容
+  async getLessonContent(lessonId: string): Promise<any> {
+    console.log(`按需加载课时内容: ${lessonId}`);
+    const timerId = `getLessonContent_${lessonId}_${Date.now()}`;
+    console.time(timerId);
+    
+    try {
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("content")
+        .eq("id", lessonId)
+        .single();
+        
+      if (error) {
+        console.error(`获取课时内容失败:`, error);
+        console.timeEnd(timerId);
+        throw error;
+      }
+      
+      console.timeEnd(timerId);
+      return data?.content || {};
+    } catch (error) {
+      console.error('获取课时内容时出错:', error);
+      throw error;
+    }
   },
 
   // 更新课程状态（发布/草稿/存档）
