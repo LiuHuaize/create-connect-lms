@@ -165,15 +165,15 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             variant="outline"
             className="text-macaron-darkGray border-macaron-lavender/30 hover:bg-macaron-lavender/20 transition-all duration-300"
             onClick={() => {
-              if (question.type === 'short_answer') {
-                // 对于简答题，只要有内容就算正确
-                const hasContent = userAnswer && userAnswer.trim() !== '';
-                onCheckAnswer(question.id, hasContent ? 'correct' : '');
-              } else {
-                onCheckAnswer(question.id, question.correctOption || '');
-              }
+              // 修改：所有类型的题目只要有回答就认为正确
+              const hasAnswer = question.type === 'short_answer' 
+                ? (userAnswer && userAnswer.trim() !== '')
+                : (selectedAnswer && selectedAnswer.trim() !== '');
+              onCheckAnswer(question.id, hasAnswer ? 'correct' : '');
             }}
-            disabled={!selectedAnswer && question.type !== 'short_answer' && (!userAnswer || userAnswer.trim() === '')}
+            disabled={question.type === 'short_answer' 
+              ? (!userAnswer || userAnswer.trim() === '')
+              : (!selectedAnswer || selectedAnswer.trim() === '')}
           >
             检查答案
           </Button>

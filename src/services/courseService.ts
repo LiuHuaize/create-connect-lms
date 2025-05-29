@@ -183,12 +183,12 @@ export const courseService = {
     return convertedLessons;
   },
 
-  // 获取单个课程详情（包括模块和课时）- 原始完整加载方法
+  // 获取单个课程详情（包括模块和课时）- 修复数据丢失问题
   async getCourseDetails(courseId: string): Promise<Course & { modules?: CourseModule[] }> {
     try {
       const timerId = `getCourseDetails_${courseId}_${Date.now()}`;
       console.time(timerId); // 性能计时开始
-      console.log(`开始获取课程详情 (优化版本): ${courseId}`);
+      console.log(`开始获取课程详情 (修复版本): ${courseId}`);
       
       // 获取课程基本信息
       const stageTimer1 = `getCourseBasicInfo-stage_${courseId}_${Date.now()}`;
@@ -212,18 +212,13 @@ export const courseService = {
         };
       }
 
-      // 性能优化：批量获取所有模块的课时，而不是逐个获取
-      // 1. 收集所有模块ID
-      const moduleIds = modulesData.map(module => module.id!).filter(Boolean);
-      console.log(`批量获取 ${moduleIds.length} 个模块的课时数据`);
-      
-      // 2. 批量获取所有课时
-      const stageTimer3 = `getModuleLessonsBatch-stage_${courseId}_${Date.now()}`;
+      // 修复：获取完整的课时数据，包括content
+      const stageTimer3 = `getModuleLessonsComplete-stage_${courseId}_${Date.now()}`;
       console.time(stageTimer3);
-      const allLessonsByModuleId = await this.getModuleLessonsBatch(moduleIds);
+      const allLessonsByModuleId = await this.getModuleLessonsComplete(modulesData.map(m => m.id!).filter(Boolean));
       console.timeEnd(stageTimer3);
       
-      // 3. 将课时数据分配给相应的模块
+      // 将课时数据分配给相应的模块
       const modulesWithLessons = modulesData.map(module => {
         return {
           ...module,
@@ -240,27 +235,71 @@ export const courseService = {
       };
     } catch (error) {
       console.error('获取课程详情时出错:', error);
-      // 注意：这里不能调用console.timeEnd，因为timerId在try块中定义
       throw error;
     }
   },
 
-  // 优化版本：批量获取模块的课时
-  // 批量获取多个模块的课时（优化查询性能：只获取必要字段）
+  // 新增：获取完整的模块课时数据（包括content）
+  async getModuleLessonsComplete(moduleIds: string[]): Promise<Record<string, Lesson[]>> {
+    if (!moduleIds.length) return {};
+    
+    console.log(`获取 ${moduleIds.length} 个模块的完整课时数据（包括content）`);
+    const timerId = `getModuleLessonsComplete_${moduleIds.join(',')}_${Date.now()}`;
+    console.time(timerId);
+    
+    try {
+      // 获取完整的课时数据，包括content字段
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("*") // 获取所有字段，包括content
+        .in("module_id", moduleIds)
+        .order("module_id, order_index");
+        
+      if (error) {
+        console.error(`获取完整模块课时失败:`, error);
+        console.timeEnd(timerId);
+        throw error;
+      }
+      
+      // 按模块ID组织课时
+      const lessonsByModule: Record<string, Lesson[]> = {};
+      moduleIds.forEach(id => lessonsByModule[id] = []);
+      
+      // 转换并分组课时，保留完整的content数据
+      if (data && data.length > 0) {
+        data.forEach(lesson => {
+          const moduleId = lesson.module_id;
+          if (moduleId && lessonsByModule[moduleId]) {
+            lessonsByModule[moduleId].push(convertDbLessonToLesson(lesson));
+          }
+        });
+      }
+      
+      console.timeEnd(timerId);
+      console.log(`完整课时数据获取完成，共 ${data?.length || 0} 个课时`);
+      
+      return lessonsByModule;
+    } catch (error) {
+      console.error('获取完整课时数据时出错:', error);
+      throw error;
+    }
+  },
+
+  // 保留原有的批量获取方法，用于性能优化场景（不包括content）
   async getModuleLessonsBatch(moduleIds: string[]): Promise<Record<string, Lesson[]>> {
     if (!moduleIds.length) return {};
     
-    console.log(`批量获取 ${moduleIds.length} 个模块的课时（优化版）`);
+    console.log(`批量获取 ${moduleIds.length} 个模块的课时（不包括content，性能优化版）`);
     const timerId = `getModuleLessonsBatch_${moduleIds.join(',')}_${Date.now()}`;
     console.time(timerId);
     
     // 优化：只选择必要的字段，利用新建的索引
-    // 不再获取content字段，大幅减少数据传输量
+    // 不获取content字段，减少数据传输量
     const { data, error } = await supabase
       .from("lessons")
       .select("id, title, type, order_index, module_id, video_file_path, bilibili_url")
       .in("module_id", moduleIds)
-      .order("module_id, order_index"); // 优化排序，利用复合索引
+      .order("module_id, order_index");
       
     if (error) {
       console.error(`批量获取模块课时失败:`, error);
@@ -268,19 +307,18 @@ export const courseService = {
       throw error;
     }
     
-    // 按模块ID组织课时 - 优化算法，减少排序开销
+    // 按模块ID组织课时
     const lessonsByModule: Record<string, Lesson[]> = {};
     moduleIds.forEach(id => lessonsByModule[id] = []);
     
-    // 转换并分组课时 - 由于查询已排序，无需再次排序
+    // 转换并分组课时，content字段设为undefined（表示未加载）
     if (data && data.length > 0) {
       data.forEach(lesson => {
         const moduleId = lesson.module_id;
         if (moduleId && lessonsByModule[moduleId]) {
-          // 对于没有content的课时，提供一个空的内容对象
           lessonsByModule[moduleId].push({
             ...convertDbLessonToLesson(lesson),
-            content: {} // 初始化为空对象，稍后按需加载
+            content: undefined // 明确标记为未加载，而不是空对象
           });
         }
       });
@@ -760,6 +798,43 @@ export const courseService = {
     } catch (error) {
       console.error('获取课时完成状态失败:', error);
       return {};
+    }
+  },
+
+  // 清理无效的课时完成记录
+  async cleanInvalidLessonCompletions(courseId: string): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      console.log(`开始清理课程 ${courseId} 的无效完成记录...`);
+      
+      // 使用数据库函数清理无效记录
+      const { data, error } = await supabase.rpc('clean_invalid_lesson_completions', {
+        course_id_param: courseId
+      });
+      
+      if (error) {
+        console.error('清理无效完成记录失败:', error);
+        throw error;
+      }
+      
+      const deletedCount = data?.[0]?.deleted_count || 0;
+      
+      if (deletedCount > 0) {
+        console.log(`已成功清理 ${deletedCount} 个无效的完成记录`);
+        
+        // 清除缓存，强制重新加载
+        delete lessonCompletionCache[courseId];
+      } else {
+        console.log('未发现无效的完成记录');
+      }
+      
+    } catch (error) {
+      console.error('清理无效完成记录失败:', error);
+      throw error;
     }
   },
 
@@ -1278,5 +1353,88 @@ export const courseService = {
     
     console.log('查询优化测试结果:', result);
     return result;
-  }
+  },
+
+  // 专门的测验结果保存方法，避免影响其他课时数据
+  async saveQuizResult(lessonId: string, courseId: string, enrollmentId: string, quizData: {
+    userAnswers: Record<string, string>;
+    correctAnswers: Record<string, string>;
+    score: number;
+    totalQuestions: number;
+    submittedAt: string;
+  }): Promise<void> {
+    try {
+      // 检查当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('用户未登录');
+      }
+      
+      console.log(`保存测验结果: 课时 ${lessonId}, 分数 ${quizData.score}/${quizData.totalQuestions}`);
+      
+      // 检查是否已存在完成记录
+      const { data: existingCompletion, error: fetchError } = await supabase
+        .from('lesson_completions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('lesson_id', lessonId)
+        .maybeSingle();
+        
+      if (fetchError) {
+        console.error('检查课时完成记录失败:', fetchError);
+        throw fetchError;
+      }
+      
+      // 如果已存在，则更新记录
+      if (existingCompletion) {
+        const { error: updateError } = await supabase
+          .from('lesson_completions')
+          .update({
+            completed_at: new Date().toISOString(),
+            score: quizData.score,
+            data: quizData
+          })
+          .eq('id', existingCompletion.id);
+          
+        if (updateError) {
+          console.error('更新测验完成记录失败:', updateError);
+          throw updateError;
+        }
+        
+        console.log('已更新现有的测验完成记录');
+      } else {
+        // 如果不存在，则创建新记录
+        const { error: insertError } = await supabase
+          .from('lesson_completions')
+          .insert({
+            user_id: user.id,
+            lesson_id: lessonId,
+            course_id: courseId,
+            enrollment_id: enrollmentId,
+            completed_at: new Date().toISOString(),
+            score: quizData.score,
+            data: quizData
+          });
+          
+        if (insertError) {
+          console.error('创建测验完成记录失败:', insertError);
+          throw insertError;
+        }
+        
+        console.log('已创建新的测验完成记录');
+      }
+      
+      // 更新本地缓存状态（不刷新整个课程数据）
+      if (!lessonCompletionCache[courseId]) {
+        lessonCompletionCache[courseId] = {};
+      }
+      lessonCompletionCache[courseId][lessonId] = true;
+      
+      console.log('测验结果保存成功，已更新本地缓存');
+      
+    } catch (error) {
+      console.error('保存测验结果失败:', error);
+      throw error;
+    }
+  },
 };

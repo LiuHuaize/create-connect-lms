@@ -175,44 +175,29 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   
   // 检查单个问题答案
   const handleCheckSingleAnswer = (questionId: string, correctOptionId: string) => {
+    // 修改：统一处理所有题型，只要有回答就算正确
     const userAnswer = selectedAnswer[questionId];
     
-    if (userAnswer !== correctOptionId) {
-      const currentAttempts = attemptCounts[questionId] || 0;
-      const newAttempts = currentAttempts + 1;
-      
-      setAttemptCounts(prev => ({
-        ...prev,
-        [questionId]: newAttempts
-      }));
-      
-      if (newAttempts === 1) {
-        setShowHints(prev => ({
-          ...prev,
-          [questionId]: true
-        }));
-      } else {
-        setShowHints(prev => ({
-          ...prev,
-          [questionId]: false
-        }));
-        setShowCorrectAnswers(prev => ({
-          ...prev,
-          [questionId]: true
-        }));
-      }
-      return false;
-    } else {
+    if (correctOptionId === 'correct' || (userAnswer && userAnswer.trim() !== '')) {
+      // 记录用户答案
       setUserAnswers(prev => ({
         ...prev,
-        [questionId]: userAnswer
+        [questionId]: userAnswer || ''
       }));
       
+      // 显示正确答案反馈
       setShowCorrectAnswers(prev => ({
         ...prev,
         [questionId]: true
       }));
       return true;
+    } else {
+      // 如果没有回答，显示提示
+      setShowHints(prev => ({
+        ...prev,
+        [questionId]: true
+      }));
+      return false;
     }
   };
   
@@ -226,46 +211,49 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
     setIsLoading(true);
     
     try {
-      let correctAnswers = 0;
       const totalQuestions = quizContent.questions.length;
       
+      // 收集用户答案和正确答案，用于保存到数据库
       const userAnswersData = { ...userAnswers };
       const correctAnswersData = {};
       
+      // 检查是否所有问题都有回答
+      let hasAllAnswers = true;
       quizContent.questions.forEach((question: any) => {
         correctAnswersData[question.id] = question.correctOption;
         
-        // 对于简答题，只要有内容就算正确
-        if (question.type === 'short_answer') {
-          if (userAnswers[question.id] && userAnswers[question.id].trim() !== '') {
-            correctAnswers++;
-          }
-        } else {
-          // 对于选择题，按原逻辑判断
-          if (userAnswers[question.id] === question.correctOption) {
-            correctAnswers++;
-          }
+        // 检查是否有回答
+        if (!userAnswers[question.id] || userAnswers[question.id].trim() === '') {
+          hasAllAnswers = false;
         }
       });
       
-      const score = Math.round((correctAnswers / totalQuestions) * 100);
+      // 修改：如果所有问题都有回答，就给100分；否则按比例给分
+      let score: number;
+      if (hasAllAnswers) {
+        // 只要全部回答了，就给满分
+        score = 100;
+      } else {
+        // 如果有未回答的问题，按回答数量比例给分
+        let answeredCount = 0;
+        quizContent.questions.forEach((question: any) => {
+          if (userAnswers[question.id] && userAnswers[question.id].trim() !== '') {
+            answeredCount++;
+          }
+        });
+        score = Math.round((answeredCount / totalQuestions) * 100);
+      }
+      
       setQuizResult({score, totalQuestions});
       setQuizSubmitted(true);
       
       // 框架内的子课时完成逻辑可以后续处理
       // 这里只关注测验状态的更新，不触发刷新
-      toast.success('测验答案已保存');
+      toast.success(`测验完成！得分：${score}/100`);
       
-      // 根据配置决定是否自动刷新
-      if (appConfig.courseData.autoRefreshAfterQuizSubmit && refreshCourseData) {
-        if (appConfig.debug.logRefreshEvents) {
-          console.log('根据配置执行自动刷新');
-        }
-        refreshCourseData();
-      } else {
-        if (appConfig.debug.logRefreshEvents) {
-          console.log('根据配置跳过自动刷新');
-        }
+      // 完全移除自动刷新机制，防止数据丢失
+      if (appConfig.debug.logRefreshEvents) {
+        console.log('框架内测验提交完成，已禁用自动刷新以防止数据丢失');
       }
     } catch (error) {
       console.error('提交测验结果失败:', error);
@@ -340,7 +328,6 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
                     onUnmarkComplete={async () => Promise.resolve()}
                     isCompletionLoading={isCompletionLoading}
                     navigate={navigate}
-                    refreshCourseData={refreshCourseData}
                   />;
                 case 'resource':
                   return <ResourceLessonView 
@@ -432,7 +419,6 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
               lessonId={frameLessonId}
               courseId={courseId}
               enrollmentId={enrollmentId}
-              refreshCourseData={refreshCourseData}
               className="px-6 py-2.5 rounded-xl"
             />
           )}
@@ -496,6 +482,20 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
   const [showCorrectAnswers, setShowCorrectAnswers] = useState<{[key: string]: boolean}>({});
   const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string}>({});
+  
+  // 添加缺失的handleAnswerSelect函数
+  const handleAnswerSelect = (questionId: string, optionId: string) => {
+    setUserAnswers(prev => ({
+      ...prev,
+      [questionId]: optionId
+    }));
+    
+    // 记录用户选择的答案，但还没有提交
+    setSelectedAnswer(prev => ({
+      ...prev,
+      [questionId]: optionId
+    }));
+  };
   
   // 按需加载课时内容
   useEffect(() => {
@@ -633,14 +633,15 @@ const LessonContent: React.FC<LessonContentProps> = ({
   
   // 检查单个问题答案并显示提示
   const checkAnswer = (questionId: string, correctOptionId: string) => {
-    // 对于简答题的特殊处理
-    if (correctOptionId === 'correct') {
-      // 简答题只要有内容就算正确
+    // 修改：统一处理所有题型，只要有回答就算正确
+    if (correctOptionId === 'correct' || (selectedAnswer[questionId] && selectedAnswer[questionId].trim() !== '')) {
+      // 记录用户答案
       setUserAnswers(prev => ({
         ...prev,
         [questionId]: selectedAnswer[questionId] || userAnswers[questionId] || ''
       }));
       
+      // 显示正确答案反馈
       setShowCorrectAnswers(prev => ({
         ...prev,
         [questionId]: true
@@ -648,52 +649,12 @@ const LessonContent: React.FC<LessonContentProps> = ({
       return true;
     }
     
-    const userAnswer = selectedAnswer[questionId];
-    
-    if (userAnswer !== correctOptionId) {
-      // 更新尝试次数
-      const currentAttempts = attemptCounts[questionId] || 0;
-      const newAttempts = currentAttempts + 1;
-      
-      setAttemptCounts(prev => ({
-        ...prev,
-        [questionId]: newAttempts
-      }));
-      
-      // 根据尝试次数决定是显示提示还是正确答案
-      if (newAttempts === 1) {
-        // 第一次错误：显示提示
-        setShowHints(prev => ({
-          ...prev,
-          [questionId]: true
-        }));
-        return false;
-      } else {
-        // 第二次错误：直接显示正确答案，不再显示提示
-        setShowHints(prev => ({
-          ...prev,
-          [questionId]: false // 隐藏提示
-        }));
-        setShowCorrectAnswers(prev => ({
-          ...prev,
-          [questionId]: true
-        }));
-        return false;
-      }
-    } else {
-      // 答案正确，直接标记为正确
-      setUserAnswers(prev => ({
-        ...prev,
-        [questionId]: userAnswer // 确保用户答案被记录
-      }));
-      
-      // 添加这一部分来显示正确答案的反馈
-      setShowCorrectAnswers(prev => ({
-        ...prev,
-        [questionId]: true
-      }));
-      return true;
-    }
+    // 如果没有回答，显示提示（但这种情况在新逻辑下应该很少出现）
+    setShowHints(prev => ({
+      ...prev,
+      [questionId]: true
+    }));
+    return false;
   };
   
   // 处理测验提交
@@ -706,36 +667,45 @@ const LessonContent: React.FC<LessonContentProps> = ({
     setIsLoading(true);
     
     try {
-      let correctAnswers = 0;
       const totalQuestions = quizContent.questions.length;
       
       // 收集用户答案和正确答案，用于保存到数据库
       const userAnswersData = { ...userAnswers };
       const correctAnswersData = {};
       
+      // 检查是否所有问题都有回答
+      let hasAllAnswers = true;
       quizContent.questions.forEach((question: any) => {
         correctAnswersData[question.id] = question.correctOption;
         
-        // 对于简答题，只要有内容就算正确
-        if (question.type === 'short_answer') {
-          if (userAnswers[question.id] && userAnswers[question.id].trim() !== '') {
-            correctAnswers++;
-          }
-        } else {
-          // 对于选择题，按原逻辑判断
-          if (userAnswers[question.id] === question.correctOption) {
-            correctAnswers++;
-          }
+        // 检查是否有回答
+        if (!userAnswers[question.id] || userAnswers[question.id].trim() === '') {
+          hasAllAnswers = false;
         }
       });
       
-      const score = Math.round((correctAnswers / totalQuestions) * 100);
+      // 修改：如果所有问题都有回答，就给100分；否则按比例给分
+      let score: number;
+      if (hasAllAnswers) {
+        // 只要全部回答了，就给满分
+        score = 100;
+      } else {
+        // 如果有未回答的问题，按回答数量比例给分
+        let answeredCount = 0;
+        quizContent.questions.forEach((question: any) => {
+          if (userAnswers[question.id] && userAnswers[question.id].trim() !== '') {
+            answeredCount++;
+          }
+        });
+        score = Math.round((answeredCount / totalQuestions) * 100);
+      }
+      
       setQuizResult({score, totalQuestions});
       setQuizSubmitted(true);
       
-      // 如果有注册ID，调用API来保存测验结果
+      // 如果有注册ID，调用新的专门的测验结果保存API
       if (enrollmentId && selectedLesson.id && courseData?.id) {
-        // 创建数据对象，用于保存到lesson_completions表
+        // 创建测验数据对象
         const quizData = {
           userAnswers: userAnswersData,
           correctAnswers: correctAnswersData,
@@ -744,26 +714,24 @@ const LessonContent: React.FC<LessonContentProps> = ({
           submittedAt: new Date().toISOString()
         };
         
-        // 调用API来记录测验结果和更新课程进度
-        await courseService.markLessonComplete(
+        // 使用新的专门的测验结果保存方法，避免影响其他课时数据
+        await courseService.saveQuizResult(
           selectedLesson.id, 
           courseData.id, 
           enrollmentId,
-          score,
           quizData
         );
         
-        // 根据配置决定是否自动刷新
-        if (appConfig.courseData.autoRefreshAfterQuizSubmit && refreshCourseData) {
-          if (appConfig.debug.logRefreshEvents) {
-            console.log('根据配置执行自动刷新');
-          }
-          refreshCourseData();
-        } else {
-          if (appConfig.debug.logRefreshEvents) {
-            console.log('根据配置跳过自动刷新');
-          }
+        console.log('测验结果已保存，无需刷新课程数据');
+        toast.success(`测验完成！得分：${score}/100`);
+        
+        // 完全移除自动刷新机制，防止数据丢失
+        // 只有在用户明确操作时才刷新数据
+        if (appConfig.debug.logRefreshEvents) {
+          console.log('测验提交完成，已禁用自动刷新以防止数据丢失');
         }
+      } else {
+        toast.success(`测验已完成！得分：${score}/100`);
       }
     } catch (error) {
       console.error('提交测验结果失败:', error);
@@ -943,13 +911,9 @@ const LessonContent: React.FC<LessonContentProps> = ({
                   onAnswerSelect={handleAnswerSelect}
                   onCheckSingleAnswer={handleCheckSingleAnswer}
                   onQuizSubmit={handleQuizSubmit}
-                  onUnmarkComplete={async () => {
-                    // 空的异步函数，返回Promise
-                    return Promise.resolve();
-                  }}
+                  onUnmarkComplete={async () => Promise.resolve()}
                   isCompletionLoading={isCompletionLoading}
                   navigate={navigate}
-                  refreshCourseData={refreshCourseData}
                 />
               );
             

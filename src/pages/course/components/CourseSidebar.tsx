@@ -34,19 +34,25 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
     if (courseData?.id) {
       setIsLoadingStatus(true);
       
-      // 强制从服务器刷新课程完成状态，不使用缓存
-      courseService.getLessonCompletionStatus(courseData.id, true)
-        .then(status => {
+      const loadCompletionStatus = async () => {
+        try {
+          // 首先清理无效的完成记录
+          await courseService.cleanInvalidLessonCompletions(courseData.id);
+          
+          // 然后强制从服务器刷新课程完成状态，不使用缓存
+          const status = await courseService.getLessonCompletionStatus(courseData.id, true);
           console.log('获取到课时完成状态:', status);
           setCompletionStatus(status);
-          setIsLoadingStatus(false);
-        })
-        .catch(error => {
+        } catch (error) {
           console.error('获取课时完成状态失败:', error);
+        } finally {
           setIsLoadingStatus(false);
-        });
+        }
+      };
+      
+      loadCompletionStatus();
     }
-  }, [courseData?.id, progress]); // 添加progress作为依赖，当进度变化时重新获取完成状态
+  }, [courseData?.id, progress]);
   
   // 折叠状态下的简化渲染
   if (collapsed) {

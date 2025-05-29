@@ -4,7 +4,6 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCourseData } from '../hooks/useCourseData';
 import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
 
 interface LessonNavigationProps {
@@ -21,9 +20,6 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  // 获取刷新课程数据的方法
-  const { refreshCourseData } = useCourseData(courseData?.id);
-
   // 找到前一个和后一个课时
   const findNeighborLessons = () => {
     if (!courseData?.modules || !selectedLesson) return { prevLesson: null, nextLesson: null };
@@ -87,7 +83,6 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
           lessonId={selectedLesson.id}
           courseId={courseData.id}
           enrollmentId={enrollmentId}
-          refreshCourseData={refreshCourseData}
           className="px-6 py-2 rounded-xl"
         />
       )}
