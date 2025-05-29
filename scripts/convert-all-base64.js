@@ -1,24 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// 从环境变量读取配置
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://ooyklqqgnphynyrziqyh.supabase.co';
 const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9veWtscXFnbnBoeW55cnppcXloIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MzU3OTI0OCwiZXhwIjoyMDU5MTU1MjQ4fQ.pJyt_oK9CfWaj14sJQt0oRFJ1wOTyeyFWKt95Z7XGz8';
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-// 配置
-const BUCKET_NAME = 'course_media';
-const BATCH_SIZE = 5; // 每批处理的lesson数量
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB限制
-
-// 基于正确的图片内容映射Storage文件
-const correctImageMapping = {
+// 所有课时的正确图片映射
+const allImageMappings = {
+  // 狗的类别课时
   '1cc98e3f-dad2-43b5-a975-e7ffb8f89896': [
     'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488155082_lesson_1cc98e3f-dad2-43b5-a975-e7ffb8f89896_image_1.png',
     'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488156234_lesson_1cc98e3f-dad2-43b5-a975-e7ffb8f89896_image_2.png',
@@ -28,77 +17,27 @@ const correctImageMapping = {
     'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488169986_lesson_1cc98e3f-dad2-43b5-a975-e7ffb8f89896_image_6.png',
     'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488171684_lesson_1cc98e3f-dad2-43b5-a975-e7ffb8f89896_image_7.png',
     'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488173136_lesson_1cc98e3f-dad2-43b5-a975-e7ffb8f89896_image_8.png'
+  ],
+  // 另一个狗的类别课时 (可能是重复的)
+  'be1a07c6-0c7b-413b-9aa9-4466b036fbc4': [
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488176463_lesson_be1a07c6-0c7b-413b-9aa9-4466b036fbc4_image_1.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488177372_lesson_be1a07c6-0c7b-413b-9aa9-4466b036fbc4_image_2.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488178976_lesson_be1a07c6-0c7b-413b-9aa9-4466b036fbc4_image_3.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488180488_lesson_be1a07c6-0c7b-413b-9aa9-4466b036fbc4_image_4.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488182209_lesson_be1a07c6-0c7b-413b-9aa9-4466b036fbc4_image_5.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488184018_lesson_be1a07c6-0c7b-413b-9aa9-4466b036fbc4_image_6.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488185617_lesson_be1a07c6-0c7b-413b-9aa9-4466b036fbc4_image_7.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488187307_lesson_be1a07c6-0c7b-413b-9aa9-4466b036fbc4_image_8.png'
+  ],
+  // 制作自己的小蜜蜂课时
+  'ea1b1302-a70d-48ff-9e6a-23e57dbd489d': [
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488190917_lesson_ea1b1302-a70d-48ff-9e6a-23e57dbd489d_image_1.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488191383_lesson_ea1b1302-a70d-48ff-9e6a-23e57dbd489d_image_2.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488192408_lesson_ea1b1302-a70d-48ff-9e6a-23e57dbd489d_image_3.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488193300_lesson_ea1b1302-a70d-48ff-9e6a-23e57dbd489d_image_4.png',
+    'https://ooyklqqgnphynyrziqyh.supabase.co/storage/v1/object/public/course-assets/frame-lessons/1748488193828_lesson_ea1b1302-a70d-48ff-9e6a-23e57dbd489d_image_5.png'
   ]
 };
-
-/**
- * 从base64字符串中提取图片数据和MIME类型
- */
-function parseBase64Image(base64String) {
-  const matches = base64String.match(/^data:image\/([a-zA-Z]*);base64,(.+)$/);
-  if (!matches || matches.length !== 3) {
-    return null;
-  }
-  
-  return {
-    mimeType: `image/${matches[1]}`,
-    extension: matches[1] === 'jpeg' ? 'jpg' : matches[1],
-    data: matches[2]
-  };
-}
-
-/**
- * 上传base64图片到Supabase Storage
- */
-async function uploadBase64ToStorage(base64String, fileName) {
-  try {
-    const imageData = parseBase64Image(base64String);
-    if (!imageData) {
-      console.log('❌ 无法解析base64图片格式');
-      return null;
-    }
-
-    // 检查图片大小
-    const buffer = Buffer.from(imageData.data, 'base64');
-    if (buffer.length > MAX_IMAGE_SIZE) {
-      console.log(`❌ 图片太大 (${(buffer.length / 1024 / 1024).toFixed(2)}MB): ${fileName}`);
-      return null;
-    }
-
-    // 生成唯一文件名
-    const timestamp = Date.now();
-    const uniqueFileName = `${timestamp}_${fileName}.${imageData.extension}`;
-    const filePath = `lessons/${uniqueFileName}`;
-
-    console.log(`📤 上传图片: ${filePath} (${(buffer.length / 1024).toFixed(2)}KB)`);
-
-    // 上传到Supabase Storage
-    const { data, error } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filePath, buffer, {
-        contentType: imageData.mimeType,
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) {
-      console.error(`❌ 上传失败: ${error.message}`);
-      return null;
-    }
-
-    // 获取公共URL
-    const { data: urlData } = supabase.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(filePath);
-
-    console.log(`✅ 上传成功: ${urlData.publicUrl}`);
-    return urlData.publicUrl;
-
-  } catch (error) {
-    console.error(`❌ 上传过程出错: ${error.message}`);
-    return null;
-  }
-}
 
 /**
  * 替换BlockNote内容中的base64图片为Storage URL
@@ -172,6 +111,13 @@ async function convertFrameLessonBase64(lessonId, storageUrls) {
     
     console.log(`📄 找到 ${content.lessons.length} 个子课时`);
     
+    // 检查是否已经转换过
+    const hasBase64 = JSON.stringify(content).includes('data:image/');
+    if (!hasBase64) {
+      console.log('✅ 课时已经转换完成，无需重复转换');
+      return true;
+    }
+    
     // 转换子课时中的base64图片
     let totalConverted = 0;
     let modified = false;
@@ -232,24 +178,54 @@ async function convertFrameLessonBase64(lessonId, storageUrls) {
  * 主函数
  */
 async function main() {
-  console.log('🔄 开始转换base64图片为Storage URL...\n');
+  console.log('🔄 开始转换所有base64图片为Storage URL...\n');
   
   let successCount = 0;
-  let totalCount = Object.keys(correctImageMapping).length;
+  let totalCount = Object.keys(allImageMappings).length;
+  let totalSizeSaved = 0;
   
-  for (const [lessonId, storageUrls] of Object.entries(correctImageMapping)) {
+  for (const [lessonId, storageUrls] of Object.entries(allImageMappings)) {
+    // 获取转换前的大小
+    const { data: beforeLesson } = await supabase
+      .from('lessons')
+      .select('content')
+      .eq('id', lessonId)
+      .single();
+      
+    const beforeSize = beforeLesson ? Buffer.byteLength(JSON.stringify(beforeLesson.content), 'utf8') : 0;
+    
     const success = await convertFrameLessonBase64(lessonId, storageUrls);
+    
     if (success) {
       successCount++;
+      
+      // 获取转换后的大小
+      const { data: afterLesson } = await supabase
+        .from('lessons')
+        .select('content')
+        .eq('id', lessonId)
+        .single();
+        
+      const afterSize = afterLesson ? Buffer.byteLength(JSON.stringify(afterLesson.content), 'utf8') : 0;
+      const sizeSaved = beforeSize - afterSize;
+      totalSizeSaved += sizeSaved;
+      
+      if (sizeSaved > 0) {
+        console.log(`💾 节省空间: ${(sizeSaved / 1024 / 1024).toFixed(2)}MB`);
+      }
     }
   }
   
   console.log(`\n📊 转换完成:`);
   console.log(`✅ 成功: ${successCount}/${totalCount}`);
+  console.log(`💾 总共节省空间: ${(totalSizeSaved / 1024 / 1024).toFixed(2)}MB`);
   
   if (successCount === totalCount) {
     console.log('🎉 所有base64图片已转换为Storage URL！');
-    console.log('💡 建议运行 check-image-mapping.js 验证转换结果');
+    console.log('\n💡 建议下一步操作:');
+    console.log('1. 运行 check-image-mapping.js 验证转换结果');
+    console.log('2. 访问前端页面确认图片正常显示');
+    console.log('3. 监控数据库性能改善情况');
   } else {
     console.log('⚠️ 部分转换失败，请检查错误信息');
   }
