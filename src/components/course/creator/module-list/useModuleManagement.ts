@@ -12,11 +12,13 @@ interface ExpandedModulesState {
 interface UseModuleManagementProps {
   initialModules?: CourseModule[];
   onModulesChange?: (modules: CourseModule[]) => void;
+  courseId?: string;
 }
 
 const useModuleManagement = ({ 
   initialModules = [], 
-  onModulesChange 
+  onModulesChange,
+  courseId
 }: UseModuleManagementProps = {}) => {
   const [modules, setModules] = useState<CourseModule[]>(initialModules);
   const [expandedModules, setExpandedModules] = useState<ExpandedModulesState>({});
@@ -56,10 +58,10 @@ const useModuleManagement = ({
       // 调试信息
       console.log('useModuleManagement.addModule: 正在尝试添加模块');
       
-      // 获取模块列表中最后一个模块的课程ID
-      // 如果没有模块，course_id需要由调用方传入
-      let course_id: string | undefined;
-      if (modules.length > 0) {
+      // 获取课程ID - 优先使用传入的courseId，然后从现有模块获取
+      let course_id: string | undefined = courseId;
+      
+      if (!course_id && modules.length > 0) {
         course_id = modules[0].course_id;
         console.log('从现有模块获取课程ID:', course_id);
       }
@@ -71,10 +73,12 @@ const useModuleManagement = ({
         return null;
       }
       
-      // 显示网络请求状态
-      toast.info('正在通过Edge Function创建模块...');
+      console.log('使用课程ID:', course_id);
       
-      // 调用Edge Function创建模块
+      // 显示网络请求状态
+      toast.info('正在创建模块...');
+      
+      // 调用模块服务创建模块（现在默认使用直接数据库操作）
       console.log('开始调用moduleService.createModule');
       const result = await moduleService.createModule({
         title: '新模块',
@@ -114,7 +118,7 @@ const useModuleManagement = ({
       setIsAddingModule(false);
       return null;
     }
-  }, [modules, isAddingModule]);
+  }, [modules, isAddingModule, courseId]);
 
   // 更新模块标题
   const updateModuleTitle = useCallback((moduleId: string, title: string) => {

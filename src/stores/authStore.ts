@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/auth';
 import { authService } from '@/services/authService';
 import { clearUserRoleCache } from '@/utils/authCache';
+import { clearUserCache } from '@/utils/userSession';
 
 interface AuthState {
   // 状态
@@ -31,7 +32,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   role: null,
   loading: true,
   
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    set({ user });
+    // 同步更新userSession缓存
+    if (!user) {
+      clearUserCache();
+    }
+  },
   setSession: (session) => set({ session }),
   setRole: (role) => set({ role }),
   setLoading: (loading) => set({ loading }),
@@ -49,6 +56,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     // 清理登录状态
     set({ user: null, session: null, role: null });
+    clearUserCache(); // 清除用户缓存
     await authService.signOut();
   },
   
@@ -84,10 +92,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           // 设置认证状态监听器
           const { data: { subscription } } = authService.onAuthStateChange(
             (event, currentSession) => {
+              console.log('认证状态变化:', event);
               set({ 
                 session: currentSession,
                 user: currentSession?.user ?? null
               });
+              
+              // 同步清除用户缓存
+              if (!currentSession?.user) {
+                clearUserCache();
+              }
               
               // 使用setTimeout避免在回调函数中直接使用异步操作
               setTimeout(async () => {
@@ -101,6 +115,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                   set({ role: null });
                   // 清除本地缓存
                   clearUserRoleCache();
+                  clearUserCache();
                 }
                 
                 set({ loading: false });

@@ -126,6 +126,11 @@ export const authService = {
   async signOut() {
     console.log('正在退出登录');
     clearUserRoleCache();
+    
+    // 清除用户会话缓存
+    const { clearUserCache } = await import('@/utils/userSession');
+    clearUserCache();
+    
     await supabase.auth.signOut();
   },
 

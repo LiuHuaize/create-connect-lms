@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentUser } from '@/utils/userSession';
 import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
 import { Json } from "@/integrations/supabase/types";
@@ -1364,8 +1365,8 @@ export const courseService = {
     submittedAt: string;
   }): Promise<void> {
     try {
-      // 检查当前用户ID
-      const { data: { user } } = await supabase.auth.getUser();
+      // 检查当前用户ID（使用优化的方法，避免网络请求超时）
+      const user = await getCurrentUser();
       if (!user) {
         throw new Error('用户未登录');
       }

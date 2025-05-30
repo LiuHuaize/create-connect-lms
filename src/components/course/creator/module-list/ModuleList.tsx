@@ -17,6 +17,7 @@ import {
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
+import moduleService from '@/services/moduleService';
 
 interface ModuleListProps {
   modules: CourseModule[];
@@ -24,6 +25,7 @@ interface ModuleListProps {
   setCurrentLesson: React.Dispatch<React.SetStateAction<Lesson | null>>;
   expandedModule: string | null;
   setExpandedModule: React.Dispatch<React.SetStateAction<string | null>>;
+  courseId?: string;
 }
 
 const ModuleList: React.FC<ModuleListProps> = ({ 
@@ -31,7 +33,8 @@ const ModuleList: React.FC<ModuleListProps> = ({
   setModules, 
   setCurrentLesson, 
   expandedModule, 
-  setExpandedModule 
+  setExpandedModule,
+  courseId
 }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isDeletingModule, setIsDeletingModule] = useState(false);
@@ -47,43 +50,57 @@ const ModuleList: React.FC<ModuleListProps> = ({
   );
 
   const addModule = async () => {
-    // 添加简单的内存优化 - 尝试清理一些内存
-    if (modules.length > 0) {
-      // 当模块数量较多时显示提醒
-      if (modules.length >= 5) {
-        toast(`请注意：模块数量较多(${modules.length})，建议保存课程`, { 
-          description: "保存后再添加新模块可避免闪退问题",
-          duration: 5000 
-        });
+    try {
+      console.log('ModuleList.addModule: 开始创建模块');
+      
+      // 获取课程ID
+      let course_id = courseId;
+      if (!course_id && modules.length > 0) {
+        course_id = modules[0].course_id;
+        console.log('从现有模块获取课程ID:', course_id);
       }
       
-      // 模块数量过多时强制提醒保存
-      if (modules.length >= 10) {
-        const confirmed = window.confirm(`您已创建了${modules.length}个模块，继续添加可能导致内存问题和闪退。建议先保存课程再继续。是否继续添加？`);
-        if (!confirmed) {
-          return null; // 用户取消添加
-        }
+      if (!course_id) {
+        console.error('无法创建模块：缺少课程ID');
+        toast.error('无法创建模块：缺少课程ID');
+        return null;
       }
       
-      // 在添加新模块前尝试强制清理不必要的内存
-      try {
-        setTimeout(() => {
-          console.log('执行内存清理...');
-          if (window.gc) window.gc();
-        }, 0);
-      } catch (e) {}
+      console.log('使用课程ID:', course_id);
+      
+      // 显示加载状态
+      toast.info('正在创建模块...');
+      
+      // 使用模块服务创建模块
+      const result = await moduleService.createModule({
+        title: `新模块 ${modules.length + 1}`,
+        course_id,
+        order_index: modules.length
+      });
+      
+      if (!result.success || !result.module) {
+        console.error('创建模块失败:', result.error);
+        toast.error(result.error || '创建模块失败');
+        return null;
+      }
+      
+      const newModule = result.module;
+      console.log('模块创建成功:', newModule);
+      
+      // 更新本地状态
+      setModules([...modules, {
+        ...newModule,
+        lessons: [] // 确保lessons属性存在
+      }]);
+      setExpandedModule(newModule.id);
+      
+      toast.success('模块创建成功');
+      return newModule.id;
+    } catch (error) {
+      console.error('创建模块时出错:', error);
+      toast.error('创建模块失败，请重试');
+      return null;
     }
-    
-    const newModule: CourseModule = {
-      id: uuidv4(),
-      course_id: modules[0]?.course_id || 'temp-course-id',
-      title: `新模块 ${modules.length + 1}`,
-      order_index: modules.length,
-      lessons: []
-    };
-    setModules([...modules, newModule]);
-    setExpandedModule(newModule.id);
-    return newModule.id;
   };
 
   const updateModuleTitle = (moduleId: string, newTitle: string) => {

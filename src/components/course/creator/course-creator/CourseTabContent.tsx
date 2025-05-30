@@ -177,6 +177,7 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
             setCurrentLesson={setCurrentLesson}
             expandedModule={expandedModule}
             setExpandedModule={setExpandedModule}
+            courseId={course.id}
           />
         )}
       </TabsContent>
