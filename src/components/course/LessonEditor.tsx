@@ -43,6 +43,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
+  { id: 'single_choice', name: '单选题' },
   { id: 'multiple_choice', name: '多选题' },
   { id: 'true_false', name: '判断题' },
   { id: 'short_answer', name: '简答题' }
@@ -226,7 +227,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
       ? (currentContent as QuizLessonContent).questions || [
           {
             id: 'q1',
-            type: 'multiple_choice',
+            type: 'single_choice',
             text: 'What is the primary purpose of a business plan?',
             options: [
               { id: 'o1', text: 'To secure funding' },
@@ -242,7 +243,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
   const addQuestion = () => {
     const newQuestion: QuizQuestion = {
       id: `q${Date.now()}`,
-      type: 'multiple_choice',
+      type: 'single_choice',
       text: '新问题',
       options: [
         { id: `o${Date.now()}-1`, text: '选项1' },
@@ -263,15 +264,39 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
     const updatedQuestions = questions.map(q => {
       if (q.id === questionId) {
         // 处理问题类型变更的特殊情况
-        if (field === 'type' && value === 'short_answer') {
-          // 对于简答题，移除选项并清除正确答案选择
-          return { 
-            ...q, 
-            [field]: value,
-            options: [], // 移除所有选项
-            correctOption: '', // 清除正确答案选择
-            sampleAnswer: q.sampleAnswer || '' // 保留示例答案
-          };
+        if (field === 'type') {
+          if (value === 'short_answer') {
+            // 对于简答题，移除选项并清除正确答案选择
+            return { 
+              ...q, 
+              [field]: value,
+              options: [], // 移除所有选项
+              correctOption: '', // 清除正确答案选择
+              correctOptions: [], // 清除多选答案
+              isMultipleCorrect: false,
+              sampleAnswer: q.sampleAnswer || '' // 保留示例答案
+            };
+          } else if (value === 'multiple_choice') {
+            // 转换为多选题
+            return {
+              ...q,
+              [field]: value,
+              isMultipleCorrect: true,
+              correctOptions: q.correctOption ? [q.correctOption] : [], // 转换现有单选答案
+              correctOption: '', // 清除单选答案字段
+            };
+          } else if (value === 'single_choice' || value === 'true_false') {
+            // 转换为单选题或判断题
+            return {
+              ...q,
+              [field]: value,
+              isMultipleCorrect: false,
+              correctOption: q.correctOptions && q.correctOptions.length > 0 
+                ? q.correctOptions[0] 
+                : q.correctOption || '', // 如果没有多选答案，保留原有的单选答案
+              correctOptions: [], // 清除多选答案
+            };
+          }
         }
         return { ...q, [field]: value };
       }
@@ -330,7 +355,8 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         ? { 
             ...q, 
             options: q.options?.filter(opt => opt.id !== optionId),
-            correctOption: q.correctOption === optionId ? '' : q.correctOption
+            correctOption: q.correctOption === optionId ? '' : q.correctOption,
+            correctOptions: q.correctOptions?.filter(id => id !== optionId) || [] // 同时从多选答案中移除
           } 
         : q
     );
@@ -353,6 +379,28 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
     const updatedQuestions = questions.map(q => 
       q.id === questionId ? { ...q, correctOption: optionId } : q
     );
+    
+    setQuestions(updatedQuestions);
+    const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
+    setCurrentContent(newQuizContent);
+    onContentChange(newQuizContent);
+  };
+  
+  // 新增：处理多选题答案的函数
+  const toggleCorrectOption = (questionId: string, optionId: string) => {
+    const updatedQuestions = questions.map(q => {
+      if (q.id === questionId) {
+        const currentCorrectOptions = q.correctOptions || [];
+        const isCurrentlySelected = currentCorrectOptions.includes(optionId);
+        
+        const newCorrectOptions = isCurrentlySelected
+          ? currentCorrectOptions.filter(id => id !== optionId)
+          : [...currentCorrectOptions, optionId];
+        
+        return { ...q, correctOptions: newCorrectOptions };
+      }
+      return q;
+    });
     
     setQuestions(updatedQuestions);
     const newQuizContent = { ...currentContent, questions: updatedQuestions } as QuizLessonContent;
@@ -740,13 +788,13 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                           />
                         </div>
                         
-                        {(question.type === 'multiple_choice' || question.type === 'true_false') && (
+                        {(question.type === 'single_choice' || question.type === 'multiple_choice' || question.type === 'true_false') && (
                           <div>
                             <div className="flex justify-between items-center mb-2">
                               <label className="block text-sm font-medium text-gray-700">
                                 选项
                               </label>
-                              {question.type === 'multiple_choice' && (
+                              {(question.type === 'single_choice' || question.type === 'multiple_choice') && (
                                 <Button
                                   type="button"
                                   size="sm"
@@ -762,19 +810,30 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                             <div className="space-y-2">
                               {question.options?.map((option) => (
                                 <div key={option.id} className="flex items-center gap-2">
-                                  <input
-                                    type="radio"
-                                    name={`correct-${question.id}`}
-                                    checked={question.correctOption === option.id}
-                                    onChange={() => setCorrectOption(question.id, option.id)}
-                                    className="h-4 w-4 text-connect-blue"
-                                  />
+                                  {question.type === 'multiple_choice' ? (
+                                    // 多选题使用checkbox
+                                    <input
+                                      type="checkbox"
+                                      checked={question.correctOptions?.includes(option.id) || false}
+                                      onChange={() => toggleCorrectOption(question.id, option.id)}
+                                      className="h-4 w-4 text-connect-blue"
+                                    />
+                                  ) : (
+                                    // 单选题和判断题使用radio
+                                    <input
+                                      type="radio"
+                                      name={`correct-${question.id}`}
+                                      checked={question.correctOption === option.id}
+                                      onChange={() => setCorrectOption(question.id, option.id)}
+                                      className="h-4 w-4 text-connect-blue"
+                                    />
+                                  )}
                                   <Input
                                     value={option.text}
                                     onChange={(e) => updateOption(question.id, option.id, e.target.value)}
                                     className="flex-1"
                                   />
-                                  {question.type === 'multiple_choice' && question.options && question.options.length > 2 && (
+                                  {(question.type === 'single_choice' || question.type === 'multiple_choice') && question.options && question.options.length > 2 && (
                                     <Button
                                       type="button"
                                       size="sm"
@@ -788,7 +847,13 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                                 </div>
                               ))}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">选择正确答案</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {question.type === 'multiple_choice' 
+                                ? '选择所有正确答案（可多选）' 
+                                : '选择正确答案'}
+                              {question.type === 'multiple_choice' && question.correctOptions && question.correctOptions.length > 0 && 
+                                ` · 已选择 ${question.correctOptions.length} 个答案`}
+                            </p>
                           </div>
                         )}
                         

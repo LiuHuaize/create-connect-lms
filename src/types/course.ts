@@ -192,7 +192,10 @@ export type LessonContent =
   | HotspotLessonContent;
 
 // Quiz related types
-export type QuizQuestionType = 'multiple_choice' | 'true_false' | 'short_answer';
+export type QuizQuestionType = 'single_choice' | 'multiple_choice' | 'true_false' | 'short_answer';
+
+// 多选题评分模式
+export type MultipleChoiceScoringMode = 'strict' | 'partial';
 
 export type QuizOption = {
   id: string;
@@ -204,9 +207,13 @@ export type QuizQuestion = {
   type: QuizQuestionType;
   text: string;
   options?: QuizOption[];
-  correctOption?: string;
+  correctOption?: string; // 保留用于单选题和向后兼容
+  correctOptions?: string[]; // 新增：用于多选题的多个正确答案
   sampleAnswer?: string;
   hint?: string;
+  isMultipleCorrect?: boolean; // 新增：标识是否为真正的多选题
+  requiredSelections?: number; // 新增：多选题要求选择的数量（可选）
+  scoringMode?: MultipleChoiceScoringMode; // 新增：多选题评分模式，默认为strict
 };
 
 // Lesson type - use string union for better type safety

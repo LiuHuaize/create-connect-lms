@@ -1352,8 +1352,8 @@ export const courseService = {
 
   // 专门的测验结果保存方法，避免影响其他课时数据
   async saveQuizResult(lessonId: string, courseId: string, enrollmentId: string, quizData: {
-    userAnswers: Record<string, string>;
-    correctAnswers: Record<string, string>;
+    userAnswers: Record<string, string | string[]>;  // 修改：支持数组答案
+    correctAnswers: Record<string, string | string[]>;  // 修改：支持数组答案
     score: number;
     totalQuestions: number;
     submittedAt: string;

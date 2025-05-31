@@ -5,6 +5,7 @@ import { NavigateFunction } from 'react-router-dom';
 import QuizQuestionItem from './QuizQuestionItem';
 import { courseService } from '@/services/courseService';
 import confetti from 'canvas-confetti';
+import { allQuestionsAnswered } from '@/utils/quizValidation';
 
 interface QuizLessonContentProps {
   lessonId: string;
@@ -13,10 +14,10 @@ interface QuizLessonContentProps {
   content: any; // 这里使用any是因为原代码中直接使用了as any
   quizSubmitted: boolean;
   quizResult: { score: number; totalQuestions: number } | null;
-  userAnswers: { [key: string]: string };
+  userAnswers: { [key: string]: string | string[] };
   navigate: NavigateFunction;
   onQuizSubmit: () => Promise<void>;
-  onAnswerSelect: (questionId: string, optionId: string) => void;
+  onAnswerSelect: (questionId: string, optionId: string | string[]) => void;
   onCheckSingleAnswer: (questionId: string, correctOptionId: string) => void;
   onUnmarkComplete: () => Promise<void>;
   isLoading: boolean;
@@ -24,7 +25,7 @@ interface QuizLessonContentProps {
   attemptCounts: { [key: string]: number };
   showHints: { [key: string]: boolean };
   showCorrectAnswers: { [key: string]: boolean };
-  selectedAnswer: { [key: string]: string };
+  selectedAnswer: { [key: string]: string | string[] };
   refreshCourseData?: () => void;
 }
 
@@ -67,13 +68,11 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
     }
   }, [quizSubmitted, quizResult]);
 
-  // 检查是否所有问题都已回答
-  const allQuestionsAnswered = () => {
+  // 检查是否所有问题都已回答 - 使用新的工具函数
+  const allQuestionsAnsweredCheck = () => {
     if (!content?.questions || content.questions.length === 0) return false;
     
-    return content.questions.every((question: any) => 
-      selectedAnswer[question.id] && selectedAnswer[question.id].trim() !== ''
-    );
+    return allQuestionsAnswered(content.questions, selectedAnswer);
   };
 
   return (
@@ -125,10 +124,12 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
         </h3>
         <p className="text-macaron-darkGray text-sm">
           完成下面的题目来测试你的理解。
-          {content?.questions?.some((q: any) => q.type === 'multiple_choice' || q.type === 'true_false') && 
-            '对于选择题，请选择一个正确答案。'}
+          {content?.questions?.some((q: any) => q.type === 'single_choice' || q.type === 'true_false') && 
+            '单选题和判断题请选择一个正确答案。'}
+          {content?.questions?.some((q: any) => q.type === 'multiple_choice') && 
+            '多选题需要选择所有正确答案。'}
           {content?.questions?.some((q: any) => q.type === 'short_answer') && 
-            '对于简答题，请在文本框中输入您的答案。'}
+            '简答题请在文本框中输入您的答案。'}
         </p>
       </div>
       
@@ -154,7 +155,7 @@ const QuizLessonContent: React.FC<QuizLessonContentProps> = ({
               <Button 
                 className="bg-macaron-deepLavender hover:bg-macaron-deepLavender/80 text-white transition-all duration-300 px-6 py-2 text-sm rounded-xl shadow-md hover:shadow-lg btn-hover-effect"
                 onClick={onQuizSubmit}
-                disabled={isLoading || !allQuestionsAnswered()}
+                disabled={isLoading || !allQuestionsAnsweredCheck()}
               >
                 {isLoading ? (
                   <div className="flex items-center">

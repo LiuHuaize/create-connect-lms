@@ -16,6 +16,7 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import confetti from 'canvas-confetti';
 import { appConfig } from '@/config/appConfig';
 import { useCourseData } from '@/pages/course/hooks/useCourseData';
+import { validateAnswer, calculateQuizScore, allQuestionsAnswered } from '@/utils/quizValidation';
 
 // 创建一个加载指示器组件
 const LessonLoadingSpinner = () => (
@@ -74,8 +75,8 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [lessonCompletionStatus, setLessonCompletionStatus] = useState<{[key: string]: boolean}>({});
   
-  // 测验相关状态
-  const [userAnswers, setUserAnswers] = useState<{[key: string]: string}>({});
+  // 测验相关状态 - 修改：支持多选题数组格式
+  const [userAnswers, setUserAnswers] = useState<{[key: string]: string | string[]}>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizResult, setQuizResult] = useState<{score: number, totalQuestions: number} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,7 +84,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   const [attemptCounts, setAttemptCounts] = useState<{[key: string]: number}>({});
   const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
   const [showCorrectAnswers, setShowCorrectAnswers] = useState<{[key: string]: boolean}>({});
-  const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string}>({});
+  const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string | string[]}>({});
   
   // 获取当前用户ID
   useEffect(() => {
@@ -159,8 +160,8 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   const safeCurrentIndex = Math.min(currentLessonIndex, Math.max(0, validLessonsLength - 1));
   const isLastPageOfFrame = safeCurrentIndex >= validLessonsLength - 1;
 
-  // 处理用户选择答案
-  const handleAnswerSelect = (questionId: string, optionId: string) => {
+  // 修改：处理用户选择答案 - 支持多选题
+  const handleAnswerSelect = (questionId: string, optionId: string | string[]) => {
     setUserAnswers(prev => ({
       ...prev,
       [questionId]: optionId
@@ -173,16 +174,24 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
     }));
   };
   
-  // 检查单个问题答案
+  // 修改：检查单个问题答案 - 支持多选题
   const handleCheckSingleAnswer = (questionId: string, correctOptionId: string) => {
-    // 修改：统一处理所有题型，只要有回答就算正确
-    const userAnswer = selectedAnswer[questionId];
+    const answer = selectedAnswer[questionId];
+    let hasAnswer = false;
     
-    if (correctOptionId === 'correct' || (userAnswer && userAnswer.trim() !== '')) {
+    if (answer) {
+      if (Array.isArray(answer)) {
+        hasAnswer = answer.length > 0;
+      } else {
+        hasAnswer = answer.trim() !== '';
+      }
+    }
+    
+    if (correctOptionId === 'correct' || hasAnswer) {
       // 记录用户答案
       setUserAnswers(prev => ({
         ...prev,
-        [questionId]: userAnswer || ''
+        [questionId]: answer || ''
       }));
       
       // 显示正确答案反馈
@@ -201,7 +210,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
     }
   };
   
-  // 处理测验提交
+  // 修改：处理测验提交 - 支持多选题验证和新的评分逻辑
   const handleQuizSubmit = async () => {
     if (!renderedLesson || renderedLesson.type !== 'quiz') return;
     
@@ -211,53 +220,50 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
     setIsLoading(true);
     
     try {
-      const totalQuestions = quizContent.questions.length;
+      const questions = quizContent.questions;
       
       // 收集用户答案和正确答案，用于保存到数据库
       const userAnswersData = { ...userAnswers };
       const correctAnswersData = {};
       
-      // 检查是否所有问题都有回答
-      let hasAllAnswers = true;
-      quizContent.questions.forEach((question: any) => {
-        correctAnswersData[question.id] = question.correctOption;
-        
-        // 检查是否有回答
-        if (!userAnswers[question.id] || userAnswers[question.id].trim() === '') {
-          hasAllAnswers = false;
+      // 设置正确答案数据用于保存
+      questions.forEach((question: any) => {
+        if (question.type === 'multiple_choice') {
+          correctAnswersData[question.id] = question.correctOptions || [];
+        } else {
+          correctAnswersData[question.id] = question.correctOption || '';
         }
       });
       
-      // 修改：如果所有问题都有回答，就给100分；否则按比例给分
-      let score: number;
-      if (hasAllAnswers) {
-        // 只要全部回答了，就给满分
-        score = 100;
-      } else {
-        // 如果有未回答的问题，按回答数量比例给分
-        let answeredCount = 0;
-        quizContent.questions.forEach((question: any) => {
-          if (userAnswers[question.id] && userAnswers[question.id].trim() !== '') {
-            answeredCount++;
-          }
-        });
-        score = Math.round((answeredCount / totalQuestions) * 100);
+      // 检查是否所有问题都有回答
+      const hasAllAnswers = allQuestionsAnswered(questions, userAnswers);
+      
+      if (!hasAllAnswers) {
+        toast.warning('请完成所有题目后再提交');
+        setIsLoading(false);
+        return;
       }
       
-      setQuizResult({score, totalQuestions});
+      // 使用新的评分逻辑计算分数
+      const quizResult = calculateQuizScore(questions, userAnswers);
+      
+      setQuizResult({
+        score: quizResult.score, 
+        totalQuestions: quizResult.totalQuestions
+      });
       setQuizSubmitted(true);
       
       // 框架内的子课时完成逻辑可以后续处理
       // 这里只关注测验状态的更新，不触发刷新
-      toast.success(`测验完成！得分：${score}/100`);
+      toast.success(`测验完成！得分：${quizResult.score}/100`);
       
       // 完全移除自动刷新机制，防止数据丢失
       if (appConfig.debug.logRefreshEvents) {
         console.log('框架内测验提交完成，已禁用自动刷新以防止数据丢失');
       }
     } catch (error) {
-      console.error('提交测验结果失败:', error);
-      toast.error('保存测验结果失败，请重试');
+      console.error('框架内测验提交失败:', error);
+      toast.error('测验提交失败，请重试');
     } finally {
       setIsLoading(false);
     }
@@ -458,7 +464,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
   enrollmentId,
   navigate
 }) => {
-  const [userAnswers, setUserAnswers] = useState<{[key: string]: string}>({});
+  const [userAnswers, setUserAnswers] = useState<{[key: string]: string | string[]}>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizResult, setQuizResult] = useState<{score: number, totalQuestions: number} | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -481,10 +487,10 @@ const LessonContent: React.FC<LessonContentProps> = ({
   const [attemptCounts, setAttemptCounts] = useState<{[key: string]: number}>({});
   const [showHints, setShowHints] = useState<{[key: string]: boolean}>({});
   const [showCorrectAnswers, setShowCorrectAnswers] = useState<{[key: string]: boolean}>({});
-  const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string}>({});
+  const [selectedAnswer, setSelectedAnswer] = useState<{[key: string]: string | string[]}>({});
   
-  // 添加缺失的handleAnswerSelect函数
-  const handleAnswerSelect = (questionId: string, optionId: string) => {
+  // 修改：添加缺失的handleAnswerSelect函数 - 支持多选题
+  const handleAnswerSelect = (questionId: string, optionId: string | string[]) => {
     setUserAnswers(prev => ({
       ...prev,
       [questionId]: optionId
@@ -631,14 +637,24 @@ const LessonContent: React.FC<LessonContentProps> = ({
     }
   };
   
-  // 检查单个问题答案并显示提示
+  // 修改：检查单个问题答案并显示提示 - 支持多选题
   const checkAnswer = (questionId: string, correctOptionId: string) => {
-    // 修改：统一处理所有题型，只要有回答就算正确
-    if (correctOptionId === 'correct' || (selectedAnswer[questionId] && selectedAnswer[questionId].trim() !== '')) {
+    const answer = selectedAnswer[questionId];
+    let hasAnswer = false;
+    
+    if (answer) {
+      if (Array.isArray(answer)) {
+        hasAnswer = answer.length > 0;
+      } else {
+        hasAnswer = answer.trim() !== '';
+      }
+    }
+    
+    if (correctOptionId === 'correct' || hasAnswer) {
       // 记录用户答案
       setUserAnswers(prev => ({
         ...prev,
-        [questionId]: selectedAnswer[questionId] || userAnswers[questionId] || ''
+        [questionId]: answer || ''
       }));
       
       // 显示正确答案反馈
@@ -649,7 +665,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
       return true;
     }
     
-    // 如果没有回答，显示提示（但这种情况在新逻辑下应该很少出现）
+    // 如果没有回答，显示提示
     setShowHints(prev => ({
       ...prev,
       [questionId]: true
@@ -657,7 +673,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
     return false;
   };
   
-  // 处理测验提交
+  // 修改：处理测验提交 - 支持多选题验证
   const handleQuizSubmit = async () => {
     if (!selectedLesson || selectedLesson.type !== 'quiz') return;
     
@@ -667,40 +683,37 @@ const LessonContent: React.FC<LessonContentProps> = ({
     setIsLoading(true);
     
     try {
-      const totalQuestions = quizContent.questions.length;
+      const questions = quizContent.questions;
       
       // 收集用户答案和正确答案，用于保存到数据库
       const userAnswersData = { ...userAnswers };
       const correctAnswersData = {};
       
-      // 检查是否所有问题都有回答
-      let hasAllAnswers = true;
-      quizContent.questions.forEach((question: any) => {
-        correctAnswersData[question.id] = question.correctOption;
-        
-        // 检查是否有回答
-        if (!userAnswers[question.id] || userAnswers[question.id].trim() === '') {
-          hasAllAnswers = false;
+      // 设置正确答案数据用于保存
+      questions.forEach((question: any) => {
+        if (question.type === 'multiple_choice') {
+          correctAnswersData[question.id] = question.correctOptions || [];
+        } else {
+          correctAnswersData[question.id] = question.correctOption || '';
         }
       });
       
-      // 修改：如果所有问题都有回答，就给100分；否则按比例给分
-      let score: number;
-      if (hasAllAnswers) {
-        // 只要全部回答了，就给满分
-        score = 100;
-      } else {
-        // 如果有未回答的问题，按回答数量比例给分
-        let answeredCount = 0;
-        quizContent.questions.forEach((question: any) => {
-          if (userAnswers[question.id] && userAnswers[question.id].trim() !== '') {
-            answeredCount++;
-          }
-        });
-        score = Math.round((answeredCount / totalQuestions) * 100);
+      // 检查是否所有问题都有回答
+      const hasAllAnswers = allQuestionsAnswered(questions, userAnswers);
+      
+      if (!hasAllAnswers) {
+        toast.warning('请完成所有题目后再提交');
+        setIsLoading(false);
+        return;
       }
       
-      setQuizResult({score, totalQuestions});
+      // 使用新的评分逻辑计算分数
+      const quizResult = calculateQuizScore(questions, userAnswers);
+      
+      setQuizResult({
+        score: quizResult.score, 
+        totalQuestions: quizResult.totalQuestions
+      });
       setQuizSubmitted(true);
       
       // 如果有注册ID，调用新的专门的测验结果保存API
@@ -709,8 +722,11 @@ const LessonContent: React.FC<LessonContentProps> = ({
         const quizData = {
           userAnswers: userAnswersData,
           correctAnswers: correctAnswersData,
-          score,
-          totalQuestions,
+          score: quizResult.score,
+          totalQuestions: quizResult.totalQuestions,
+          strictCorrectCount: quizResult.strictCorrectCount, // 添加严格正确数量
+          averageScore: quizResult.averageScore, // 添加平均分数
+          questionResults: quizResult.questionResults, // 添加详细的问题结果
           submittedAt: new Date().toISOString()
         };
         
@@ -723,7 +739,16 @@ const LessonContent: React.FC<LessonContentProps> = ({
         );
         
         console.log('测验结果已保存，无需刷新课程数据');
-        toast.success(`测验完成！得分：${score}/100`);
+        
+        // 显示详细的分数信息
+        if (quizResult.strictCorrectCount === quizResult.totalQuestions) {
+          toast.success(`恭喜！测验完成，满分！得分：${quizResult.score}/100`);
+        } else if (quizResult.averageScore !== quizResult.strictCorrectCount / quizResult.totalQuestions) {
+          // 如果有部分给分
+          toast.success(`测验完成！得分：${quizResult.score}/100 (完全正确：${quizResult.strictCorrectCount}/${quizResult.totalQuestions})`);
+        } else {
+          toast.success(`测验完成！得分：${quizResult.score}/100`);
+        }
         
         // 完全移除自动刷新机制，防止数据丢失
         // 只有在用户明确操作时才刷新数据
@@ -731,7 +756,7 @@ const LessonContent: React.FC<LessonContentProps> = ({
           console.log('测验提交完成，已禁用自动刷新以防止数据丢失');
         }
       } else {
-        toast.success(`测验已完成！得分：${score}/100`);
+        toast.success(`测验已完成！得分：${quizResult.score}/100`);
       }
     } catch (error) {
       console.error('提交测验结果失败:', error);

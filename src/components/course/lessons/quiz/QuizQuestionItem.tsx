@@ -4,16 +4,17 @@ import { CheckCircle, X, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 import { containsMarkdown } from '@/utils/markdownUtils';
+import { validateAnswer } from '@/utils/quizValidation';
 
 interface QuizQuestionItemProps {
   question: QuizQuestion;
   questionIndex: number;
-  userAnswer: string;
-  selectedAnswer: string;
+  userAnswer: string | string[];  // 修改：支持单选和多选答案
+  selectedAnswer: string | string[];  // 修改：支持单选和多选答案
   quizSubmitted: boolean;
   showHint: boolean;
   showCorrectAnswer: boolean;
-  onAnswerSelect: (questionId: string, optionId: string) => void;
+  onAnswerSelect: (questionId: string, optionId: string | string[]) => void;  // 修改：支持数组答案
   onCheckAnswer: (questionId: string, correctOptionId: string) => void;
 }
 
@@ -28,7 +29,30 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
   onAnswerSelect,
   onCheckAnswer
 }) => {
-  const isCorrect = question.correctOption === userAnswer;
+  // 修改：为多选题添加答案验证逻辑 - 使用新的验证函数
+  const getValidationResult = () => {
+    return validateAnswer(question, userAnswer);
+  };
+
+  const validationResult = getValidationResult();
+  const isCorrect = validationResult.isCorrect;
+
+  // 修改：处理多选题的选择逻辑
+  const handleOptionSelect = (optionId: string) => {
+    if (question.type === 'multiple_choice') {
+      const currentSelections = Array.isArray(selectedAnswer) ? selectedAnswer : [];
+      const isCurrentlySelected = currentSelections.includes(optionId);
+      
+      const newSelections = isCurrentlySelected
+        ? currentSelections.filter(id => id !== optionId)
+        : [...currentSelections, optionId];
+      
+      onAnswerSelect(question.id, newSelections);
+    } else {
+      // 单选题逻辑保持不变
+      onAnswerSelect(question.id, optionId);
+    }
+  };
   
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 hover-card transition-all duration-300 border border-macaron-lightGray">
@@ -37,6 +61,23 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
           {questionIndex + 1}
         </span>
         <span className="flex-1">
+          {/* 修改：添加问题类型标签 */}
+          <div className="mb-2">
+            <span className={`inline-block px-2 py-1 text-xs rounded-full font-medium ${
+              question.type === 'multiple_choice' 
+                ? 'bg-orange-100 text-orange-700' 
+                : question.type === 'single_choice'
+                  ? 'bg-blue-100 text-blue-700'
+                  : question.type === 'true_false'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-purple-100 text-purple-700'
+            }`}>
+              {question.type === 'multiple_choice' ? '多选题' 
+                : question.type === 'single_choice' ? '单选题'
+                : question.type === 'true_false' ? '判断题'
+                : '简答题'}
+            </span>
+          </div>
           {question.text && containsMarkdown(question.text) ? (
             <MarkdownRenderer>{question.text}</MarkdownRenderer>
           ) : (
@@ -44,6 +85,24 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
           )}
         </span>
       </h4>
+
+      {/* 修改：添加多选题选择提示和评分模式信息 */}
+      {question.type === 'multiple_choice' && !quizSubmitted && (
+        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <p className="text-orange-700 text-sm">
+            这是多选题，请选择所有正确答案
+            {question.correctOptions && question.correctOptions.length > 0 && 
+              ` （共有 ${question.correctOptions.length} 个正确答案）`}
+            {Array.isArray(selectedAnswer) && selectedAnswer.length > 0 && 
+              ` · 已选择 ${selectedAnswer.length} 个答案`}
+          </p>
+          {question.scoringMode === 'partial' && (
+            <p className="text-orange-600 text-xs mt-1">
+              📊 部分给分模式：选择部分正确答案也会得到相应分数
+            </p>
+          )}
+        </div>
+      )}
       
       {/* 显示提示 */}
       {showHint && question.hint && !showCorrectAnswer && (
@@ -62,12 +121,19 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
         </div>
       )}
       
-      {/* 当显示正确答案时的提示（针对答错情况） */}
-      {showCorrectAnswer && userAnswer !== question.correctOption && (
+      {/* 修改：当显示正确答案时的提示 - 增加部分给分信息 */}
+      {showCorrectAnswer && (
         <div className="mb-4 p-3 bg-macaron-mint/20 border border-macaron-mint/50 rounded-lg flex items-start animate-fade-in">
           <CheckCircle className="text-macaron-deepMint h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-macaron-deepMint font-medium">已显示正确答案</p>
+          <div className="flex-1">
+            <p className="text-macaron-deepMint font-medium">
+              {isCorrect ? '完全正确！' : '已显示正确答案'}
+            </p>
+            {!isCorrect && question.type === 'multiple_choice' && validationResult.partialScore && (
+              <p className="text-macaron-gray text-sm mt-1">
+                部分得分：{Math.round(validationResult.partialScore * 100)}%
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -76,11 +142,24 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
       {question.type !== 'short_answer' && question.options && (
         <div className="space-y-3 mt-4">
           {question.options.map((option, oIndex) => {
-            // 高亮显示选择但错误的答案
-            const isSelected = selectedAnswer === option.id;
-            const isCorrect = option.id === question.correctOption;
-            const shouldHighlightCorrect = (quizSubmitted || showCorrectAnswer) && isCorrect;
-            const shouldHighlightWrong = isSelected && !isCorrect && showCorrectAnswer;
+            // 修改：更新选择状态判断逻辑
+            let isSelected = false;
+            if (question.type === 'multiple_choice') {
+              isSelected = Array.isArray(selectedAnswer) && selectedAnswer.includes(option.id);
+            } else {
+              isSelected = selectedAnswer === option.id;
+            }
+
+            // 修改：更新正确答案判断逻辑
+            let isCorrectOption = false;
+            if (question.type === 'multiple_choice') {
+              isCorrectOption = question.correctOptions?.includes(option.id) || false;
+            } else {
+              isCorrectOption = option.id === question.correctOption;
+            }
+
+            const shouldHighlightCorrect = (quizSubmitted || showCorrectAnswer) && isCorrectOption;
+            const shouldHighlightWrong = isSelected && !isCorrectOption && showCorrectAnswer;
             
             return (
               <label 
@@ -95,14 +174,25 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
                         : 'border-macaron-lightGray hover:bg-macaron-cream/30'
                 }`}
               >
-                <input 
-                  type="radio" 
-                  name={`q-${question.id}`} 
-                  className="mr-3 h-5 w-5 accent-macaron-deepLavender mt-0.5" 
-                  checked={selectedAnswer === option.id}
-                  onChange={() => onAnswerSelect(question.id, option.id)}
-                  disabled={quizSubmitted || showCorrectAnswer}
-                />
+                {/* 修改：根据问题类型使用不同的输入控件 */}
+                {question.type === 'multiple_choice' ? (
+                  <input 
+                    type="checkbox" 
+                    className="mr-3 h-5 w-5 accent-macaron-deepLavender mt-0.5" 
+                    checked={isSelected}
+                    onChange={() => handleOptionSelect(option.id)}
+                    disabled={quizSubmitted || showCorrectAnswer}
+                  />
+                ) : (
+                  <input 
+                    type="radio" 
+                    name={`q-${question.id}`} 
+                    className="mr-3 h-5 w-5 accent-macaron-deepLavender mt-0.5" 
+                    checked={isSelected}
+                    onChange={() => handleOptionSelect(option.id)}
+                    disabled={quizSubmitted || showCorrectAnswer}
+                  />
+                )}
                 <div className={`flex-1 ${
                   shouldHighlightCorrect 
                     ? 'text-macaron-deepMint font-medium' 
@@ -139,7 +229,7 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             className="w-full p-3 border border-macaron-lightGray rounded-lg focus:ring-2 focus:ring-macaron-lavender focus:outline-none" 
             rows={4}
             placeholder="在此输入您的答案..."
-            value={userAnswer || ''}
+            value={typeof userAnswer === 'string' ? userAnswer : ''}
             onChange={(e) => onAnswerSelect(question.id, e.target.value)}
             disabled={quizSubmitted || showCorrectAnswer}
           ></textarea>
@@ -165,15 +255,26 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             variant="outline"
             className="text-macaron-darkGray border-macaron-lavender/30 hover:bg-macaron-lavender/20 transition-all duration-300"
             onClick={() => {
-              // 修改：所有类型的题目只要有回答就认为正确
-              const hasAnswer = question.type === 'short_answer' 
-                ? (userAnswer && userAnswer.trim() !== '')
-                : (selectedAnswer && selectedAnswer.trim() !== '');
+              // 修改：更新答案检查逻辑
+              let hasAnswer = false;
+              if (question.type === 'short_answer') {
+                hasAnswer = typeof userAnswer === 'string' && userAnswer.trim() !== '';
+              } else if (question.type === 'multiple_choice') {
+                hasAnswer = Array.isArray(selectedAnswer) && selectedAnswer.length > 0;
+              } else {
+                hasAnswer = typeof selectedAnswer === 'string' && selectedAnswer.trim() !== '';
+              }
               onCheckAnswer(question.id, hasAnswer ? 'correct' : '');
             }}
-            disabled={question.type === 'short_answer' 
-              ? (!userAnswer || userAnswer.trim() === '')
-              : (!selectedAnswer || selectedAnswer.trim() === '')}
+            disabled={(() => {
+              if (question.type === 'short_answer') {
+                return typeof userAnswer !== 'string' || userAnswer.trim() === '';
+              } else if (question.type === 'multiple_choice') {
+                return !Array.isArray(selectedAnswer) || selectedAnswer.length === 0;
+              } else {
+                return typeof selectedAnswer !== 'string' || selectedAnswer.trim() === '';
+              }
+            })()}
           >
             检查答案
           </Button>
