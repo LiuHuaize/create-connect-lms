@@ -285,8 +285,11 @@ const AssignmentGrading: React.FC<AssignmentGradingProps> = ({
             <User size={20} className="text-gray-600" />
           </div>
           <div>
-            <h3 className="font-medium">学生ID: {submission.studentId}</h3>
+            <h3 className="font-medium">
+              学生: {submission.profiles?.username || submission.studentId}
+            </h3>
             <p className="text-sm text-gray-500">提交时间: {new Date(submission.submittedAt).toLocaleString()}</p>
+            <p className="text-xs text-gray-400">ID: {submission.studentId.substring(0, 8)}...</p>
           </div>
         </div>
         

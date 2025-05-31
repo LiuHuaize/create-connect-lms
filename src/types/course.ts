@@ -131,6 +131,9 @@ export type AssignmentSubmission = {
     timestamp: string;
   }; // 教师评分结果
   fileSubmissions?: AssignmentFileSubmission[]; // 学生提交的文件
+  profiles?: {
+    username: string;
+  }; // 学生个人资料信息
 };
 
 // 学生文件提交类型

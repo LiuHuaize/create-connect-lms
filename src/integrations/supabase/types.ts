@@ -393,6 +393,59 @@ export type Database = {
           }
         ]
       }
+      course_resources: {
+        Row: {
+          id: string
+          module_id: string
+          title: string
+          description: string | null
+          file_path: string
+          file_name: string
+          file_type: string
+          file_size: number
+          download_count: number | null
+          order_index: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          module_id: string
+          title: string
+          description?: string | null
+          file_path: string
+          file_name: string
+          file_type: string
+          file_size: number
+          download_count?: number | null
+          order_index: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          module_id?: string
+          title?: string
+          description?: string | null
+          file_path?: string
+          file_name?: string
+          file_type?: string
+          file_size?: number
+          download_count?: number | null
+          order_index?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_resources_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

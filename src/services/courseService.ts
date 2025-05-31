@@ -1020,7 +1020,6 @@ export const courseService = {
       console.log(`开始复制模块资源文件，源模块: ${sourceModuleId}, 目标模块: ${targetModuleId}`);
       
       // 1. 获取源模块的所有资源文件
-      // @ts-ignore - Supabase类型定义中没有course_resources表
       const { data: sourceResources, error } = await supabase
         .from("course_resources")
         .select("*")
@@ -1041,16 +1040,13 @@ export const courseService = {
       // 2. 复制每个资源文件
       for (const resource of sourceResources) {
         // 从源资源对象中删除ID和时间戳，准备创建新记录
-        // @ts-ignore - 类型定义不完全匹配，但实际数据结构是兼容的
         const { id, created_at, updated_at, ...resourceWithoutId } = resource;
         
         // 3. 如果文件存储在Supabase Storage中，复制实际文件
         // 注意：这里假设文件路径是相对于某个存储桶的路径
-        // @ts-ignore - 类型定义不完全匹配，但实际数据结构是兼容的
         if (resource.file_path) {
           // 文件已经存在于存储中，我们只需要复用同样的路径
           // 如果需要复制文件本身（创建副本），这里需要添加Storage复制逻辑
-          // @ts-ignore - 类型定义不完全匹配，但实际数据结构是兼容的
           console.log(`资源文件路径: ${resource.file_path} (假设文件已存在，仅创建引用)`);
           
           // 如果需要真正复制文件，可以使用以下代码（取决于具体的存储结构）
@@ -1069,7 +1065,6 @@ export const courseService = {
         };
         
         // 5. 保存新资源记录到数据库
-        // @ts-ignore - Supabase类型定义中没有course_resources表
         const { data, error: insertError } = await supabase
           .from("course_resources")
           .insert(newResource)
@@ -1081,7 +1076,6 @@ export const courseService = {
           continue; // 继续尝试复制其他资源
         }
         
-        // @ts-ignore - 类型定义不完全匹配，但实际数据结构是兼容的
         console.log(`成功复制资源文件: ${data.title}, ID: ${data.id}`);
       }
       

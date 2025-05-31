@@ -87,7 +87,7 @@ export default function CourseAssignmentsPage() {
   const filteredSubmissions = submissions
     .filter(sub => {
       // 搜索筛选
-      const studentName = sub.students?.email || sub.student_id;
+      const studentName = sub.profiles?.username || sub.student_id;
       const lessonTitle = sub.lessons?.title || sub.lesson_id;
       const matchesSearch = 
         searchQuery === '' || 
@@ -206,12 +206,15 @@ export default function CourseAssignmentsPage() {
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
                         <span className="text-gray-500 font-medium">
-                          {(submission.students?.email || submission.student_id || '').substring(0, 2).toUpperCase()}
+                          {(submission.profiles?.username || submission.student_id || '').substring(0, 2).toUpperCase()}
                         </span>
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {submission.students?.email || submission.student_id}
+                          {submission.profiles?.username || submission.student_id}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {submission.student_id.substring(0, 8)}...
                         </div>
                       </div>
                     </div>
@@ -285,13 +288,14 @@ export default function CourseAssignmentsPage() {
   const formatSubmissionForViewer = (submission: any): AssignmentSubmission => {
     return {
       id: submission.id,
-      studentId: submission.students?.email || submission.student_id,
+      studentId: submission.student_id,
       lessonId: submission.lesson_id,
       content: submission.content || '',
       submittedAt: submission.submitted_at,
       fileSubmissions: submission.file_submissions || [],
       teacherGrading: submission.teacher_grading,
-      aiGrading: submission.ai_grading
+      aiGrading: submission.ai_grading,
+      profiles: submission.profiles
     };
   };
   

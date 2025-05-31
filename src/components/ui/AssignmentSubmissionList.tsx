@@ -76,7 +76,8 @@ const AssignmentSubmissionList: React.FC<AssignmentSubmissionListProps> = ({
   // 过滤和排序提交
   const filteredAndSortedSubmissions = [...submissions]
     .filter(submission => 
-      submission.studentId.toLowerCase().includes(searchQuery.toLowerCase())
+      submission.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (submission.profiles?.username || '').toLowerCase().includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
       if (sortField === 'submittedAt') {
@@ -138,7 +139,7 @@ const AssignmentSubmissionList: React.FC<AssignmentSubmissionListProps> = ({
         <div className="relative w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="搜索学生ID..."
+            placeholder="搜索学生姓名..."
             className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -223,7 +224,12 @@ const AssignmentSubmissionList: React.FC<AssignmentSubmissionListProps> = ({
                         <User size={14} className="text-gray-600" />
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{submission.studentId}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {submission.profiles?.username || submission.studentId}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {submission.studentId.substring(0, 8)}...
+                        </div>
                       </div>
                     </div>
                   </td>

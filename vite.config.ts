@@ -74,13 +74,23 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    exclude: ['pinyin-pro', 'chunk-GITHBTHW'], // 排除pinyin-pro以避免依赖优化问题
+    exclude: ['pinyin-pro'], // 排除pinyin-pro以避免依赖优化问题
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@radix-ui/react-slot',
+      '@radix-ui/react-dialog',
+      'clsx',
+      'tailwind-merge'
+    ],
     esbuildOptions: {
       platform: 'browser', // 确保构建平台是浏览器
       define: {
         global: 'window' // 将global定义为window以避免Node.js特定代码的问题
       }
-    }
+    },
+    force: mode === 'development' // 在开发模式下强制重新构建依赖
   },
   build: {
     // 出于更好的缓存考虑，启用长期缓存
