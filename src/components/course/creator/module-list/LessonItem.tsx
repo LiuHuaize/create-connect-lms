@@ -5,6 +5,7 @@ import { getLessonTypeIcon, getLessonTypeName } from './lessonTypeUtils';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
+import { courseService } from '@/services/courseService';
 
 interface LessonItemProps {
   lesson: Lesson;
@@ -62,45 +63,96 @@ const LessonItem: React.FC<LessonItemProps> = ({
     setIsEditing(true);
   };
 
-  const handleTitleBlur = () => {
+  const handleTitleBlur = async () => {
     setIsEditing(false);
-    
+
     // 如果标题没有变化，不做任何操作
     if (editedTitle === originalTitle) {
       return;
     }
-    
+
     // 如果标题为空，恢复原始标题
     if (!editedTitle.trim()) {
       setEditedTitle(originalTitle);
       toast.error('课时标题不能为空');
       return;
     }
-    
-    // 更新课时标题
+
+    const newTitle = editedTitle.trim();
+    console.log(`课时标题更新: ${lesson.id} - 从 "${originalTitle}" 到 "${newTitle}"`);
+
+    // 先更新本地状态
     const updatedLesson = {
       ...lesson,
-      title: editedTitle.trim()
+      title: newTitle
     };
-    
-    // 先记录日志，便于调试
-    console.log(`课时标题更新: ${lesson.id} - 从 "${originalTitle}" 到 "${editedTitle.trim()}"`);
-    
-    // 如果有onUpdateLesson，优先使用它进行更新
+
+    // 如果有onUpdateLesson，先更新本地状态
     if (onUpdateLesson) {
-      console.log('调用onUpdateLesson更新课时标题');
+      console.log('调用onUpdateLesson更新本地课时标题');
       onUpdateLesson(updatedLesson);
     } else {
       // 否则回退到onEditLesson
       console.log('没有onUpdateLesson函数，使用onEditLesson代替');
       onEditLesson(updatedLesson);
     }
-    
-    // 更新内部状态
-    setOriginalTitle(editedTitle.trim());
-    
+
+    try {
+      // 保存到数据库
+      console.log('开始保存课时标题到数据库...');
+      const result = await courseService.updateLessonTitle(lesson.id, newTitle, moduleId);
+
+      if (!result.success) {
+        console.error('保存课时标题失败:', result.error);
+
+        // 回滚本地状态
+        const revertedLesson = {
+          ...lesson,
+          title: originalTitle
+        };
+
+        if (onUpdateLesson) {
+          onUpdateLesson(revertedLesson);
+        } else {
+          onEditLesson(revertedLesson);
+        }
+
+        // 回滚输入框状态
+        setEditedTitle(originalTitle);
+
+        toast.error(result.error || '保存课时标题失败');
+        return;
+      }
+
+      console.log('课时标题保存成功');
+      toast.success('课时标题已保存');
+
+      // 更新内部状态
+      setOriginalTitle(newTitle);
+
+    } catch (error: any) {
+      console.error('保存课时标题时出错:', error);
+
+      // 回滚本地状态
+      const revertedLesson = {
+        ...lesson,
+        title: originalTitle
+      };
+
+      if (onUpdateLesson) {
+        onUpdateLesson(revertedLesson);
+      } else {
+        onEditLesson(revertedLesson);
+      }
+
+      // 回滚输入框状态
+      setEditedTitle(originalTitle);
+
+      toast.error('保存课时标题失败，请重试');
+    }
+
     // 显示反馈
-    console.log(`课时标题已更新: ${originalTitle} -> ${editedTitle.trim()}`);
+    console.log(`课时标题已更新: ${originalTitle} -> ${newTitle}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

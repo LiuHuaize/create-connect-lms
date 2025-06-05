@@ -453,8 +453,8 @@ export const courseService = {
       
       // 调用RPC函数进行硬删除
       const { data, error } = await supabase.rpc('delete_module', {
-        module_id: moduleId,
-        user_id: user.id
+        p_module_id: moduleId,
+        p_user_id: user.id
       });
       
       if (error) {
@@ -602,8 +602,8 @@ export const courseService = {
       
       // 调用RPC函数进行硬删除
       const { data, error } = await supabase.rpc('delete_lesson', {
-        lesson_id: lessonId,
-        user_id: user.id
+        p_lesson_id: lessonId,
+        p_user_id: user.id
       });
       
       if (error) {
@@ -621,7 +621,100 @@ export const courseService = {
       throw error;
     }
   },
-  
+
+  // 更新课时标题
+  async updateLessonTitle(lessonId: string, title: string, moduleId: string): Promise<{ success: boolean; message?: string; error?: string; lesson?: Lesson }> {
+    try {
+      console.log(`开始更新课时标题: lessonId=${lessonId}, title="${title}", moduleId=${moduleId}`);
+
+      // 获取当前用户
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('更新课时标题失败: 用户未登录');
+        return {
+          success: false,
+          error: '用户未登录'
+        };
+      }
+
+      console.log('已获取用户信息:', user.id);
+
+      // 验证用户是否有权限操作此课时（通过模块和课程的关联）
+      console.log('验证用户权限...');
+      const { data: lessonData, error: lessonError } = await supabase
+        .from('lessons')
+        .select(`
+          id,
+          title,
+          module_id,
+          course_modules!inner (
+            id,
+            course_id,
+            courses!inner (
+              id,
+              author_id
+            )
+          )
+        `)
+        .eq('id', lessonId)
+        .eq('module_id', moduleId)
+        .single();
+
+      if (lessonError) {
+        console.error('查询课时信息失败:', lessonError);
+        return {
+          success: false,
+          error: '课时不存在或无权访问'
+        };
+      }
+
+      // 检查用户权限
+      const courseAuthorId = (lessonData as any).course_modules?.courses?.author_id;
+      if (courseAuthorId !== user.id) {
+        console.error('用户无权限操作此课时');
+        return {
+          success: false,
+          error: '无权限操作此课时'
+        };
+      }
+
+      // 更新课时标题
+      console.log(`更新课时 ${lessonId} 的标题为: "${title}"`);
+      const { data: lesson, error } = await supabase
+        .from('lessons')
+        .update({
+          title: title,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', lessonId)
+        .eq('module_id', moduleId) // 额外的安全检查
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('更新课时标题失败:', error);
+        return {
+          success: false,
+          error: `更新课时标题失败: ${error.message}`
+        };
+      }
+
+      console.log('课时标题更新成功:', lesson);
+
+      return {
+        success: true,
+        message: '课时标题更新成功',
+        lesson: convertDbLessonToLesson(lesson)
+      };
+    } catch (error: any) {
+      console.error('更新课时标题时出错:', error);
+      return {
+        success: false,
+        error: `更新课时标题失败: ${error.message}`
+      };
+    }
+  },
+
   // 将课时标记为完成
   async markLessonComplete(lessonId: string, courseId: string, enrollmentId: string, score?: number, data?: any): Promise<void> {
     try {
@@ -1100,8 +1193,8 @@ export const courseService = {
       
       // 调用RPC函数进行硬删除
       const { data, error } = await supabase.rpc('delete_course', {
-        course_id: courseId,
-        user_id: user.id
+        p_course_id: courseId,
+        p_user_id: user.id
       });
       
       if (error) {

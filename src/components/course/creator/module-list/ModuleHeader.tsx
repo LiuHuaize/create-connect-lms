@@ -8,7 +8,7 @@ interface ModuleHeaderProps {
   title: string;
   isExpanded: boolean;
   onToggleExpand: (moduleId: string) => void;
-  onUpdateTitle: (moduleId: string, title: string) => void;
+  onUpdateTitle: (moduleId: string, title: string) => Promise<void>;
   onDeleteModule: (moduleId: string) => void;
   attributes?: DraggableAttributes;
   listeners?: any;
@@ -38,27 +38,33 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
     setCurrentTitle(e.target.value);
   };
 
-  const handleTitleBlur = () => {
+  const handleTitleBlur = async () => {
     setIsEditing(false);
-    
+
     // 如果标题没有变化，不做任何操作
     if (currentTitle === originalTitle) {
       return;
     }
-    
+
     // 如果标题为空，使用原始标题
     if (!currentTitle.trim()) {
       setCurrentTitle(originalTitle);
       toast.error('模块标题不能为空');
       return;
     }
-    
+
     // 提交更改
-    onUpdateTitle(moduleId, currentTitle);
-    setOriginalTitle(currentTitle);
-    
-    // 显示反馈
-    console.log(`模块标题已更新: ${originalTitle} -> ${currentTitle}`);
+    try {
+      await onUpdateTitle(moduleId, currentTitle);
+      setOriginalTitle(currentTitle);
+
+      // 显示反馈
+      console.log(`模块标题已更新: ${originalTitle} -> ${currentTitle}`);
+    } catch (error) {
+      console.error('更新模块标题失败:', error);
+      // 如果更新失败，恢复原始标题
+      setCurrentTitle(originalTitle);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

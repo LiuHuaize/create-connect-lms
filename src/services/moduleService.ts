@@ -168,12 +168,112 @@ export const createModuleViaEdgeFunction = async (data: CreateModuleRequest): Pr
 };
 
 /**
+ * 更新模块标题的请求接口
+ */
+interface UpdateModuleTitleRequest {
+  moduleId: string;
+  title: string;
+  courseId: string;
+}
+
+/**
+ * 更新模块标题的响应接口
+ */
+interface UpdateModuleTitleResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  module?: CourseModule;
+}
+
+/**
+ * 直接更新模块标题到数据库
+ */
+export const updateModuleTitle = async (data: UpdateModuleTitleRequest): Promise<UpdateModuleTitleResponse> => {
+  try {
+    console.log('开始更新模块标题到数据库:', data);
+
+    // 获取当前用户
+    const user = await getCurrentUser();
+    if (!user) {
+      console.error('更新模块标题失败: 用户未登录');
+      return {
+        success: false,
+        error: '用户未登录'
+      };
+    }
+
+    console.log('已获取用户信息:', user.id);
+
+    // 验证用户是否有权限操作此课程
+    console.log('验证用户权限...');
+    const { data: courseData, error: courseError } = await supabase
+      .from('courses')
+      .select('author_id')
+      .eq('id', data.courseId)
+      .single();
+
+    if (courseError) {
+      console.error('查询课程信息失败:', courseError);
+      return {
+        success: false,
+        error: '课程不存在或无权访问'
+      };
+    }
+
+    if (courseData.author_id !== user.id) {
+      console.error('用户无权限操作此课程');
+      return {
+        success: false,
+        error: '无权限操作此课程'
+      };
+    }
+
+    // 更新模块标题
+    console.log(`更新模块 ${data.moduleId} 的标题为: "${data.title}"`);
+    const { data: module, error } = await supabase
+      .from('course_modules')
+      .update({
+        title: data.title,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', data.moduleId)
+      .eq('course_id', data.courseId) // 额外的安全检查
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error('更新模块标题失败:', error);
+      return {
+        success: false,
+        error: `更新模块标题失败: ${error.message}`
+      };
+    }
+
+    console.log('模块标题更新成功:', module);
+
+    return {
+      success: true,
+      message: '模块标题更新成功',
+      module: module as CourseModule
+    };
+  } catch (error: any) {
+    console.error('更新模块标题时出错:', error);
+    return {
+      success: false,
+      error: `更新模块标题失败: ${error.message}`
+    };
+  }
+};
+
+/**
  * 模块服务，提供与模块相关的方法
  */
 const moduleService = {
   createModule: createModuleDirectly, // 默认使用直接数据库操作
   createModuleViaEdgeFunction,
-  createModuleDirectly
+  createModuleDirectly,
+  updateModuleTitle
 };
 
-export default moduleService; 
+export default moduleService;

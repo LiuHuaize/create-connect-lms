@@ -103,10 +103,71 @@ const ModuleList: React.FC<ModuleListProps> = ({
     }
   };
 
-  const updateModuleTitle = (moduleId: string, newTitle: string) => {
-    setModules(modules.map(module => 
+  const updateModuleTitle = async (moduleId: string, newTitle: string) => {
+    console.log(`正在更新模块 ${moduleId} 的标题为: "${newTitle}"`);
+
+    // 先保存原始标题，以便在失败时回滚
+    let originalTitle = '';
+    const targetModule = modules.find(m => m.id === moduleId);
+    if (targetModule) {
+      originalTitle = targetModule.title;
+    }
+
+    // 获取课程ID
+    let course_id = courseId;
+    if (!course_id && modules.length > 0) {
+      course_id = modules[0].course_id;
+    }
+
+    if (!course_id) {
+      console.error('无法更新模块标题：缺少课程ID');
+      toast.error('无法更新模块标题：缺少课程ID');
+      return;
+    }
+
+    // 先更新本地状态
+    setModules(modules.map(module =>
       module.id === moduleId ? { ...module, title: newTitle } : module
     ));
+
+    try {
+      // 保存到数据库
+      console.log('开始保存模块标题到数据库...');
+      const result = await moduleService.updateModuleTitle({
+        moduleId,
+        title: newTitle,
+        courseId: course_id
+      });
+
+      if (!result.success) {
+        console.error('保存模块标题失败:', result.error);
+
+        // 回滚本地状态
+        setModules(prevModules =>
+          prevModules.map(module =>
+            module.id === moduleId ? { ...module, title: originalTitle } : module
+          )
+        );
+
+        toast.error(result.error || '保存模块标题失败');
+        return;
+      }
+
+      console.log('模块标题保存成功');
+      toast.success('模块标题已保存');
+
+    } catch (error: any) {
+      console.error('保存模块标题时出错:', error);
+
+      // 回滚本地状态
+      setModules(prevModules =>
+        prevModules.map(module =>
+          module.id === moduleId ? { ...module, title: originalTitle } : module
+        )
+      );
+
+      toast.error('保存模块标题失败，请重试');
+    }
   };
 
   const deleteModule = async (moduleId: string) => {
