@@ -289,14 +289,14 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
       <div className="mb-4">
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
-            <div className="text-xs text-ghibli-brown mb-1">
+            <div className="text-xs text-ghibli-brown mb-1 text-center">
               {content.lessons && content.lessons.length > 0 ? (
                 <>第 {Math.min(currentLessonIndex + 1, content.lessons.length)} 课时，共 {content.lessons.length} 课时</>
               ) : (
                 <>课时信息加载中...</>
               )}
             </div>
-            <CardTitle className="text-xl text-ghibli-deepTeal">
+            <CardTitle className="text-xl text-ghibli-deepTeal text-center">
               {renderedLesson.title}
             </CardTitle>
           </CardHeader>
@@ -1034,10 +1034,10 @@ const LessonContent: React.FC<LessonContentProps> = ({
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <Card className="border-none shadow-md overflow-hidden">
             <CardHeader className="bg-gradient-to-r from-ghibli-cream to-ghibli-lightTeal/20 border-b border-ghibli-sand py-4">
-              <div className="flex items-center text-xs sm:text-sm text-ghibli-brown mb-1 pr-24">
-                <span className="truncate">{selectedUnit.title} / {selectedLesson.title}</span>
+              <div className="flex items-center justify-center text-xs sm:text-sm text-ghibli-brown mb-1">
+                <span className="truncate text-center">{selectedUnit.title} / {selectedLesson.title}</span>
               </div>
-              <CardTitle className="text-xl sm:text-2xl text-ghibli-deepTeal pr-24 max-w-[80%]">{selectedLesson.title}</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl text-ghibli-deepTeal text-center mx-auto">{selectedLesson.title}</CardTitle>
             </CardHeader>
             
             <CardContent className="p-4 sm:p-6">

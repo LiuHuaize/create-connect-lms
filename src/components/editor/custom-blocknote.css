@@ -65,6 +65,7 @@
 .custom-editor-root [data-content-type="heading"] {
   color: #2563eb !important; /* 更现代的蓝色标题 */
   font-weight: 600 !important;
+  text-align: center !important; /* 标题居中 */
 }
 
 /* 增强列表样式 */
@@ -138,6 +139,7 @@
   margin-top: 10px !important;
   margin-bottom: 5px !important;
   font-weight: 600 !important;
+  text-align: center !important; /* 标题居中 */
 }
 
 /* 段落样式 */

@@ -294,7 +294,7 @@ const CourseDetailsPage = () => {
                 {modules.slice(0, 3).map((module, index) => (
                   <Card key={module.id} className="border border-gray-200 hover:border-blue-200 transition-colors">
                     <CardContent className="p-4">
-                      <h3 className="font-medium text-gray-900">
+                      <h3 className="font-medium text-gray-900 text-center">
                         {index + 1}. {module.title}
                       </h3>
                     </CardContent>

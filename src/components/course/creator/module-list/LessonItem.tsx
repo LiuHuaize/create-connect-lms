@@ -198,12 +198,12 @@ const LessonItem: React.FC<LessonItemProps> = ({
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
             onKeyDown={handleKeyDown}
-            className="w-full p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="w-full p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-center"
             autoFocus
           />
         ) : (
-          <div 
-            className="font-medium text-gray-700 hover:bg-gray-100 p-1 rounded-md cursor-pointer"
+          <div
+            className="font-medium text-gray-700 hover:bg-gray-100 p-1 rounded-md cursor-pointer text-center"
             onClick={handleEditClick}
           >
             {editedTitle || '未命名课时'}

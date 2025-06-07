@@ -647,7 +647,7 @@ const ModuleList: React.FC<ModuleListProps> = ({
     >
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-bold">课程结构</h2>
+          <h2 className="text-lg font-bold text-center flex-1">课程结构</h2>
           <Button onClick={handleAddModule} className="bg-connect-blue hover:bg-blue-600">
             <Plus size={16} className="mr-2" /> 添加模块
           </Button>
