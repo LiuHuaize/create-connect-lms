@@ -2,7 +2,7 @@ import React from 'react';
 import { QuizQuestion } from '@/types/course';
 import { CheckCircle, X, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
+import QuizMarkdownRenderer from '@/components/ui/QuizMarkdownRenderer';
 import { containsMarkdown } from '@/utils/markdownUtils';
 import { validateAnswer } from '@/utils/quizValidation';
 
@@ -79,7 +79,7 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             </span>
           </div>
           {question.text && containsMarkdown(question.text) ? (
-            <MarkdownRenderer>{question.text}</MarkdownRenderer>
+            <QuizMarkdownRenderer>{question.text}</QuizMarkdownRenderer>
           ) : (
             <span>{question.text || '未命名问题'}</span>
           )}
@@ -113,7 +113,7 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
           <div>
             <p className="text-macaron-darkGray font-medium mb-1">提示：</p>
             {containsMarkdown(question.hint) ? (
-              <MarkdownRenderer>{question.hint}</MarkdownRenderer>
+              <QuizMarkdownRenderer>{question.hint}</QuizMarkdownRenderer>
             ) : (
               <p className="text-macaron-gray">{question.hint}</p>
             )}
@@ -201,7 +201,7 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
                       : 'text-macaron-darkGray'
                 }`}>
                   {option.text && containsMarkdown(option.text) ? (
-                    <MarkdownRenderer>{option.text}</MarkdownRenderer>
+                    <QuizMarkdownRenderer>{option.text}</QuizMarkdownRenderer>
                   ) : (
                     <span>{option.text}</span>
                   )}
@@ -239,7 +239,7 @@ const QuizQuestionItem: React.FC<QuizQuestionItemProps> = ({
             <div className="mt-3 p-3 bg-macaron-mint/20 border border-macaron-mint/50 rounded-lg">
               <p className="text-macaron-deepMint font-medium mb-1">参考答案:</p>
               {containsMarkdown(question.sampleAnswer) ? (
-                <MarkdownRenderer>{question.sampleAnswer}</MarkdownRenderer>
+                <QuizMarkdownRenderer>{question.sampleAnswer}</QuizMarkdownRenderer>
               ) : (
                 <p className="text-macaron-darkGray">{question.sampleAnswer}</p>
               )}

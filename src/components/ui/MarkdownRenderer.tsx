@@ -22,6 +22,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ children }) => {
           ul: ({ node, ...props }: any) => <ul className="list-disc pl-5 mb-3 text-ghibli-brown" {...props} />,
           ol: ({ node, ...props }: any) => <ol className="list-decimal pl-5 mb-3 text-ghibli-brown" {...props} />,
           li: ({ node, ...props }: any) => <li className="mb-1" {...props} />,
+          // 加粗和斜体
+          strong: ({ node, ...props }: any) => <strong className="font-bold text-ghibli-deepTeal" {...props} />,
+          em: ({ node, ...props }: any) => <em className="italic text-ghibli-deepTeal" {...props} />,
           // 代码块和内联代码
           code: ({ node, inline, className, children, ...props }: any) => {
             return inline ? 

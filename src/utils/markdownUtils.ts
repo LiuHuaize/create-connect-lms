@@ -15,8 +15,9 @@ export const containsMarkdown = (text: string): boolean => {
     /`{1,3}[^`]+`{1,3}/,         // 代码块或内联代码
     /^>\s/m,                     // 引用
     /^---+$/m,                   // 水平线
-    /\|(.+\|)+/                  // 表格
+    /\|(.+\|)+/,                 // 表格
+    /\n\s*\n/                    // 包含空行（两个换行符之间可能有空白字符）
   ];
-  
+
   return markdownPatterns.some(pattern => pattern.test(text));
-}; 
+};

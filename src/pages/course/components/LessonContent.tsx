@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle, Layers } from 'lucide-react';
+import { Play, Check, ChevronLeft, ChevronRight, Loader2, CheckCircle, X, InfoIcon, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonContentType, AssignmentLessonContent as AssignmentLessonContentType, CardCreatorLessonContent as CardCreatorLessonContentType, DragSortContent, ResourceLessonContent, FrameLessonContent as FrameLessonContentType, HotspotLessonContent as HotspotLessonContentType } from '@/types/course';
@@ -271,20 +271,6 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   
   return (
     <div>
-      {/* 框架描述信息 */}
-      {currentLessonIndex === 0 && content.description && (
-        <div className="mb-6 p-4 bg-ghibli-cream/40 rounded-lg border border-ghibli-sand/30">
-          <div className="flex items-start gap-3">
-            <Layers className="h-5 w-5 text-ghibli-purple mt-1" />
-            <div>
-              <div className="text-base text-ghibli-brown">
-                <MarkdownRenderer>{content.description || ''}</MarkdownRenderer>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* 当前课时内容 */}
       <div className="mb-4">
         <Card className="border-none shadow-sm">

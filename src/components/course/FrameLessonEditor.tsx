@@ -154,7 +154,7 @@ interface FrameLessonEditorProps {
 const FrameLessonEditor: React.FC<FrameLessonEditorProps> = ({ lesson, onSave, onCourseDataSaved }) => {
   const [content, setContent] = useState<FrameLessonContent>(
     (lesson.content as FrameLessonContent) || {
-      title: lesson.title || '课程框架',
+      title: lesson.title || '新框架课程',
       description: '',
       lessons: []
     }

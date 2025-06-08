@@ -109,7 +109,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         } as ResourceLessonContent;
       case 'frame':
         return {
-          title: (baseContent as FrameLessonContent)?.title || lesson.title || '课程框架',
+          title: (baseContent as FrameLessonContent)?.title || lesson.title || '新框架课程',
           description: (baseContent as FrameLessonContent)?.description || '',
           lessons: (baseContent as FrameLessonContent)?.lessons || []
         } as FrameLessonContent;
@@ -781,11 +781,16 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             问题文本
                           </label>
-                          <Input
+                          <Textarea
                             value={question.text}
                             onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
-                            placeholder="输入问题内容"
+                            placeholder="输入问题内容&#10;&#10;支持Markdown格式：&#10;**加粗文字**&#10;*斜体文字*&#10;&#10;按Enter键可创建空行"
+                            className="min-h-[100px]"
+                            rows={4}
                           />
+                          <p className="text-xs text-gray-500 mt-1">
+                            支持Markdown格式：**加粗**、*斜体*，按Enter键可创建空行
+                          </p>
                         </div>
                         
                         {(question.type === 'single_choice' || question.type === 'multiple_choice' || question.type === 'true_false') && (
@@ -828,10 +833,12 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                                       className="h-4 w-4 text-connect-blue"
                                     />
                                   )}
-                                  <Input
+                                  <Textarea
                                     value={option.text}
                                     onChange={(e) => updateOption(question.id, option.id, e.target.value)}
-                                    className="flex-1"
+                                    className="flex-1 min-h-[60px]"
+                                    placeholder="输入选项内容（支持Markdown格式）"
+                                    rows={2}
                                   />
                                   {(question.type === 'single_choice' || question.type === 'multiple_choice') && question.options && question.options.length > 2 && (
                                     <Button

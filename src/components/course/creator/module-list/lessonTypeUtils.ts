@@ -92,7 +92,7 @@ export const getInitialContentByType = (type: LessonType) => {
       };
     case 'frame':
       return {
-        title: '课程框架',
+        title: '新框架课程',
         description: '此框架包含多个相关课时内容',
         lessons: []
       };
