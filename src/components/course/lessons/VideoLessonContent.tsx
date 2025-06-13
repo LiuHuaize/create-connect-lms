@@ -70,7 +70,6 @@ const VideoLessonContent: React.FC<VideoLessonContentProps> = ({
       {/* 视频描述部分 */}
       {content.description && (
         <div className="mt-4 bg-ghibli-cream/20 border border-ghibli-sand/40 rounded-lg p-4">
-          <h3 className="text-lg font-medium text-ghibli-deepTeal mb-2">视频说明</h3>
           <p className="text-ghibli-brown whitespace-pre-wrap">
             {content.description}
           </p>

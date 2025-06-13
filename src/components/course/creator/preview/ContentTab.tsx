@@ -123,7 +123,6 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
               {/* 视频描述部分 */}
               {(lesson.content as VideoLessonContent).description && (
                 <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h3 className="text-md font-medium text-gray-700 mb-2">视频说明</h3>
                   <p className="text-gray-600 whitespace-pre-wrap">
                     {(lesson.content as VideoLessonContent).description}
                   </p>

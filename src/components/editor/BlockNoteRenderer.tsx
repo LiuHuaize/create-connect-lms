@@ -104,8 +104,8 @@ const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, classNam
 
   return (
     <div className={`${className} preview-mode`}>
-      <BlockNoteView 
-        editor={editor} 
+      <BlockNoteView
+        editor={editor}
         editable={false}
         theme={customTheme}
       />

@@ -106,13 +106,17 @@
   --bn-colors-editor-background: #ffffff !important;
   --bn-colors-border: #e5e7eb !important;
   --bn-colors-shadow: rgba(0, 0, 0, 0.05) !important;
-  
+
   /* 整体样式调整 */
   background-color: white !important;
   border-radius: 8px !important;
   border: 1px solid #e5e7eb !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+
+  /* 限制容器最大宽度，与默认图片宽度一致 */
+  max-width: 640px !important;
+  margin: 0 auto !important;
 }
 
 /* 编辑器块样式 */
@@ -146,4 +150,50 @@
 .bn-container [data-content-type="paragraph"] {
   color: #374151 !important;
   line-height: 1.6 !important;
-} 
+  /* 确保段落内容宽度与容器一致 */
+  max-width: 100% !important;
+  width: fit-content !important;
+  margin: 0 auto !important;
+}
+
+/* 预览模式下的特殊样式 - 限制文字和背景宽度 */
+.preview-mode .bn-container {
+  /* 进一步限制预览模式下的宽度 */
+  max-width: 600px !important;
+}
+
+.preview-mode .bn-container [data-content-type="paragraph"],
+.preview-mode .bn-container [data-content-type="heading"] {
+  /* 文字内容宽度自适应，背景色只覆盖文字区域 */
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+}
+
+/* 确保选中状态的背景色只覆盖文字区域 */
+.preview-mode .bn-container [data-is-active="true"] {
+  background-color: transparent !important;
+}
+
+.preview-mode .bn-container [data-is-active="true"] [data-content-type="paragraph"],
+.preview-mode .bn-container [data-is-active="true"] [data-content-type="heading"] {
+  background-color: rgba(147, 100, 237, 0.1) !important; /* 淡紫色背景，只覆盖文字 */
+  width: fit-content !important;
+}
+
+/* 图片样式 - 添加下方间距 */
+.bn-container [data-content-type="image"] {
+  margin-bottom: 20px !important; /* 图片下方添加20px间距 */
+}
+
+.preview-mode .bn-container [data-content-type="image"] {
+  margin-bottom: 24px !important; /* 预览模式下图片下方添加更多间距 */
+}
+
+/* 图片容器样式优化 */
+.bn-container img {
+  margin-bottom: 16px !important; /* 图片元素本身也添加下边距 */
+  border-radius: 8px !important; /* 添加圆角 */
+}
