@@ -1,0 +1,87 @@
+name: 部署到云服务器
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: 安装依赖
+      run: |
+        npm ci
+
+    - name: 构建项目
+      run: |
+        npm run build
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+    - name: 创建部署包
+      run: |
+        tar -czf deploy.tar.gz dist
+
+    - name: 部署到服务器
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          # 创建目录
+          sudo mkdir -p ${{ secrets.TARGET_DIR }}
+          cd ${{ secrets.TARGET_DIR }}
+          
+          # 备份当前版本
+          if [ -d "current" ]; then
+            sudo mv current backup_$(date +%Y%m%d_%H%M%S)
+          fi
+          
+          # 创建新目录
+          sudo mkdir -p current
+
+    - name: 上传文件到服务器
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        source: "deploy.tar.gz"
+        target: ${{ secrets.TARGET_DIR }}
+
+    - name: 解压并配置服务器
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          cd ${{ secrets.TARGET_DIR }}
+          
+          # 解压文件
+          sudo tar -xzf deploy.tar.gz -C current --strip-components=1
+          sudo rm deploy.tar.gz
+          
+          # 设置权限
+          sudo chown -R www-data:www-data current/
+          sudo chmod -R 755 current/
+          
+          # 重启 Nginx
+          sudo systemctl reload nginx 
