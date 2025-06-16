@@ -1,6 +1,6 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
 # Technology Stack Documentation
@@ -52,7 +52,10 @@ This document outlines the primary technologies and tools used in this project. 
 
 ## Deployment & Hosting
 
-- **Platform:** [Vercel](mdc:vercel.json)
+- **Platform:** 云服务器 (103.231.12.246)
+- **Web Server:** Nginx
+- **CI/CD:** GitHub Actions
+- **Backup Platform:** [Vercel](mdc:vercel.json) (已停用)
 
 ## Version Control
 

@@ -1,87 +1,99 @@
-name: 部署到云服务器
+name: 🚀 自动部署到云服务器
 
 on:
   push:
     branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
 
 jobs:
   deploy:
+    name: 🚀 部署到服务器
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: 检出代码
-      uses: actions/checkout@v4
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
 
-    - name: 设置 Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
+      - name: 🔧 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-    - name: 安装依赖
-      run: |
-        npm ci
+      - name: 📦 安装依赖
+        run: npm ci
 
-    - name: 构建项目
-      run: |
-        npm run build
-      env:
-        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - name: 🏗️ 构建项目
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-    - name: 创建部署包
-      run: |
-        tar -czf deploy.tar.gz dist
+      - name: 🚀 部署到服务器
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "🚀 开始部署..."
 
-    - name: 部署到服务器
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        script: |
-          # 创建目录
-          sudo mkdir -p ${{ secrets.TARGET_DIR }}
-          cd ${{ secrets.TARGET_DIR }}
-          
-          # 备份当前版本
-          if [ -d "current" ]; then
-            sudo mv current backup_$(date +%Y%m%d_%H%M%S)
-          fi
-          
-          # 创建新目录
-          sudo mkdir -p current
+            # 设置变量
+            PROJECT_DIR="/var/www/lms-project"
+            BACKUP_DIR="/var/backups/lms-project"
 
-    - name: 上传文件到服务器
-      uses: appleboy/scp-action@v0.1.4
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        source: "deploy.tar.gz"
-        target: ${{ secrets.TARGET_DIR }}
+            # 创建备份
+            echo "📦 创建备份..."
+            sudo mkdir -p $BACKUP_DIR
+            if [ -d "$PROJECT_DIR/current" ]; then
+              sudo cp -r $PROJECT_DIR/current $BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S)
+            fi
 
-    - name: 解压并配置服务器
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: 22
-        script: |
-          cd ${{ secrets.TARGET_DIR }}
-          
-          # 解压文件
-          sudo tar -xzf deploy.tar.gz -C current --strip-components=1
-          sudo rm deploy.tar.gz
-          
-          # 设置权限
-          sudo chown -R www-data:www-data current/
-          sudo chmod -R 755 current/
-          
-          # 重启 Nginx
-          sudo systemctl reload nginx 
+            # 创建项目目录
+            sudo mkdir -p $PROJECT_DIR
+            cd $PROJECT_DIR
+
+            # 克隆或更新代码
+            if [ ! -d ".git" ]; then
+              echo "📥 首次克隆仓库..."
+              sudo git clone https://github.com/${{ github.repository }} .
+              sudo chown -R ${{ secrets.USERNAME }}:${{ secrets.USERNAME }} .
+            else
+              echo "🔄 更新代码..."
+              git fetch --all
+              git reset --hard origin/${{ github.ref_name }}
+            fi
+
+            # 安装依赖
+            echo "📦 安装依赖..."
+            npm ci
+
+            # 构建项目
+            echo "🏗️ 构建项目..."
+            npm run build
+
+            # 部署到 current 目录
+            echo "📂 部署文件..."
+            sudo rm -rf current
+            sudo mv dist current
+
+            # 重启 Nginx
+            echo "🔄 重启 Nginx..."
+            sudo nginx -t && sudo systemctl reload nginx
+
+            echo "✅ 部署完成！"
+            echo "🌐 访问地址: http://103.231.12.246"
+
+      - name: 📤 上传构建文件 (备用)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "dist/*"
+          target: "/var/www/lms-project/current"
+          strip_components: 1
+          overwrite: true

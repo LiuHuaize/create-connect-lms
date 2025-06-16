@@ -1,29 +1,32 @@
-name: Deploy to Vercel
+# 已停用 Vercel 部署，改用云服务器部署
+# 如需重新启用，请取消注释以下内容
 
-on:
-  push:
-    branches:
-      - main # 当推送到main分支时触发部署
-
-env:
-  VERCEL_ORG_ID: team_RFj4iTvBRL82vdVlJcMurv90
-  VERCEL_PROJECT_ID: prj_lM9W5Z2uovbiRPDM028mPJblGCT8
-  VERCEL_TOKEN: EYcSrJe7c6mMTwik4mYfn5ck
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-      
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ env.VERCEL_TOKEN }}
-      
-      - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ env.VERCEL_TOKEN }}
-      
-      - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ env.VERCEL_TOKEN }} 
+# name: Deploy to Vercel
+#
+# on:
+#   push:
+#     branches:
+#       - main # 当推送到main分支时触发部署
+#
+# env:
+#   VERCEL_ORG_ID: team_RFj4iTvBRL82vdVlJcMurv90
+#   VERCEL_PROJECT_ID: prj_lM9W5Z2uovbiRPDM028mPJblGCT8
+#   VERCEL_TOKEN: EYcSrJe7c6mMTwik4mYfn5ck
+#
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#
+#       - name: Install Vercel CLI
+#         run: npm install --global vercel@latest
+#
+#       - name: Pull Vercel Environment Information
+#         run: vercel pull --yes --environment=production --token=${{ env.VERCEL_TOKEN }}
+#
+#       - name: Build Project Artifacts
+#         run: vercel build --prod --token=${{ env.VERCEL_TOKEN }}
+#
+#       - name: Deploy Project Artifacts to Vercel
+#         run: vercel deploy --prebuilt --prod --token=${{ env.VERCEL_TOKEN }}
