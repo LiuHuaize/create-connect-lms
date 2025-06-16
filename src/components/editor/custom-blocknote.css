@@ -114,9 +114,9 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
 
-  /* 限制容器最大宽度，与默认图片宽度一致 */
-  max-width: 640px !important;
-  margin: 0 auto !important;
+  /* 编辑模式：全宽布局，左对齐 */
+  width: 100% !important;
+  margin: 0 !important;
 }
 
 /* 编辑器块样式 */
@@ -143,23 +143,25 @@
   margin-top: 10px !important;
   margin-bottom: 5px !important;
   font-weight: 600 !important;
-  text-align: center !important; /* 标题居中 */
+  text-align: left !important; /* 编辑模式：标题左对齐 */
 }
 
 /* 段落样式 */
 .bn-container [data-content-type="paragraph"] {
   color: #374151 !important;
   line-height: 1.6 !important;
-  /* 确保段落内容宽度与容器一致 */
+  /* 编辑模式：左对齐，全宽 */
   max-width: 100% !important;
-  width: fit-content !important;
-  margin: 0 auto !important;
+  width: 100% !important;
+  margin: 0 !important;
+  text-align: left !important;
 }
 
 /* 预览模式下的特殊样式 - 限制文字和背景宽度 */
 .preview-mode .bn-container {
-  /* 进一步限制预览模式下的宽度 */
-  max-width: 600px !important;
+  /* 预览模式：居中布局，限制宽度 */
+  max-width: 640px !important;
+  margin: 0 auto !important;
 }
 
 .preview-mode .bn-container [data-content-type="paragraph"],
@@ -170,6 +172,11 @@
   margin: 0 auto !important;
   padding: 4px 8px !important;
   border-radius: 4px !important;
+}
+
+/* 预览模式下标题居中 */
+.preview-mode .bn-container [data-content-type="heading"] {
+  text-align: center !important;
 }
 
 /* 确保选中状态的背景色只覆盖文字区域 */
