@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { BlockNoteView } from "@blocknote/mantine";
 import { BlockNoteEditor, useCreateBlockNote } from "@blocknote/react";
 import "./custom-blocknote.css"; // 保留自定义样式
+import { customSchema } from "./customSchema";
 
 interface BlockNoteRendererProps {
   content: string;
@@ -53,7 +54,7 @@ const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, classNam
     try {
       console.log('BlockNoteRenderer - 尝试解析内容，长度:', content?.length);
       console.log('BlockNoteRenderer - 内容开始部分:', content?.substring(0, 50) + '...');
-      
+
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed)) {
         console.log("BlockNoteRenderer - 成功解析内容为JSON数组, 项目数:", parsed.length);
@@ -67,9 +68,10 @@ const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, classNam
       return null;
     }
   }, [content]);
-  
+
   // 在顶层调用useCreateBlockNote钩子
   const editor = useCreateBlockNote({
+    schema: customSchema, // 使用包含分割线的自定义schema
     initialContent: parsedContent || [{ type: 'paragraph', content: [] }],
     // 自定义代码块样式，确保深色主题下代码块背景是白色
     domAttributes: {
@@ -113,4 +115,4 @@ const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, classNam
   );
 };
 
-export default BlockNoteRenderer; 
+export default BlockNoteRenderer;

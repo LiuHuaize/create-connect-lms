@@ -101,6 +101,77 @@
   overflow: hidden !important;
 }
 
+/* ===== 分割线样式 ===== */
+
+/* 分割线容器样式 */
+.bn-divider-container {
+  margin: 16px 0 !important;
+  padding: 8px 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+/* 分割线本身的样式 */
+.bn-divider {
+  width: 100% !important;
+  height: 0 !important;
+  border: none !important;
+  border-top: 1px solid #6b7280 !important; /* 添加实际的边框 */
+  margin: 0 !important;
+  opacity: 0.8 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+/* 分割线悬停效果 */
+.bn-divider-container:hover .bn-divider {
+  opacity: 0.8 !important;
+}
+
+/* 分割线在选中状态下的样式 */
+.bn-container [data-content-type="divider"][data-is-selected="true"] .bn-divider {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+  border-radius: 2px !important;
+}
+
+/* 分割线在预览模式下的样式 */
+.preview-mode .bn-divider-container {
+  margin: 20px 0 !important;
+}
+
+.preview-mode .bn-divider {
+  opacity: 0.8 !important;
+  border-top: 1px solid #6b7280 !important; /* 确保预览模式下也有边框 */
+}
+
+/* 深色主题下的分割线样式 */
+.dark .bn-divider {
+  border-color: #4b5563 !important;
+}
+
+/* 分割线的不同颜色变体 */
+.bn-divider[data-color="blue"] {
+  border-top-color: #3b82f6 !important;
+}
+
+.bn-divider[data-color="red"] {
+  border-top-color: #ef4444 !important;
+}
+
+.bn-divider[data-color="green"] {
+  border-top-color: #10b981 !important;
+}
+
+.bn-divider[data-color="yellow"] {
+  border-top-color: #f59e0b !important;
+}
+
+.bn-divider[data-color="purple"] {
+  border-top-color: #8b5cf6 !important;
+}
+
 /* ===== BlockNote编辑器现代风格 ===== */
 .bn-container {
   --bn-colors-editor-background: #ffffff !important;

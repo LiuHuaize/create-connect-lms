@@ -126,7 +126,7 @@ export const zhDictionary: Partial<I18n> = {
     heading: {
       ...locales.en.slash_menu.heading,
       title: "一级标题",
-      subtext: "大型章节标题", 
+      subtext: "大型章节标题",
       group: "标题", // 分组名称
     },
     heading_2: {
@@ -207,6 +207,13 @@ export const zhDictionary: Partial<I18n> = {
       title: "表情符号",
       subtext: "搜索并插入表情符号",
       group: "其他",
+    },
+    // 添加分割线菜单项
+    divider: {
+      title: "分割线",
+      subtext: "插入一条水平分割线",
+      aliases: ["divider", "separator", "hr", "line", "分割线", "分隔线", "水平线"],
+      group: "基本块"
     }
   },
   // 添加分组名称翻译
@@ -226,7 +233,7 @@ export const zhDictionary: Partial<I18n> = {
   Code: '代码',
   'Text Color': '文字颜色',
   'Background Color': '背景颜色',
-  
+
   // 段落格式相关
   'Paragraph Formatting': '段落格式',
   'Normal Text': '正文',
@@ -243,14 +250,14 @@ export const zhDictionary: Partial<I18n> = {
   'Align Center': '居中对齐',
   'Align Right': '右对齐',
   'Justify': '两端对齐',
-  
+
   // 块操作相关
   'Block Actions': '块操作',
   'Add Block After': '在后面添加块',
   'Add Block Before': '在前面添加块',
   'Duplicate Block': '复制块',
   'Delete Block': '删除块',
-  
+
   // 插入项相关
   Insert: '插入',
   Image: '图片',
@@ -260,13 +267,13 @@ export const zhDictionary: Partial<I18n> = {
   'Edit Link': '编辑链接',
   'Remove Link': '移除链接',
   'Link URL': '链接URL',
-  
+
   // 引用和表格
   Quote: '引用',
   Table: '表格',
-  
+
   // 其他
   Cancel: '取消',
   Apply: '应用',
   None: '无'
-}; 
+};
