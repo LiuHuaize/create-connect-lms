@@ -185,11 +185,11 @@ const LessonItem: React.FC<LessonItemProps> = ({
       <div className="cursor-move mr-2" {...attributes} {...listeners}>
         <GripVertical size={16} className="text-gray-400" />
       </div>
-      
+
       <div className="mr-2" title={`${lessonTypeName}课时`}>
         {lessonTypeIcon}
       </div>
-      
+
       <div className="flex-1">
         {isEditing ? (
           <input
@@ -198,19 +198,19 @@ const LessonItem: React.FC<LessonItemProps> = ({
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
             onKeyDown={handleKeyDown}
-            className="w-full p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-center"
+            className="w-full p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-left"
             autoFocus
           />
         ) : (
           <div
-            className="font-medium text-gray-700 hover:bg-gray-100 p-1 rounded-md cursor-pointer text-center"
+            className="font-medium text-gray-700 hover:bg-gray-100 p-1 rounded-md cursor-pointer text-left"
             onClick={handleEditClick}
           >
             {editedTitle || '未命名课时'}
           </div>
         )}
       </div>
-      
+
       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {/* 上移按钮 */}
         {onMoveUp && (
@@ -220,8 +220,8 @@ const LessonItem: React.FC<LessonItemProps> = ({
               if (!isFirst && onMoveUp) onMoveUp(moduleId, lesson.id);
             }}
             className={`p-1 rounded ${
-              isFirst 
-                ? 'text-gray-300 cursor-not-allowed' 
+              isFirst
+                ? 'text-gray-300 cursor-not-allowed'
                 : 'text-gray-500 hover:text-blue-500 hover:bg-gray-100'
             }`}
             disabled={isFirst}
@@ -230,7 +230,7 @@ const LessonItem: React.FC<LessonItemProps> = ({
             <ChevronUp size={14} />
           </button>
         )}
-        
+
         {/* 下移按钮 */}
         {onMoveDown && (
           <button
@@ -239,8 +239,8 @@ const LessonItem: React.FC<LessonItemProps> = ({
               if (!isLast && onMoveDown) onMoveDown(moduleId, lesson.id);
             }}
             className={`p-1 rounded ${
-              isLast 
-                ? 'text-gray-300 cursor-not-allowed' 
+              isLast
+                ? 'text-gray-300 cursor-not-allowed'
                 : 'text-gray-500 hover:text-blue-500 hover:bg-gray-100'
             }`}
             disabled={isLast}
@@ -249,7 +249,7 @@ const LessonItem: React.FC<LessonItemProps> = ({
             <ChevronDown size={14} />
           </button>
         )}
-        
+
         <button
           onClick={handleFullLessonEdit}
           className="p-1 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded"
@@ -257,7 +257,7 @@ const LessonItem: React.FC<LessonItemProps> = ({
         >
           <Pencil size={14} />
         </button>
-        
+
         <button
           onClick={() => onDeleteLesson(moduleId, lesson.id)}
           className="p-1 text-gray-500 hover:text-red-500 hover:bg-gray-100 rounded"

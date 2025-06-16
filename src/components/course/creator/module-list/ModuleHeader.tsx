@@ -106,12 +106,12 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
           onChange={handleTitleChange}
           onBlur={handleTitleBlur}
           onKeyDown={handleKeyDown}
-          className="flex-1 p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-center"
+          className="flex-1 p-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300 text-left"
           autoFocus
         />
       ) : (
         <div
-          className="flex-1 font-medium text-gray-800 hover:bg-gray-200 p-1 rounded-md text-center"
+          className="flex-1 font-medium text-gray-800 hover:bg-gray-200 p-1 rounded-md text-left"
           onClick={handleTitleClick}
         >
           {currentTitle || '未命名模块'}
