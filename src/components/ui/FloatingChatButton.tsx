@@ -65,7 +65,7 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
   return (
     <div ref={containerRef} className="fixed bottom-5 right-5 z-50">
       {isOpen ? (
-        <div className="bg-ghibli-parchment rounded-lg shadow-lg w-80 h-96 flex flex-col overflow-hidden transition-all duration-300 ease-in-out border border-ghibli-sand/50">
+        <div className="bg-ghibli-parchment rounded-lg shadow-lg w-[26rem] h-[32rem] flex flex-col overflow-hidden transition-all duration-300 ease-in-out border border-ghibli-sand/50">
           <div className="flex justify-between items-center p-3 border-b border-ghibli-sand bg-ghibli-cream/50">
             <div className="flex items-center">
               <div className="p-1.5 rounded-full bg-ghibli-cream mr-2">
@@ -137,9 +137,9 @@ const FloatingChatButton: React.FC<FloatingChatButtonProps> = ({
       ) : (
         <Button
           onClick={toggleChat}
-          className="rounded-full h-12 w-12 bg-ghibli-teal hover:bg-ghibli-deepTeal shadow-lg p-0 flex items-center justify-center transition-all duration-300 ease-in-out"
+          className="rounded-full h-20 w-20 bg-ghibli-teal hover:bg-ghibli-deepTeal shadow-lg p-0 flex items-center justify-center transition-all duration-300 ease-in-out"
         >
-          <MessageCircle size={24} className="text-white" />
+          <MessageCircle size={32} className="text-white" />
         </Button>
       )}
     </div>

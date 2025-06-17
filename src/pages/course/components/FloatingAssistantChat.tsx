@@ -106,17 +106,17 @@ const FloatingAssistantChat: React.FC<FloatingAssistantChatProps> = ({
         <Button
           onClick={() => setIsOpen(true)}
           size="icon"
-          className="h-14 w-14 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center"
+          className="h-20 w-20 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center"
         >
-          <MessageSquare size={24} />
+          <MessageSquare size={32} />
         </Button>
       )}
       
       {/* 聊天面板 */}
       <div className={cn(
         "bg-card border border-border rounded-xl shadow-xl overflow-hidden transition-all duration-300 flex flex-col",
-        isOpen 
-          ? "opacity-100 scale-100 w-80 md:w-96 h-[70vh] max-h-[500px]" 
+        isOpen
+          ? "opacity-100 scale-100 w-[26rem] md:w-[28rem] h-[80vh] max-h-[600px]"
           : "opacity-0 scale-95 h-0 w-0 pointer-events-none"
       )}>
         {/* 聊天头部 */}

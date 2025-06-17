@@ -183,7 +183,7 @@ ${courseContent || '课程内容未提供。请根据学生的问题提供相关
   return (
     <div ref={containerRef} className="fixed bottom-5 right-5 z-50">
       {isOpen ? (
-        <div className="bg-white rounded-lg shadow-lg w-80 h-96 flex flex-col overflow-hidden transition-all duration-300 ease-in-out border border-gray-200">
+        <div className="bg-white rounded-lg shadow-lg w-[26rem] h-[32rem] flex flex-col overflow-hidden transition-all duration-300 ease-in-out border border-gray-200">
           <div className="flex justify-between items-center p-3 border-b border-gray-200 bg-blue-50">
             <div className="flex items-center">
               <div className="p-1.5 rounded-full bg-blue-100 mr-2">
@@ -290,9 +290,9 @@ ${courseContent || '课程内容未提供。请根据学生的问题提供相关
       ) : (
         <Button
           onClick={toggleChat}
-          className="rounded-full h-12 w-12 bg-blue-600 hover:bg-blue-700 shadow-lg p-0 flex items-center justify-center transition-all duration-300 ease-in-out"
+          className="rounded-full h-20 w-20 bg-blue-600 hover:bg-blue-700 shadow-lg p-0 flex items-center justify-center transition-all duration-300 ease-in-out"
         >
-          <MessageCircle size={24} className="text-white" />
+          <MessageCircle size={36} className="text-white" />
         </Button>
       )}
     </div>
