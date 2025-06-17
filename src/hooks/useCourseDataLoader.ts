@@ -4,6 +4,9 @@ import { courseService } from '@/services/courseService';
 import { toast } from 'sonner';
 import { useLocalBackup } from './useLocalBackup';
 
+// 全局请求去重跟踪器 - 防止useCourseDataLoader重复请求
+const globalCourseDataLoaderTracker = new Set<string>();
+
 interface UseCourseDataLoaderProps {
   courseId: string | null | undefined;
   onDataLoaded?: (course: Course, modules: CourseModule[]) => void;
@@ -96,6 +99,15 @@ export const useCourseDataLoader = ({
       return;
     }
 
+    // 防止重复请求
+    if (globalCourseDataLoaderTracker.has(courseId)) {
+      console.warn('🚫 阻止重复的课程数据加载请求 (useCourseDataLoader):', courseId);
+      return;
+    }
+
+    globalCourseDataLoaderTracker.add(courseId);
+    console.log('📚 开始加载课程数据 (useCourseDataLoader):', courseId);
+
     try {
       setIsLoading(true);
       setLoadingDetails(true);
@@ -148,7 +160,11 @@ export const useCourseDataLoader = ({
           if (onDataLoaded) {
             onDataLoaded(courseWithModules, courseWithModules.modules);
           }
-          
+
+          // 清理请求跟踪器
+          globalCourseDataLoaderTracker.delete(courseId);
+          console.log('✅ 课程数据加载成功 (优化方法)，清理跟踪器:', courseId);
+
           return; // 成功使用优化方法，直接返回
         }
       } catch (error) {
@@ -180,6 +196,11 @@ export const useCourseDataLoader = ({
         if (onDataLoaded) {
           onDataLoaded(courseInfo, []);
         }
+
+        // 清理请求跟踪器
+        globalCourseDataLoaderTracker.delete(courseId);
+        console.log('✅ 课程数据加载成功 (无模块)，清理跟踪器:', courseId);
+
         return;
       }
       
@@ -259,9 +280,9 @@ export const useCourseDataLoader = ({
       setLoadingDetails(false);
       setLoadingProgress(0);
       setLoadingMessage('加载失败');
-      
+
       toast.error('加载课程失败，请重试');
-      
+
       // 如果有本地备份，提示用户是否需要恢复
       if (hasBackup) {
         const shouldRestore = window.confirm('加载服务器数据失败，是否从本地备份恢复？');
@@ -269,6 +290,10 @@ export const useCourseDataLoader = ({
           restoreFromBackup();
         }
       }
+    } finally {
+      // 清理请求跟踪器
+      globalCourseDataLoaderTracker.delete(courseId);
+      console.log('✅ 课程数据加载完成，清理跟踪器 (useCourseDataLoader):', courseId);
     }
   }, [courseId, onDataLoaded, hasBackup, restoreFromBackup, saveLocalBackup]);
 

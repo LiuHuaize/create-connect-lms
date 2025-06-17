@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useAuth } from '@/contexts/AuthContext';
 import indexedDBCache from '@/lib/indexedDBCache';
-import { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 
 // 性能监控工具 - 使用Map避免Timer重复，添加清理机制
 const performanceTimers = new Map<string, number>();
@@ -90,56 +90,93 @@ const fetchCourseDetails = async (courseId: string | undefined) => {
   }
 };
 
-// 进一步优化缓存配置，彻底阻止重复请求
-const CACHE_CONFIG = {
-  // 课程详情 - 大幅增加缓存时间，几乎完全阻止重复请求
+// 全局请求去重跟踪器 - 防止跨组件重复请求
+const globalRequestTracker = new Set<string>();
+
+// 紧急修复重复请求的强化缓存配置
+const EMERGENCY_CACHE_CONFIG = {
   courseDetails: {
-    staleTime: 15 * 60 * 1000,       // 15分钟，课程内容变化很不频繁
-    gcTime: 30 * 60 * 1000,          // 30分钟，长时间保持缓存
-    retry: 1,                        // 只重试1次，减少网络负担
-    retryDelay: 1000,                // 固定1秒重试延迟
-    refetchOnWindowFocus: false,     // 完全禁用窗口聚焦重新获取
-    refetchOnMount: false,           // 完全禁用挂载时重新获取
-    refetchOnReconnect: false,       // 禁用重连时刷新，减少请求
-    // 在开发模式下特别重要：阻止 React StrictMode 的重复挂载
+    staleTime: 15 * 60 * 1000,       // 15分钟强缓存
+    gcTime: 60 * 60 * 1000,          // 1小时保留
+    refetchOnWindowFocus: false,      // 完全禁用窗口聚焦刷新
+    refetchOnMount: false,            // 完全禁用挂载时刷新
+    refetchOnReconnect: false,        // 禁用重连刷新
+    retry: 1,                         // 减少重试
+    retryDelay: 2000,                 // 固定重试延迟
+    // 关键：确保查询键稳定
+    queryKeyHashFn: (queryKey: any) => JSON.stringify(queryKey),
   },
-  // 课程注册信息 - 保持较短缓存但阻止重复请求
+
   enrollment: {
-    staleTime: 5 * 60 * 1000,        // 5分钟
-    gcTime: 15 * 60 * 1000,          // 15分钟
-    retry: 1,                        // 只重试1次
-    retryDelay: 1000,
+    staleTime: 10 * 60 * 1000,       // 10分钟强缓存
+    gcTime: 30 * 60 * 1000,          // 30分钟保留
     refetchOnWindowFocus: false,
-    refetchOnMount: false,           // 禁用挂载时重新获取
-    refetchOnReconnect: false,       // 禁用重连时刷新
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 1,
   }
 };
 
 export const useCourseData = (courseId: string | undefined) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+
   // 使用ref追踪组件挂载状态，避免重复初始化
   const isInitializedRef = useRef(false);
+
+  // 添加hook初始化日志
+  React.useEffect(() => {
+    console.log('🔧 useCourseData hook 已初始化，courseId:', courseId);
+  }, [courseId]);
+
+  // 确保查询键完全一致，避免重复请求
+  const courseQueryKey = useMemo(() => ['courseDetails', courseId], [courseId]);
+  const enrollmentQueryKey = useMemo(() => ['enrollment', courseId, user?.id], [courseId, user?.id]);
   
-  // 稳定的查询键，避免不必要的重新创建
-  const courseQueryKey = ['courseDetails', courseId];
-  const enrollmentQueryKey = ['enrollment', courseId, user?.id];
-  
-  // 获取课程详情 - 使用优化后的缓存配置
-  const { 
-    data: courseData, 
+  // 获取课程详情 - 使用紧急修复的缓存配置和全局请求去重
+  const {
+    data: courseData,
     isLoading: isLoadingCourse,
     refetch: refetchCourseData,
     error: courseError
   } = useQuery({
     queryKey: courseQueryKey,
-    queryFn: () => fetchCourseDetails(courseId),
+    queryFn: async () => {
+      if (!courseId) return null;
+
+      // 使用全局请求跟踪器防止重复请求
+      if (globalRequestTracker.has(courseId)) {
+        console.warn('🚫 阻止重复的课程数据请求:', courseId);
+        // 等待一小段时间，让正在进行的请求完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // 尝试从React Query缓存中获取数据
+        const cachedData = queryClient.getQueryData(courseQueryKey);
+        if (cachedData) {
+          console.log('📋 从缓存返回课程数据:', courseId);
+          return cachedData;
+        }
+        return null;
+      }
+
+      globalRequestTracker.add(courseId);
+      console.log('📚 开始获取课程详情 (防重复版本):', courseId);
+
+      try {
+        const result = await fetchCourseDetails(courseId);
+        console.log('✅ 课程详情获取成功:', courseId);
+        return result;
+      } catch (error) {
+        console.error('❌ 课程详情获取失败:', courseId, error);
+        throw error;
+      } finally {
+        globalRequestTracker.delete(courseId);
+      }
+    },
     enabled: !!courseId,
-    ...CACHE_CONFIG.courseDetails
+    ...EMERGENCY_CACHE_CONFIG.courseDetails
   });
   
-  // 获取用户的课程注册信息 - 使用优化后的缓存配置
+  // 获取用户的课程注册信息 - 使用紧急修复的缓存配置
   const {
     data: enrollmentData,
     isLoading: isLoadingEnrollment,
@@ -149,7 +186,7 @@ export const useCourseData = (courseId: string | undefined) => {
     queryKey: enrollmentQueryKey,
     queryFn: () => fetchEnrollmentInfo(courseId || '', user?.id || ''),
     enabled: !!courseId && !!user?.id,
-    ...CACHE_CONFIG.enrollment
+    ...EMERGENCY_CACHE_CONFIG.enrollment
   });
   
   // 标记为已初始化，避免重复请求

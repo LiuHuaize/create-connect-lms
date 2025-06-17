@@ -73,14 +73,15 @@ const CoursePage = () => {
   const { loading, courseData, progress, enrollmentId, findCurrentLesson, refreshCourseData } = useCourseData(courseId);
   const { selectedLesson, selectedUnit } = findCurrentLesson(lessonId);
   
-  // 正确处理courseId变化时的数据刷新，确保获取正确的课程数据
-  useEffect(() => {
-    if (courseId) {
-      // 清除可能的旧缓存，确保获取正确的课程数据
-      queryClient.removeQueries({ queryKey: ['courseDetails'] });
-      queryClient.removeQueries({ queryKey: ['enrollment'] });
-    }
-  }, [courseId, queryClient]);
+  // 修复重复请求问题：移除强制清除缓存的逻辑
+  // 让 useCourseData 的内置缓存机制处理数据获取
+  // useEffect(() => {
+  //   if (courseId) {
+  //     // 清除可能的旧缓存，确保获取正确的课程数据
+  //     queryClient.removeQueries({ queryKey: ['courseDetails'] });
+  //     queryClient.removeQueries({ queryKey: ['enrollment'] });
+  //   }
+  // }, [courseId, queryClient]);
   
   // 添加进度加载状态
   const [isProgressLoading, setIsProgressLoading] = useState(true);

@@ -8,6 +8,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import EditorLayout from '@/components/layout/EditorLayout';
 import TestCourseOptimization from '../pages/TestCourseOptimization';
+import TestDuplicateRequestsFix from '../pages/TestDuplicateRequestsFix';
 
 // Lazy load page components
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -103,6 +104,8 @@ const AppRoutes = () => {
         <Route path="/model-test" element={<ModelTestComponent />} />
 
         <Route path="/test-optimization" element={<TestCourseOptimization />} />
+
+        <Route path="/test-duplicate-fix" element={<TestDuplicateRequestsFix />} />
 
         <Route path="/test-video-upload" element={<TestVideoUploadPage />} />
 
