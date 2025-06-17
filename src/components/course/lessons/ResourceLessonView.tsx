@@ -198,14 +198,16 @@ export function ResourceLessonView({ lesson, onComplete, isCompleted = false, co
     if (!lesson.content || !('description' in lesson.content) || !lesson.content.description) {
       return null;
     }
-    
+
     return (
       <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
         <div className="flex items-start gap-2">
           <Info className="h-5 w-5 text-blue-500 mt-0.5" />
           <div>
             <h3 className="text-sm font-medium mb-1">关于这些资源</h3>
-            <p className="text-sm text-gray-700">{lesson.content.description}</p>
+            <div className="text-sm text-gray-700 whitespace-pre-wrap">
+              {lesson.content.description}
+            </div>
           </div>
         </div>
       </div>
@@ -289,7 +291,7 @@ export function ResourceLessonView({ lesson, onComplete, isCompleted = false, co
                   <div className="space-y-1">
                     <h4 className="font-medium">{resource.title}</h4>
                     {resource.description && (
-                      <p className="text-sm text-gray-500">{resource.description}</p>
+                      <div className="text-sm text-gray-500 whitespace-pre-wrap">{resource.description}</div>
                     )}
                     <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                       <span className="inline-flex items-center">
