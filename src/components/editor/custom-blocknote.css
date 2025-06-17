@@ -240,14 +240,40 @@
   /* 文字内容宽度自适应，背景色只覆盖文字区域 */
   width: fit-content !important;
   max-width: 100% !important;
-  margin: 0 auto !important;
   padding: 4px 8px !important;
   border-radius: 4px !important;
+  /* 移除强制居中，让内容保持原有对齐方式 */
 }
 
-/* 预览模式下标题居中 */
-.preview-mode .bn-container [data-content-type="heading"] {
+/* 预览模式下根据文本对齐属性来设置样式 */
+/* 左对齐（默认） */
+.preview-mode .bn-container [data-content-type="paragraph"]:not([data-text-alignment]),
+.preview-mode .bn-container [data-content-type="heading"]:not([data-text-alignment]),
+.preview-mode .bn-container [data-content-type="paragraph"][data-text-alignment="left"],
+.preview-mode .bn-container [data-content-type="heading"][data-text-alignment="left"] {
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+/* 居中对齐 */
+.preview-mode .bn-container [data-content-type="paragraph"][data-text-alignment="center"],
+.preview-mode .bn-container [data-content-type="heading"][data-text-alignment="center"] {
+  margin: 0 auto !important;
   text-align: center !important;
+}
+
+/* 右对齐 */
+.preview-mode .bn-container [data-content-type="paragraph"][data-text-alignment="right"],
+.preview-mode .bn-container [data-content-type="heading"][data-text-alignment="right"] {
+  margin: 0 0 0 auto !important;
+  text-align: right !important;
+}
+
+/* 两端对齐 */
+.preview-mode .bn-container [data-content-type="paragraph"][data-text-alignment="justify"],
+.preview-mode .bn-container [data-content-type="heading"][data-text-alignment="justify"] {
+  margin: 0 !important;
+  text-align: justify !important;
 }
 
 /* 确保选中状态的背景色只覆盖文字区域 */
@@ -259,6 +285,7 @@
 .preview-mode .bn-container [data-is-active="true"] [data-content-type="heading"] {
   background-color: rgba(147, 100, 237, 0.1) !important; /* 淡紫色背景，只覆盖文字 */
   width: fit-content !important;
+  /* 移除强制居中，保持原有对齐方式 */
 }
 
 /* 图片样式 - 添加下方间距 */
