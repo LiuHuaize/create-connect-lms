@@ -413,35 +413,7 @@ const BlockNoteEditor: React.FC<BlockNoteEditorProps> = ({
           editor={editor}
           editable={!readOnly}
           formattingToolbar={true} // 启用格式工具栏以支持文本对齐等功能
-          theme={{
-            colors: {
-              editor: {
-                background: "#ffffff",
-                text: "#374151"
-              },
-              menu: {
-                background: "#ffffff",
-                text: "#374151"
-              },
-              tooltip: {
-                background: "#ffffff",
-                text: "#374151"
-              },
-              hovered: {
-                background: "#f3f4f6",
-                text: "#1f2937"
-              },
-              selected: {
-                background: "#3b82f6",
-                text: "#ffffff"
-              },
-              border: "#e5e7eb",
-              shadow: "rgba(0, 0, 0, 0.05)",
-              sideMenu: "#9ca3af"
-            },
-            borderRadius: 8,
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-          }}
+          theme="light" // 强制使用light主题，避免系统主题影响
         />
       </div>
 

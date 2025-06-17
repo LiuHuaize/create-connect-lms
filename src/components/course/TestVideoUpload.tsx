@@ -267,7 +267,7 @@ const TestVideoUpload: React.FC = () => {
             使用BlockNote编辑器的视频上传功能，点击工具栏中的视频按钮或使用/命令添加视频。
           </p>
           <div className="border rounded-lg">
-            <BlockNoteView editor={editor} />
+            <BlockNoteView editor={editor} theme="light" />
           </div>
         </div>
       </div>

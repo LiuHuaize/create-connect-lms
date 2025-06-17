@@ -109,7 +109,7 @@ const BlockNoteRenderer: React.FC<BlockNoteRendererProps> = ({ content, classNam
       <BlockNoteView
         editor={editor}
         editable={false}
-        theme={customTheme}
+        theme="light" // 强制使用light主题，避免系统主题影响
       />
     </div>
   );

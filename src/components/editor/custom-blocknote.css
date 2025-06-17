@@ -1,5 +1,71 @@
 /* 自定义BlockNote样式 */
 
+/* 强制使用light主题，避免系统主题影响 */
+.bn-container {
+  --bn-colors-editor-background: #ffffff !important;
+  --bn-colors-editor-text: #374151 !important;
+  --bn-colors-menu-background: #ffffff !important;
+  --bn-colors-menu-text: #374151 !important;
+  --bn-colors-tooltip-background: #ffffff !important;
+  --bn-colors-tooltip-text: #374151 !important;
+  --bn-colors-hovered-background: #f3f4f6 !important;
+  --bn-colors-hovered-text: #1f2937 !important;
+  --bn-colors-selected-background: #3b82f6 !important;
+  --bn-colors-selected-text: #ffffff !important;
+  --bn-colors-border: #e5e7eb !important;
+  --bn-colors-shadow: rgba(0, 0, 0, 0.05) !important;
+  --bn-colors-side-menu: #9ca3af !important;
+
+  background-color: #ffffff !important;
+  color: #374151 !important;
+}
+
+/* 确保在任何主题下都使用light样式 */
+.dark .bn-container,
+html.dark .bn-container,
+[data-theme="dark"] .bn-container,
+[data-color-scheme="dark"] .bn-container,
+.bn-container[data-color-scheme="dark"] {
+  --bn-colors-editor-background: #ffffff !important;
+  --bn-colors-editor-text: #374151 !important;
+  --bn-colors-menu-background: #ffffff !important;
+  --bn-colors-menu-text: #374151 !important;
+  --bn-colors-tooltip-background: #ffffff !important;
+  --bn-colors-tooltip-text: #374151 !important;
+  --bn-colors-hovered-background: #f3f4f6 !important;
+  --bn-colors-hovered-text: #1f2937 !important;
+  --bn-colors-selected-background: #3b82f6 !important;
+  --bn-colors-selected-text: #ffffff !important;
+  --bn-colors-border: #e5e7eb !important;
+  --bn-colors-shadow: rgba(0, 0, 0, 0.05) !important;
+  --bn-colors-side-menu: #9ca3af !important;
+
+  background-color: #ffffff !important;
+  color: #374151 !important;
+}
+
+/* 强制覆盖任何可能的系统主题检测 */
+@media (prefers-color-scheme: dark) {
+  .bn-container {
+    --bn-colors-editor-background: #ffffff !important;
+    --bn-colors-editor-text: #374151 !important;
+    --bn-colors-menu-background: #ffffff !important;
+    --bn-colors-menu-text: #374151 !important;
+    --bn-colors-tooltip-background: #ffffff !important;
+    --bn-colors-tooltip-text: #374151 !important;
+    --bn-colors-hovered-background: #f3f4f6 !important;
+    --bn-colors-hovered-text: #1f2937 !important;
+    --bn-colors-selected-background: #3b82f6 !important;
+    --bn-colors-selected-text: #ffffff !important;
+    --bn-colors-border: #e5e7eb !important;
+    --bn-colors-shadow: rgba(0, 0, 0, 0.05) !important;
+    --bn-colors-side-menu: #9ca3af !important;
+
+    background-color: #ffffff !important;
+    color: #374151 !important;
+  }
+}
+
 /* 预览模式下的代码块样式 */
 .preview-mode .bn-code-block {
   background-color: white !important;
