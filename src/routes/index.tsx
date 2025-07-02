@@ -20,7 +20,8 @@ const Auth = lazy(() => import('@/pages/Auth'));
 const CoursePage = lazy(() => import('@/pages/course/CoursePage'));
 const CourseDetailsPage = lazy(() => import('@/pages/course/CourseDetailsPage'));
 const UserManagement = lazy(() => import('@/pages/admin/UserManagement'));
-const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage').then(module => ({ default: module.ProfilePage })));
+const ProfileEditPage = lazy(() => import('@/pages/ProfilePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const ExploreCourses = lazy(() => import('@/pages/ExploreCourses'));
 const TrashPage = lazy(() => import('@/pages/trash'));
@@ -31,6 +32,15 @@ const ModelTestComponent = lazy(() => import('@/components/ModelTestComponent'))
 const CourseAssignmentsPage = lazy(() => import('@/pages/teacher/CourseAssignmentsPage'));
 const TestVideoUploadPage = lazy(() => import('@/pages/test-video-upload'));
 const QuizMarkdownTest = lazy(() => import('@/components/test/QuizMarkdownTest'));
+const GamificationTest = lazy(() => import('@/pages/test/GamificationTest').then(module => ({ default: module.GamificationTest })));
+const TestAchievements = lazy(() => import('@/pages/TestAchievements'));
+const TestAchievementLogic = lazy(() => import('@/pages/TestAchievementLogic'));
+const DebugAchievements = lazy(() => import('@/pages/DebugAchievements'));
+const TestSkillRadar = lazy(() => import('@/pages/TestSkillRadar'));
+const SkillRadarDemo = lazy(() => import('@/pages/SkillRadarDemo'));
+const TestRadarOptimization = lazy(() => import('@/pages/test-radar-optimization'));
+const TimelinePage = lazy(() => import('@/pages/timeline/TimelinePage'));
+const TimelineTest = lazy(() => import('@/pages/test/TimelineTest'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -92,6 +102,8 @@ const AppRoutes = () => {
           <Route path="/course/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
           <Route path="/course/:courseId/lesson/:lessonId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/profile/edit" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
+          <Route path="/timeline" element={<ProtectedRoute><TimelinePage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path="/trash" element={<ProtectedRoute><TrashPage /></ProtectedRoute>} />
           <Route path="/teacher/assignments" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><TeacherAssignmentsPage /></ProtectedRoute>} />
@@ -110,6 +122,22 @@ const AppRoutes = () => {
         <Route path="/test-video-upload" element={<TestVideoUploadPage />} />
 
         <Route path="/test-quiz-markdown" element={<QuizMarkdownTest />} />
+
+        <Route path="/test-gamification" element={<GamificationTest />} />
+
+        <Route path="/test-achievements" element={<TestAchievements />} />
+
+        <Route path="/test-achievement-logic" element={<TestAchievementLogic />} />
+
+        <Route path="/debug-achievements" element={<DebugAchievements />} />
+
+        <Route path="/test-skill-radar" element={<TestSkillRadar />} />
+
+        <Route path="/skill-radar-demo" element={<SkillRadarDemo />} />
+
+        <Route path="/test-radar-optimization" element={<TestRadarOptimization />} />
+
+        <Route path="/test-timeline" element={<TimelineTest />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

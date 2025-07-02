@@ -40,6 +40,7 @@ import ResourceLessonEditor from './ResourceLessonEditor';
 import FrameLessonEditor from './FrameLessonEditor';
 import HotspotEditor from './creator/hotspot/HotspotEditor';
 import { supabase } from '@/integrations/supabase/client';
+import SkillTagSelector from './creator/SkillTagSelector';
 
 // Quiz question types
 const QUESTION_TYPES: { id: QuizQuestionType, name: string }[] = [
@@ -976,7 +977,27 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
               />
             </div>
           )}
-          
+
+          {/* 技能标记 - 适用于所有课时类型 */}
+          <div className="border-t pt-6">
+            <SkillTagSelector
+              selectedSkills={lesson.skill_tags || []}
+              onSkillsChange={(skills) => {
+                // 更新lesson对象的skill_tags
+                const updatedLesson = { ...lesson, skill_tags: skills };
+                setCurrentContent(updatedLesson.content);
+                onContentChange(updatedLesson.content);
+                // 这里需要更新lesson本身，但由于组件结构限制，我们通过父组件处理
+                if (onSave) {
+                  onSave(updatedLesson);
+                }
+              }}
+              label="课时技能标签"
+              description="选择此课时主要培养的技能维度，学生完成此课时时将获得相应的技能经验"
+              maxSelections={2}
+            />
+          </div>
+
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => onSave(null)}>
               取消

@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   BookOpen,
   CalendarDays,
+  Calendar,
   PenTool,
   User,
   Settings,
@@ -16,6 +17,7 @@ import {
   ChevronLeft,
   Trash2,
   FileCheck,
+  Edit,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -127,9 +129,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
 
   const profileLinks = [
     {
-      label: "个人资料",
+      label: "我的档案",
       icon: <User className="h-5 w-5" />,
       href: "/profile",
+    },
+    {
+      label: "学习时间线",
+      icon: <Calendar className="h-5 w-5" />,
+      href: "/timeline",
+    },
+    {
+      label: "编辑资料",
+      icon: <Edit className="h-5 w-5" />,
+      href: "/profile/edit",
     },
     {
       label: "设置",

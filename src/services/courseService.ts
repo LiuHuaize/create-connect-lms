@@ -4,6 +4,7 @@ import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
 import { Json } from "@/integrations/supabase/types";
 import { v4 as uuidv4 } from 'uuid';
+import { gamificationService, LessonType as GamificationLessonType } from './gamificationService';
 
 // 全局课程完成状态缓存
 export const lessonCompletionCache: Record<string, Record<string, boolean>> = {};
@@ -723,9 +724,9 @@ export const courseService = {
       if (!user) {
         throw new Error('用户未登录');
       }
-      
+
       console.log(`标记课时 ${lessonId} 为已完成...`);
-      
+
       // 检查是否已存在完成记录
       const { data: existingCompletion, error: fetchError } = await supabase
         .from('lesson_completions')
@@ -733,12 +734,12 @@ export const courseService = {
         .eq('user_id', user.id)
         .eq('lesson_id', lessonId)
         .maybeSingle();
-        
+
       if (fetchError) {
         console.error('检查课时完成记录失败:', fetchError);
         throw fetchError;
       }
-      
+
       // 如果已存在，则更新记录
       if (existingCompletion) {
         const { error: updateError } = await supabase
@@ -749,12 +750,12 @@ export const courseService = {
             data: data || null
           })
           .eq('id', existingCompletion.id);
-          
+
         if (updateError) {
           console.error('更新课时完成记录失败:', updateError);
           throw updateError;
         }
-        
+
         console.log('已更新现有的课时完成记录');
       } else {
         // 如果不存在，则创建新记录
@@ -769,27 +770,101 @@ export const courseService = {
             score: score || null,
             data: data || null
           });
-          
+
         if (insertError) {
           console.error('创建课时完成记录失败:', insertError);
           throw insertError;
         }
-        
+
         console.log('已创建新的课时完成记录');
+
+        // 只有在首次完成时才给经验值奖励
+        await this.handleLessonCompletionExperience(user.id, lessonId, courseId, score);
       }
-      
+
       // 更新缓存状态
       if (!lessonCompletionCache[courseId]) {
         lessonCompletionCache[courseId] = {};
       }
       lessonCompletionCache[courseId][lessonId] = true;
-      
+
       console.log('已更新课时完成状态缓存');
-      
+
       // 触发器会自动更新课程进度，所以这里不需要手动更新
     } catch (error) {
       console.error('标记课时完成失败:', error);
       throw error;
+    }
+  },
+
+  // 处理课时完成的经验值奖励
+  async handleLessonCompletionExperience(userId: string, lessonId: string, courseId: string, score?: number): Promise<void> {
+    try {
+      console.log(`处理课时 ${lessonId} 的经验值奖励...`);
+
+      // 获取课时信息以确定类型
+      const { data: lessonData, error: lessonError } = await supabase
+        .from('lessons')
+        .select('title, type')
+        .eq('id', lessonId)
+        .single();
+
+      if (lessonError) {
+        console.error('获取课时信息失败:', lessonError);
+        return; // 不抛出错误，避免影响主流程
+      }
+
+      if (!lessonData) {
+        console.error('课时不存在:', lessonId);
+        return;
+      }
+
+      // 将课时类型映射到游戏化系统的类型
+      const lessonType = this.mapLessonTypeToGamification(lessonData.type);
+
+      // 调用游戏化服务处理经验值
+      const success = await gamificationService.handleLessonComplete(
+        userId,
+        lessonId,
+        courseId,
+        lessonData.title,
+        lessonType,
+        score
+      );
+
+      if (success) {
+        console.log(`成功为课时 ${lessonId} 添加经验值奖励`);
+      } else {
+        console.error(`为课时 ${lessonId} 添加经验值奖励失败`);
+      }
+    } catch (error) {
+      console.error('处理课时完成经验值失败:', error);
+      // 不抛出错误，避免影响主流程
+    }
+  },
+
+  // 将课时类型映射到游戏化系统的类型
+  mapLessonTypeToGamification(lessonType: LessonType): GamificationLessonType {
+    // 映射课时类型到游戏化系统支持的类型
+    switch (lessonType) {
+      case 'text':
+        return 'text';
+      case 'video':
+        return 'video';
+      case 'quiz':
+        return 'quiz';
+      case 'assignment':
+        return 'assignment';
+      case 'card_creator':
+        return 'card_creator';
+      case 'hotspot':
+        return 'hotspot';
+      case 'drag_sort':
+      case 'resource':
+      case 'frame':
+      default:
+        // 对于不直接支持的类型，映射到文本类型
+        return 'text';
     }
   },
   
@@ -1503,13 +1578,16 @@ export const courseService = {
             score: quizData.score,
             data: quizData
           });
-          
+
         if (insertError) {
           console.error('创建测验完成记录失败:', insertError);
           throw insertError;
         }
-        
+
         console.log('已创建新的测验完成记录');
+
+        // 只有在首次完成时才给经验值奖励
+        await this.handleLessonCompletionExperience(user.id, lessonId, courseId, quizData.score);
       }
       
       // 更新本地缓存状态（不刷新整个课程数据）

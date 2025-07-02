@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useIncrementalSave } from '@/hooks/useIncrementalSave';
+import SkillTagSelector from './SkillTagSelector';
 
 interface CourseDetailsFormProps {
   course: Course;
@@ -278,6 +279,16 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div>
+          <SkillTagSelector
+            selectedSkills={course.skill_tags || []}
+            onSkillsChange={(skills) => setCourse(prev => ({ ...prev, skill_tags: skills }))}
+            label="课程技能标签"
+            description="选择此课程主要培养的技能维度，将影响学生完成课程时获得的技能经验"
+            maxSelections={3}
+          />
         </div>
       </div>
 

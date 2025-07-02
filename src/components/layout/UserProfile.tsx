@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Settings, LogOut, RefreshCw } from 'lucide-react';
+import { User, Settings, LogOut, RefreshCw, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -64,7 +64,13 @@ const UserProfile: React.FC = () => {
           <DropdownMenuItem asChild className="cursor-pointer">
             <Link to="/profile">
               <User className="mr-2 h-4 w-4" />
-              <span>个人资料</span>
+              <span>我的档案</span>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to="/timeline">
+              <Calendar className="mr-2 h-4 w-4" />
+              <span>学习时间线</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="cursor-pointer">
