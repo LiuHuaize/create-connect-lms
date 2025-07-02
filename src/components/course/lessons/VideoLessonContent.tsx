@@ -25,33 +25,52 @@ const VideoLessonContent: React.FC<VideoLessonContentProps> = ({
   };
 
   return (
-    <div className="space-y-4 mx-auto max-w-4xl">
-      <div className="aspect-video bg-gradient-to-br from-gray-900 to-blue-900 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+    <div className="space-y-6 mx-auto max-w-4xl">
+      {/* 视频描述部分 - 移到上方 */}
+      {content.description && (
+        <div className="bg-gradient-to-r from-ghibli-cream/30 via-ghibli-parchment/20 to-ghibli-cream/30 border border-ghibli-sand/50 rounded-xl p-6 shadow-sm backdrop-blur-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-1 h-6 bg-gradient-to-b from-ghibli-teal to-ghibli-skyBlue rounded-full mt-1"></div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-ghibli-deepTeal mb-2 flex items-center gap-2">
+                <Play size={18} className="text-ghibli-teal" />
+                视频介绍
+              </h3>
+              <p className="text-ghibli-brown leading-relaxed whitespace-pre-wrap text-base">
+                {content.description}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 视频播放器 */}
+      <div className="aspect-video bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900 rounded-xl flex items-center justify-center shadow-xl overflow-hidden border border-gray-700/50">
         {content.bilibiliUrl ? (
-          <iframe 
+          <iframe
             src={formatBilibiliUrl(content.bilibiliUrl)}
             allowFullScreen={true}
             className="w-full h-full"
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              aspectRatio: '16/9', 
+            style={{
+              width: '100%',
+              height: '100%',
+              aspectRatio: '16/9',
               border: 'none',
               display: 'block',
               margin: '0 auto'
             }}
-            scrolling="no" 
+            scrolling="no"
             frameBorder="0"
             sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
           />
         ) : videoFilePath ? (
-          <video 
-            controls 
-            className="w-full h-full object-contain"
+          <video
+            controls
+            className="w-full h-full object-contain rounded-lg"
             src={videoFilePath}
             style={{
-              margin: '0 auto', 
-              maxHeight: '100%', 
+              margin: '0 auto',
+              maxHeight: '100%',
               maxWidth: '100%'
             }}
           >
@@ -59,22 +78,14 @@ const VideoLessonContent: React.FC<VideoLessonContentProps> = ({
           </video>
         ) : (
           <div className="text-center">
-            <div className="p-4 rounded-full bg-white/20 backdrop-blur-md inline-block mb-4 cursor-pointer hover:bg-white/30 transition-all">
-              <Play size={48} className="text-white" />
+            <div className="p-6 rounded-full bg-white/10 backdrop-blur-md inline-block mb-4 cursor-pointer hover:bg-white/20 transition-all duration-300 border border-white/20">
+              <Play size={56} className="text-white drop-shadow-lg" />
             </div>
-            <p className="text-white font-medium">暂无视频内容</p>
+            <p className="text-white font-medium text-lg drop-shadow-md">暂无视频内容</p>
+            <p className="text-white/70 text-sm mt-2">请联系老师上传视频</p>
           </div>
         )}
       </div>
-      
-      {/* 视频描述部分 */}
-      {content.description && (
-        <div className="mt-4 bg-ghibli-cream/20 border border-ghibli-sand/40 rounded-lg p-4">
-          <p className="text-ghibli-brown whitespace-pre-wrap">
-            {content.description}
-          </p>
-        </div>
-      )}
     </div>
   );
 };

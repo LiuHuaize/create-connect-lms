@@ -71,9 +71,27 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
           
           {lesson.type === 'video' && (
             <div className="space-y-4 mx-auto max-w-4xl">
-              <div className="aspect-video bg-gray-200 flex items-center justify-center rounded-lg">
+              {/* 视频描述部分 - 移到上方 */}
+              {(lesson.content as VideoLessonContent).description && (
+                <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-1 h-5 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full mt-1"></div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                        <Video size={16} className="text-blue-600" />
+                        视频介绍
+                      </h4>
+                      <p className="text-gray-700 whitespace-pre-wrap text-sm leading-relaxed">
+                        {(lesson.content as VideoLessonContent).description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="aspect-video bg-gray-200 flex items-center justify-center rounded-lg shadow-md overflow-hidden">
                 {(lesson.content as VideoLessonContent).bilibiliUrl ? (
-                  <iframe 
+                  <iframe
                     src={(function() {
                       const url = (lesson.content as VideoLessonContent).bilibiliUrl || '';
                       // 确保添加as_wide=1参数
@@ -87,47 +105,39 @@ const ContentTab: React.FC<ContentTabProps> = ({ modules }) => {
                     })()}
                     allowFullScreen={true}
                     className="w-full h-full rounded-lg"
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      aspectRatio: '16/9', 
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      aspectRatio: '16/9',
                       border: 'none',
                       display: 'block',
                       margin: '0 auto'
                     }}
-                    scrolling="no" 
+                    scrolling="no"
                     frameBorder="0"
                     sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
                   />
                 ) : lesson.video_file_path ? (
-                  <video 
-                    controls 
+                  <video
+                    controls
                     className="w-full h-full rounded-lg object-contain"
                     src={lesson.video_file_path}
                     style={{
-                      margin: '0 auto', 
-                      maxHeight: '100%', 
+                      margin: '0 auto',
+                      maxHeight: '100%',
                       maxWidth: '100%'
                     }}
                   >
                     您的浏览器不支持视频播放
                   </video>
                 ) : (
-                  <div className="text-center">
-                    <Video className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">视频内容未上传</p>
+                  <div className="text-center py-12">
+                    <Video className="h-16 w-16 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">视频内容未上传</p>
+                    <p className="text-gray-400 text-sm mt-1">请上传视频文件或添加B站链接</p>
                   </div>
                 )}
               </div>
-              
-              {/* 视频描述部分 */}
-              {(lesson.content as VideoLessonContent).description && (
-                <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <p className="text-gray-600 whitespace-pre-wrap">
-                    {(lesson.content as VideoLessonContent).description}
-                  </p>
-                </div>
-              )}
             </div>
           )}
           
