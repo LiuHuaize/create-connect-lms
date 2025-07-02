@@ -271,6 +271,35 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   
   return (
     <div>
+      {/* 框架描述 - 章节介绍 */}
+      {content.description && (
+        <div className="mb-8">
+          <div className="relative">
+            {/* 装饰性背景 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-ghibli-purple/5 via-ghibli-lightTeal/5 to-transparent rounded-2xl"></div>
+
+            {/* 主要内容 */}
+            <div className="relative p-6 border border-ghibli-sand/30 rounded-2xl bg-white/80 backdrop-blur-sm shadow-sm">
+              {/* 标题区域 */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-ghibli-purple to-ghibli-deepTeal rounded-full shadow-sm">
+                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                </div>
+                <h3 className="text-lg font-semibold text-ghibli-deepTeal">
+                  章节介绍
+                </h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-ghibli-sand/40 to-transparent"></div>
+              </div>
+
+              {/* 描述内容 */}
+              <div className="text-ghibli-brown leading-relaxed whitespace-pre-wrap text-sm pl-11">
+                {content.description}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 当前课时内容 */}
       <div className="mb-4">
         <Card className="border-none shadow-sm">
