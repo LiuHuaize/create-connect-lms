@@ -49,8 +49,13 @@ const LessonCompletionButton: React.FC<LessonCompletionButtonProps> = ({
   
   // 处理标记完成或取消完成
   const handleToggleComplete = async () => {
-    if (!enrollmentId || !lessonId || !courseId) {
-      toast.error('无法执行此操作');
+    if (!lessonId || !courseId) {
+      toast.error('课程信息不完整，无法执行此操作');
+      return;
+    }
+
+    if (!enrollmentId) {
+      toast.error('请先注册课程或刷新页面后再试');
       return;
     }
     

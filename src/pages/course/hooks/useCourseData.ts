@@ -198,19 +198,21 @@ export const useCourseData = (courseId: string | undefined) => {
   const refreshCourseData = useCallback(async () => {
     if (courseId) {
       console.log('🔄 强制刷新课程数据:', courseId);
-      
+
       // 清理性能监控timers
       clearAllTimers();
-      
+
       // 重置初始化状态
       isInitializedRef.current = false;
-      
+
       // 使用 React Query 的 invalidateQueries 使缓存失效
       await queryClient.invalidateQueries({ queryKey: courseQueryKey });
       if (user?.id) {
         await queryClient.invalidateQueries({ queryKey: enrollmentQueryKey });
+        // 同时清除已加入课程的缓存，确保注册状态更新
+        await queryClient.invalidateQueries({ queryKey: ['enrolledCourses', user.id] });
       }
-      
+
       // 手动触发重新获取
       refetchCourseData();
       if (user?.id) {

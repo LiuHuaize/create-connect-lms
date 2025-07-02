@@ -263,7 +263,15 @@ export const useCoursesData = () => {
         // 使缓存的已加入课程查询无效，强制重新获取
         queryClient.invalidateQueries({ queryKey: ['enrolledCourses', user?.id] });
       }
-      navigate(`/course/${variables.courseId}`);
+
+      // 清除课程相关的缓存，确保跳转后能正确显示注册状态
+      queryClient.invalidateQueries({ queryKey: ['courseDetails', variables.courseId] });
+      queryClient.invalidateQueries({ queryKey: ['enrollment', variables.courseId, user?.id] });
+
+      // 延迟跳转，确保缓存清理完成
+      setTimeout(() => {
+        navigate(`/course/${variables.courseId}`);
+      }, 100);
     },
     onError: (error) => {
       console.error('加入课程失败:', error);

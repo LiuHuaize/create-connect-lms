@@ -12,31 +12,35 @@ interface CourseHeaderProps {
   courseData: Course;
   isMobile: boolean;
   setSidebarOpen: (open: boolean) => void;
+  enrollmentId?: string | null; // 添加注册ID参数
+  isAutoEnrolling?: boolean; // 添加自动注册状态参数
 }
 
-const CourseHeader: React.FC<CourseHeaderProps> = ({ 
+const CourseHeader: React.FC<CourseHeaderProps> = ({
   courseData,
   isMobile,
-  setSidebarOpen 
+  setSidebarOpen,
+  enrollmentId,
+  isAutoEnrolling = false
 }) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { refreshCourseData } = useCourseData(courseData.id);
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
-    
+
     setIsRefreshing(true);
-    
+
     try {
       // 创建一个最小延迟的Promise，确保加载UI至少显示1.5秒
       const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // 同时执行数据刷新和最小加载时间
       await Promise.all([
         refreshCourseData(),
         minLoadingTime
       ]);
-      
+
       toast.success('课程内容已更新');
     } catch (error) {
       console.error('刷新课程内容失败:', error);
@@ -98,26 +102,33 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
           </div>
           
           <div className="ml-4 flex-shrink-0 flex items-center">
-            {/* 刷新按钮 - 状态改变时文字也会改变 */}
-            <Button
-              variant="default"
-              size="sm"
-              className={`mr-3 ${isRefreshing ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'} text-white font-medium min-w-[140px]`}
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" />
-                  正在刷新...
-                </>
-              ) : (
-                <>
-                  <RefreshCw size={16} className="mr-2" />
-                  获取最新内容
-                </>
-              )}
-            </Button>
+            {/* 只在用户未注册或正在自动注册时显示刷新按钮 */}
+            {(!enrollmentId || isAutoEnrolling) && (
+              <Button
+                variant="default"
+                size="sm"
+                className={`mr-3 ${isRefreshing || isAutoEnrolling ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'} text-white font-medium min-w-[140px]`}
+                onClick={handleRefresh}
+                disabled={isRefreshing || isAutoEnrolling}
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    正在刷新...
+                  </>
+                ) : isAutoEnrolling ? (
+                  <>
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                    正在加入...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={16} className="mr-2" />
+                    获取最新内容
+                  </>
+                )}
+              </Button>
+            )}
             
             {/* 学科信息 */}
             <div className="hidden sm:flex text-sm text-slate-500 dark:text-slate-400 items-center">

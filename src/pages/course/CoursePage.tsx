@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from '@/contexts/AuthContext';
+import { enrollCourse } from '@/hooks/useCoursesData';
+import { toast } from 'sonner';
 
 // Import components
 import CourseHeader from './components/CourseHeader';
@@ -72,7 +74,67 @@ const CoursePage = () => {
   
   const { loading, courseData, progress, enrollmentId, findCurrentLesson, refreshCourseData } = useCourseData(courseId);
   const { selectedLesson, selectedUnit } = findCurrentLesson(lessonId);
-  
+
+  // 自动注册状态
+  const [autoEnrollAttempted, setAutoEnrollAttempted] = useState(false);
+  const [isAutoEnrolling, setIsAutoEnrolling] = useState(false);
+
+  // 自动注册逻辑 - 修复：确保从详情页跳转过来的用户能正确识别注册状态
+  useEffect(() => {
+    const attemptAutoEnroll = async () => {
+      // 检查是否需要自动注册
+      if (
+        !autoEnrollAttempted &&
+        !loading &&
+        courseData &&
+        user?.id &&
+        !enrollmentId &&
+        courseData.status === 'published' &&
+        courseData.author_id !== user.id // 不是课程创建者
+      ) {
+        setAutoEnrollAttempted(true);
+        setIsAutoEnrolling(true);
+
+        try {
+          console.log('🔄 自动注册课程:', courseId);
+          const result = await enrollCourse({ userId: user.id, courseId: courseId! });
+
+          if (result.existingEnrollment) {
+            console.log('✅ 用户已注册过此课程');
+            // 不显示toast，因为用户可能是从详情页跳转过来的
+          } else {
+            console.log('✅ 自动注册成功');
+            toast.success('已自动加入课程！', { duration: 2000 });
+          }
+
+          // 刷新课程数据以获取最新的注册信息
+          await refreshCourseData();
+
+          // 等待一小段时间确保数据更新完成
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+        } catch (error) {
+          console.error('❌ 自动注册失败:', error);
+          // 自动注册失败时不显示错误提示，让用户手动点击"获取最新内容"
+        } finally {
+          setIsAutoEnrolling(false);
+        }
+      }
+    };
+
+    attemptAutoEnroll();
+  }, [loading, courseData, user?.id, enrollmentId, autoEnrollAttempted, courseId, refreshCourseData]);
+
+  // 添加额外的注册状态检查 - 修复从详情页跳转后的状态同步问题
+  useEffect(() => {
+    // 当页面加载完成且用户已登录时，额外检查一次注册状态
+    if (!loading && courseData && user?.id && !enrollmentId && !autoEnrollAttempted) {
+      console.log('🔍 额外检查注册状态，可能是从详情页跳转过来的');
+      // 强制刷新一次数据以确保状态同步
+      refreshCourseData();
+    }
+  }, [loading, courseData, user?.id, enrollmentId, autoEnrollAttempted, refreshCourseData]);
+
   // 修复重复请求问题：移除强制清除缓存的逻辑
   // 让 useCourseData 的内置缓存机制处理数据获取
   // useEffect(() => {
@@ -125,10 +187,10 @@ const CoursePage = () => {
     }
   }, [selectedLesson]);
   
-  if (loading) {
+  if (loading || isAutoEnrolling) {
     return <LoadingSkeleton />;
   }
-  
+
   if (!courseData) {
     return <NotFoundCard />;
   }
@@ -162,10 +224,12 @@ const CoursePage = () => {
   
   return (
     <div className="flex flex-col h-screen bg-macaron-cream">
-      <CourseHeader 
-        courseData={courseData} 
-        isMobile={isMobile} 
-        setSidebarOpen={setSidebarOpen} 
+      <CourseHeader
+        courseData={courseData}
+        isMobile={isMobile}
+        setSidebarOpen={setSidebarOpen}
+        enrollmentId={enrollmentId}
+        isAutoEnrolling={isAutoEnrolling}
       />
       
       {isMobile && (
