@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Navigation,
-  List
+  List,
+  Sparkles
 } from 'lucide-react';
 import {
   Dialog,
@@ -31,6 +33,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { seriesQuestionnaireService } from '@/services/seriesQuestionnaireService';
+import { seriesAIGradingService } from '@/services/seriesAIGradingService';
 import { 
   SeriesQuestionnaire, 
   SeriesQuestion, 
@@ -40,6 +43,8 @@ import {
 } from '@/types/course';
 import { getCurrentUser } from '@/utils/userSession';
 import WordCountDisplay from '@/components/course/creator/series-questionnaire/WordCountDisplay';
+import { SeriesGradingResult } from './SeriesGradingResult';
+import { fixSubmissionStatus, diagnoseSubmissionStatus } from '@/services/fixSubmissionStatus';
 
 interface SeriesQuestionnaireStudentProps {
   questionnaireId: string;
@@ -63,6 +68,9 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   enrollmentId,
   onComplete
 }) => {
+  // 导航
+  const navigate = useNavigate();
+  
   // 状态管理
   const [questionnaire, setQuestionnaire] = useState<SeriesQuestionnaire | null>(null);
   const [questions, setQuestions] = useState<SeriesQuestion[]>([]);
@@ -79,6 +87,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   const [viewMode, setViewMode] = useState<'single' | 'all'>('single'); // 单题模式或全部显示模式
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [startTime] = useState(Date.now());
+  const [isSubmittingProcess, setIsSubmittingProcess] = useState(false);
 
   // 计时器
   useEffect(() => {
@@ -116,14 +125,65 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
         setSubmissionStatus(statusResponse.data);
 
         // 如果有已保存的答案，加载它们
-        if (statusResponse.data.submission?.answers) {
+        if (statusResponse.data.submission?.answers && questionnaireResponse.data.questions) {
           console.log('加载问答数据 - 已保存的答案:', statusResponse.data.submission.answers);
-          setAnswers(statusResponse.data.submission.answers);
+          
+          // 创建一个包含所有问题的答案数组，确保每个问题都有对应的答案条目
+          const allAnswers: SeriesAnswer[] = questionnaireResponse.data.questions.map(question => {
+            const savedAnswer = statusResponse.data.submission!.answers.find(
+              (a: SeriesAnswer) => a.question_id === question.id
+            );
+            
+            if (savedAnswer) {
+              return savedAnswer;
+            } else {
+              // 为没有保存答案的问题创建空答案
+              return {
+                question_id: question.id,
+                answer_text: '',
+                word_count: 0
+              };
+            }
+          });
+          
+          setAnswers(allAnswers);
+        } else if (questionnaireResponse.data.questions) {
+          // 如果没有保存的答案，初始化所有问题的空答案
+          const emptyAnswers: SeriesAnswer[] = questionnaireResponse.data.questions.map(question => ({
+            question_id: question.id,
+            answer_text: '',
+            word_count: 0
+          }));
+          setAnswers(emptyAnswers);
         }
 
-        // 如果已提交，获取AI评分
+        // 如果已提交且已评分，手动获取AI评分数据
+        console.log('检查AI评分状态:', {
+          status: statusResponse.data.submission?.status,
+          hasGradings: statusResponse.data.submission?.series_ai_gradings?.length > 0,
+          gradingsCount: statusResponse.data.submission?.series_ai_gradings?.length
+        });
+        
         if (statusResponse.data.submission?.status === 'graded') {
-          // 这里可以添加获取AI评分的逻辑
+          // 使用专门的AI评分服务查询最新数据
+          try {
+            console.log('🔍 使用AI评分服务查询数据...');
+            const gradingData = await seriesAIGradingService.getAIGrading(statusResponse.data.submission.id);
+            
+            if (gradingData) {
+              console.log('✅ 查询到最新AI评分数据:', gradingData);
+              setAiGrading(gradingData);
+            } else {
+              console.log('⚠️ 未找到AI评分数据');
+              setAiGrading(null);
+            }
+          } catch (gradingQueryError) {
+            console.error('❌ 查询AI评分失败:', gradingQueryError);
+            setAiGrading(null);
+          }
+        } else {
+          // 清除之前的AI评分数据
+          setAiGrading(null);
         }
       }
     } catch (error) {
@@ -168,14 +228,30 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
     try {
       setSaving(true);
 
+      // 确保所有问题都有答案条目（即使是空的）
+      const allAnswers: SeriesAnswer[] = questions.map(question => {
+        const existingAnswer = answers.find(a => a.question_id === question.id);
+        if (existingAnswer) {
+          return existingAnswer;
+        } else {
+          // 为未回答的问题创建空答案
+          return {
+            question_id: question.id,
+            answer_text: '',
+            word_count: 0
+          };
+        }
+      });
+
       // 调试信息
       console.log('保存草稿 - 当前答案:', answers);
+      console.log('保存草稿 - 所有答案（包括空答案）:', allAnswers);
       console.log('保存草稿 - 问答ID:', questionnaireId);
       console.log('保存草稿 - 时间:', timeSpent);
 
       const response = await seriesQuestionnaireService.saveSeriesDraft({
         questionnaire_id: questionnaireId,
-        answers,
+        answers: allAnswers,
         time_spent_minutes: timeSpent
       });
 
@@ -183,8 +259,12 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
 
       if (response.success) {
         toast.success('草稿已保存');
-        // 重新加载提交状态
-        await loadQuestionnaireData();
+        // 重新加载提交状态（避免无限循环）
+        console.log('保存草稿后重新加载数据');
+        // 使用 setTimeout 避免立即重新渲染导致的性能问题
+        setTimeout(() => {
+          loadQuestionnaireData();
+        }, 100);
       } else {
         console.error('保存草稿失败 - 服务器错误:', response.error);
         throw new Error(response.error || '保存失败');
@@ -198,12 +278,6 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   };
 
   // 导航功能
-  const goToQuestion = (index: number) => {
-    if (index >= 0 && index < questions.length) {
-      setCurrentQuestionIndex(index);
-    }
-  };
-
   const goToPreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
@@ -232,7 +306,12 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   };
 
   // 显示提交确认对话框
-  const handleSubmitClick = () => {
+  const handleSubmitClick = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
+    console.log('🚀 handleSubmitClick 被调用');
+    
     const validation = validateBeforeSubmit();
     if (!validation.isValid) {
       toast.error(`请回答所有必填问题（还有 ${validation.missingCount} 个必填问题未回答）`);
@@ -242,30 +321,71 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   };
 
   // 确认提交答案
-  const confirmSubmitAnswers = async () => {
+  const confirmSubmitAnswers = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
+    console.log('🚀 confirmSubmitAnswers 被调用');
+    
+    // 防止重复提交
+    if (isSubmittingProcess) {
+      console.log('⚠️ 正在提交中，忽略重复请求');
+      return;
+    }
+    
     try {
+      setIsSubmittingProcess(true);
       setSubmitting(true);
       setShowSubmitConfirm(false);
+
+      console.log('📤 准备提交答案:', {
+        questionnaire_id: questionnaireId,
+        answers: answers.filter(a => a.answer_text.trim() !== ''),
+        status: 'submitted',
+        time_spent_minutes: timeSpent
+      });
 
       const response = await seriesQuestionnaireService.submitSeriesAnswers({
         questionnaire_id: questionnaireId,
         answers,
+        status: 'submitted',
         time_spent_minutes: timeSpent
       });
 
+      console.log('📥 提交答案响应:', response);
+
       if (response.success) {
-        toast.success('答案已提交，正在进行AI评分...');
-        // 重新加载数据以获取最新状态
+        toast.success('答案已提交！');
+        
+        // 如果需要AI评分且有评分标准，直接跳转到AI评分等待页面
+        if (response.data?.redirect_to_grading && 
+            questionnaire?.ai_grading_prompt && 
+            questionnaire?.ai_grading_criteria) {
+          
+          console.log('🔄 跳转到AI评分页面');
+          toast.info('正在跳转到AI评分页面...');
+          
+          // 跳转到AI评分等待页面，让该页面统一处理AI评分
+          navigate(`/course/${courseId}/lesson/${lessonId}/ai-grading/${questionnaireId}`);
+          return;
+        }
+        
+        // 如果不需要AI评分，重新加载数据
+        console.log('🔄 重新加载数据');
         await loadQuestionnaireData();
-        onComplete?.();
+        // 延迟调用 onComplete 以防止立即触发父组件刷新
+        setTimeout(() => {
+          onComplete?.();
+        }, 100);
       } else {
         throw new Error(response.error || '提交失败');
       }
     } catch (error) {
-      console.error('提交答案失败:', error);
+      console.error('❌ 提交答案失败:', error);
       toast.error('提交失败，请重试');
     } finally {
       setSubmitting(false);
+      setIsSubmittingProcess(false);
     }
   };
 
@@ -284,6 +404,74 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   // 计算总字数
   const getTotalWords = () => {
     return answers.reduce((total, answer) => total + (answer.word_count || 0), 0);
+  };
+
+  // 诊断和修复提交状态
+  const handleFixSubmissionStatus = async () => {
+    try {
+      // 先诊断问题
+      const diagResult = await diagnoseSubmissionStatus(submissionStatus?.submission?.id);
+      console.log('诊断结果:', diagResult);
+      
+      // 修复状态
+      const fixResult = await fixSubmissionStatus();
+      if (fixResult.success) {
+        toast.success(`成功修复 ${fixResult.fixedCount} 条记录`);
+        // 重新加载数据（避免无限循环）
+        console.log('修复状态后重新加载数据');
+        setTimeout(() => {
+          loadQuestionnaireData();
+        }, 100);
+      } else {
+        toast.error('修复失败，请查看控制台');
+      }
+    } catch (error) {
+      console.error('修复状态错误:', error);
+      toast.error('修复过程中出错');
+    }
+  };
+
+  // 手动请求AI评分
+  const handleRequestAIGrading = async () => {
+    if (!submissionStatus?.submission || !questionnaire) {
+      toast.error('无法获取提交数据');
+      return;
+    }
+
+    // 如果状态不是submitted，先尝试修复
+    if (submissionStatus.submission.status !== 'submitted' && submissionStatus.submission.status !== 'graded') {
+      console.log('检测到异常状态:', submissionStatus.submission.status);
+      await handleFixSubmissionStatus();
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      toast.info('正在启动AI评分...');
+      
+      // 使用triggerAIGrading统一处理，避免重复调用
+      const gradingResponse = await seriesQuestionnaireService.triggerAIGrading({
+        submission_id: submissionStatus.submission.id,
+        force_regrade: true
+      });
+      
+      if (gradingResponse.success) {
+        toast.success('AI评分完成！');
+        // 重新加载数据以获取最新的AI评分结果（避免无限循环）
+        console.log('AI评分完成后重新加载数据');
+        setTimeout(() => {
+          loadQuestionnaireData();
+        }, 100);
+      } else {
+        toast.error('AI评分失败：' + (gradingResponse.error || '未知错误'));
+      }
+      
+    } catch (error) {
+      console.error('AI评分失败:', error);
+      toast.error('AI评分服务暂时不可用，请稍后重试');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -312,62 +500,157 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
     );
   }
 
-  // 如果已提交，显示相应状态
-  if (submissionStatus?.submission?.status === 'submitted') {
+  // 如果已提交或已评分，显示完整的查看界面
+  if (submissionStatus?.submission && (submissionStatus.submission.status === 'submitted' || submissionStatus.submission.status === 'graded')) {
     return (
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <CheckCircle className="h-8 w-8 text-green-500 mr-2" />
-            <CardTitle className="text-2xl">答案已提交</CardTitle>
-          </div>
-          <p className="text-gray-600">您的答案已成功提交，正在等待评分</p>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-blue-800">AI正在评分中，请稍后查看结果</p>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* 状态标题 */}
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <CheckCircle className="h-8 w-8 text-green-500 mr-2" />
+              <CardTitle className="text-2xl">
+                {submissionStatus.submission.status === 'graded' ? '问答已完成' : '答案已提交'}
+              </CardTitle>
             </div>
-            <Button onClick={loadQuestionnaireData} variant="outline">
-              刷新状态
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+            <p className="text-gray-600">
+              {submissionStatus.submission.status === 'graded' 
+                ? '您已完成此问答，以下是您的答案和评分结果' 
+                : '您的答案已成功提交，正在等待评分'
+              }
+            </p>
+          </CardHeader>
+        </Card>
 
-  // 如果已提交且已评分，显示结果
-  if (submissionStatus?.submission?.status === 'graded') {
-    return (
-      <Card className="max-w-4xl mx-auto">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <Award className="h-8 w-8 text-yellow-500 mr-2" />
-            <CardTitle className="text-2xl">问答已完成</CardTitle>
-          </div>
-          <p className="text-gray-600">您的答案已提交并完成评分</p>
-        </CardHeader>
-        <CardContent>
-          {aiGrading && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-2">
-                  {aiGrading.final_score || aiGrading.ai_score || 0} / {questionnaire.max_score || 100}
-                </div>
-                <p className="text-gray-600">最终得分</p>
-              </div>
+        {/* 题目和答案展示 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              {questionnaire?.title}
+            </CardTitle>
+            {questionnaire?.description && (
+              <p className="text-gray-600">{questionnaire.description}</p>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {questions.map((question, index) => {
+              const answer = submissionStatus.submission?.answers?.find(
+                (a: any) => a.question_id === question.id
+              );
               
-              {aiGrading.ai_feedback && (
+              return (
+                <div key={question.id} className="border rounded-lg p-4">
+                  <div className="mb-4">
+                    <h3 className="font-medium text-lg mb-2">
+                      问题 {index + 1}: {question.title}
+                    </h3>
+                    <p className="text-gray-700 mb-3">{question.content}</p>
+                    {question.required && (
+                      <Badge variant="secondary" className="mb-2">必答题</Badge>
+                    )}
+                    {question.max_words && (
+                      <Badge variant="outline" className="mb-2 ml-2">
+                        字数限制: {question.max_words}字
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-sm text-gray-600 mb-2">您的答案：</h4>
+                    <div className="bg-white p-3 rounded border min-h-[100px]">
+                      <p className="text-gray-900 whitespace-pre-wrap">
+                        {answer?.answer_text || '未作答'}
+                      </p>
+                    </div>
+                    {answer?.word_count && (
+                      <p className="text-xs text-gray-500 mt-2">字数：{answer.word_count}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* AI评分结果（如果有） */}
+        {aiGrading && (
+          <SeriesGradingResult
+            grading={aiGrading}
+            questions={questions}
+            answers={submissionStatus.submission.answers || []}
+            totalScore={questionnaire?.max_score || 100}
+          />
+        )}
+
+        {/* 如果是submitted状态但没有AI评分，显示等待状态 */}
+        {submissionStatus.submission.status === 'submitted' && !aiGrading && (
+          <Card>
+            <CardContent className="text-center py-8">
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-blue-800 font-medium">AI正在评分中，请稍后查看结果</p>
+                <Button 
+                  onClick={loadQuestionnaireData} 
+                  variant="outline" 
+                  className="mt-4"
+                >
+                  刷新状态
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AI评分按钮区域 */}
+        <Card>
+          <CardContent className="text-center py-6">
+            <div className="space-y-4">
+              {aiGrading ? (
+                // 已有AI评分，显示重新评分选项
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                  <p className="text-green-800 font-medium">AI评分已完成</p>
+                  <p className="text-green-600 text-sm">评分结果已显示在上方，可重新评分</p>
+                </div>
+              ) : (
+                // 未有AI评分
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">AI 反馈</h4>
-                  <p className="text-gray-700">{aiGrading.ai_feedback}</p>
+                  <Sparkles className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                  <p className="text-blue-800 font-medium">获取AI评分</p>
+                  <p className="text-blue-600 text-sm">点击下方按钮让AI对您的答案进行评分</p>
                 </div>
               )}
+              
+              <Button 
+                onClick={handleRequestAIGrading}
+                disabled={submitting}
+                className={aiGrading 
+                  ? "bg-orange-600 hover:bg-orange-700 text-white" 
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+                }
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    AI评分中...
+                  </>
+                ) : aiGrading ? (
+                  <>
+                    <Award className="h-4 w-4 mr-2" />
+                    重新AI评分
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    请求AI评分
+                  </>
+                )}
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -500,7 +783,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
                     value={getAnswer(questions[currentQuestionIndex].id)}
                     onChange={(e) => updateAnswer(questions[currentQuestionIndex].id, e.target.value)}
                     className="min-h-[150px] text-base border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 rounded-lg transition-all duration-200"
-                    disabled={submissionStatus?.submission?.status === 'submitted'}
+                    disabled={submissionStatus?.submission && (submissionStatus.submission.status === 'submitted' || submissionStatus.submission.status === 'graded')}
                   />
 
                   <WordCountDisplay
@@ -575,7 +858,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
                     value={getAnswer(question.id)}
                     onChange={(e) => updateAnswer(question.id, e.target.value)}
                     className="min-h-[100px] border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                    disabled={submissionStatus?.submission?.status === 'submitted'}
+                    disabled={submissionStatus?.submission && (submissionStatus.submission.status === 'submitted' || submissionStatus.submission.status === 'graded')}
                   />
 
                   <WordCountDisplay
@@ -636,6 +919,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
                 )}
 
                 <Button
+                  type="button"
                   onClick={handleSubmitClick}
                   disabled={saving || submitting}
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 flex items-center gap-2 shadow-md"
@@ -714,6 +998,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
               取消
             </Button>
             <Button
+              type="button"
               onClick={confirmSubmitAnswers}
               disabled={submitting}
               className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md"

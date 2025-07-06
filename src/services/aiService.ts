@@ -163,11 +163,11 @@ export const sendMessageToAI = async (messages: AppChatMessage[]): Promise<strin
 
 // ==================== 系列问答AI评分服务 ====================
 
-// 4.1mini API 配置（用于系列问答评分）
-// 优先使用环境变量，如果没有则使用默认值
-const MINI_API_KEY = import.meta.env.VITE_AIHUBMIX_API_KEY || 'sk-LVuSMVbv6rcXN9BF555dC39001Ad46D28610D76b62285595';
-const MINI_API_URL = 'https://aihubmix.com/v1/chat/completions';
-const MINI_MODEL_NAME = 'gpt-4.1';
+// AIHubMix API 配置（用于系列问答评分）
+// 使用 Gemini 2.5 Pro 模型
+const AIHUBMIX_API_KEY = import.meta.env.VITE_AIHUBMIX_API_KEY || '';
+const AIHUBMIX_API_URL = 'https://aihubmix.com/v1/chat/completions';
+const AIHUBMIX_MODEL_NAME = 'gemini-2.5-pro';
 
 // 系列问答评分相关类型定义
 export interface SeriesQuestionnaireData {
@@ -217,19 +217,34 @@ export const gradeSeriesQuestionnaire = async (
     const gradingPrompt = buildGradingPrompt(data);
 
     // 首先尝试真实API调用
+    console.log('🚀 开始AI评分...');
+    console.log('API配置:', {
+      url: AIHUBMIX_API_URL,
+      model: AIHUBMIX_MODEL_NAME,
+      hasApiKey: !!AIHUBMIX_API_KEY,
+      apiKeyPreview: AIHUBMIX_API_KEY ? `${AIHUBMIX_API_KEY.substring(0, 10)}...` : '未设置'
+    });
+    console.log('评分数据:', {
+      questionnaire: data.questionnaire.title,
+      questionsCount: data.questions.length,
+      answersCount: data.answers.length,
+      answers: data.answers.map(a => ({ id: a.question_id, text: a.answer_text?.substring(0, 50) + '...' }))
+    });
+    
     try {
-      const response = await fetch(MINI_API_URL, {
+      console.log('📤 发送评分请求到AI服务...');
+      const response = await fetch(AIHUBMIX_API_URL, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${MINI_API_KEY}`,
+          'Authorization': `Bearer ${AIHUBMIX_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: MINI_MODEL_NAME,
+          model: AIHUBMIX_MODEL_NAME,
           messages: [
             {
               role: 'system',
-              content: '你是一位专业的教育评估专家，擅长对学生的问答进行客观、公正、建设性的评分和反馈。'
+              content: '你是一位专业的教育评估专家，擅长对学生的问答进行客观、公正、建设性的评分和反馈。请专注于内容质量和理解深度，而非语法细节。'
             },
             {
               role: 'user',
@@ -237,30 +252,66 @@ export const gradeSeriesQuestionnaire = async (
             }
           ],
           temperature: 0.3, // 较低的温度确保评分的一致性
-          max_tokens: 2000,
+          max_tokens: 4000, // Gemini 2.5 Pro 支持更长的输出
         }),
       });
 
+      console.log('📥 收到响应，状态码:', response.status);
+
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ API调用成功，响应数据:', result);
+        
         const aiContent = result.choices?.[0]?.message?.content;
 
         if (aiContent) {
-          // 解析AI返回的JSON格式评分结果
+          console.log('📝 AI返回内容长度:', aiContent.length);
+          console.log('📝 AI返回原始内容:', aiContent);
+          
+          // 尝试提取JSON部分（AI可能返回的内容包含额外的文字）
+          let jsonContent = aiContent;
+          
+          // 如果内容包含```json标记，提取其中的JSON
+          const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            jsonContent = jsonMatch[1];
+            console.log('📝 提取到JSON代码块:', jsonContent);
+          }
+          
+          // 尝试找到JSON对象的开始和结束
+          const jsonStartIndex = jsonContent.indexOf('{');
+          const jsonEndIndex = jsonContent.lastIndexOf('}');
+          if (jsonStartIndex !== -1 && jsonEndIndex !== -1) {
+            jsonContent = jsonContent.substring(jsonStartIndex, jsonEndIndex + 1);
+            console.log('📝 提取到JSON对象:', jsonContent);
+          }
+          
           try {
-            const gradingResult = JSON.parse(aiContent);
+            const gradingResult = JSON.parse(jsonContent);
+            console.log('✅ 成功解析AI评分结果:', gradingResult);
             return validateGradingResult(gradingResult, data.questionnaire.max_score);
           } catch (parseError) {
-            console.warn('解析AI评分结果失败，使用模拟评分:', parseError);
+            console.error('❌ 解析AI评分结果失败:', parseError);
+            console.log('尝试解析的内容:', jsonContent);
+            console.log('原始AI响应:', aiContent);
             // 如果解析失败，回退到模拟评分
           }
+        } else {
+          console.error('❌ AI响应中没有内容');
         }
       } else {
-        console.warn('AI API调用失败，使用模拟评分');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ AI API调用失败:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
       }
     } catch (apiError) {
-      console.warn('AI API连接失败，使用模拟评分:', apiError);
+      console.error('❌ AI API连接失败:', apiError);
     }
+    
+    console.log('⚠️ 使用模拟评分作为备用方案');
 
     // 如果API调用失败，使用智能模拟评分
     return generateMockGrading(data);
@@ -301,27 +352,90 @@ const generateMockGrading = (data: SeriesQuestionnaireData): AIGradingResult => 
     } else {
       const answerLength = answer.answer_text.length;
       const wordCount = answer.word_count || answerLength;
+      const answerText = answer.answer_text.trim().toLowerCase();
 
-      // 基于字数和内容质量评分
-      if (wordCount < 20) {
+      // 检测低质量内容
+      const lowQualityPatterns = [
+        /^[啊哦嗯呃额呀哈嘿哟噢嗨]+$/,  // 只有语气词
+        /^[不知道|不清楚|不懂|不会|没想法|随便|乱写|乱答|胡说|瞎写]+.*$/,  // 明确表示不知道或随意
+        /^[\d\w\s!@#$%^&*()_+\-=\[\]{}|;':".,<>?\/~`]+$/,  // 只有数字、字母、符号
+        /^(.)\1{4,}$/,  // 同一字符重复4次以上
+        /^[。，！？；：""''（）【】]+$/,  // 只有标点符号
+        /^[\s\t\n\r]+$/,  // 只有空白字符
+      ];
+
+      // 检测是否为低质量内容
+      const isLowQuality = lowQualityPatterns.some(pattern => pattern.test(answerText));
+      
+      // 检测字符重复度
+      const uniqueChars = new Set(answerText.split('')).size;
+      const repetitionRatio = uniqueChars / answerText.length;
+      const highRepetition = repetitionRatio < 0.3 && answerText.length > 10;
+
+      // 检测是否包含有意义的内容
+      const meaningfulChars = answerText.replace(/[^a-zA-Z\u4e00-\u9fff]/g, '').length;
+      const meaningfulRatio = meaningfulChars / answerText.length;
+      const lowMeaning = meaningfulRatio < 0.5 && answerText.length > 5;
+
+      if (isLowQuality || highRepetition || lowMeaning) {
+        // 低质量回答，给低分
+        questionScore = Math.floor(maxScore * 0.05); // 5%
+        feedback = `你的回答"${answer.answer_text}"看起来不够认真。学习需要你诚实地表达想法，即使不确定答案，也请尝试基于你的理解来回答，而不是随意填写。请重新认真思考"${question.title}"这个问题。`;
+        strengths = [];
+        improvements = [
+          '请认真阅读和理解问题要求',
+          '基于你的知识和经验诚实回答',
+          '如果不确定，可以说出你的思考过程',
+          '避免随意填写或敷衍的回答',
+          '学习态度决定学习效果，请保持认真'
+        ];
+      } else if (wordCount < 20) {
         questionScore = Math.floor(maxScore * 0.3); // 30%
-        feedback = '答案过于简短，缺乏详细说明。';
-        improvements = ['增加答案的详细程度', '提供更多具体例子'];
+        feedback = `你的回答比较简短（${wordCount}字），虽然触及了问题的表面，但缺少必要的展开和说明。对于"${question.title}"这个问题，仅用简单的一两句话是不够的。`;
+        strengths = ['能够识别问题的基本方向'];
+        improvements = [
+          '建议增加具体的例子来支撑你的观点',
+          '可以从多个角度来分析这个问题',
+          '尝试解释"为什么"而不仅仅是"是什么"',
+          `建议将答案扩展到至少50字以上，充分展现你的理解`
+        ];
       } else if (wordCount < 50) {
         questionScore = Math.floor(maxScore * 0.5); // 50%
-        feedback = '答案基本回答了问题，但可以更加详细。';
-        strengths = ['回答了基本问题'];
-        improvements = ['增加更多细节', '提供具体例子'];
+        feedback = `你的回答抓住了问题的核心要点，这很好。但是对于"${question.title}"这样的问题，还有很多可以深入探讨的空间。你目前的答案像是一个概要，需要更多的细节来充实。`;
+        strengths = ['正确理解了问题的主要内容', '回答方向正确'];
+        improvements = [
+          '可以加入1-2个具体的例子来说明你的观点',
+          '尝试解释这个概念的实际应用或重要性',
+          '考虑加入一些相关的背景知识',
+          '可以对比不同的观点或情况'
+        ];
       } else if (wordCount < 100) {
         questionScore = Math.floor(maxScore * 0.7); // 70%
-        feedback = '答案较为完整，有一定的深度。';
-        strengths = ['回答比较完整', '有一定深度'];
-        improvements = ['可以进一步深入分析'];
+        feedback = `不错的回答！你展现了对"${question.title}"较好的理解。答案有一定的深度，逻辑也比较清晰。如果能在某些关键点上再深入一些，会让你的答案更有说服力。`;
+        strengths = [
+          '答案结构清晰，逻辑连贯',
+          '包含了问题的主要方面',
+          '有自己的思考和理解'
+        ];
+        improvements = [
+          '可以在关键概念上提供更详细的解释',
+          '考虑加入一些前沿的观点或最新的发展',
+          '如果能联系实际生活会更生动'
+        ];
       } else {
         questionScore = Math.floor(maxScore * 0.85); // 85%
-        feedback = '答案详细完整，显示了良好的理解。';
-        strengths = ['答案详细完整', '理解深入', '表达清晰'];
-        improvements = ['继续保持这种回答质量'];
+        feedback = `优秀的回答！你对"${question.title}"的理解非常深入，不仅回答了问题本身，还展现了良好的知识储备和思维能力。答案详实、有理有据，表达也很清晰。`;
+        strengths = [
+          '答案全面深入，覆盖了问题的各个方面',
+          '逻辑严密，论述充分',
+          '能够灵活运用相关知识',
+          '表达清晰流畅'
+        ];
+        improvements = [
+          '这样的回答质量请继续保持',
+          '可以尝试提出一些创新性的见解',
+          '如果有机会，可以探讨一些更深层次的含义'
+        ];
       }
 
       // 检查是否超出字数限制
@@ -346,14 +460,17 @@ const generateMockGrading = (data: SeriesQuestionnaireData): AIGradingResult => 
 
   // 生成总体反馈
   let overallFeedback = '';
+  const answeredCount = answers.filter(a => a.answer_text.trim() !== '').length;
+  const completionRate = (answeredCount / questions.length) * 100;
+  
   if (averageScore >= maxScore * 0.8) {
-    overallFeedback = '整体回答质量很好，显示了对问题的深入理解。';
+    overallFeedback = `非常出色的表现！你完成了${answeredCount}/${questions.length}道题（完成率${completionRate.toFixed(0)}%），平均得分${averageScore}分。你的答案展现了扎实的知识基础和良好的思维能力。特别值得肯定的是，你能够从多个角度分析问题，并且表达清晰有条理。继续保持这种学习态度，你会在这个领域取得更大的进步！`;
   } else if (averageScore >= maxScore * 0.6) {
-    overallFeedback = '整体回答基本正确，但还有提升空间。';
+    overallFeedback = `良好的表现！你完成了${answeredCount}/${questions.length}道题，平均得分${averageScore}分。你对大部分概念都有正确的理解，这是一个很好的开始。从你的答案可以看出，你已经掌握了基础知识，但在深度和广度上还有提升的空间。建议你在回答问题时，多思考"为什么"和"怎么样"，而不仅仅是"是什么"。加入更多的例子和实际应用，会让你的答案更有说服力。`;
   } else if (averageScore >= maxScore * 0.4) {
-    overallFeedback = '回答了基本问题，但需要更多的深入思考和详细说明。';
+    overallFeedback = `你完成了${answeredCount}/${questions.length}道题，平均得分${averageScore}分，这表明你对相关知识有了初步的了解。从你的答案来看，你能够识别问题的基本方向，但在具体内容的展开上还需要加强。建议你：1）仔细阅读每个问题，确保理解问题的核心；2）在回答时提供更多的细节和例子；3）尝试建立不同知识点之间的联系。记住，学习是一个循序渐进的过程，继续努力！`;
   } else {
-    overallFeedback = '回答不够完整，建议重新思考问题并提供更详细的答案。';
+    overallFeedback = `你完成了${answeredCount}/${questions.length}道题，平均得分${averageScore}分。看起来你对这些问题的理解还处于初级阶段，这很正常，每个人的学习都是从这里开始的。建议你：1）先确保理解每个问题在问什么；2）尝试用自己的话重新表述问题；3）从最基础的概念开始，逐步建立知识体系；4）不要害怕犯错，每次尝试都是进步的机会。相信通过持续的学习，你一定能够掌握这些知识！`;
   }
 
   return {
@@ -366,12 +483,54 @@ const generateMockGrading = (data: SeriesQuestionnaireData): AIGradingResult => 
       '逻辑性': Math.floor(averageScore * 0.25),
       '深度': Math.floor(averageScore * 0.25)
     },
-    suggestions: [
-      '继续保持认真的学习态度',
-      '多思考问题的深层含义',
-      '注意答案的逻辑结构'
-    ]
+    suggestions: generatePersonalizedSuggestions(averageScore, answeredCount, questions.length, maxScore)
   };
+};
+
+/**
+ * 生成个性化的学习建议
+ */
+const generatePersonalizedSuggestions = (
+  averageScore: number, 
+  answeredCount: number, 
+  totalQuestions: number, 
+  maxScore: number
+): string[] => {
+  const suggestions: string[] = [];
+  const scorePercentage = (averageScore / maxScore) * 100;
+  
+  // 基于完成度的建议
+  if (answeredCount < totalQuestions) {
+    suggestions.push(`你还有${totalQuestions - answeredCount}道题未完成，建议先完成所有题目，这样能够全面展示你的知识掌握情况`);
+  }
+  
+  // 基于分数的建议
+  if (scorePercentage >= 80) {
+    suggestions.push('你的基础很扎实！建议尝试一些拓展性的学习，比如阅读相关的前沿研究或探索实际应用案例');
+    suggestions.push('可以尝试成为其他同学的"小老师"，通过教别人来进一步巩固和深化自己的理解');
+    suggestions.push('挑战自己：尝试从不同的角度重新思考这些问题，或者寻找这些知识在其他领域的应用');
+  } else if (scorePercentage >= 60) {
+    suggestions.push('建议重点复习那些得分较低的题目，找出知识盲点并针对性地学习');
+    suggestions.push('多做类似的练习题，通过反复练习来加深理解和记忆');
+    suggestions.push('尝试用思维导图整理知识点，帮助建立知识体系的整体框架');
+    suggestions.push('找一个学习伙伴，互相讨论和解答疑惑，往往能有新的收获');
+  } else if (scorePercentage >= 40) {
+    suggestions.push('建议先回到教材或课程视频，系统地复习基础概念');
+    suggestions.push('每学完一个知识点，试着用自己的话总结出来，这样能检验是否真正理解');
+    suggestions.push('不要急于求成，把大的学习目标分解成小步骤，逐个击破');
+    suggestions.push('准备一个错题本，记录不懂的地方，定期回顾和请教老师');
+  } else {
+    suggestions.push('从最基础的概念开始，不要跳过任何一个知识点，打好基础很重要');
+    suggestions.push('建议制定一个学习计划，每天学习一点点，保持连续性');
+    suggestions.push('多利用网上的教学资源，如视频教程、互动练习等，找到适合自己的学习方式');
+    suggestions.push('记住：每个专家都曾是初学者，保持耐心和信心，你一定可以进步的！');
+  }
+  
+  // 通用建议
+  suggestions.push('定期回顾和总结学过的内容，避免遗忘');
+  suggestions.push('将理论知识与实际生活联系起来，这样学习会更有趣也更有效');
+  
+  return suggestions;
 };
 
 /**
@@ -380,7 +539,7 @@ const generateMockGrading = (data: SeriesQuestionnaireData): AIGradingResult => 
 const buildGradingPrompt = (data: SeriesQuestionnaireData): string => {
   const { questionnaire, questions, answers } = data;
 
-  let prompt = `请对以下系列问答进行评分：
+  let prompt = `请对以下系列问答进行详细评分。你是一位经验丰富的教育专家，请提供深入、具体、有启发性的反馈。
 
 ## 问答信息
 **标题**: ${questionnaire.title}
@@ -390,8 +549,22 @@ const buildGradingPrompt = (data: SeriesQuestionnaireData): string => {
 ## 评分标准
 ${questionnaire.ai_grading_criteria || '请根据答案的完整性、准确性、逻辑性和深度进行评分'}
 
-## 评分提示
+## 老师的评分要求
 ${questionnaire.ai_grading_prompt || '请客观公正地评分，并提供建设性的反馈'}
+
+## 评分指导原则
+1. **严格评分**：请务必严格按照评分标准执行，不要过于宽松。低质量、敷衍、乱写的答案应该给低分
+2. **内容质量检测**：如果发现以下情况，应该给予很低的分数（0-10分）：
+   - 只有语气词（如"啊啊啊"、"嗯嗯嗯"）
+   - 明确表示不知道或随意回答（如"不知道"、"随便写"、"乱答"）
+   - 重复字符或无意义符号
+   - 明显与问题无关的内容
+3. **深度分析**：对于有意义的回答，要具体指出哪些观点很好，哪些地方可以深化
+4. **知识拓展**：指出学生可能遗漏的重要知识点，或者可以进一步探索的相关概念
+5. **思维引导**：帮助学生建立更完整的知识体系，指出不同概念之间的联系
+6. **具体建议**：提供可操作的改进建议，比如"可以从XX角度思考"、"建议补充YY方面的例子"
+7. **鼓励性反馈**：在指出不足的同时，充分肯定学生的亮点，激发学习热情
+8. **学习态度**：如果答案明显不认真，要在反馈中强调学习态度的重要性
 
 ## 问题和答案
 `;
@@ -413,17 +586,19 @@ ${answer?.word_count ? `**答案字数**: ${answer.word_count}字` : ''}
   prompt += `
 
 ## 评分要求
-请以JSON格式返回评分结果，包含以下字段：
+请严格按照以下JSON格式返回评分结果，不要包含任何其他文字或说明：
+
+\`\`\`json
 {
   "overall_score": 总分(0-${questionnaire.max_score}),
-  "overall_feedback": "总体评价和反馈",
+  "overall_feedback": "详细的总体评价和反馈（至少100字）",
   "detailed_feedback": [
     {
       "question_id": "问题ID",
       "score": 该问题得分,
-      "feedback": "针对该问题的具体反馈",
-      "strengths": ["优点1", "优点2"],
-      "improvements": ["改进建议1", "改进建议2"]
+      "feedback": "针对该问题的详细具体反馈（至少50字）",
+      "strengths": ["具体的优点1", "具体的优点2", "具体的优点3"],
+      "improvements": ["具体的改进建议1", "具体的改进建议2", "具体的改进建议3"]
     }
   ],
   "criteria_scores": {
@@ -432,10 +607,17 @@ ${answer?.word_count ? `**答案字数**: ${answer.word_count}字` : ''}
     "逻辑性": 分数,
     "深度": 分数
   },
-  "suggestions": ["总体改进建议1", "总体改进建议2"]
+  "suggestions": ["详细的总体改进建议1", "详细的总体改进建议2", "详细的总体改进建议3", "详细的总体改进建议4"]
 }
+\`\`\`
 
-请确保返回的是有效的JSON格式，分数合理，反馈具体且建设性。`;
+重要：
+1. 必须返回标准的JSON格式，用\`\`\`json和\`\`\`包裹
+2. overall_feedback要详细具体，包含对学生整体表现的深入分析
+3. 每个问题的feedback要具体指出答案的优缺点，不要泛泛而谈
+4. strengths和improvements各至少提供3条具体的内容
+5. suggestions至少提供4条有针对性的学习建议
+6. 所有反馈都要有教育意义，能够真正帮助学生提升`;
 
   return prompt;
 };

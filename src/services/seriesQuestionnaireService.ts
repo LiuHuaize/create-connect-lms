@@ -1,11 +1,8 @@
-import { supabase } from "@/integrations/supabase/client";
-import { getCurrentUser } from '@/utils/userSession';
 import {
   SeriesQuestionnaire,
   SeriesQuestion,
   SeriesSubmission,
   SeriesAIGrading,
-  SeriesQuestionnaireStats,
   SeriesAnswer
 } from "@/types/course";
 import {
@@ -29,139 +26,70 @@ import {
 } from "@/types/series-questionnaire";
 import { gradeSeriesQuestionnaire, SeriesQuestionnaireData } from '@/services/aiService';
 import { gamificationService } from '@/services/gamificationService';
+import { aiGradingFix } from '@/services/aiGradingFix';
+import { SeriesQuestionnaireCacheManager } from './seriesQuestionnaireCacheManager';
+import { SeriesQuestionnaireRepository } from './seriesQuestionnaireRepository';
+import {
+  validateQuestionnaireData,
+  validateQuestionData,
+  validateAnswerData,
+  calculateTotalWords,
+  answersArrayToObject,
+  answersObjectToArray,
+  PermissionChecker,
+  QuestionnaireTypeChecker,
+  QuestionUpdateHelper,
+  transformQuestionsForAIGrading,
+  buildErrorResponse,
+  buildSuccessResponse,
+  ValidationError
+} from './seriesQuestionnaireHelpers';
 
-// 系列问答完成状态缓存
-export const seriesQuestionnaireCache: Record<string, Record<string, any>> = {};
+// 初始化缓存管理器
+const cacheManager = SeriesQuestionnaireCacheManager.getInstance();
 
-// 缓存管理
-const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5分钟缓存
-const cacheTimestamps: Record<string, number> = {};
+// 导出缓存以保持向后兼容
+export const seriesQuestionnaireCache = {};
 
-// 清除过期缓存
-const clearExpiredCache = () => {
-  const now = Date.now();
-  Object.keys(cacheTimestamps).forEach(key => {
-    if (now - cacheTimestamps[key] > CACHE_EXPIRY_TIME) {
-      delete seriesQuestionnaireCache[key];
-      delete cacheTimestamps[key];
-    }
-  });
-};
-
-// 设置缓存
-const setCache = (key: string, data: any) => {
-  clearExpiredCache();
-  seriesQuestionnaireCache[key] = data;
-  cacheTimestamps[key] = Date.now();
-};
-
-// 获取缓存
-const getCache = (key: string) => {
-  clearExpiredCache();
-  return seriesQuestionnaireCache[key];
-};
-
-// 清除特定缓存
-const clearCache = (pattern: string) => {
-  Object.keys(seriesQuestionnaireCache).forEach(key => {
-    if (key.includes(pattern)) {
-      delete seriesQuestionnaireCache[key];
-      delete cacheTimestamps[key];
-    }
-  });
-};
-
-// ==================== 数据验证辅助函数 ====================
+// ==================== 辅助函数 ====================
 
 /**
- * 验证系列问答数据
+ * 处理游戏化奖励（提取公共逻辑）
  */
-function validateQuestionnaireData(data: CreateSeriesQuestionnaireRequest | UpdateSeriesQuestionnaireRequest): string[] {
-  const errors: string[] = [];
-
-  if ('title' in data && (!data.title || data.title.trim().length === 0)) {
-    errors.push('标题不能为空');
+async function handleGamificationRewards(
+  type: 'complete' | 'graded',
+  userId: string,
+  questionnaireId: string,
+  questionnaireTitle: string,
+  data: {
+    skillTags?: string[];
+    totalWords?: number;
+    score?: number;
+    maxScore?: number;
   }
-
-  if ('title' in data && data.title && data.title.length > 200) {
-    errors.push('标题长度不能超过200字符');
-  }
-
-  if (data.description && data.description.length > 1000) {
-    errors.push('描述长度不能超过1000字符');
-  }
-
-  if (data.max_score && (data.max_score < 1 || data.max_score > 1000)) {
-    errors.push('最高分数必须在1-1000之间');
-  }
-
-  if (data.time_limit_minutes && (data.time_limit_minutes < 1 || data.time_limit_minutes > 1440)) {
-    errors.push('时间限制必须在1-1440分钟之间');
-  }
-
-  return errors;
-}
-
-/**
- * 验证问题数据
- */
-function validateQuestionData(question: CreateSeriesQuestionRequest | UpdateSeriesQuestionRequest): string[] {
-  const errors: string[] = [];
-
-  if ('title' in question && (!question.title || question.title.trim().length === 0)) {
-    errors.push('问题标题不能为空');
-  }
-
-  if ('question_text' in question && (!question.question_text || question.question_text.trim().length === 0)) {
-    errors.push('问题内容不能为空');
-  }
-
-  if (question.min_words && question.min_words < 0) {
-    errors.push('最少字数不能小于0');
-  }
-
-  if (question.max_words && question.max_words < 1) {
-    errors.push('最多字数不能小于1');
-  }
-
-  if (question.min_words && question.max_words && question.min_words > question.max_words) {
-    errors.push('最少字数不能大于最多字数');
-  }
-
-  return errors;
-}
-
-/**
- * 验证答案数据
- */
-function validateAnswerData(answers: SeriesAnswer[], questions: SeriesQuestion[]): string[] {
-  const errors: string[] = [];
-
-  for (const answer of answers) {
-    const question = questions.find(q => q.id === answer.question_id);
-    if (!question) {
-      errors.push(`问题不存在: ${answer.question_id}`);
-      continue;
+): Promise<void> {
+  try {
+    if (type === 'complete' && data.skillTags && data.totalWords !== undefined) {
+      await gamificationService.handleSeriesQuestionnaireComplete(
+        userId,
+        questionnaireId,
+        questionnaireTitle,
+        data.skillTags,
+        data.totalWords
+      );
+    } else if (type === 'graded' && data.score !== undefined && data.maxScore !== undefined) {
+      await gamificationService.handleSeriesQuestionnaireGraded(
+        userId,
+        questionnaireId,
+        questionnaireTitle,
+        data.score,
+        data.maxScore
+      );
     }
-
-    if (question.required && (!answer.answer_text || answer.answer_text.trim().length === 0)) {
-      errors.push(`必答题不能为空: ${question.title}`);
-    }
-
-    if (answer.answer_text) {
-      const wordCount = answer.answer_text.split(/\s+/).filter(word => word.length > 0).length;
-
-      if (question.min_words && wordCount < question.min_words) {
-        errors.push(`"${question.title}" 答案字数不足，最少需要 ${question.min_words} 字`);
-      }
-
-      if (question.max_words && wordCount > question.max_words) {
-        errors.push(`"${question.title}" 答案字数超限，最多允许 ${question.max_words} 字`);
-      }
-    }
+  } catch (error) {
+    console.warn(`处理${type === 'complete' ? '完成' : '评分'}游戏化奖励失败:`, error);
+    // 不影响主流程
   }
-
-  return errors;
 }
 
 export const seriesQuestionnaireService = {
@@ -172,15 +100,12 @@ export const seriesQuestionnaireService = {
    */
   async createSeriesQuestionnaire(request: CreateSeriesQuestionnaireRequest): Promise<CreateSeriesQuestionnaireResponse> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
+      const userId = await PermissionChecker.requireUser();
 
       // 验证数据
       const validationErrors = validateQuestionnaireData(request);
       if (validationErrors.length > 0) {
-        throw new Error(`数据验证失败: ${validationErrors.join(', ')}`);
+        throw new ValidationError(validationErrors);
       }
 
       // 验证问题数据
@@ -188,63 +113,32 @@ export const seriesQuestionnaireService = {
         for (const question of request.questions) {
           const questionErrors = validateQuestionData(question);
           if (questionErrors.length > 0) {
-            throw new Error(`问题验证失败: ${questionErrors.join(', ')}`);
+            throw new ValidationError(questionErrors);
           }
         }
       }
 
-      // 验证用户是否有权限在该课时创建系列问答
-      const { data: lesson, error: lessonError } = await supabase
-        .from('lessons')
-        .select(`
-          id,
-          module_id,
-          course_modules!inner(
-            course_id,
-            courses!inner(author_id)
-          )
-        `)
-        .eq('id', request.lesson_id)
-        .single();
-
-      if (lessonError || !lesson) {
-        throw new Error('课时不存在或无权访问');
-      }
-
-      const courseAuthorId = (lesson as any).course_modules?.courses?.author_id;
-      if (courseAuthorId !== user.id) {
-        throw new Error('无权在此课时创建系列问答');
-      }
+      // 验证权限
+      await PermissionChecker.requireCourseAuthor(request.lesson_id, userId);
 
       // 使用事务处理确保数据一致性
       let questionnaire: any;
       let createdQuestions: any[] = [];
 
       try {
-        // 开始事务：创建系列问答
-        const { data: questionnaireData, error: questionnaireError } = await supabase
-          .from('series_questionnaires')
-          .insert({
-            title: request.title,
-            description: request.description,
-            instructions: request.instructions,
-            lesson_id: request.lesson_id,
-            ai_grading_prompt: request.ai_grading_prompt,
-            ai_grading_criteria: request.ai_grading_criteria,
-            max_score: request.max_score || 100,
-            time_limit_minutes: request.time_limit_minutes,
-            allow_save_draft: request.allow_save_draft ?? true,
-            skill_tags: request.skill_tags || []
-          })
-          .select()
-          .single();
-
-        if (questionnaireError) {
-          console.error('创建系列问答失败:', questionnaireError);
-          throw questionnaireError;
-        }
-
-        questionnaire = questionnaireData;
+        // 创建系列问答
+        questionnaire = await SeriesQuestionnaireRepository.createQuestionnaire({
+          title: request.title,
+          description: request.description,
+          instructions: request.instructions,
+          lesson_id: request.lesson_id,
+          ai_grading_prompt: request.ai_grading_prompt,
+          ai_grading_criteria: request.ai_grading_criteria,
+          max_score: request.max_score || 100,
+          time_limit_minutes: request.time_limit_minutes,
+          allow_save_draft: request.allow_save_draft ?? true,
+          skill_tags: request.skill_tags || []
+        });
 
         // 创建问题
         if (request.questions && request.questions.length > 0) {
@@ -260,22 +154,12 @@ export const seriesQuestionnaireService = {
             placeholder_text: q.placeholder_text
           }));
 
-          const { data: questionsData, error: questionsError } = await supabase
-            .from('series_questions')
-            .insert(questionsToInsert)
-            .select();
-
-          if (questionsError) {
-            console.error('创建问题失败:', questionsError);
-            throw questionsError;
-          }
-
-          createdQuestions = questionsData || [];
+          createdQuestions = await SeriesQuestionnaireRepository.createQuestions(questionsToInsert);
         }
 
         // 清除相关缓存
-        clearCache(`lesson_${request.lesson_id}`);
-        clearCache(`questionnaire_`);
+        cacheManager.clearPattern(`lesson_${request.lesson_id}`);
+        cacheManager.clearPattern(`questionnaire_`);
 
         console.log('系列问答创建成功:', questionnaire.id);
 
@@ -285,28 +169,19 @@ export const seriesQuestionnaireService = {
           questions: createdQuestions
         };
 
-        return {
-          success: true,
-          data: fullQuestionnaire as SeriesQuestionnaire
-        };
+        return buildSuccessResponse(fullQuestionnaire as SeriesQuestionnaire);
 
       } catch (error) {
         // 事务回滚：如果问答已创建但问题创建失败，删除问答
         if (questionnaire?.id) {
           console.log('执行事务回滚，删除已创建的问答:', questionnaire.id);
-          await supabase
-            .from('series_questionnaires')
-            .delete()
-            .eq('id', questionnaire.id);
+          await SeriesQuestionnaireRepository.deleteQuestionnaire(questionnaire.id);
         }
         throw error;
       }
     } catch (error) {
       console.error('创建系列问答失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '创建系列问答失败'
-      };
+      return buildErrorResponse(error, '创建系列问答失败');
     }
   },
 
@@ -315,15 +190,12 @@ export const seriesQuestionnaireService = {
    */
   async updateSeriesQuestionnaire(request: UpdateSeriesQuestionnaireRequest): Promise<CreateSeriesQuestionnaireResponse> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
+      const userId = await PermissionChecker.requireUser();
 
       // 验证数据
       const validationErrors = validateQuestionnaireData(request);
       if (validationErrors.length > 0) {
-        throw new Error(`数据验证失败: ${validationErrors.join(', ')}`);
+        throw new ValidationError(validationErrors);
       }
 
       // 验证问题数据
@@ -331,38 +203,21 @@ export const seriesQuestionnaireService = {
         for (const question of request.questions) {
           const questionErrors = validateQuestionData(question);
           if (questionErrors.length > 0) {
-            throw new Error(`问题验证失败: ${questionErrors.join(', ')}`);
+            throw new ValidationError(questionErrors);
           }
         }
       }
 
       // 验证权限
-      const { data: questionnaire, error: checkError } = await supabase
-        .from('series_questionnaires')
-        .select(`
-          id,
-          lesson_id,
-          lessons!inner(
-            module_id,
-            course_modules!inner(
-              course_id,
-              courses!inner(author_id)
-            )
-          )
-        `)
-        .eq('id', request.id)
-        .single();
+      const { questionnaire, courseAuthorId } = await SeriesQuestionnaireRepository.getQuestionnaireWithAuth(
+        request.id
+      );
 
-      if (checkError || !questionnaire) {
-        throw new Error('系列问答不存在');
-      }
-
-      const courseAuthorId = (questionnaire as any).lessons?.course_modules?.courses?.author_id;
-      if (courseAuthorId !== user.id) {
+      if (courseAuthorId !== userId) {
         throw new Error('无权更新此系列问答');
       }
 
-      // 更新系列问答基本信息
+      // 构建更新数据
       const updateData: any = {};
       if (request.title !== undefined) updateData.title = request.title;
       if (request.description !== undefined) updateData.description = request.description;
@@ -374,110 +229,27 @@ export const seriesQuestionnaireService = {
       if (request.allow_save_draft !== undefined) updateData.allow_save_draft = request.allow_save_draft;
       if (request.skill_tags !== undefined) updateData.skill_tags = request.skill_tags;
 
+      // 更新系列问答基本信息
       if (Object.keys(updateData).length > 0) {
-        updateData.updated_at = new Date().toISOString();
-
-        const { error: updateError } = await supabase
-          .from('series_questionnaires')
-          .update(updateData)
-          .eq('id', request.id);
-
-        if (updateError) {
-          console.error('更新系列问答失败:', updateError);
-          throw updateError;
-        }
+        await SeriesQuestionnaireRepository.updateQuestionnaire(request.id, updateData);
       }
 
       // 处理问题更新
       if (request.questions && request.questions.length > 0) {
-        for (const question of request.questions) {
-          if (question._action === 'delete' && question.id) {
-            // 删除问题
-            const { error: deleteError } = await supabase
-              .from('series_questions')
-              .delete()
-              .eq('id', question.id)
-              .eq('questionnaire_id', request.id);
-
-            if (deleteError) {
-              console.error('删除问题失败:', deleteError);
-              throw deleteError;
-            }
-          } else if (question._action === 'create' || !question.id) {
-            // 创建新问题
-            const { error: createError } = await supabase
-              .from('series_questions')
-              .insert({
-                questionnaire_id: request.id,
-                title: question.title!,
-                description: question.description,
-                question_text: question.question_text!,
-                order_index: question.order_index!,
-                required: question.required ?? true,
-                min_words: question.min_words || 0,
-                max_words: question.max_words,
-                placeholder_text: question.placeholder_text
-              });
-
-            if (createError) {
-              console.error('创建问题失败:', createError);
-              throw createError;
-            }
-          } else if (question._action === 'update' || question.id) {
-            // 更新现有问题
-            const questionUpdateData: any = {};
-            if (question.title !== undefined) questionUpdateData.title = question.title;
-            if (question.description !== undefined) questionUpdateData.description = question.description;
-            if (question.question_text !== undefined) questionUpdateData.question_text = question.question_text;
-            if (question.order_index !== undefined) questionUpdateData.order_index = question.order_index;
-            if (question.required !== undefined) questionUpdateData.required = question.required;
-            if (question.min_words !== undefined) questionUpdateData.min_words = question.min_words;
-            if (question.max_words !== undefined) questionUpdateData.max_words = question.max_words;
-            if (question.placeholder_text !== undefined) questionUpdateData.placeholder_text = question.placeholder_text;
-
-            if (Object.keys(questionUpdateData).length > 0) {
-              questionUpdateData.updated_at = new Date().toISOString();
-
-              const { error: updateQuestionError } = await supabase
-                .from('series_questions')
-                .update(questionUpdateData)
-                .eq('id', question.id)
-                .eq('questionnaire_id', request.id);
-
-              if (updateQuestionError) {
-                console.error('更新问题失败:', updateQuestionError);
-                throw updateQuestionError;
-              }
-            }
-          }
-        }
+        await QuestionUpdateHelper.processQuestionUpdates(request.id, request.questions);
       }
+
+      // 清除缓存
+      cacheManager.clearPattern(`questionnaire_${request.id}`);
+      cacheManager.clearPattern(`lesson_${questionnaire.lesson_id}`);
 
       // 获取更新后的完整数据
-      const { data: updatedQuestionnaire, error: fetchError } = await supabase
-        .from('series_questionnaires')
-        .select(`
-          *,
-          questions:series_questions(*)
-        `)
-        .eq('id', request.id)
-        .single();
+      const updatedQuestionnaire = await SeriesQuestionnaireRepository.getQuestionnaireDetails(request.id);
 
-      if (fetchError) {
-        console.error('获取更新后的问答失败:', fetchError);
-        throw fetchError;
-      }
-
-      return {
-        success: true,
-        data: updatedQuestionnaire as SeriesQuestionnaire
-      };
+      return buildSuccessResponse(updatedQuestionnaire as SeriesQuestionnaire);
     } catch (error) {
       console.error('更新系列问答失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '更新系列问答失败'
-      };
+      return buildErrorResponse(error, '更新系列问答失败');
     }
   },
 
@@ -486,62 +258,41 @@ export const seriesQuestionnaireService = {
    */
   async getSeriesQuestionnaire(questionnaireId: string): Promise<GetSeriesQuestionnaireResponse> {
     try {
-      // 首先尝试从lessons表获取（对于lesson类型的系列问答）
-      const { data: lessonData, error: lessonError } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('id', questionnaireId)
-        .eq('type', 'series_questionnaire')
-        .single();
-
-      if (lessonData && !lessonError) {
-        // 如果是lesson类型的系列问答，直接返回lesson的content
-        const questionnaire = {
-          id: lessonData.id,
-          lesson_id: lessonData.id,
-          title: lessonData.title,
-          description: lessonData.content?.description || '',
-          instructions: lessonData.content?.instructions || '',
-          max_score: lessonData.content?.max_score || 100,
-          time_limit_minutes: lessonData.content?.time_limit_minutes,
-          allow_save_draft: lessonData.content?.allow_save_draft || true,
-          skill_tags: lessonData.content?.skill_tags || [],
-          ai_grading_prompt: lessonData.content?.ai_grading_prompt || '',
-          ai_grading_criteria: lessonData.content?.ai_grading_criteria || '',
-          questions: lessonData.content?.questions || [],
-          created_at: lessonData.created_at,
-          updated_at: lessonData.updated_at
-        };
-
+      // 从缓存获取
+      const cacheKey = SeriesQuestionnaireCacheManager.generateKey('questionnaire', questionnaireId);
+      const cached = cacheManager.get<SeriesQuestionnaire>(cacheKey);
+      if (cached) {
+        // 确保返回的数据包含questions属性
+        const questions = (cached as any).questions || [];
         return {
           success: true,
-          data: questionnaire
+          data: {
+            ...cached,
+            questions
+          }
         };
       }
 
-      // 如果不是lesson类型，尝试从series_questionnaires表获取
-      const { data, error } = await supabase.rpc('get_series_questionnaire_details', {
-        p_questionnaire_id: questionnaireId
-      });
-
-      if (error) {
-        console.error('获取系列问答详情失败:', error);
-        return {
-          success: false,
-          error: error.message || '获取系列问答详情失败'
-        };
-      }
-
+      // 获取问答信息
+      const { questionnaire } = await QuestionnaireTypeChecker.getQuestionnaireInfo(questionnaireId);
+      
+      // 确保返回的数据包含questions属性
+      const questions = (questionnaire as any).questions || [];
+      const fullQuestionnaire = {
+        ...questionnaire,
+        questions
+      };
+      
+      // 缓存结果
+      cacheManager.set(cacheKey, fullQuestionnaire);
+      
       return {
         success: true,
-        data: data
+        data: fullQuestionnaire
       };
     } catch (error) {
       console.error('获取系列问答详情失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '获取系列问答详情失败'
-      };
+      return buildErrorResponse(error, '获取系列问答详情失败');
     }
   },
 
@@ -558,90 +309,45 @@ export const seriesQuestionnaireService = {
   async getSeriesQuestionnaires(params: GetSeriesQuestionnairesParams): Promise<GetSeriesQuestionnairesResponse> {
     try {
       // 构建缓存键
-      const cacheKey = `questionnaires_${params.lesson_id || 'all'}_${params.page || 1}_${params.limit || 10}_${params.search || ''}`;
+      const cacheKey = SeriesQuestionnaireCacheManager.generateQuestionnaireListKey(params);
 
       // 尝试从缓存获取
-      const cachedData = getCache(cacheKey);
+      const cachedData = cacheManager.get(cacheKey);
       if (cachedData) {
-        return {
-          success: true,
-          ...cachedData
-        };
+        return buildSuccessResponse(cachedData);
       }
 
-      let query = supabase
-        .from('series_questionnaires')
-        .select(`
-          id,
-          title,
-          description,
-          instructions,
-          lesson_id,
-          max_score,
-          time_limit_minutes,
-          allow_save_draft,
-          skill_tags,
-          created_at,
-          updated_at,
-          questions:series_questions(
-            id,
-            title,
-            order_index,
-            required
-          )
-        `, { count: 'exact' })
-        .order('created_at', { ascending: false });
-
-      // 添加筛选条件
-      if (params.lesson_id) {
-        query = query.eq('lesson_id', params.lesson_id);
-      }
-
-      if (params.search) {
-        query = query.or(`title.ilike.%${params.search}%,description.ilike.%${params.search}%`);
-      }
-
-      // 分页
       const page = params.page || 1;
       const limit = params.limit || 10;
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
 
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        console.error('获取系列问答列表失败:', error);
-        return {
-          success: false,
-          error: error.message || '获取系列问答列表失败'
-        };
-      }
+      const { data, count } = await SeriesQuestionnaireRepository.getQuestionnaires({
+        lesson_id: params.lesson_id,
+        search: params.search,
+        page,
+        limit
+      });
 
       const result = {
-        data: data as SeriesQuestionnaire[],
+        data,
         pagination: {
           page,
           limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit)
+          total: count,
+          totalPages: Math.ceil(count / limit)
         }
       };
 
       // 缓存结果
-      setCache(cacheKey, result);
+      cacheManager.set(cacheKey, result);
 
       return {
         success: true,
-        ...result
+        data,
+        pagination: result.pagination
       };
     } catch (error) {
       console.error('获取系列问答列表失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '获取系列问答列表失败'
-      };
+      return buildErrorResponse(error, '获取系列问答列表失败');
     }
   },
 
@@ -650,135 +356,56 @@ export const seriesQuestionnaireService = {
    */
   async deleteSeriesQuestionnaire(questionnaireId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
+      const userId = await PermissionChecker.requireUser();
 
-      // 检查权限
-      const { data: questionnaire, error: checkError } = await supabase
-        .from('series_questionnaires')
-        .select('lesson_id, lessons!inner(module_id, course_modules!inner(course_id, courses!inner(author_id)))')
-        .eq('id', questionnaireId)
-        .single();
-
-      if (checkError || !questionnaire) {
-        throw new Error('系列问答不存在');
-      }
-
-      // 验证权限（通过课程作者）
-      const courseAuthorId = (questionnaire as any).lessons?.course_modules?.courses?.author_id;
-      if (courseAuthorId !== user.id) {
+      // 验证权限
+      const hasPermission = await PermissionChecker.checkQuestionnaireAuthor(
+        questionnaireId,
+        userId
+      );
+      if (!hasPermission) {
         throw new Error('无权删除此系列问答');
       }
 
-      // 删除系列问答（级联删除相关数据）
-      const { error } = await supabase
-        .from('series_questionnaires')
-        .delete()
-        .eq('id', questionnaireId);
+      // 删除系列问答
+      await SeriesQuestionnaireRepository.deleteQuestionnaire(questionnaireId);
 
-      if (error) {
-        console.error('删除系列问答失败:', error);
-        throw error;
-      }
+      // 清除相关缓存
+      cacheManager.clearPattern(`questionnaire_${questionnaireId}`);
 
       return { success: true };
     } catch (error) {
       console.error('删除系列问答失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '删除系列问答失败'
-      };
+      return buildErrorResponse(error, '删除系列问答失败');
     }
   },
 
   // ==================== 学生端API ====================
 
   /**
-   * 获取学生提交状态 - 优化版本，使用缓存
+   * 获取学生提交状态 - 直接查询，确保数据实时性
    */
   async getStudentSubmissionStatus(questionnaireId: string): Promise<GetStudentSubmissionStatusResponse> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
+      const userId = await PermissionChecker.requireUser();
 
-      const cacheKey = `submission_status_${questionnaireId}_${user.id}`;
+      // 获取问答信息
+      const { isLessonType } = await QuestionnaireTypeChecker.getQuestionnaireInfo(questionnaireId);
 
-      // 尝试从缓存获取
-      const cachedStatus = getCache(cacheKey);
-      if (cachedStatus && cachedStatus.hasOwnProperty('can_submit')) {
-        return {
-          success: true,
-          data: cachedStatus
-        };
-      }
+      // 获取学生提交
+      const submission = await SeriesQuestionnaireRepository.getStudentSubmission({
+        student_id: userId,
+        questionnaire_id: isLessonType ? undefined : questionnaireId,
+        lesson_id: isLessonType ? questionnaireId : undefined,
+        isLessonType
+      });
 
-      // 检查是否为lesson类型的系列问答
-      const { data: lessonData } = await supabase
-        .from('lessons')
-        .select('id')
-        .eq('id', questionnaireId)
-        .eq('type', 'series_questionnaire')
-        .single();
-
-      const isLessonType = !!lessonData;
-
-      // 根据类型构建查询
-      let queryBuilder = supabase
-        .from('series_submissions')
-        .select(`
-          id,
-          status,
-          answers,
-          total_words,
-          time_spent_minutes,
-          submitted_at,
-          updated_at,
-          series_ai_gradings(
-            ai_score,
-            ai_feedback,
-            final_score
-          )
-        `)
-        .eq('student_id', user.id);
-
-      if (isLessonType) {
-        // 对于lesson类型，使用lesson_id字段
-        queryBuilder = queryBuilder.eq('lesson_id', questionnaireId).is('questionnaire_id', null);
-      } else {
-        // 对于独立系列问答，使用questionnaire_id字段
-        queryBuilder = queryBuilder.eq('questionnaire_id', questionnaireId);
-      }
-
-      const { data: submission, error } = await queryBuilder.single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('获取学生提交状态失败:', error);
-        return {
-          success: false,
-          error: error.message || '获取学生提交状态失败'
-        };
-      }
-
-      // 如果有提交记录，转换答案格式从对象到数组
+      // 如果有提交记录，转换答案格式
       let processedSubmission = submission;
       if (submission && submission.answers) {
-        const answersArray: SeriesAnswer[] = [];
-        const answersObj = submission.answers as Record<string, string>;
-
-        Object.entries(answersObj).forEach(([questionId, answerText]) => {
-          answersArray.push({
-            question_id: questionId,
-            answer_text: answerText
-          });
-        });
-
         processedSubmission = {
           ...submission,
-          answers: answersArray
+          answers: answersObjectToArray(submission.answers as Record<string, string>)
         };
       }
 
@@ -786,23 +413,14 @@ export const seriesQuestionnaireService = {
       const statusData = {
         submission: processedSubmission || null,
         has_submission: !!submission,
-        can_submit: !submission || submission.status === 'draft', // 没有提交或状态为草稿时可以提交
-        time_remaining: null // TODO: 如果需要时间限制，在这里计算
+        can_submit: !submission || submission.status === 'draft',
+        time_remaining: null
       };
 
-      // 缓存结果
-      setCache(cacheKey, statusData);
-
-      return {
-        success: true,
-        data: statusData
-      };
+      return buildSuccessResponse(statusData);
     } catch (error) {
       console.error('获取学生提交状态失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '获取学生提交状态失败'
-      };
+      return buildErrorResponse(error, '获取学生提交状态失败');
     }
   },
 
@@ -811,146 +429,51 @@ export const seriesQuestionnaireService = {
    */
   async saveSeriesDraft(request: SaveSeriesDraftRequest): Promise<SubmitSeriesAnswersResponse> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
+      const userId = await PermissionChecker.requireUser();
 
-      // 验证问答是否存在并获取相关信息
-      let allowSaveDraft = true;
-      let isLessonType = false;
-      let lessonId: string | null = null;
+      // 获取问答信息
+      const { isLessonType, lessonId, questionnaire } = await QuestionnaireTypeChecker.getQuestionnaireInfo(
+        request.questionnaire_id
+      );
 
-      // 首先尝试从lessons表查找
-      const { data: lessonData, error: lessonError } = await supabase
-        .from('lessons')
-        .select('id, content')
-        .eq('id', request.questionnaire_id)
-        .eq('type', 'series_questionnaire')
-        .single();
-
-      if (lessonData && !lessonError) {
-        // 这是lesson类型的系列问答
-        isLessonType = true;
-        lessonId = lessonData.id;
-        allowSaveDraft = lessonData.content?.allow_save_draft !== false;
-      } else {
-        // 尝试从series_questionnaires表查找
-        const { data: questionnaireData, error: questionnaireError } = await supabase
-          .from('series_questionnaires')
-          .select('id, allow_save_draft, lesson_id')
-          .eq('id', request.questionnaire_id)
-          .single();
-
-        if (questionnaireError || !questionnaireData) {
-          throw new Error('系列问答不存在');
-        }
-
-        isLessonType = false;
-        lessonId = questionnaireData.lesson_id;
-        allowSaveDraft = questionnaireData.allow_save_draft;
-      }
-
-      if (!allowSaveDraft) {
+      if (!questionnaire.allow_save_draft) {
         throw new Error('此系列问答不允许保存草稿');
       }
 
-      // 计算总字数
-      const totalWords = request.answers.reduce((total, answer) => {
-        return total + (answer.answer_text?.split(/\s+/).filter(word => word.length > 0).length || 0);
-      }, 0);
+      // 准备数据
+      const totalWords = calculateTotalWords(request.answers);
+      const answersObject = answersArrayToObject(request.answers);
 
-      // 将答案数组转换为对象格式（数据库期望的格式）
-      const answersObject: Record<string, string> = {};
-      request.answers.forEach(answer => {
-        answersObject[answer.question_id] = answer.answer_text;
+      // 获取现有提交
+      const existingSubmission = await SeriesQuestionnaireRepository.getStudentSubmission({
+        student_id: userId,
+        questionnaire_id: isLessonType ? undefined : request.questionnaire_id,
+        lesson_id: isLessonType ? request.questionnaire_id : undefined,
+        isLessonType
       });
 
-      // 构建查询条件 - 根据类型使用不同的字段
-      let queryBuilder = supabase
-        .from('series_submissions')
-        .select('id, status')
-        .eq('student_id', user.id);
-
-      if (isLessonType) {
-        // 对于lesson类型，使用lesson_id字段
-        queryBuilder = queryBuilder.eq('lesson_id', request.questionnaire_id).is('questionnaire_id', null);
-      } else {
-        // 对于独立系列问答，使用questionnaire_id字段
-        queryBuilder = queryBuilder.eq('questionnaire_id', request.questionnaire_id);
-      }
-
-      const { data: existingSubmission } = await queryBuilder.single();
-
-      let submission;
-      if (existingSubmission) {
-        // 更新现有记录
-        const { data: updatedSubmission, error: updateError } = await supabase
-          .from('series_submissions')
-          .update({
-            answers: answersObject,
-            total_words: totalWords,
-            time_spent_minutes: request.time_spent_minutes || 0,
-            status: 'draft', // 确保状态为草稿
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingSubmission.id)
-          .select()
-          .single();
-
-        if (updateError) {
-          console.error('更新草稿失败:', updateError);
-          throw updateError;
-        }
-        submission = updatedSubmission;
-      } else {
-        // 创建新草稿 - 根据类型设置不同的字段
-        const insertData: any = {
-          student_id: user.id,
-          status: 'draft',
-          answers: answersObject,
-          total_words: totalWords,
-          time_spent_minutes: request.time_spent_minutes || 0
-        };
-
-        if (isLessonType) {
-          // 对于lesson类型，设置lesson_id，questionnaire_id为null
-          insertData.lesson_id = request.questionnaire_id;
-          insertData.questionnaire_id = null;
-        } else {
-          // 对于独立系列问答，设置questionnaire_id，lesson_id可选
-          insertData.questionnaire_id = request.questionnaire_id;
-          if (lessonId) {
-            insertData.lesson_id = lessonId;
-          }
-        }
-
-        const { data: newSubmission, error: createError } = await supabase
-          .from('series_submissions')
-          .insert(insertData)
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('创建草稿失败:', createError);
-          throw createError;
-        }
-        submission = newSubmission;
-      }
-
-      return {
-        success: true,
-        data: {
-          submission: submission as SeriesSubmission,
-          redirect_to_grading: false
-        }
+      // 准备提交数据
+      const submissionData = {
+        id: existingSubmission?.id,
+        student_id: userId,
+        questionnaire_id: isLessonType ? null : request.questionnaire_id,
+        lesson_id: isLessonType ? request.questionnaire_id : lessonId,
+        answers: answersObject,
+        status: 'draft' as const,
+        total_words: totalWords,
+        time_spent_minutes: request.time_spent_minutes || 0,
+        submitted_at: null
       };
+
+      const submission = await SeriesQuestionnaireRepository.upsertSubmission(submissionData);
+
+      return buildSuccessResponse({
+        submission: submission as SeriesSubmission,
+        redirect_to_grading: false
+      });
     } catch (error) {
       console.error('保存草稿失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '保存草稿失败'
-      };
+      return buildErrorResponse(error, '保存草稿失败');
     }
   },
 
@@ -959,216 +482,78 @@ export const seriesQuestionnaireService = {
    */
   async submitSeriesAnswers(request: SubmitSeriesAnswersRequest): Promise<SubmitSeriesAnswersResponse> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
+      const userId = await PermissionChecker.requireUser();
 
-      const cacheKey = `questionnaire_${request.questionnaire_id}_${user.id}`;
-
-      // 尝试从缓存获取问答信息
-      let questionnaire = getCache(`questionnaire_${request.questionnaire_id}`);
-
-      if (!questionnaire) {
-        // 首先尝试从lessons表获取（对于lesson类型的系列问答）
-        const { data: lessonData, error: lessonError } = await supabase
-          .from('lessons')
-          .select('id, content')
-          .eq('id', request.questionnaire_id)
-          .eq('type', 'series_questionnaire')
-          .single();
-
-        if (lessonData && !lessonError) {
-          // 如果是lesson类型的系列问答，从content中提取信息
-          questionnaire = {
-            id: lessonData.id,
-            ai_grading_prompt: lessonData.content?.ai_grading_prompt || '',
-            ai_grading_criteria: lessonData.content?.ai_grading_criteria || '',
-            skill_tags: lessonData.content?.skill_tags || [],
-            questions: lessonData.content?.questions || []
-          };
-        } else {
-          // 如果不是lesson类型，从series_questionnaires表获取
-          const { data: questionnaireData, error: questionnaireError } = await supabase
-            .from('series_questionnaires')
-            .select(`
-              id,
-              ai_grading_prompt,
-              ai_grading_criteria,
-              skill_tags,
-              questions:series_questions(id, required, min_words, max_words, title)
-            `)
-            .eq('id', request.questionnaire_id)
-            .single();
-
-          if (questionnaireError || !questionnaireData) {
-            throw new Error('系列问答不存在');
-          }
-
-          questionnaire = questionnaireData;
-        }
-
-        setCache(`questionnaire_${request.questionnaire_id}`, questionnaire);
-      }
+      // 获取问答信息
+      const { isLessonType, questionnaire } = await QuestionnaireTypeChecker.getQuestionnaireInfo(
+        request.questionnaire_id
+      );
 
       // 验证答案数据
       const questions = (questionnaire as any).questions || [];
-      const answerValidationErrors = validateAnswerData(request.answers, questions);
-      if (answerValidationErrors.length > 0) {
-        throw new Error(`答案验证失败: ${answerValidationErrors.join(', ')}`);
+      const validationErrors = validateAnswerData(request.answers, questions);
+      if (validationErrors.length > 0) {
+        throw new ValidationError(validationErrors);
       }
 
       // 计算总字数
-      const totalWords = request.answers.reduce((total, answer) => {
-        return total + (answer.answer_text?.split(/\s+/).filter(word => word.length > 0).length || 0);
-      }, 0);
+      const totalWords = calculateTotalWords(request.answers);
 
-      // 检查是否已有提交记录 - 根据类型使用不同的查询
-      // 首先检查是否为lesson类型
-      const { data: lessonData } = await supabase
-        .from('lessons')
-        .select('id')
-        .eq('id', request.questionnaire_id)
-        .eq('type', 'series_questionnaire')
-        .single();
-
-      const isLessonType = !!lessonData;
-
-      let queryBuilder = supabase
-        .from('series_submissions')
-        .select('id, status')
-        .eq('student_id', user.id);
-
-      if (isLessonType) {
-        // 对于lesson类型，使用lesson_id字段
-        queryBuilder = queryBuilder.eq('lesson_id', request.questionnaire_id).is('questionnaire_id', null);
-      } else {
-        // 对于独立系列问答，使用questionnaire_id字段
-        queryBuilder = queryBuilder.eq('questionnaire_id', request.questionnaire_id);
-      }
-
-      const { data: existingSubmission, error: checkError } = await queryBuilder.single();
+      // 检查现有提交
+      const existingSubmission = await SeriesQuestionnaireRepository.getStudentSubmission({
+        student_id: userId,
+        questionnaire_id: isLessonType ? undefined : request.questionnaire_id,
+        lesson_id: isLessonType ? request.questionnaire_id : undefined,
+        isLessonType
+      });
 
       if (existingSubmission && existingSubmission.status === 'submitted') {
         throw new Error('已经提交过答案，不能重复提交');
       }
 
-      // 将答案数组转换为对象格式（数据库期望的格式）
-      const answersObject: Record<string, string> = {};
-      request.answers.forEach(answer => {
-        answersObject[answer.question_id] = answer.answer_text;
-      });
-
-      let submission;
+      // 准备提交数据
+      const answersObject = answersArrayToObject(request.answers);
       const submissionData = {
-        answers: answersObject, // 使用对象格式而不是数组
+        id: existingSubmission?.id,
+        student_id: userId,
+        questionnaire_id: isLessonType ? null : request.questionnaire_id,
+        lesson_id: isLessonType ? request.questionnaire_id : null,
+        answers: answersObject,
         status: request.status,
         total_words: totalWords,
         time_spent_minutes: request.time_spent_minutes || 0,
-        submitted_at: request.status === 'submitted' ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString()
+        submitted_at: request.status === 'submitted' ? new Date().toISOString() : null
       };
 
-      try {
-        if (existingSubmission) {
-          // 更新现有提交
-          const { data: updatedSubmission, error: updateError } = await supabase
-            .from('series_submissions')
-            .update(submissionData)
-            .eq('id', existingSubmission.id)
-            .select()
-            .single();
+      const submission = await SeriesQuestionnaireRepository.upsertSubmission(submissionData);
 
-          if (updateError) {
-            console.error('更新提交失败:', updateError);
-            throw updateError;
-          }
-          submission = updatedSubmission;
-        } else {
-          // 创建新提交 - 根据类型设置不同的字段
-          const insertData: any = {
-            student_id: user.id,
-            ...submissionData
-          };
-
-          if (isLessonType) {
-            // 对于lesson类型，设置lesson_id，questionnaire_id为null
-            insertData.lesson_id = request.questionnaire_id;
-            insertData.questionnaire_id = null;
-          } else {
-            // 对于独立系列问答，设置questionnaire_id
-            insertData.questionnaire_id = request.questionnaire_id;
-          }
-
-          const { data: newSubmission, error: createError } = await supabase
-            .from('series_submissions')
-            .insert(insertData)
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('创建提交失败:', createError);
-            throw createError;
-          }
-          submission = newSubmission;
-        }
-
-        // 如果是正式提交，处理游戏化奖励
-        if (request.status === 'submitted') {
-          try {
-            // 获取问卷标题用于游戏化记录
-            const { data: questionnaireInfo } = await supabase
-              .from('series_questionnaires')
-              .select('title')
-              .eq('id', request.questionnaire_id)
-              .single();
-
-            const questionnaireTitle = questionnaireInfo?.title || '系列问答';
-
-            // 处理系列问答完成的游戏化奖励
-            await gamificationService.handleSeriesQuestionnaireComplete(
-              user.id,
-              request.questionnaire_id,
-              questionnaireTitle,
-              questionnaire.skill_tags || [],
-              totalWords
-            );
-          } catch (expError) {
-            console.warn('处理游戏化奖励失败:', expError);
-            // 不影响主流程，继续执行
-          }
-        }
-
-        // 清除相关缓存
-        clearCache(cacheKey);
-        clearCache(`submission_status_${request.questionnaire_id}_${user.id}`);
-
-        // 判断是否需要自动AI评分
-        const shouldAutoGrade = request.status === 'submitted' &&
-                               questionnaire.ai_grading_prompt &&
-                               questionnaire.ai_grading_criteria;
-
-        console.log('答案提交成功:', submission.id, shouldAutoGrade ? '(将进行AI评分)' : '');
-
-        return {
-          success: true,
-          data: {
-            submission: submission as SeriesSubmission,
-            redirect_to_grading: shouldAutoGrade
-          }
-        };
-
-      } catch (error) {
-        // 如果提交失败，清除可能的缓存
-        clearCache(cacheKey);
-        throw error;
+      // 如果是正式提交，处理游戏化奖励
+      if (request.status === 'submitted') {
+        await handleGamificationRewards('complete', userId, request.questionnaire_id, 
+          questionnaire.title || '系列问答', {
+          skillTags: questionnaire.skill_tags || [],
+          totalWords
+        });
       }
+
+      // 清除相关缓存
+      cacheManager.clearPattern(`questionnaire_${request.questionnaire_id}_${userId}`);
+
+      // 判断是否需要自动AI评分
+      const shouldAutoGrade = request.status === 'submitted' &&
+                             !!questionnaire.ai_grading_prompt &&
+                             !!questionnaire.ai_grading_criteria;
+
+      console.log('答案提交成功:', submission.id, shouldAutoGrade ? '(将进行AI评分)' : '');
+
+      return buildSuccessResponse({
+        submission: submission as SeriesSubmission,
+        redirect_to_grading: shouldAutoGrade
+      });
+
     } catch (error) {
       console.error('提交答案失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '提交答案失败'
-      };
+      return buildErrorResponse(error, '提交答案失败');
     }
   },
 
@@ -1179,59 +564,25 @@ export const seriesQuestionnaireService = {
    */
   async triggerAIGrading(request: AIGradeSeriesRequest): Promise<AIGradeSeriesResponse> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
-
-      const cacheKey = `ai_grading_${request.submission_id}`;
+      const userId = await PermissionChecker.requireUser();
+      const cacheKey = SeriesQuestionnaireCacheManager.generateKey('ai_grading', request.submission_id);
 
       // 如果不是强制重新评分，先检查缓存
       if (!request.force_regrade) {
-        const cachedGrading = getCache(cacheKey);
+        const cachedGrading = cacheManager.get<SeriesAIGrading>(cacheKey);
         if (cachedGrading) {
-          return {
-            success: true,
-            data: cachedGrading
-          };
+          return buildSuccessResponse(cachedGrading);
         }
       }
 
-      // 获取提交信息和问答配置 - 优化查询
-      const { data: submission, error: submissionError } = await supabase
-        .from('series_submissions')
-        .select(`
-          id,
-          student_id,
-          status,
-          answers,
-          questionnaire:series_questionnaires(
-            id,
-            title,
-            description,
-            ai_grading_prompt,
-            ai_grading_criteria,
-            max_score,
-            lesson_id,
-            lessons!inner(
-              course_modules!inner(
-                courses!inner(author_id)
-              )
-            )
-          )
-        `)
-        .eq('id', request.submission_id)
-        .single();
+      // 获取提交信息和权限
+      const { submission, questionnaire, courseAuthorId } = await SeriesQuestionnaireRepository.getSubmissionWithAuth(
+        request.submission_id
+      );
 
-      if (submissionError || !submission) {
-        throw new Error('提交记录不存在');
-      }
-
-      // 验证权限（教师或学生本人）
-      const courseAuthorId = (submission as any).questionnaire?.lessons?.course_modules?.courses?.author_id;
-      const isTeacher = courseAuthorId === user.id;
-      const isStudent = submission.student_id === user.id;
-
+      // 验证权限
+      const isTeacher = courseAuthorId === userId;
+      const isStudent = submission.student_id === userId;
       if (!isTeacher && !isStudent) {
         throw new Error('无权访问此提交');
       }
@@ -1240,59 +591,46 @@ export const seriesQuestionnaireService = {
         throw new Error('只能对已提交的答案进行评分');
       }
 
-      const questionnaire = (submission as any).questionnaire;
-      if (!questionnaire?.ai_grading_prompt || !questionnaire?.ai_grading_criteria) {
-        throw new Error('此问答未配置AI评分');
+      // 检查AI评分配置
+      if (!questionnaire?.ai_grading_prompt) {
+        console.log('问答配置信息:', {
+          id: questionnaire?.id,
+          title: questionnaire?.title,
+          hasPrompt: !!questionnaire?.ai_grading_prompt,
+          hasGriteria: !!questionnaire?.ai_grading_criteria,
+          prompt: questionnaire?.ai_grading_prompt,
+          criteria: questionnaire?.ai_grading_criteria
+        });
+        throw new Error('此问答未配置AI评分提示词。请在课程编辑页面为此系列问答设置AI评分提示词。');
       }
 
-      // 检查是否已有AI评分且不强制重新评分
-      let previousGrading = null;
-      if (!request.force_regrade) {
-        const { data: existingGrading } = await supabase
-          .from('series_ai_gradings')
-          .select('*')
-          .eq('submission_id', request.submission_id)
-          .single();
-
-        if (existingGrading) {
-          // 缓存现有评分结果
-          setCache(cacheKey, existingGrading);
-          return {
-            success: true,
-            data: existingGrading as SeriesAIGrading
-          };
-        }
-      } else {
-        // 如果是强制重新评分，获取之前的评分结果作为参考
-        const { data: existingGrading } = await supabase
-          .from('series_ai_gradings')
-          .select('*')
-          .eq('submission_id', request.submission_id)
-          .single();
-
-        previousGrading = existingGrading;
+      // 如果没有评分标准，提供默认标准
+      if (!questionnaire?.ai_grading_criteria) {
+        console.log('未配置评分标准，使用默认标准');
+        questionnaire.ai_grading_criteria = `优秀(90-100分)：回答完整准确，逻辑清晰，有独特见解
+良好(80-89分)：回答较为完整，逻辑基本清晰，表达流畅
+中等(70-79分)：回答基本完整，逻辑一般，表达尚可
+及格(60-69分)：回答不够完整，逻辑不够清晰
+不及格(0-59分)：回答严重不完整或错误`;
       }
 
-      // 获取问答的问题列表 - 使用缓存
-      const questionsKey = `questions_${questionnaire.id}`;
-      let questions = getCache(questionsKey);
-
-      if (!questions) {
-        const { data: questionsData, error: questionsError } = await supabase
-          .from('series_questions')
-          .select('id, title, question_text, order_index, required, min_words, max_words')
-          .eq('questionnaire_id', questionnaire.id)
-          .order('order_index');
-
-        if (questionsError) {
-          throw new Error('获取问题列表失败');
-        }
-
-        questions = questionsData || [];
-        setCache(questionsKey, questions);
+      // 检查现有评分
+      const existingGrading = await SeriesQuestionnaireRepository.getAIGrading(request.submission_id);
+      if (existingGrading && !request.force_regrade) {
+        cacheManager.set(cacheKey, existingGrading);
+        return buildSuccessResponse(existingGrading);
       }
 
-      // 调用AI评分服务
+      // 获取问题列表
+      const questions = await SeriesQuestionnaireRepository.getQuestions(questionnaire.id);
+
+      // 准备AI评分数据 - 转换answers格式
+      const answersArray = submission.answers 
+        ? (Array.isArray(submission.answers) 
+            ? submission.answers 
+            : answersObjectToArray(submission.answers as Record<string, string>))
+        : [];
+
       const aiGradingData: SeriesQuestionnaireData = {
         questionnaire: {
           title: questionnaire.title,
@@ -1301,103 +639,51 @@ export const seriesQuestionnaireService = {
           ai_grading_criteria: questionnaire.ai_grading_criteria,
           max_score: questionnaire.max_score || 100
         },
-        questions: questions,
-        answers: submission.answers || []
+        questions: transformQuestionsForAIGrading(questions),
+        answers: answersArray
       };
 
+      // 调用AI评分服务
       console.log('开始AI评分:', request.submission_id);
+      const aiResult = await gradeSeriesQuestionnaire(aiGradingData);
 
-      // 根据是否强制重新评分选择不同的评分方法
-      let aiResult;
-      try {
-        if (request.force_regrade && previousGrading) {
-          // 构建之前的评分结果用于参考
-          const previousResult = {
-            overall_score: previousGrading.ai_score || 0,
-            overall_feedback: previousGrading.ai_feedback || '',
-            detailed_feedback: previousGrading.ai_detailed_feedback || [],
-            criteria_scores: {},
-            suggestions: []
-          };
-          aiResult = await gradeSeriesQuestionnaire(aiGradingData);
-        } else {
-          aiResult = await gradeSeriesQuestionnaire(aiGradingData);
-        }
-      } catch (aiError) {
-        console.error('AI评分失败:', aiError);
-        throw new Error('AI评分服务暂时不可用，请稍后重试');
-      }
-
-      // 保存或更新AI评分结果
-      const gradingData = {
-        submission_id: request.submission_id,
+      // 保存评分结果
+      const saveResult = await aiGradingFix.saveOrUpdateAIGrading(request.submission_id, {
+        overall_score: aiResult.overall_score,
         ai_score: aiResult.overall_score,
         ai_feedback: aiResult.overall_feedback,
         ai_detailed_feedback: aiResult.detailed_feedback,
-        final_score: aiResult.overall_score, // 如果没有教师评分，AI评分就是最终分数
-        grading_criteria_used: questionnaire.ai_grading_criteria,
-        graded_at: new Date().toISOString()
-      };
+        detailed_feedback: aiResult.detailed_feedback,
+        final_score: aiResult.overall_score,
+        grading_criteria_used: questionnaire.ai_grading_criteria
+      });
 
-      const { data: grading, error: gradingError } = await supabase
-        .from('series_ai_gradings')
-        .upsert(gradingData, {
-          onConflict: 'submission_id'
-        })
-        .select()
-        .single();
-
-      if (gradingError) {
-        console.error('保存AI评分失败:', gradingError);
-        throw gradingError;
+      if (!saveResult.success) {
+        console.error('保存AI评分失败:', saveResult.error);
+        throw new Error(saveResult.error || '保存AI评分失败');
       }
 
-      // 更新提交状态为已评分
-      const { error: updateError } = await supabase
-        .from('series_submissions')
-        .update({
-          status: 'graded',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', request.submission_id);
+      const grading = saveResult.data;
 
-      if (updateError) {
-        console.error('更新提交状态失败:', updateError);
-        // 不抛出错误，因为评分已经保存成功
-      }
+      // 更新提交状态
+      await SeriesQuestionnaireRepository.updateSubmissionStatus(request.submission_id, 'graded');
 
       // 缓存评分结果
-      setCache(cacheKey, grading);
+      cacheManager.set(cacheKey, grading);
 
-      // 清除相关缓存
-      clearCache(`submission_status_${questionnaire.id}_${submission.student_id}`);
-
-      // 处理评分完成的游戏化奖励
-      try {
-        await gamificationService.handleSeriesQuestionnaireGraded(
-          submission.student_id,
-          questionnaire.id,
-          questionnaire.title || '系列问答',
-          aiResult.overall_score,
-          questionnaire.max_score || 100
-        );
-      } catch (expError) {
-        console.warn('处理评分游戏化奖励失败:', expError);
-        // 不影响主流程，继续执行
-      }
+      // 处理游戏化奖励
+      await handleGamificationRewards('graded', submission.student_id, questionnaire.id, 
+        questionnaire.title || '系列问答', {
+        score: aiResult.overall_score,
+        maxScore: questionnaire.max_score || 100
+      });
 
       console.log('AI评分完成:', grading.id, '分数:', grading.ai_score);
+      return buildSuccessResponse(grading as SeriesAIGrading);
 
-      return {
-        success: true,
-        data: grading as SeriesAIGrading
-      };
     } catch (error) {
       console.error('AI评分失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'AI评分失败'
-      };
+      return buildErrorResponse(error, 'AI评分失败');
     }
   },
 
@@ -1424,34 +710,14 @@ export const seriesQuestionnaireService = {
     error?: string;
   }> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
+      const userId = await PermissionChecker.requireUser();
 
-      // 获取问答配置和验证权限
-      const { data: questionnaire, error: questionnaireError } = await supabase
-        .from('series_questionnaires')
-        .select(`
-          *,
-          lesson:lessons!inner(
-            module_id,
-            course_modules!inner(
-              course_id,
-              courses!inner(author_id)
-            )
-          )
-        `)
-        .eq('id', request.questionnaire_id)
-        .single();
+      // 验证教师权限
+      const { questionnaire, courseAuthorId } = await SeriesQuestionnaireRepository.getQuestionnaireWithAuth(
+        request.questionnaire_id
+      );
 
-      if (questionnaireError || !questionnaire) {
-        throw new Error('问答不存在');
-      }
-
-      // 验证权限（只有教师可以批量评分）
-      const courseAuthorId = (questionnaire as any).lesson?.course_modules?.courses?.author_id;
-      if (courseAuthorId !== user.id) {
+      if (courseAuthorId !== userId) {
         throw new Error('只有课程作者可以进行批量评分');
       }
 
@@ -1460,23 +726,20 @@ export const seriesQuestionnaireService = {
       }
 
       // 获取需要评分的提交
-      let submissionsQuery = supabase
-        .from('series_submissions')
-        .select('*')
-        .eq('questionnaire_id', request.questionnaire_id)
-        .eq('status', 'submitted');
+      const { data: submissions } = await SeriesQuestionnaireRepository.getSubmissions({
+        questionnaire_id: request.questionnaire_id,
+        status: 'submitted',
+        page: 1,
+        limit: 100 // 一次处理最多100个
+      });
 
+      // 过滤指定的提交ID
+      let targetSubmissions = submissions;
       if (request.submission_ids && request.submission_ids.length > 0) {
-        submissionsQuery = submissionsQuery.in('id', request.submission_ids);
+        targetSubmissions = submissions.filter(s => request.submission_ids!.includes(s.id));
       }
 
-      const { data: submissions, error: submissionsError } = await submissionsQuery;
-
-      if (submissionsError) {
-        throw new Error('获取提交列表失败');
-      }
-
-      if (!submissions || submissions.length === 0) {
+      if (targetSubmissions.length === 0) {
         return {
           success: true,
           data: {
@@ -1488,21 +751,21 @@ export const seriesQuestionnaireService = {
         };
       }
 
-      const results = [];
+      const results: Array<{
+        submission_id: string;
+        success: boolean;
+        grading?: SeriesAIGrading;
+        error?: string;
+      }> = [];
       let successfulGradings = 0;
       let failedGradings = 0;
 
-      // 逐个处理提交（避免API限制）
-      for (const submission of submissions) {
+      // 逐个处理提交
+      for (const submission of targetSubmissions) {
         try {
           // 检查是否已有评分
           if (!request.force_regrade) {
-            const { data: existingGrading } = await supabase
-              .from('series_ai_gradings')
-              .select('id')
-              .eq('submission_id', submission.id)
-              .single();
-
+            const existingGrading = await SeriesQuestionnaireRepository.getAIGrading(submission.id);
             if (existingGrading) {
               results.push({
                 submission_id: submission.id,
@@ -1553,10 +816,10 @@ export const seriesQuestionnaireService = {
       return {
         success: true,
         data: {
-          total_processed: submissions.length,
+          total_processed: targetSubmissions.length,
           successful_gradings: successfulGradings,
           failed_gradings: failedGradings,
-          results: results
+          results
         }
       };
 
@@ -1574,38 +837,15 @@ export const seriesQuestionnaireService = {
    */
   async teacherGradeSeries(request: TeacherGradeSeriesRequest): Promise<AIGradeSeriesResponse> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
+      const userId = await PermissionChecker.requireUser();
 
-      // 获取提交信息并验证权限
-      const { data: submission, error: submissionError } = await supabase
-        .from('series_submissions')
-        .select(`
-          *,
-          questionnaire:series_questionnaires(
-            max_score,
-            lesson_id,
-            lessons!inner(
-              module_id,
-              course_modules!inner(
-                course_id,
-                courses!inner(author_id)
-              )
-            )
-          )
-        `)
-        .eq('id', request.submission_id)
-        .single();
-
-      if (submissionError || !submission) {
-        throw new Error('提交记录不存在');
-      }
+      // 获取提交信息和权限
+      const { submission, questionnaire, courseAuthorId } = await SeriesQuestionnaireRepository.getSubmissionWithAuth(
+        request.submission_id
+      );
 
       // 验证教师权限
-      const courseAuthorId = (submission as any).questionnaire?.lessons?.course_modules?.courses?.author_id;
-      if (courseAuthorId !== user.id) {
+      if (courseAuthorId !== userId) {
         throw new Error('无权评分此提交');
       }
 
@@ -1613,7 +853,6 @@ export const seriesQuestionnaireService = {
         throw new Error('只能对已提交的答案进行评分');
       }
 
-      const questionnaire = (submission as any).questionnaire;
       const maxScore = questionnaire?.max_score || 100;
 
       // 验证分数范围
@@ -1621,93 +860,33 @@ export const seriesQuestionnaireService = {
         throw new Error(`分数必须在0-${maxScore}之间`);
       }
 
-      // 获取现有的AI评分（如果有）
-      const { data: existingGrading } = await supabase
-        .from('series_ai_gradings')
-        .select('*')
-        .eq('submission_id', request.submission_id)
-        .single();
-
-      const gradingData = {
-        submission_id: request.submission_id,
+      // 使用安全的保存方法
+      const saveResult = await aiGradingFix.saveOrUpdateAIGrading(request.submission_id, {
         teacher_score: request.teacher_score,
         teacher_feedback: request.teacher_feedback,
-        final_score: request.teacher_score, // 教师评分作为最终分数
-        teacher_reviewed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        // 保留现有的AI评分数据
-        ...(existingGrading && {
-          ai_score: existingGrading.ai_score,
-          ai_feedback: existingGrading.ai_feedback,
-          ai_detailed_feedback: existingGrading.ai_detailed_feedback,
-          grading_criteria_used: existingGrading.grading_criteria_used,
-          graded_at: existingGrading.graded_at
-        })
-      };
+        final_score: request.teacher_score,
+        teacher_reviewed_at: new Date().toISOString()
+      });
 
-      // 如果没有现有评分记录，创建新记录
-      if (!existingGrading) {
-        (gradingData as any).created_at = new Date().toISOString();
+      if (!saveResult.success) {
+        console.error('保存教师评分失败:', saveResult.error);
+        throw new Error(saveResult.error || '保存教师评分失败');
       }
 
-      const { data: grading, error: gradingError } = await supabase
-        .from('series_ai_gradings')
-        .upsert(gradingData, {
-          onConflict: 'submission_id'
-        })
-        .select()
-        .single();
+      // 更新提交状态
+      await SeriesQuestionnaireRepository.updateSubmissionStatus(request.submission_id, 'graded');
 
-      if (gradingError) {
-        console.error('保存教师评分失败:', gradingError);
-        throw gradingError;
-      }
+      // 处理游戏化奖励
+      await handleGamificationRewards('graded', submission.student_id, questionnaire.id, 
+        questionnaire.title || '系列问答', {
+        score: request.teacher_score,
+        maxScore
+      });
 
-      // 更新提交状态为已评分
-      const { error: updateError } = await supabase
-        .from('series_submissions')
-        .update({
-          status: 'graded',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', request.submission_id);
-
-      if (updateError) {
-        console.error('更新提交状态失败:', updateError);
-        // 不抛出错误，因为评分已经保存成功
-      }
-
-      // 处理教师评分完成的游戏化奖励
-      try {
-        // 获取问卷信息
-        const { data: questionnaireInfo } = await supabase
-          .from('series_questionnaires')
-          .select('title, max_score')
-          .eq('id', (submission as any).questionnaire_id)
-          .single();
-
-        await gamificationService.handleSeriesQuestionnaireGraded(
-          submission.student_id,
-          (submission as any).questionnaire_id,
-          questionnaireInfo?.title || '系列问答',
-          request.teacher_score,
-          questionnaireInfo?.max_score || 100
-        );
-      } catch (expError) {
-        console.warn('处理教师评分游戏化奖励失败:', expError);
-        // 不影响主流程，继续执行
-      }
-
-      return {
-        success: true,
-        data: grading as SeriesAIGrading
-      };
+      return buildSuccessResponse(saveResult.data as SeriesAIGrading);
     } catch (error) {
       console.error('教师评分失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '教师评分失败'
-      };
+      return buildErrorResponse(error, '教师评分失败');
     }
   },
 
@@ -1718,69 +897,64 @@ export const seriesQuestionnaireService = {
    */
   async getSubmissions(params: GetSubmissionsParams): Promise<GetSubmissionsResponse> {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        throw new Error('用户未登录');
+      const userId = await PermissionChecker.requireUser();
+
+      // 验证教师权限
+      const hasPermission = await PermissionChecker.checkQuestionnaireAuthor(
+        params.questionnaire_id,
+        userId
+      );
+      if (!hasPermission) {
+        throw new Error('无权查看此问答的提交');
       }
 
-      let query = supabase
-        .from('series_submissions')
-        .select(`
-          *,
-          questionnaire:series_questionnaires(*),
-          student_profile:profiles(username, email),
-          series_ai_gradings(*)
-        `)
-        .eq('questionnaire_id', params.questionnaire_id);
-
-      // 添加筛选条件
-      if (params.status) {
-        query = query.eq('status', params.status);
-      }
-
-      if (params.student_id) {
-        query = query.eq('student_id', params.student_id);
-      }
-
-      // 排序
-      const sortBy = params.sort_by || 'submitted_at';
-      const sortOrder = params.sort_order || 'desc';
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-      // 分页
       const page = params.page || 1;
       const limit = params.limit || 20;
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
 
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        console.error('获取提交列表失败:', error);
-        return {
-          success: false,
-          error: error.message || '获取提交列表失败'
-        };
-      }
+      const { data, count } = await SeriesQuestionnaireRepository.getSubmissions({
+        questionnaire_id: params.questionnaire_id,
+        status: params.status,
+        student_id: params.student_id,
+        sort_by: params.sort_by,
+        sort_order: params.sort_order,
+        page,
+        limit
+      });
 
       return {
         success: true,
-        data: data as SeriesSubmission[],
+        data,
         pagination: {
           page,
           limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit)
+          total: count,
+          totalPages: Math.ceil(count / limit)
         }
       };
     } catch (error) {
       console.error('获取提交列表失败:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '获取提交列表失败'
-      };
+      return buildErrorResponse(error, '获取提交列表失败');
+    }
+  },
+
+  /**
+   * 保存AI评分结果 - 使用安全的保存方法避免唯一约束冲突
+   */
+  async saveAIGrading(submissionId: string, gradingResult: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      await PermissionChecker.requireUser();
+
+      // 使用安全的评分保存方法
+      const saveResult = await aiGradingFix.saveOrUpdateAIGrading(submissionId, gradingResult);
+      
+      if (!saveResult.success) {
+        throw new Error(saveResult.error || '保存AI评分失败');
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('保存AI评分结果失败:', error);
+      return buildErrorResponse(error, '保存AI评分结果失败');
     }
   }
 };

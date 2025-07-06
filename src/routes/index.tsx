@@ -33,6 +33,7 @@ const CourseAssignmentsPage = lazy(() => import('@/pages/teacher/CourseAssignmen
 const TestVideoUploadPage = lazy(() => import('@/pages/test-video-upload'));
 const QuizMarkdownTest = lazy(() => import('@/components/test/QuizMarkdownTest'));
 const GamificationTest = lazy(() => import('@/pages/test/GamificationTest').then(module => ({ default: module.GamificationTest })));
+const TestSeriesAIGrading = lazy(() => import('@/pages/test/TestSeriesAIGrading'));
 const TestAchievements = lazy(() => import('@/pages/TestAchievements'));
 const TestAchievementLogic = lazy(() => import('@/pages/TestAchievementLogic'));
 const DebugAchievements = lazy(() => import('@/pages/DebugAchievements'));
@@ -127,6 +128,7 @@ const AppRoutes = () => {
         <Route path="/test-quiz-markdown" element={<QuizMarkdownTest />} />
 
         <Route path="/test-gamification" element={<GamificationTest />} />
+        <Route path="/test-series-ai-grading" element={<TestSeriesAIGrading />} />
 
         <Route path="/test-achievements" element={<TestAchievements />} />
 
