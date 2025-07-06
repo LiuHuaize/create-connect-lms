@@ -37,7 +37,7 @@ export type CourseModule = {
 };
 
 // 支持的课时类型枚举
-export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort';
+export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort' | 'resource' | 'frame' | 'hotspot' | 'series_questionnaire';
 
 // 课时类型定义
 export type Lesson = {

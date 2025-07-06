@@ -1,5 +1,5 @@
 import React from 'react';
-import { Video, FileText, FileQuestion, CheckSquare, CreditCard, Move, Download, Layers, Target } from 'lucide-react';
+import { Video, FileText, FileQuestion, CheckSquare, CreditCard, Move, Download, Layers, Target, MessageSquare } from 'lucide-react';
 import { LessonType } from '@/types/course';
 
 export type LessonTypeInfo = {
@@ -17,7 +17,8 @@ export const LESSON_TYPES: LessonTypeInfo[] = [
   { id: 'drag_sort', name: '拖拽分类', icon: React.createElement(Move, { size: 16, className: "text-ghibli-pink" }) },
   { id: 'resource', name: '资源下载', icon: React.createElement(Download, { size: 16, className: "text-ghibli-indigo" }) },
   { id: 'frame', name: '课程框架', icon: React.createElement(Layers, { size: 16, className: "text-ghibli-purple" }) },
-  { id: 'hotspot', name: '交互式热点', icon: React.createElement(Target, { size: 16, className: "text-ghibli-coral" }) }
+  { id: 'hotspot', name: '交互式热点', icon: React.createElement(Target, { size: 16, className: "text-ghibli-coral" }) },
+  { id: 'series_questionnaire', name: '系列问答', icon: React.createElement(MessageSquare, { size: 16, className: "text-ghibli-mint" }) }
 ];
 
 export const getLessonTypeInfo = (type: LessonType): LessonTypeInfo | undefined => {
@@ -51,6 +52,8 @@ export const getLessonTypeIcon = (type: LessonType) => {
       return React.createElement(Layers, { size: 16, className: "text-ghibli-purple" });
     case 'hotspot':
       return React.createElement(Target, { size: 16, className: "text-ghibli-coral" });
+    case 'series_questionnaire':
+      return React.createElement(MessageSquare, { size: 16, className: "text-ghibli-mint" });
     default:
       return React.createElement(FileText, { size: 16, className: "text-gray-500" });
   }
@@ -101,6 +104,18 @@ export const getInitialContentByType = (type: LessonType) => {
         backgroundImage: '',
         introduction: '点击图像上的热点以了解更多信息',
         hotspots: []
+      };
+    case 'series_questionnaire':
+      return {
+        title: '',
+        description: '',
+        instructions: '',
+        ai_grading_prompt: '',
+        ai_grading_criteria: '',
+        max_score: 100,
+        allow_save_draft: true,
+        skill_tags: [],
+        questions: []
       };
     default:
       return { text: '' };

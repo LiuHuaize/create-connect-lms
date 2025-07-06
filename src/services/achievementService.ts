@@ -187,8 +187,64 @@ export const achievementService = {
         }
       }
 
+      // 检查系列问答相关成就
+      const seriesAchievements = await this.checkSeriesQuestionnaireAchievements(userId);
+      unlockedAchievements.push(...seriesAchievements);
+
     } catch (error) {
       console.error('检查学习成就失败:', error);
+    }
+
+    return unlockedAchievements;
+  },
+
+  // 检查系列问答相关成就
+  async checkSeriesQuestionnaireAchievements(userId: string): Promise<Achievement[]> {
+    const unlockedAchievements: Achievement[] = [];
+
+    try {
+      // 获取用户的系列问答提交数据
+      const { data: submissions } = await supabase
+        .from('series_submissions')
+        .select(`
+          id,
+          status,
+          total_words,
+          series_ai_gradings(ai_score, final_score)
+        `)
+        .eq('student_id', userId)
+        .eq('status', 'graded');
+
+      if (!submissions || submissions.length === 0) {
+        return unlockedAchievements;
+      }
+
+      const submissionCount = submissions.length;
+      const totalWords = submissions.reduce((sum, s) => sum + (s.total_words || 0), 0);
+      const highScoreCount = submissions.filter(s => {
+        const grading = (s as any).series_ai_gradings;
+        return grading && grading.final_score >= 85;
+      }).length;
+
+      // 检查系列问答相关成就
+      const seriesAchievements = [
+        { key: 'series_questionnaire_first', count: submissionCount, threshold: 1 },
+        { key: 'series_questionnaire_master', count: submissionCount, threshold: 5 },
+        { key: 'writing_enthusiast', count: totalWords, threshold: 1000 },
+        { key: 'series_high_scorer', count: highScoreCount, threshold: 3 },
+      ];
+
+      for (const achievement of seriesAchievements) {
+        if (achievement.count >= achievement.threshold) {
+          const unlocked = await this.checkAndUnlockByKey(userId, achievement.key);
+          if (unlocked) {
+            unlockedAchievements.push(unlocked);
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('检查系列问答成就失败:', error);
     }
 
     return unlockedAchievements;
@@ -225,9 +281,27 @@ export const achievementService = {
         { key: 'critical_thinking_novice', skillType: 'critical_thinking' },
       ];
 
+      // 检查高级技能成就
+      const advancedSkillAchievements = [
+        { key: 'deep_thinker', skillType: 'critical_thinking', level: 3 },
+        { key: 'creative_writer', skillType: 'creativity', level: 3 },
+        { key: 'communication_expert', skillType: 'communication', level: 4 },
+      ];
+
       for (const achievement of skillAchievements) {
         const skill = skills.find(s => s.skill_type === achievement.skillType);
         if (skill && skill.skill_level >= 2) {
+          const unlocked = await this.checkAndUnlockByKey(userId, achievement.key);
+          if (unlocked) {
+            unlockedAchievements.push(unlocked);
+          }
+        }
+      }
+
+      // 检查高级技能成就
+      for (const achievement of advancedSkillAchievements) {
+        const skill = skills.find(s => s.skill_type === achievement.skillType);
+        if (skill && skill.skill_level >= achievement.level) {
           const unlocked = await this.checkAndUnlockByKey(userId, achievement.key);
           if (unlocked) {
             unlockedAchievements.push(unlocked);
@@ -291,11 +365,62 @@ export const achievementService = {
       // 检查完美主义者成就
       await this.checkPerfectionistAchievement(userId, unlockedAchievements);
 
+      // 检查系列问答特殊成就
+      await this.checkSeriesQuestionnaireSpecialAchievements(userId, unlockedAchievements);
+
     } catch (error) {
       console.error('检查特殊成就失败:', error);
     }
 
     return unlockedAchievements;
+  },
+
+  // 检查系列问答特殊成就
+  async checkSeriesQuestionnaireSpecialAchievements(userId: string, unlockedAchievements: Achievement[]): Promise<void> {
+    try {
+      // 检查多产作家成就（单次写作超过500字）
+      const { data: prolificSubmissions } = await supabase
+        .from('series_submissions')
+        .select('id')
+        .eq('student_id', userId)
+        .eq('status', 'graded')
+        .gte('total_words', 500);
+
+      if (prolificSubmissions && prolificSubmissions.length > 0) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'prolific_writer');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+      // 检查坚持学习者成就（连续3次获得良好评分）
+      const { data: recentSubmissions } = await supabase
+        .from('series_submissions')
+        .select(`
+          series_ai_gradings(final_score)
+        `)
+        .eq('student_id', userId)
+        .eq('status', 'graded')
+        .order('created_at', { ascending: false })
+        .limit(3);
+
+      if (recentSubmissions && recentSubmissions.length >= 3) {
+        const allGoodScores = recentSubmissions.every(s => {
+          const grading = (s as any).series_ai_gradings;
+          return grading && grading.final_score >= 75;
+        });
+
+        if (allGoodScores) {
+          const unlocked = await this.checkAndUnlockByKey(userId, 'consistent_learner');
+          if (unlocked) {
+            unlockedAchievements.push(unlocked);
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('检查系列问答特殊成就失败:', error);
+    }
   },
 
   // 检查时间相关成就
@@ -543,6 +668,42 @@ export const achievementService = {
         return { current: perfectScores?.length || 0, required: 1 };
       }
 
+      case 'series_questionnaire_first':
+      case 'series_questionnaire_master': {
+        const { data: submissions } = await supabase
+          .from('series_submissions')
+          .select('id')
+          .eq('student_id', userId)
+          .eq('status', 'graded');
+        return { current: submissions?.length || 0, required };
+      }
+
+      case 'writing_enthusiast': {
+        const { data: submissions } = await supabase
+          .from('series_submissions')
+          .select('total_words')
+          .eq('student_id', userId)
+          .eq('status', 'graded');
+        const totalWords = submissions?.reduce((sum, s) => sum + (s.total_words || 0), 0) || 0;
+        return { current: totalWords, required };
+      }
+
+      case 'series_high_scorer': {
+        const { data: submissions } = await supabase
+          .from('series_submissions')
+          .select(`
+            series_ai_gradings(final_score)
+          `)
+          .eq('student_id', userId)
+          .eq('status', 'graded');
+
+        const highScoreCount = submissions?.filter(s => {
+          const grading = (s as any).series_ai_gradings;
+          return grading && grading.final_score >= 85;
+        }).length || 0;
+        return { current: highScoreCount, required };
+      }
+
       default:
         return { current: 0, required };
     }
@@ -592,6 +753,36 @@ export const achievementService = {
           .select('skill_level')
           .eq('user_id', userId)
           .eq('skill_type', 'critical_thinking')
+          .maybeSingle();
+        return { current: skill?.skill_level || 0, required };
+      }
+
+      case 'deep_thinker': {
+        const { data: skill } = await supabase
+          .from('user_skills')
+          .select('skill_level')
+          .eq('user_id', userId)
+          .eq('skill_type', 'critical_thinking')
+          .maybeSingle();
+        return { current: skill?.skill_level || 0, required };
+      }
+
+      case 'creative_writer': {
+        const { data: skill } = await supabase
+          .from('user_skills')
+          .select('skill_level')
+          .eq('user_id', userId)
+          .eq('skill_type', 'creativity')
+          .maybeSingle();
+        return { current: skill?.skill_level || 0, required };
+      }
+
+      case 'communication_expert': {
+        const { data: skill } = await supabase
+          .from('user_skills')
+          .select('skill_level')
+          .eq('user_id', userId)
+          .eq('skill_type', 'communication')
           .maybeSingle();
         return { current: skill?.skill_level || 0, required };
       }
@@ -653,6 +844,41 @@ export const achievementService = {
 
         const consecutiveGoodScores = recentQuizzes.filter(quiz => quiz.score >= 90).length;
         return { current: consecutiveGoodScores, required };
+      }
+
+      case 'prolific_writer': {
+        const { data: submissions } = await supabase
+          .from('series_submissions')
+          .select('total_words')
+          .eq('student_id', userId)
+          .eq('status', 'graded')
+          .gte('total_words', 500);
+        return { current: submissions?.length || 0, required: 1 };
+      }
+
+      case 'consistent_learner': {
+        const { data: submissions } = await supabase
+          .from('series_submissions')
+          .select(`
+            total_words,
+            series_ai_gradings(final_score)
+          `)
+          .eq('student_id', userId)
+          .eq('status', 'graded')
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (!submissions || submissions.length < 3) {
+          return { current: submissions?.length || 0, required: 3 };
+        }
+
+        // 检查最近3次是否都获得良好评分（75分以上）
+        const consecutiveGoodScores = submissions.filter(s => {
+          const grading = (s as any).series_ai_gradings;
+          return grading && grading.final_score >= 75;
+        }).length;
+
+        return { current: consecutiveGoodScores === 3 ? 1 : 0, required: 1 };
       }
 
       default:

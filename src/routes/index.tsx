@@ -41,6 +41,8 @@ const SkillRadarDemo = lazy(() => import('@/pages/SkillRadarDemo'));
 const TestRadarOptimization = lazy(() => import('@/pages/test-radar-optimization'));
 const TimelinePage = lazy(() => import('@/pages/timeline/TimelinePage'));
 const TimelineTest = lazy(() => import('@/pages/test/TimelineTest'));
+const SeriesQuestionnaireTest = lazy(() => import('@/pages/test/SeriesQuestionnaireTest'));
+const AIGradingWaitPage = lazy(() => import('@/pages/course/AIGradingWaitPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -101,6 +103,7 @@ const AppRoutes = () => {
           <Route path="/course/:courseId/details" element={<ProtectedRoute><CourseDetailsPage /></ProtectedRoute>} />
           <Route path="/course/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
           <Route path="/course/:courseId/lesson/:lessonId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
+          <Route path="/course/:courseId/lesson/:lessonId/ai-grading/:questionnaireId" element={<ProtectedRoute><AIGradingWaitPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/profile/edit" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
           <Route path="/timeline" element={<ProtectedRoute><TimelinePage /></ProtectedRoute>} />
@@ -138,6 +141,8 @@ const AppRoutes = () => {
         <Route path="/test-radar-optimization" element={<TestRadarOptimization />} />
 
         <Route path="/test-timeline" element={<TimelineTest />} />
+
+        <Route path="/test-series-questionnaire" element={<SeriesQuestionnaireTest />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

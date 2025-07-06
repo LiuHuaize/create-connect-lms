@@ -37,6 +37,7 @@ const DragSortExercise = React.lazy(() => import('@/components/course/components
 const HotspotLessonView = React.lazy(() => import('@/components/course/lessons/hotspot/HotspotLessonView'));
 // 修正 AssignmentLessonContent 的导入方式
 const AssignmentLessonContent = React.lazy(() => import('@/components/course/AssignmentLessonContent').then(module => ({ default: module.AssignmentLessonContent })));
+const SeriesQuestionnaireStudent = React.lazy(() => import('@/components/course/lessons/series-questionnaire/SeriesQuestionnaireStudent'));
 
 import { containsMarkdown } from '@/utils/markdownUtils';
 import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
@@ -47,6 +48,8 @@ interface LessonContentProps {
   courseData: any;
   enrollmentId: string | null;
   navigate: NavigateFunction;
+  showGradingResult?: boolean;
+  onGradingResultShown?: () => void;
 }
 
 // 框架内容视图组件
@@ -477,7 +480,9 @@ const LessonContent: React.FC<LessonContentProps> = ({
   selectedUnit,
   courseData,
   enrollmentId,
-  navigate
+  navigate,
+  showGradingResult = false,
+  onGradingResultShown
 }) => {
   const [userAnswers, setUserAnswers] = useState<{[key: string]: string | string[]}>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
@@ -1012,6 +1017,26 @@ const LessonContent: React.FC<LessonContentProps> = ({
                 />
               );
               
+            case 'series_questionnaire':
+              // 对于系列问答，lesson本身就是questionnaire，使用lesson.id作为questionnaireId
+              return (
+                <SeriesQuestionnaireStudent
+                  key={selectedLesson.id}
+                  questionnaireId={selectedLesson.id}
+                  lessonId={selectedLesson.id}
+                  courseId={courseData?.id || ''}
+                  enrollmentId={enrollmentId}
+                  showGradingResult={showGradingResult}
+                  onGradingResultShown={onGradingResultShown}
+                  onComplete={() => {
+                    // 刷新课程数据以更新进度
+                    if (refreshCourseData) {
+                      refreshCourseData();
+                    }
+                  }}
+                />
+              );
+
             case 'card_creator':
               // 卡片创建功能已被隐藏
               return (

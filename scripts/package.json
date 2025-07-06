@@ -1,14 +1,33 @@
 {
-  "name": "base64-converter",
+  "name": "lms-scripts",
   "version": "1.0.0",
   "type": "module",
-  "description": "Convert base64 images in database to Supabase Storage URLs",
+  "description": "Scripts for LMS project including series questionnaire testing",
   "main": "convert-base64-to-storage.js",
   "scripts": {
     "convert": "node convert-base64-to-storage.js",
-    "dry-run": "node convert-base64-to-storage.js --dry-run"
+    "dry-run": "node convert-base64-to-storage.js --dry-run",
+    "test-series": "tsx test-series-questionnaire.ts",
+    "test-structure": "tsx test-service-structure.ts",
+    "test-compilation": "tsx test-compilation.ts",
+    "test-ai-grading": "node test-ai-grading.js",
+    "quick-ai-test": "node quick-ai-test.js",
+    "test-series-ai": "node test-series-ai-integration.js",
+    "debug-ai-flow": "node debug-ai-grading-flow.js",
+    "fix-submission-status": "node fix-submission-status.js",
+    "test-complete-flow": "node test-complete-ai-flow.js",
+    "ai-summary": "node final-ai-integration-summary.js",
+    "test-all": "npm run test-structure && npm run test-compilation",
+    "test": "npm run test-all"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.8"
+    "@supabase/supabase-js": "^2.49.8",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "node-fetch": "^3.3.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
   }
 }

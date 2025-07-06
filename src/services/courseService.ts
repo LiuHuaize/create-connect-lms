@@ -859,6 +859,8 @@ export const courseService = {
         return 'card_creator';
       case 'hotspot':
         return 'hotspot';
+      case 'series_questionnaire':
+        return 'assignment'; // 系列问答映射为作业类型，因为都涉及文本提交和评分
       case 'drag_sort':
       case 'resource':
       case 'frame':

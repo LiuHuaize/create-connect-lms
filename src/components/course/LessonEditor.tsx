@@ -39,7 +39,9 @@ import DragSortEditor from './creator/drag-sort/DragSortEditor';
 import ResourceLessonEditor from './ResourceLessonEditor';
 import FrameLessonEditor from './FrameLessonEditor';
 import HotspotEditor from './creator/hotspot/HotspotEditor';
+import { SeriesQuestionnaireEditor } from './creator/series-questionnaire';
 import { supabase } from '@/integrations/supabase/client';
+import { courseService } from '@/services/courseService';
 import SkillTagSelector from './creator/SkillTagSelector';
 
 // Quiz question types
@@ -127,7 +129,19 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
   
   const [currentContent, setCurrentContent] = useState<LessonContent>(initializeContent());
   const [isResourceSaving, setIsResourceSaving] = useState(false);
-  
+
+  // 专门保存单个课时的函数
+  const saveSingleLesson = async (updatedLesson: Lesson): Promise<void> => {
+    try {
+      console.log('保存单个课时到数据库:', updatedLesson);
+      await courseService.addLesson(updatedLesson);
+      console.log('单个课时保存成功');
+    } catch (error) {
+      console.error('保存单个课时失败:', error);
+      throw error;
+    }
+  };
+
   // Form setup for lesson details
   const form = useForm({
     defaultValues: {
@@ -198,6 +212,10 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         aiGradingPrompt: data.aiGradingPrompt,
         allowFileUpload: data.allowFileUpload
       });
+    } else if (lesson.type === 'series_questionnaire') {
+      // 系列问答内容由SeriesQuestionnaireEditor直接处理
+      // 这里不需要额外处理，因为内容已经通过onContentChange更新
+      updatedLesson.content = currentContent;
     }
     
     // 只使用增量保存
@@ -590,7 +608,21 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
         />
       );
     }
-    
+
+    // 系列问答也有自己的UI和逻辑，单独处理
+    if (lesson.type === 'series_questionnaire') {
+      return (
+        <SeriesQuestionnaireEditor
+          lesson={lesson}
+          onSave={(content) => {
+            setCurrentContent(content);
+            onContentChange(content);
+          }}
+          onCourseDataSaved={saveSingleLesson}
+        />
+      );
+    }
+
     // 其他类型使用常规表单
     return (
       <Form {...form}>
@@ -759,7 +791,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                           <Trash2 size={16} />
                         </Button>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -777,7 +809,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                             ))}
                           </select>
                         </div>
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             问题文本
@@ -793,7 +825,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                             支持Markdown格式：**加粗**、*斜体*，按Enter键可创建空行
                           </p>
                         </div>
-                        
+
                         {(question.type === 'single_choice' || question.type === 'multiple_choice' || question.type === 'true_false') && (
                           <div>
                             <div className="flex justify-between items-center mb-2">
@@ -812,7 +844,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                                 </Button>
                               )}
                             </div>
-                            
+
                             <div className="space-y-2">
                               {question.options?.map((option) => (
                                 <div key={option.id} className="flex items-center gap-2">
@@ -856,15 +888,15 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                               ))}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">
-                              {question.type === 'multiple_choice' 
-                                ? '选择所有正确答案（可多选）' 
+                              {question.type === 'multiple_choice'
+                                ? '选择所有正确答案（可多选）'
                                 : '选择正确答案'}
-                              {question.type === 'multiple_choice' && question.correctOptions && question.correctOptions.length > 0 && 
+                              {question.type === 'multiple_choice' && question.correctOptions && question.correctOptions.length > 0 &&
                                 ` · 已选择 ${question.correctOptions.length} 个答案`}
                             </p>
                           </div>
                         )}
-                        
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             提示信息（答错时显示）
@@ -877,7 +909,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                           />
                           <p className="text-xs text-gray-500 mt-1">给学生的提示，帮助他们思考正确答案</p>
                         </div>
-                        
+
                         {question.type === 'short_answer' && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -895,6 +927,19 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
                       </div>
                     </div>
                   ))}
+
+                  {/* 在问题列表底部添加"添加问题"按钮 */}
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      type="button"
+                      onClick={addQuestion}
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <Plus size={16} /> 添加新问题
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

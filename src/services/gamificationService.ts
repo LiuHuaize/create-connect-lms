@@ -11,6 +11,7 @@ export const EXPERIENCE_RULES = {
     assignment: 50, // 作业课时
     hotspot: 35,   // 热点课时
     card_creator: 45, // 卡片创建课时
+    series_questionnaire: 55, // 系列问答课时，给予最高经验值
   },
   
   // 测验分数奖励（基于分数百分比的额外经验）
@@ -32,11 +33,15 @@ export const EXPERIENCE_RULES = {
 } as const;
 
 // 活动类型定义
-export type ActivityType = 
-  | 'lesson_complete' 
-  | 'quiz_pass' 
-  | 'course_complete' 
-  | 'daily_streak';
+export type ActivityType =
+  | 'lesson_complete'
+  | 'quiz_pass'
+  | 'course_complete'
+  | 'daily_streak'
+  | 'series_questionnaire_complete'
+  | 'series_questionnaire_graded'
+  | 'achievement_unlock'
+  | 'level_up';
 
 // 课时类型定义
 export type LessonType = keyof typeof EXPERIENCE_RULES.LESSON_COMPLETE;
@@ -400,6 +405,78 @@ export const gamificationService = {
     }
   },
 
+  // 分配技能经验值（通用方法）
+  async allocateSkillExperience(
+    userId: string,
+    skillTags: string[],
+    baseExperience: number
+  ): Promise<boolean> {
+    try {
+      console.log(`为用户 ${userId} 分配技能经验，技能标签：${skillTags.join(', ')}，基础经验：${baseExperience}`);
+
+      if (!skillTags || skillTags.length === 0) {
+        console.log('没有技能标签，跳过技能经验分配');
+        return true;
+      }
+
+      // 将技能标签映射到系统技能类型
+      const skillTypeMapping: Record<string, SkillType> = {
+        'Communication': 'communication',
+        'Collaboration': 'collaboration',
+        'Critical Thinking': 'critical_thinking',
+        'Creativity': 'creativity',
+        'Cultural Intelligence': 'cultural_intelligence',
+        'Complex Problem Solving': 'complex_problem_solving',
+        // 中文映射
+        '沟通协调': 'communication',
+        '团体合作': 'collaboration',
+        '批判思考': 'critical_thinking',
+        '创新能力': 'creativity',
+        '文化智力': 'cultural_intelligence',
+        '复杂问题解决': 'complex_problem_solving'
+      };
+
+      // 过滤有效的技能类型
+      const validSkillTypes = skillTags
+        .map(tag => skillTypeMapping[tag])
+        .filter(skillType => skillType !== undefined);
+
+      if (validSkillTypes.length === 0) {
+        console.log('没有有效的技能类型，跳过技能经验分配');
+        return true;
+      }
+
+      // 计算每个技能的经验值（平均分配）
+      const experiencePerSkill = Math.floor(baseExperience / validSkillTypes.length);
+
+      // 为每个技能分配经验
+      const skillPromises = validSkillTypes.map(async (skillType: SkillType) => {
+        return await this.addSkillExperience(
+          userId,
+          skillType,
+          experiencePerSkill,
+          'series_questionnaire',
+          undefined,
+          '系列问答技能经验分配'
+        );
+      });
+
+      const results = await Promise.all(skillPromises);
+      const allSuccess = results.every(result => result);
+
+      if (allSuccess) {
+        console.log(`成功为用户 ${userId} 分配技能经验，涉及技能：${validSkillTypes.join(', ')}`);
+      } else {
+        console.error(`用户 ${userId} 部分技能经验分配失败`);
+      }
+
+      return allSuccess;
+    } catch (error) {
+      console.error('分配技能经验失败:', error);
+      return false;
+    }
+  },
+
   // 计算技能经验值
   calculateSkillExperience(lessonType: LessonType, score?: number): number {
     // 基础技能经验值（比总经验值稍低）
@@ -412,7 +489,8 @@ export const gamificationService = {
       card_creator: 30,
       drag_sort: 25,
       resource: 10,
-      frame: 20
+      frame: 20,
+      series_questionnaire: 35 // 系列问答给予较高经验值，因为涉及深度思考和写作
     };
 
     let experience = baseSkillExperience[lessonType] || 15;
@@ -423,6 +501,17 @@ export const gamificationService = {
         experience += 10; // 优秀额外奖励
       } else if (score >= 80) {
         experience += 5;  // 良好额外奖励
+      }
+    }
+
+    // 系列问答类型根据分数给予额外奖励
+    if (lessonType === 'series_questionnaire' && score !== undefined) {
+      if (score >= 90) {
+        experience += 15; // 优秀额外奖励（比测验更高，因为系列问答更复杂）
+      } else if (score >= 80) {
+        experience += 10; // 良好额外奖励
+      } else if (score >= 70) {
+        experience += 5;  // 及格额外奖励
       }
     }
 
@@ -696,6 +785,172 @@ export const gamificationService = {
       return true;
     } catch (error) {
       console.error('添加成就奖励经验值失败:', error);
+      return false;
+    }
+  },
+
+  // 处理系列问答完成的游戏化奖励
+  async handleSeriesQuestionnaireComplete(
+    userId: string,
+    questionnaireId: string,
+    questionnaireTitle: string,
+    skillTags: string[],
+    totalWords: number,
+    score?: number
+  ): Promise<boolean> {
+    try {
+      console.log(`处理用户 ${userId} 完成系列问答：${questionnaireTitle}`);
+
+      // 检查是否已经为此系列问答给过经验值
+      const { data: existingRecord } = await supabase
+        .from('learning_timeline')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('activity_type', 'series_questionnaire_complete')
+        .eq('activity_description', questionnaireId)
+        .maybeSingle();
+
+      if (existingRecord) {
+        console.log(`系列问答 ${questionnaireId} 已经给过经验值，跳过`);
+        return true;
+      }
+
+      // 计算基础经验值（系列问答给予55经验值）
+      const baseExperience = EXPERIENCE_RULES.LESSON_COMPLETE.series_questionnaire;
+
+      // 根据字数给予额外奖励（每100字额外5经验值，最多额外20经验值）
+      const wordBonus = Math.min(Math.floor(totalWords / 100) * 5, 20);
+      const totalExperience = baseExperience + wordBonus;
+
+      // 创建活动记录
+      const activity: TimelineActivity = {
+        activity_type: 'series_questionnaire_complete',
+        activity_title: `完成系列问答：${questionnaireTitle}`,
+        activity_description: questionnaireId, // 存储问卷ID用于去重检查
+        experience_gained: totalExperience,
+      };
+
+      // 添加基础经验值
+      const baseExperienceSuccess = await this.addExperience(userId, totalExperience, activity);
+
+      // 分配技能经验
+      let skillExperienceSuccess = true;
+      if (skillTags && skillTags.length > 0) {
+        // 技能经验基于字数计算（每10字1经验值）
+        const skillExperience = Math.floor(totalWords / 10);
+        skillExperienceSuccess = await this.allocateSkillExperience(
+          userId,
+          skillTags,
+          skillExperience
+        );
+      }
+
+      // 检查并解锁成就
+      if (baseExperienceSuccess) {
+        try {
+          const newAchievements = await achievementService.checkAllAchievements(userId);
+          if (newAchievements.length > 0) {
+            console.log(`用户 ${userId} 解锁了 ${newAchievements.length} 个新成就:`,
+              newAchievements.map(a => a.title).join(', '));
+
+            // 为每个解锁的成就添加时间线记录和经验奖励
+            for (const achievement of newAchievements) {
+              await this.addTimelineActivity(
+                userId,
+                'achievement_unlock',
+                `解锁成就：${achievement.title}`,
+                achievement.description,
+                undefined,
+                undefined,
+                achievement.experience_reward
+              );
+
+              // 添加成就奖励经验值
+              if (achievement.experience_reward > 0) {
+                await this.addExperienceReward(userId, achievement.experience_reward, achievement.title);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('检查成就失败:', error);
+        }
+      }
+
+      const success = baseExperienceSuccess && skillExperienceSuccess;
+      if (success) {
+        console.log(`成功处理用户 ${userId} 系列问答完成奖励`);
+      } else {
+        console.error(`用户 ${userId} 系列问答完成奖励处理部分失败`);
+      }
+
+      return success;
+    } catch (error) {
+      console.error('处理系列问答完成奖励失败:', error);
+      return false;
+    }
+  },
+
+  // 处理系列问答评分完成的游戏化奖励
+  async handleSeriesQuestionnaireGraded(
+    userId: string,
+    questionnaireId: string,
+    questionnaireTitle: string,
+    finalScore: number,
+    maxScore: number = 100
+  ): Promise<boolean> {
+    try {
+      console.log(`处理用户 ${userId} 系列问答评分完成：${questionnaireTitle}，得分：${finalScore}/${maxScore}`);
+
+      // 检查是否已经为此评分给过经验值
+      const { data: existingRecord } = await supabase
+        .from('learning_timeline')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('activity_type', 'series_questionnaire_graded')
+        .eq('activity_description', questionnaireId)
+        .maybeSingle();
+
+      if (existingRecord) {
+        console.log(`系列问答评分 ${questionnaireId} 已经给过经验值，跳过`);
+        return true;
+      }
+
+      // 计算分数百分比
+      const scorePercentage = (finalScore / maxScore) * 100;
+
+      // 根据分数给予额外经验奖励
+      let scoreBonus = 0;
+      if (scorePercentage >= 95) {
+        scoreBonus = 25; // 优秀奖励
+      } else if (scorePercentage >= 85) {
+        scoreBonus = 15; // 良好奖励
+      } else if (scorePercentage >= 70) {
+        scoreBonus = 10; // 及格奖励
+      }
+
+      if (scoreBonus > 0) {
+        // 创建活动记录
+        const activity: TimelineActivity = {
+          activity_type: 'series_questionnaire_graded',
+          activity_title: `系列问答评分完成：${questionnaireTitle}`,
+          activity_description: questionnaireId, // 存储问卷ID用于去重检查
+          experience_gained: scoreBonus,
+        };
+
+        // 添加分数奖励经验值
+        const success = await this.addExperience(userId, scoreBonus, activity);
+
+        if (success) {
+          console.log(`成功为用户 ${userId} 添加系列问答评分奖励 ${scoreBonus} 经验值`);
+        }
+
+        return success;
+      } else {
+        console.log(`用户 ${userId} 系列问答分数 ${scorePercentage}% 未达到奖励标准`);
+        return true;
+      }
+    } catch (error) {
+      console.error('处理系列问答评分奖励失败:', error);
       return false;
     }
   }

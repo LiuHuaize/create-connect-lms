@@ -92,6 +92,11 @@ export type HotspotLessonContent = {
   hotspots: Hotspot[];      // 热点数组
 };
 
+// 系列问答课程内容类型
+export type SeriesQuestionnaireLessonContent = {
+  questionnaire: SeriesQuestionnaire;
+};
+
 // 资源下载课程内容类型
 export type ResourceLessonContent = {
   description?: string;
@@ -179,17 +184,18 @@ export type FrameLessonContent = {
 };
 
 // Union type for all possible lesson content
-export type LessonContent = 
-  | VideoLessonContent 
-  | TextLessonContent 
-  | QuizLessonContent 
+export type LessonContent =
+  | VideoLessonContent
+  | TextLessonContent
+  | QuizLessonContent
   | AssignmentLessonContent
   | CodeLessonContent
   | CardCreatorLessonContent
   | DragSortContent
   | ResourceLessonContent
   | FrameLessonContent
-  | HotspotLessonContent;
+  | HotspotLessonContent
+  | SeriesQuestionnaireLessonContent;
 
 // Quiz related types
 export type QuizQuestionType = 'single_choice' | 'multiple_choice' | 'true_false' | 'short_answer';
@@ -217,7 +223,7 @@ export type QuizQuestion = {
 };
 
 // Lesson type - use string union for better type safety
-export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort' | 'resource' | 'frame' | 'hotspot';
+export type LessonType = 'text' | 'video' | 'quiz' | 'assignment' | 'card_creator' | 'drag_sort' | 'resource' | 'frame' | 'hotspot' | 'series_questionnaire';
 
 // Make sure order_index is included in the Lesson type
 export type Lesson = {
@@ -266,3 +272,108 @@ export interface DragSortSubmission {
   mappings: DragSortMapping[];
   isCorrect: boolean;
 }
+
+// ==================== 系列问答相关类型定义 ====================
+
+// 系列问答状态
+export type SeriesQuestionnaireStatus = 'draft' | 'published' | 'archived';
+
+// 系列问答主体类型
+export type SeriesQuestionnaire = {
+  id: string;
+  title: string;
+  description?: string;
+  instructions?: string;
+  lesson_id: string;
+  ai_grading_prompt?: string;
+  ai_grading_criteria?: string;
+  max_score?: number;
+  time_limit_minutes?: number;
+  allow_save_draft?: boolean;
+  skill_tags?: string[];
+  created_at?: string;
+  updated_at?: string;
+  questions?: SeriesQuestion[];
+};
+
+// 系列问题类型
+export type SeriesQuestion = {
+  id: string;
+  questionnaire_id: string;
+  title: string;
+  description?: string;
+  question_text: string;
+  order_index: number;
+  required?: boolean;
+  min_words?: number;
+  max_words?: number;
+  placeholder_text?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+// 系列问答提交状态
+export type SeriesSubmissionStatus = 'draft' | 'submitted' | 'graded';
+
+// 系列问答答案类型
+export type SeriesAnswer = {
+  question_id: string;
+  answer_text: string;
+  word_count?: number;
+};
+
+// 系列问答提交类型
+export type SeriesSubmission = {
+  id: string;
+  questionnaire_id: string;
+  student_id: string;
+  status: SeriesSubmissionStatus;
+  answers: SeriesAnswer[];
+  total_words?: number;
+  time_spent_minutes?: number;
+  submitted_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  ai_grading?: SeriesAIGrading;
+  questionnaire?: SeriesQuestionnaire;
+  student_profile?: {
+    username: string;
+    email?: string;
+  };
+};
+
+// AI评分详细反馈类型
+export type SeriesAIDetailedFeedback = {
+  question_id: string;
+  question_title: string;
+  feedback: string;
+  score?: number;
+  suggestions?: string[];
+};
+
+// 系列问答AI评分类型
+export type SeriesAIGrading = {
+  id: string;
+  submission_id: string;
+  ai_score?: number;
+  ai_feedback?: string;
+  ai_detailed_feedback?: SeriesAIDetailedFeedback[];
+  teacher_score?: number;
+  teacher_feedback?: string;
+  final_score?: number;
+  grading_criteria_used?: string;
+  graded_at?: string;
+  teacher_reviewed_at?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+// 系列问答统计信息类型
+export type SeriesQuestionnaireStats = {
+  questionnaire_id: string;
+  total_submissions: number;
+  completed_submissions: number;
+  average_score?: number;
+  average_time_spent?: number;
+  average_word_count?: number;
+};

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { BookOpen, ChevronLeft, ChevronRight, Loader2, MessageSquare, X, AlertCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -32,6 +32,7 @@ import { useCourseData } from './hooks/useCourseData';
 const CoursePage = () => {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -78,6 +79,9 @@ const CoursePage = () => {
   // 自动注册状态
   const [autoEnrollAttempted, setAutoEnrollAttempted] = useState(false);
   const [isAutoEnrolling, setIsAutoEnrolling] = useState(false);
+
+  // AI评分结果展示状态
+  const [showGradingResult, setShowGradingResult] = useState(false);
 
   // 自动注册逻辑 - 修复：确保从详情页跳转过来的用户能正确识别注册状态
   useEffect(() => {
@@ -134,6 +138,20 @@ const CoursePage = () => {
       refreshCourseData();
     }
   }, [loading, courseData, user?.id, enrollmentId, autoEnrollAttempted, refreshCourseData]);
+
+  // 处理AI评分结果展示状态
+  useEffect(() => {
+    if (location.state?.showGradingResult) {
+      setShowGradingResult(true);
+      // 清除状态，避免刷新页面时重复显示
+      navigate(location.pathname, { replace: true, state: {} });
+
+      // 显示评分完成提示
+      toast.success('AI评分已完成！请查看您的评分结果。', {
+        duration: 5000,
+      });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   // 修复重复请求问题：移除强制清除缓存的逻辑
   // 让 useCourseData 的内置缓存机制处理数据获取
@@ -355,6 +373,8 @@ const CoursePage = () => {
               courseData={courseData}
               enrollmentId={enrollmentId}
               navigate={navigate}
+              showGradingResult={showGradingResult}
+              onGradingResultShown={() => setShowGradingResult(false)}
             />
           </div>
         </div>
