@@ -43,14 +43,14 @@ const Dashboard = () => {
 
   return (
     <PageContainer title="我的学习中心">
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-10 gap-6 mb-8">
         {/* 总体进度 - 占据更大的空间 */}
-        <div className="md:col-span-5">
+        <div className="md:col-span-4">
           <DashboardProgress overallProgress={overallProgress} totalCourses={enrolledCourses.length} />
         </div>
         
         {/* 获得的技能 */}
-        <div className="md:col-span-4">
+        <div className="md:col-span-3">
           <AcquiredSkills skillsAcquired={skillsAcquired} />
         </div>
         

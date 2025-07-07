@@ -32,19 +32,19 @@ const getSkillBadgeClass = (color: string) => {
 
 const AcquiredSkills: React.FC<AcquiredSkillsProps> = ({ skillsAcquired }) => {
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-200">
-      <CardHeader className="pb-3">
+    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-200 h-full">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg font-semibold">获得的技能</CardTitle>
             <CardDescription className="text-muted-foreground mt-1">最近掌握的能力</CardDescription>
           </div>
-          <div className="p-3 bg-amber-500/10 rounded-xl">
-            <Award className="h-5 w-5 text-amber-600" />
+          <div className="p-2 bg-amber-500/10 rounded-xl">
+            <Award className="h-4 w-4 text-amber-600" />
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-2">
         <div className="flex flex-wrap gap-2">
           {skillsAcquired.length > 0 ? (
             skillsAcquired.map((skill, index) => (
@@ -57,7 +57,7 @@ const AcquiredSkills: React.FC<AcquiredSkillsProps> = ({ skillsAcquired }) => {
               </Badge>
             ))
           ) : (
-            <div className="text-center py-6">
+            <div className="text-center py-4">
               <p className="text-sm text-muted-foreground">继续学习以获得更多技能</p>
             </div>
           )}
