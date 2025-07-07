@@ -276,7 +276,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
     <div>
       {/* 框架描述 - 章节介绍 */}
       {content.description && (
-        <div className="mb-8">
+        <div className="mb-8 max-w-4xl mx-auto">
           <div className="relative">
             {/* 装饰性背景 */}
             <div className="absolute inset-0 bg-gradient-to-r from-ghibli-purple/5 via-ghibli-lightTeal/5 to-transparent rounded-2xl"></div>
@@ -304,7 +304,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
       )}
 
       {/* 当前课时内容 */}
-      <div className="mb-4">
+      <div className="mb-4 max-w-4xl mx-auto">
         <Card className="border-none shadow-sm">
           <CardHeader className="pb-2">
             <div className="text-xs text-ghibli-brown mb-1 text-center">
@@ -423,7 +423,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
       </div>
       
       {/* 框架内导航按钮 */}
-      <div className="grid grid-cols-3 items-center mt-6">
+      <div className="grid grid-cols-3 items-center mt-6 max-w-4xl mx-auto">
         {/* 左侧按钮 */}
         <div className="justify-self-start">
           <Button
