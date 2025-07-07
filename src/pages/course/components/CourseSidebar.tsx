@@ -149,7 +149,7 @@ currentModuleHasActiveLesson
       {courseData?.modules && courseData.modules.map((module, moduleIndex) => {
         // 计算模块完成进度
         const totalLessons = module.lessons?.length || 0;
-        const completedLessons = module.lessons?.filter(lesson => completionStatus[lesson.id]).length || 0;
+        const completedLessons = module.lessons?.filter(lesson => lesson.isCompleted || completionStatus[lesson.id]).length || 0;
         const moduleProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
         
         // 统一的图标设计
