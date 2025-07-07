@@ -31,7 +31,7 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">正在学习</h2>
+        <h2 className="text-2xl font-bold text-foreground">正在学习</h2>
         <Link to="/learning" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
           查看全部 <ArrowRight size={14} />
         </Link>
@@ -47,14 +47,14 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
           ongoingCourses.map((course) => (
             <Card 
               key={course.id} 
-              className="group hover:shadow-lg transition-all duration-200 border-0 shadow-sm cursor-pointer bg-white"
+              className="group cursor-pointer"
               onClick={() => handleViewDetails(course.id)}
             >
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold line-clamp-2">{course.title}</CardTitle>
-                  <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                    <BookOpen className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-lg font-semibold line-clamp-2 text-foreground">{course.title}</CardTitle>
+                  <div className="p-2.5 bg-secondary rounded-xl">
+                    <BookOpen className="h-5 w-5 text-primary" />
                   </div>
                 </div>
               </CardHeader>
@@ -62,15 +62,15 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">进度</span>
-                    <span className="text-sm font-semibold">{course.progress}%</span>
+                    <span className="text-sm font-semibold text-foreground">{course.progress}%</span>
                   </div>
-                  <Progress value={course.progress} className="h-2.5" />
+                  <Progress value={course.progress} className="h-3" />
                 </div>
                 <div className="flex gap-3">
                   <Button 
-                    variant="ghost" 
+                    variant="secondary" 
                     size="sm"
-                    className="flex-1 hover:bg-gray-50"
+                    className="flex-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleViewDetails(course.id);
@@ -84,7 +84,7 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
                     className="flex-1"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Button size="sm" className="w-full bg-primary hover:bg-primary/90">
+                    <Button size="sm" className="w-full">
                       <Play className="h-4 w-4 mr-1.5" />
                       继续学习
                     </Button>

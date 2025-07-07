@@ -34,12 +34,12 @@ const RecommendedCourses: React.FC<RecommendedCoursesProps> = ({
     <div className="mb-8">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold mb-3">为您推荐</h2>
-          <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-2xl font-bold mb-3 text-foreground">为您推荐</h2>
+          <div className="flex flex-wrap items-center gap-2.5">
             <span className="text-sm text-muted-foreground">相关主题:</span>
-            <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 cursor-pointer font-medium">商业规划</Badge>
-            <Badge variant="secondary" className="bg-purple-500/10 text-purple-700 hover:bg-purple-500/20 cursor-pointer font-medium">游戏设计</Badge>
-            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 cursor-pointer font-medium">产品开发</Badge>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer font-medium px-3 py-1">商业规划</Badge>
+            <Badge variant="secondary" className="bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-pointer font-medium px-3 py-1">游戏设计</Badge>
+            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 cursor-pointer font-medium px-3 py-1">产品开发</Badge>
           </div>
         </div>
         

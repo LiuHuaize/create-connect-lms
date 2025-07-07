@@ -20,11 +20,11 @@ interface AcquiredSkillsProps {
 
 const getSkillBadgeClass = (color: string) => {
   const colorMap: Record<string, string> = {
-    purple: "bg-primary/10 text-primary hover:bg-primary/20",
-    blue: "bg-blue-500/10 text-blue-700 hover:bg-blue-500/20",
-    amber: "bg-amber-500/10 text-amber-700 hover:bg-amber-500/20",
-    green: "bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20",
-    red: "bg-rose-500/10 text-rose-700 hover:bg-rose-500/20"
+    purple: "bg-purple-100 text-purple-700 hover:bg-purple-200",
+    blue: "bg-blue-100 text-blue-700 hover:bg-blue-200",
+    amber: "bg-amber-100 text-amber-700 hover:bg-amber-200",
+    green: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200",
+    red: "bg-rose-100 text-rose-700 hover:bg-rose-200"
   };
 
   return `${colorMap[color] || colorMap.blue} border-0 font-medium`;
@@ -32,20 +32,20 @@ const getSkillBadgeClass = (color: string) => {
 
 const AcquiredSkills: React.FC<AcquiredSkillsProps> = ({ skillsAcquired }) => {
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-200 h-full">
-      <CardHeader className="pb-2">
+    <Card className="h-full">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold">获得的技能</CardTitle>
-            <CardDescription className="text-muted-foreground mt-1">最近掌握的能力</CardDescription>
+            <CardTitle className="text-xl font-semibold text-foreground">获得的技能</CardTitle>
+            <CardDescription className="text-muted-foreground mt-1.5">最近掌握的能力</CardDescription>
           </div>
-          <div className="p-2 bg-amber-500/10 rounded-xl">
-            <Award className="h-4 w-4 text-amber-600" />
+          <div className="p-3 bg-amber-100 rounded-2xl">
+            <Award className="h-5 w-5 text-amber-600" />
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-2">
-        <div className="flex flex-wrap gap-2">
+      <CardContent className="pt-3">
+        <div className="flex flex-wrap gap-2.5">
           {skillsAcquired.length > 0 ? (
             skillsAcquired.map((skill, index) => (
               <Badge 

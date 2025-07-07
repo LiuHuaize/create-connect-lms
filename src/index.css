@@ -5,44 +5,44 @@
 @layer base {
   :root {
     /* 主要背景和前景色 */
-    --background: 210 50% 98%; /* 浅蓝背景 #F5F9FD */
-    --foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
+    --background: 210 20% 98%; /* 中性浅灰背景 #F9FAFB */
+    --foreground: 215 25% 12%; /* 深灰色文字 #1E293B */
 
     /* 卡片样式 */
     --card: 0 0% 100%; /* 纯白色卡片 #FFFFFF */
-    --card-foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
+    --card-foreground: 215 25% 12%; /* 深灰色文字 #1E293B */
 
     /* 弹出框样式 */
     --popover: 0 0% 100%; /* 纯白色弹出框 #FFFFFF */
-    --popover-foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
+    --popover-foreground: 215 25% 12%; /* 深灰色文字 #1E293B */
 
-    /* 主色调 - 优雅的深蓝色 */
-    --primary: 221 83% 53%; /* 优雅深蓝色 #3B82F6 */
+    /* 主色调 - 友好的蓝色 */
+    --primary: 217 100% 58%; /* 友好蓝色 #2979FF */
     --primary-foreground: 0 0% 100%; /* 纯白色文字 #FFFFFF */
 
-    /* 次要色调 - 浅灰色 */
-    --secondary: 210 14% 95%; /* 极浅灰色 #F3F4F6 */
-    --secondary-foreground: 224 71% 4%; /* 深色文字 #020617 */
+    /* 次要色调 - 浅蓝色 */
+    --secondary: 214 95% 93%; /* 极浅蓝色 #E3F2FD */
+    --secondary-foreground: 217 100% 58%; /* 蓝色文字 #2979FF */
 
     /* 柔和中性色 */
     --muted: 210 20% 98%; /* 极浅背景 #F9FAFB */
-    --muted-foreground: 215 16% 47%; /* 中灰色文字 #64748B */
+    --muted-foreground: 215 16% 56%; /* 中灰色文字 #64748B */
 
-    /* 强调色 - 温暖的蓝色 */
-    --accent: 217 91% 60%; /* 温暖蓝色 #5B8DFF */
+    /* 强调色 - 成功绿色 */
+    --accent: 161 84% 56%; /* 成功绿色 #34D399 */
     --accent-foreground: 0 0% 100%; /* 纯白色文字 #FFFFFF */
 
     /* 警告/危险色 */
-    --destructive: 10 90% 60%; /* 明亮的红橙色 #FF5C33 */
+    --destructive: 0 72% 59%; /* 友好红色 #EF4444 */
     --destructive-foreground: 0 0% 100%; /* 纯白色 #FFFFFF */
 
     /* 边框和输入框 */
-    --border: 214 32% 91%; /* 浅蓝灰色边框 #E5EBF5 */
-    --input: 214 32% 91%; /* 浅蓝灰色输入框边框 #E5EBF5 */
-    --ring: 260 80% 65%; /* 紫色环 #9364ED */
+    --border: 214 32% 93%; /* 极浅边框 #E2E8F0 */
+    --input: 214 32% 93%; /* 极浅输入框边框 #E2E8F0 */
+    --ring: 217 100% 58%; /* 蓝色环 #2979FF */
 
     /* 圆角半径 */
-    --radius: 1.5rem; /* 圆角, 24px */
+    --radius: 1rem; /* 圆角, 16px */
 
     /* 侧边栏主题 */
     --sidebar-background: 0 0% 100%; /* 纯白色侧边栏 #FFFFFF */
@@ -236,35 +236,15 @@
   
   /* 更新侧边栏链接样式 */
   .sidebar-link {
-    @apply flex items-center gap-3 py-3 px-4 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden;
+    @apply flex items-center gap-3 py-3.5 px-4 rounded-xl text-sm font-medium transition-all duration-300 relative overflow-hidden;
   }
   
   .sidebar-link.active {
-    @apply bg-primary text-primary-foreground;
-  }
-  
-  .sidebar-link.active::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, 
-      rgba(255,255,255,0.1), 
-      rgba(255,255,255,0.2),
-      rgba(255,255,255,0.1));
-    background-size: 200% 100%;
-    animation: linkShimmer 2s infinite linear;
-  }
-  
-  @keyframes linkShimmer {
-    0% { background-position: -100% 0; }
-    100% { background-position: 200% 0; }
+    @apply bg-secondary text-primary font-semibold;
   }
   
   .sidebar-link:not(.active) {
-    @apply text-foreground hover:bg-primary/10;
+    @apply text-muted-foreground hover:bg-muted hover:text-foreground;
   }
   
   /* 按钮悬停效果 */
