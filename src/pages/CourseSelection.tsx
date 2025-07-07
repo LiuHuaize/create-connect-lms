@@ -247,56 +247,56 @@ const CourseSelection = () => {
   };
 
   return (
-    <div className="animate-fade-in p-4 sm:p-8 max-w-7xl mx-auto">
-      <div className="mb-8 sm:mb-10">
+    <div className="animate-fade-in p-4 sm:p-6 max-w-6xl mx-auto">
+      <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">我的课程</h1>
-        <p className="text-sm sm:text-base text-gray-500">选择一个课程继续编辑或创建新课程</p>
+        <p className="text-sm sm:text-base text-gray-600">选择一个课程继续编辑或创建新课程</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-        <Card className="group border border-gray-200 hover:border-gray-300 bg-gradient-to-br from-white to-gray-50 hover:shadow-md transition-all duration-300 overflow-hidden">
-          <CardContent className="pt-8 flex flex-col items-center justify-center h-60">
-            <div className="rounded-full bg-blue-50 p-4 mb-5 group-hover:bg-blue-100 transition-colors">
-              <PlusCircle className="h-10 w-10 sm:h-12 sm:w-12 text-blue-500 group-hover:text-blue-600 transition-colors" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+        <Card className="group border border-blue-100 hover:border-blue-200 bg-gradient-to-br from-blue-50/50 to-white hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <CardContent className="pt-6 flex flex-col items-center justify-center h-48">
+            <div className="rounded-full bg-blue-100 p-3 mb-4 group-hover:bg-blue-200 transition-colors">
+              <PlusCircle className="h-8 w-8 text-blue-600 group-hover:text-blue-700 transition-colors" />
             </div>
-            <h3 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">创建新课程</h3>
-            <p className="text-sm text-gray-500 text-center">从零开始设计一个全新课程</p>
+            <h3 className="text-base font-medium text-gray-900 mb-1">创建新课程</h3>
+            <p className="text-xs text-gray-600 text-center px-4">从零开始设计一个全新课程</p>
           </CardContent>
-          <CardFooter className="justify-center pb-8">
+          <CardFooter className="justify-center pb-6">
             <Button 
               onClick={handleCreateNewCourse} 
-              size={isMobile ? "sm" : "default"}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6"
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 h-8 text-sm"
             >
               开始创建
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <ChevronRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </CardFooter>
         </Card>
 
         {isLoading ? (
-          Array.from({ length: 2 }).map((_, index) => (
-            <Card key={`skeleton-${index}`} className="border border-gray-200 bg-white overflow-hidden">
-              <div className="h-32 bg-gray-100 animate-pulse" />
-              <CardHeader className="pb-2">
-                <div className="h-6 w-2/3 bg-gray-100 rounded animate-pulse" />
+          Array.from({ length: 3 }).map((_, index) => (
+            <Card key={`skeleton-${index}`} className="border border-blue-100 bg-white overflow-hidden">
+              <div className="h-28 bg-blue-50 animate-pulse" />
+              <CardHeader className="pb-2 pt-3">
+                <div className="h-5 w-2/3 bg-gray-100 rounded animate-pulse" />
               </CardHeader>
               <CardContent className="pb-2">
-                <div className="h-4 w-full bg-gray-100 rounded animate-pulse mb-2" />
-                <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse mb-4" />
-                <div className="h-6 w-16 bg-gray-100 rounded-full animate-pulse" />
+                <div className="h-3 w-full bg-gray-100 rounded animate-pulse mb-2" />
+                <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse mb-3" />
+                <div className="h-5 w-14 bg-blue-100 rounded-full animate-pulse" />
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <div className="h-9 w-20 bg-gray-100 rounded animate-pulse" />
-                <div className="h-9 w-20 bg-gray-100 rounded animate-pulse" />
+              <CardFooter className="flex justify-between pb-3 pt-2">
+                <div className="h-7 w-16 bg-gray-100 rounded-full animate-pulse" />
+                <div className="h-7 w-16 bg-blue-100 rounded-full animate-pulse" />
               </CardFooter>
             </Card>
           ))
         ) : (
           courses.map((course) => (
-            <Card key={course.id} className="border border-gray-200 hover:border-gray-300 bg-white hover:shadow-md transition-all duration-300 overflow-hidden">
+            <Card key={course.id} className="border border-blue-100 hover:border-blue-200 bg-white hover:shadow-lg transition-all duration-300 overflow-hidden">
               <div 
-                className="h-32 sm:h-40 bg-gradient-to-r from-gray-50 to-gray-100 bg-cover bg-center relative" 
+                className="h-28 bg-gradient-to-br from-blue-50 to-blue-100 bg-cover bg-center relative" 
                 style={{ 
                   backgroundImage: course.cover_image 
                     ? `url(${course.cover_image})` 
@@ -305,72 +305,70 @@ const CourseSelection = () => {
               >
                 {!course.cover_image && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <BookOpen size={40} className="text-gray-300" />
+                    <BookOpen size={32} className="text-blue-300" />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-transparent" />
                 
                 {/* 添加复制按钮到左上角 */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 left-2 h-8 w-8 rounded-full bg-white/90 text-blue-500 hover:bg-white hover:text-blue-600 shadow-sm"
+                  className="absolute top-2 left-2 h-7 w-7 rounded-full bg-white/90 text-blue-600 hover:bg-white hover:text-blue-700 shadow-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDuplicateCourse(course.id!);
                   }}
                 >
-                  <Copy className="h-4 w-4" />
+                  <Copy className="h-3.5 w-3.5" />
                 </Button>
                 
                 {/* 添加删除按钮 */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 text-red-500 hover:bg-white hover:text-red-600 shadow-sm"
+                  className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 text-red-500 hover:bg-white hover:text-red-600 shadow-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteCourse(course.id!, course.title);
                   }}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              <CardHeader className="pb-2 relative">
-                <CardTitle className="text-lg sm:text-xl line-clamp-1 font-semibold">{course.title}</CardTitle>
+              <CardHeader className="pb-2 pt-3">
+                <CardTitle className="text-base line-clamp-1 font-semibold">{course.title}</CardTitle>
               </CardHeader>
-              <CardContent className="pb-3">
-                <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
+              <CardContent className="pb-2">
+                <p className="text-xs text-gray-600 line-clamp-2 mb-2">
                   {course.short_description || '暂无描述'}
                 </p>
-                <div className="flex items-center mt-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                <div className="flex items-center">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     course.status === 'published' 
-                      ? 'bg-green-50 text-green-600 border border-green-100' 
-                      : 'bg-amber-50 text-amber-600 border border-amber-100'
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'bg-amber-100 text-amber-700'
                   }`}>
                     {course.status === 'published' ? '已发布' : '草稿'}
                   </span>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <div className="flex space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-full border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700"
-                    onClick={() => handleEditCourse(course.id!)}
-                  >
-                    <PenLine className="h-4 w-4 mr-1.5" /> 编辑
-                  </Button>
-                </div>
+              <CardFooter className="flex justify-between pb-3 pt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="rounded-full border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 h-7 text-xs px-3"
+                  onClick={() => handleEditCourse(course.id!)}
+                >
+                  <PenLine className="h-3 w-3 mr-1" /> 编辑
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="rounded-full border-blue-100 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700"
+                  className="rounded-full border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 h-7 text-xs px-3"
                   onClick={() => handleViewCourse(course.id!)}
                 >
-                  <Eye className="h-4 w-4 mr-1.5" /> 查看详情
+                  <Eye className="h-3 w-3 mr-1" /> 查看
                 </Button>
               </CardFooter>
             </Card>
@@ -379,10 +377,10 @@ const CourseSelection = () => {
       </div>
 
       {!isLoading && courses.length === 0 && (
-        <div className="text-center p-10 bg-gray-50 rounded-lg border border-dashed border-gray-200 mt-4">
-          <BookOpen className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+        <div className="text-center p-10 bg-blue-50/30 rounded-lg border border-dashed border-blue-200 mt-4">
+          <BookOpen className="w-12 h-12 mx-auto text-blue-300 mb-3" />
           <h3 className="text-lg font-medium text-gray-700 mb-1">暂无课程</h3>
-          <p className="text-gray-500 mb-4">您还没有创建任何课程，点击"创建新课程"开始吧</p>
+          <p className="text-gray-600 mb-4">您还没有创建任何课程，点击"创建新课程"开始吧</p>
           <Button onClick={handleCreateNewCourse} className="bg-blue-600 hover:bg-blue-700">
             <PlusCircle className="h-4 w-4 mr-2" /> 
             创建新课程

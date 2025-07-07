@@ -33,7 +33,7 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrol
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600"></div>
             
             <div 
-              className="h-32 bg-gradient-to-r from-blue-50 to-blue-100 bg-cover bg-center relative" 
+              className="h-32 bg-gradient-to-r from-gray-50 to-gray-100 bg-cover bg-center relative" 
               style={{ 
                 backgroundImage: course.cover_image 
                   ? `url(${course.cover_image})` 
@@ -42,23 +42,23 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrol
             >
               {!course.cover_image && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Book size={32} className="text-blue-300" />
+                  <Book size={32} className="text-gray-400" />
                 </div>
               )}
               
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent"></div>
               
               {course.category && (
                 <div className="absolute top-3 left-3">
-                  <span className="bg-blue-500/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full font-medium shadow-sm">
+                  <span className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs px-2.5 py-1.5 rounded-lg font-medium shadow-sm border border-gray-200/50">
                     {course.category}
                   </span>
                 </div>
               )}
               
               <div className="absolute top-3 right-3">
-                <div className="flex items-center bg-white/95 backdrop-blur-sm px-2 py-1 rounded-full border border-blue-100 shadow-sm">
-                  <Award size={12} className="text-amber-500 mr-1" />
+                <div className="flex items-center bg-white/95 backdrop-blur-sm px-2.5 py-1.5 rounded-lg border border-gray-200/50 shadow-sm">
+                  <Award size={12} className="text-amber-500 mr-1.5" />
                   <span className="text-xs font-medium text-gray-700">4.8</span>
                 </div>
               </div>
@@ -71,7 +71,7 @@ const CourseList: React.FC<CourseListProps> = ({ courses, onEnroll, loadingEnrol
                     e.stopPropagation();
                     handleViewDetails(course.id!);
                   }}
-                  className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 h-7 shadow-md"
+                  className="bg-white/95 backdrop-blur-sm hover:bg-white text-gray-700 hover:text-gray-900 text-xs px-3 py-1.5 h-7 shadow-md border border-gray-200/50"
                 >
                   <Info size={12} className="mr-1" />
                   查看详情
