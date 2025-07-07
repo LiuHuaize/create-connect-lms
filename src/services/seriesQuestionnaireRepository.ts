@@ -507,7 +507,8 @@ export class SeriesQuestionnaireRepository {
             max_score: lessonData.content?.max_score || 100,
             time_limit_minutes: lessonData.content?.time_limit_minutes,
             allow_save_draft: lessonData.content?.allow_save_draft !== false,
-            skill_tags: lessonData.content?.skill_tags || []
+            skill_tags: lessonData.content?.skill_tags || [],
+            questions: lessonData.content?.questions || [] // 添加问题列表
           } : null;
 
           return {

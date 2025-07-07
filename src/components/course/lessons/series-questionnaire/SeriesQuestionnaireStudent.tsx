@@ -523,55 +523,78 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
         </Card>
 
         {/* 题目和答案展示 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              {questionnaire?.title}
-            </CardTitle>
-            {questionnaire?.description && (
-              <p className="text-gray-600">{questionnaire.description}</p>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          {/* 标题区域 */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">{questionnaire?.title}</h2>
+              {questionnaire?.description && (
+                <p className="text-sm text-gray-500 mt-1">{questionnaire.description}</p>
+              )}
+            </div>
+          </div>
+          
+          {/* 问题列表 */}
+          <div className="space-y-8">
             {questions.map((question, index) => {
               const answer = submissionStatus.submission?.answers?.find(
                 (a: any) => a.question_id === question.id
               );
               
               return (
-                <div key={question.id} className="border rounded-lg p-4">
-                  <div className="mb-4">
-                    <h3 className="font-medium text-lg mb-2">
-                      问题 {index + 1}: {question.title}
-                    </h3>
-                    <p className="text-gray-700 mb-3">{question.content}</p>
-                    {question.required && (
-                      <Badge variant="secondary" className="mb-2">必答题</Badge>
-                    )}
-                    {question.max_words && (
-                      <Badge variant="outline" className="mb-2 ml-2">
-                        字数限制: {question.max_words}字
-                      </Badge>
-                    )}
+                <div key={question.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* 问题标题区域 */}
+                  <div className="p-4 bg-gray-50 border-b border-gray-200">
+                    <div className="flex items-start gap-3">
+                      <div className="h-9 w-9 bg-purple-100 rounded-lg flex items-center justify-center text-purple-700 font-semibold flex-shrink-0">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800 mb-2">
+                          {question.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm leading-relaxed mb-3">{question.content}</p>
+                        <div className="flex gap-2">
+                          {question.required && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              必答题
+                            </span>
+                          )}
+                          {question.max_words && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              字数限制: {question.max_words}字
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-medium text-sm text-gray-600 mb-2">您的答案：</h4>
-                    <div className="bg-white p-3 rounded border min-h-[100px]">
-                      <p className="text-gray-900 whitespace-pre-wrap">
-                        {answer?.answer_text || '未作答'}
+                  {/* 答案展示区域 */}
+                  <div className="p-4">
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {answer?.answer_text || (
+                          <span className="text-gray-400 italic">未作答</span>
+                        )}
                       </p>
+                      {answer?.word_count && (
+                        <div className="flex justify-end mt-3">
+                          <span className="text-sm text-gray-500">
+                            字数：{answer.word_count}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    {answer?.word_count && (
-                      <p className="text-xs text-gray-500 mt-2">字数：{answer.word_count}</p>
-                    )}
                   </div>
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* AI评分结果（如果有） */}
         {aiGrading && (

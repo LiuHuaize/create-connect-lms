@@ -345,9 +345,11 @@ export type SeriesSubmission = {
 // AI评分详细反馈类型
 export type SeriesAIDetailedFeedback = {
   question_id: string;
-  question_title: string;
+  question_title?: string;
   feedback: string;
   score?: number;
+  strengths?: string[];
+  improvements?: string[];
   suggestions?: string[];
 };
 

@@ -622,8 +622,33 @@ export const seriesQuestionnaireService = {
         return buildSuccessResponse(existingGrading);
       }
 
-      // 获取问题列表
-      const questions = await SeriesQuestionnaireRepository.getQuestions(questionnaire.id);
+      // 获取问题列表 - 根据类型获取
+      let questions: SeriesQuestion[] = [];
+      
+      // 获取问答类型信息
+      const { isLessonType } = await QuestionnaireTypeChecker.getQuestionnaireInfo(questionnaire.id);
+      
+      if (isLessonType) {
+        // 对于lesson类型，问题已经在questionnaire对象中
+        questions = (questionnaire as any).questions || [];
+        console.log('Lesson类型系列问答，从questionnaire对象获取问题:', questions.length);
+      } else {
+        // 对于独立的系列问答，从数据库获取
+        questions = await SeriesQuestionnaireRepository.getQuestions(questionnaire.id);
+        console.log('独立系列问答，从数据库获取问题:', questions.length);
+      }
+
+      // 如果仍然没有问题，记录详细信息用于调试
+      if (questions.length === 0) {
+        console.error('❌ 无法获取问题列表:', {
+          questionnaireId: questionnaire.id,
+          isLessonType,
+          questionnaireType: isLessonType ? 'lesson' : 'standalone',
+          questionnaireObject: questionnaire,
+          questionnaireQuestions: (questionnaire as any).questions
+        });
+        throw new Error('无法获取问题列表，请检查系列问答配置');
+      }
 
       // 准备AI评分数据 - 转换answers格式
       const answersArray = submission.answers 

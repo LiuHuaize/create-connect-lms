@@ -228,8 +228,10 @@ export const gradeSeriesQuestionnaire = async (
       questionnaire: data.questionnaire.title,
       questionsCount: data.questions.length,
       answersCount: data.answers.length,
+      questionIds: data.questions.map(q => q.id),
       answers: data.answers.map(a => ({ id: a.question_id, text: a.answer_text?.substring(0, 50) + '...' }))
     });
+    console.log('📝 发送给AI的提示词长度:', gradingPrompt.length);
     
     try {
       console.log('📤 发送评分请求到AI服务...');
@@ -289,7 +291,7 @@ export const gradeSeriesQuestionnaire = async (
           try {
             const gradingResult = JSON.parse(jsonContent);
             console.log('✅ 成功解析AI评分结果:', gradingResult);
-            return validateGradingResult(gradingResult, data.questionnaire.max_score);
+            return validateGradingResult(gradingResult, data.questionnaire.max_score, data.questions);
           } catch (parseError) {
             console.error('❌ 解析AI评分结果失败:', parseError);
             console.log('尝试解析的内容:', jsonContent);
@@ -586,20 +588,22 @@ ${answer?.word_count ? `**答案字数**: ${answer.word_count}字` : ''}
   prompt += `
 
 ## 评分要求
+**重要**：本次共有${questions.length}道题，请严格对应评分，不要增加或减少题目数量。
+
 请严格按照以下JSON格式返回评分结果，不要包含任何其他文字或说明：
 
 \`\`\`json
 {
   "overall_score": 总分(0-${questionnaire.max_score}),
   "overall_feedback": "详细的总体评价和反馈（至少100字）",
-  "detailed_feedback": [
+  "detailed_feedback": [${questions.map((q, index) => `
     {
-      "question_id": "问题ID",
-      "score": 该问题得分,
-      "feedback": "针对该问题的详细具体反馈（至少50字）",
+      "question_id": "${q.id}",
+      "score": 第${index + 1}题得分,
+      "feedback": "针对第${index + 1}题的详细具体反馈（至少50字）",
       "strengths": ["具体的优点1", "具体的优点2", "具体的优点3"],
       "improvements": ["具体的改进建议1", "具体的改进建议2", "具体的改进建议3"]
-    }
+    }`).join(',')}
   ],
   "criteria_scores": {
     "完整性": 分数,
@@ -613,11 +617,14 @@ ${answer?.word_count ? `**答案字数**: ${answer.word_count}字` : ''}
 
 重要：
 1. 必须返回标准的JSON格式，用\`\`\`json和\`\`\`包裹
-2. overall_feedback要详细具体，包含对学生整体表现的深入分析
-3. 每个问题的feedback要具体指出答案的优缺点，不要泛泛而谈
-4. strengths和improvements各至少提供3条具体的内容
-5. suggestions至少提供4条有针对性的学习建议
-6. 所有反馈都要有教育意义，能够真正帮助学生提升`;
+2. detailed_feedback数组必须包含且仅包含${questions.length}个元素，对应${questions.length}道题
+3. 每个detailed_feedback对象的question_id必须完全匹配上述问题ID：${questions.map(q => q.id).join(', ')}
+4. overall_feedback要详细具体，包含对学生整体表现的深入分析
+5. 每个问题的feedback要具体指出答案的优缺点，不要泛泛而谈
+6. strengths和improvements各至少提供3条具体的内容
+7. suggestions至少提供4条有针对性的学习建议
+8. 所有反馈都要有教育意义，能够真正帮助学生提升
+9. 严禁添加额外的问题或评分`;
 
   return prompt;
 };
@@ -625,7 +632,7 @@ ${answer?.word_count ? `**答案字数**: ${answer.word_count}字` : ''}
 /**
  * 验证和标准化AI评分结果
  */
-const validateGradingResult = (result: any, maxScore: number): AIGradingResult => {
+const validateGradingResult = (result: any, maxScore: number, expectedQuestions?: Array<{id: string}>): AIGradingResult => {
   // 确保基本字段存在
   if (!result || typeof result !== 'object') {
     throw new Error('评分结果格式不正确');
@@ -637,7 +644,7 @@ const validateGradingResult = (result: any, maxScore: number): AIGradingResult =
   if (overallScore > maxScore) overallScore = maxScore;
 
   // 验证详细反馈
-  const detailedFeedback = Array.isArray(result.detailed_feedback)
+  let detailedFeedback = Array.isArray(result.detailed_feedback)
     ? result.detailed_feedback.map((item: any) => ({
         question_id: String(item.question_id || ''),
         score: Math.max(0, Math.min(Number(item.score) || 0, maxScore)),
@@ -646,6 +653,39 @@ const validateGradingResult = (result: any, maxScore: number): AIGradingResult =
         improvements: Array.isArray(item.improvements) ? item.improvements.map(String) : []
       }))
     : [];
+
+  // 如果提供了期望的问题列表，进行数据清理和验证
+  if (expectedQuestions && expectedQuestions.length > 0) {
+    const expectedQuestionIds = expectedQuestions.map(q => q.id);
+    
+    // 过滤出匹配的反馈，去除AI可能生成的额外问题
+    detailedFeedback = detailedFeedback.filter(feedback => 
+      expectedQuestionIds.includes(feedback.question_id)
+    );
+    
+    // 确保每个问题都有反馈，如果缺失则生成默认反馈
+    expectedQuestions.forEach(question => {
+      const existingFeedback = detailedFeedback.find(f => f.question_id === question.id);
+      if (!existingFeedback) {
+        detailedFeedback.push({
+          question_id: question.id,
+          score: Math.floor(maxScore * 0.5), // 默认给50%的分数
+          feedback: '系统未能获取到此题的详细反馈，建议重新评分。',
+          strengths: ['已完成答题'],
+          improvements: ['建议重新进行AI评分以获取详细反馈']
+        });
+      }
+    });
+    
+    // 按照预期问题的顺序排序
+    detailedFeedback.sort((a, b) => {
+      const indexA = expectedQuestionIds.indexOf(a.question_id);
+      const indexB = expectedQuestionIds.indexOf(b.question_id);
+      return indexA - indexB;
+    });
+    
+    console.log(`✅ 评分结果验证完成: 期望${expectedQuestions.length}题，实际处理${detailedFeedback.length}题`);
+  }
 
   // 验证标准分数
   const criteriaScores = result.criteria_scores && typeof result.criteria_scores === 'object'
