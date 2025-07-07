@@ -587,8 +587,9 @@ export const seriesQuestionnaireService = {
         throw new Error('无权访问此提交');
       }
 
-      if (submission.status !== 'submitted') {
-        throw new Error('只能对已提交的答案进行评分');
+      // 允许已提交和已评分的答案进行(重新)评分
+      if (submission.status !== 'submitted' && submission.status !== 'graded') {
+        throw new Error('只能对已提交或已评分的答案进行评分');
       }
 
       // 检查AI评分配置
