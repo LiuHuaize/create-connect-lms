@@ -214,10 +214,18 @@ export const courseService = {
         };
       }
 
-      // 修复：获取完整的课时数据，包括content
+      // 获取当前用户ID
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+      
+      // 修复：获取完整的课时数据，包括content和完成状态
       const stageTimer3 = `getModuleLessonsComplete-stage_${courseId}_${Date.now()}`;
       console.time(stageTimer3);
-      const allLessonsByModuleId = await this.getModuleLessonsComplete(modulesData.map(m => m.id!).filter(Boolean));
+      const allLessonsByModuleId = await this.getModuleLessonsComplete(
+        modulesData.map(m => m.id!).filter(Boolean),
+        courseId,
+        userId
+      );
       console.timeEnd(stageTimer3);
       
       // 将课时数据分配给相应的模块
@@ -242,10 +250,10 @@ export const courseService = {
   },
 
   // 新增：获取完整的模块课时数据（包括content）
-  async getModuleLessonsComplete(moduleIds: string[]): Promise<Record<string, Lesson[]>> {
+  async getModuleLessonsComplete(moduleIds: string[], courseId?: string, userId?: string): Promise<Record<string, Lesson[]>> {
     if (!moduleIds.length) return {};
     
-    console.log(`获取 ${moduleIds.length} 个模块的完整课时数据（包括content）`);
+    console.log(`获取 ${moduleIds.length} 个模块的完整课时数据（包括content和完成状态）`);
     const timerId = `getModuleLessonsComplete_${moduleIds.join(',')}_${Date.now()}`;
     console.time(timerId);
     
@@ -263,18 +271,47 @@ export const courseService = {
         throw error;
       }
       
+      // 如果提供了courseId和userId，获取完成状态
+      let completionStatus: Record<string, boolean> = {};
+      if (courseId && userId) {
+        const { data: completions } = await supabase
+          .from('lesson_completions')
+          .select('lesson_id')
+          .eq('user_id', userId)
+          .eq('course_id', courseId)
+          .in('lesson_id', data?.map(l => l.id) || []);
+        
+        if (completions) {
+          completions.forEach(item => {
+            if (item.lesson_id) {
+              completionStatus[item.lesson_id] = true;
+            }
+          });
+          console.log(`获取到 ${completions.length} 个已完成的课时`);
+        }
+      }
+      
       // 按模块ID组织课时
       const lessonsByModule: Record<string, Lesson[]> = {};
       moduleIds.forEach(id => lessonsByModule[id] = []);
       
-      // 转换并分组课时，保留完整的content数据
+      // 转换并分组课时，保留完整的content数据，并添加完成状态
       if (data && data.length > 0) {
         data.forEach(lesson => {
           const moduleId = lesson.module_id;
           if (moduleId && lessonsByModule[moduleId]) {
-            lessonsByModule[moduleId].push(convertDbLessonToLesson(lesson));
+            const lessonWithCompletion = {
+              ...convertDbLessonToLesson(lesson),
+              isCompleted: completionStatus[lesson.id] || false
+            };
+            lessonsByModule[moduleId].push(lessonWithCompletion);
           }
         });
+      }
+      
+      // 如果获取了完成状态，更新全局缓存
+      if (courseId && Object.keys(completionStatus).length > 0) {
+        lessonCompletionCache[courseId] = completionStatus;
       }
       
       console.timeEnd(timerId);

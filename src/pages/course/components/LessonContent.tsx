@@ -8,6 +8,7 @@ import { Lesson, CourseModule, LessonType, QuizLessonContent as QuizLessonConten
 import LessonNavigation from './LessonNavigation';
 import { NavigateFunction } from 'react-router-dom';
 import { courseService } from '@/services/courseService';
+import { useCourseCompletion } from '@/hooks/useCourseCompletion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 // 临时注释掉不存在的导入
@@ -76,7 +77,14 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
   const [renderedLesson, setRenderedLesson] = useState<Lesson | null>(null);
   const { refreshCourseData } = useCourseData(courseId);
   const [currentUserId, setCurrentUserId] = useState<string>('');
-  const [lessonCompletionStatus, setLessonCompletionStatus] = useState<{[key: string]: boolean}>({});
+  // 使用课程完成状态Hook
+  const { 
+    completionStatus: lessonCompletionStatus,
+    updateCompletion
+  } = useCourseCompletion({
+    courseId: courseId || '',
+    autoLoad: true
+  });
   
   // 测验相关状态 - 修改：支持多选题数组格式
   const [userAnswers, setUserAnswers] = useState<{[key: string]: string | string[]}>({});
@@ -122,18 +130,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
     }
   }, [currentLessonIndex, content.lessons]);
   
-  // 获取框架内子课时的完成状态
-  useEffect(() => {
-    if (courseId && content.lessons && content.lessons.length > 0) {
-      courseService.getLessonCompletionStatus(courseId)
-        .then(status => {
-          setLessonCompletionStatus(status);
-        })
-        .catch(error => {
-          console.error('获取子课时完成状态失败:', error);
-        });
-    }
-  }, [courseId, content.lessons]);
+  // 框架内子课时完成状态由useCourseCompletion Hook自动管理
   
   // 导航到下一个框架内课时
   const goToNextFramePage = () => {
@@ -361,10 +358,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
                       if (refreshCourseData) {
                         refreshCourseData();
                         // 更新本地状态，实时反映完成状态
-                        setLessonCompletionStatus(prev => ({
-                          ...prev,
-                          [lesson.id]: true
-                        }));
+                        updateCompletion(lesson.id, true);
                       }
                     }}
                     isCompleted={lessonCompletionStatus[lesson.id] || false}
@@ -381,10 +375,7 @@ const FrameLessonView: React.FC<FrameLessonViewProps> = ({
                       if (refreshCourseData) {
                         refreshCourseData();
                         // 更新本地状态，实时反映完成状态
-                        setLessonCompletionStatus(prev => ({
-                          ...prev,
-                          [lesson.id]: true
-                        }));
+                        updateCompletion(lesson.id, true);
                       }
                     }}
                     isCompleted={lessonCompletionStatus[lesson.id] || false}

@@ -6,6 +6,7 @@ import { Course, CourseModule, Lesson } from '@/types/course';
 import { useIsMobile } from '@/hooks/use-mobile';
 import LessonCompletionButton from '@/components/course/lessons/LessonCompletionButton';
 import { courseService } from '@/services/courseService';
+import { useCourseCompletion } from '@/hooks/useCourseCompletion';
 import { toast } from 'sonner';
 
 interface LessonNavigationProps {
@@ -69,24 +70,21 @@ const LessonNavigation: React.FC<LessonNavigationProps> = ({
   
   const { prevLesson, nextLesson } = findNeighborLessons();
 
+  // 使用课程完成状态Hook
+  const { completionStatus } = useCourseCompletion({
+    courseId: courseData?.id,
+    autoLoad: true
+  });
+
   // 检查课程进度
   useEffect(() => {
-    const checkCourseProgress = async () => {
-      if (courseData?.id && enrollmentId) {
-        try {
-          const completionStatus = await courseService.getLessonCompletionStatus(courseData.id);
-          const allLessons = getAllLessons();
-          const completedCount = allLessons.filter(lesson => completionStatus[lesson.id]).length;
-          const progress = allLessons.length > 0 ? Math.round((completedCount / allLessons.length) * 100) : 0;
-          setCourseProgress(progress);
-        } catch (error) {
-          console.error('获取课程进度失败:', error);
-        }
-      }
-    };
-
-    checkCourseProgress();
-  }, [courseData?.id, enrollmentId, selectedLesson?.id]);
+    if (courseData?.id && enrollmentId) {
+      const allLessons = getAllLessons();
+      const completedCount = allLessons.filter(lesson => completionStatus[lesson.id]).length;
+      const progress = allLessons.length > 0 ? Math.round((completedCount / allLessons.length) * 100) : 0;
+      setCourseProgress(progress);
+    }
+  }, [courseData?.id, enrollmentId, selectedLesson?.id, completionStatus]);
 
   // 获取所有课时
   const getAllLessons = () => {

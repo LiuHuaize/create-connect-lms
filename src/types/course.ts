@@ -237,6 +237,7 @@ export type Lesson = {
   updated_at?: string;
   video_file_path?: string | null; // 视频文件路径
   bilibili_url?: string | null; // B站嵌入URL
+  isCompleted?: boolean; // 课时完成状态（运行时属性）
 };
 
 // 拖拽分类练习的数据结构

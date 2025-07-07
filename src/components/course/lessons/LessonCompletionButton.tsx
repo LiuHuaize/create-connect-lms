@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { courseService } from '@/services/courseService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { appConfig } from '@/config/appConfig';
+import { useCourseCompletion } from '@/hooks/useCourseCompletion';
 
 interface LessonCompletionButtonProps {
   lessonId: string;
@@ -30,22 +31,19 @@ const LessonCompletionButton: React.FC<LessonCompletionButtonProps> = ({
   className = '',
   disabled = false
 }) => {
-  const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const isMobile = useIsMobile();
   
-  // 获取课时的完成状态
-  useEffect(() => {
-    if (courseId && lessonId) {
-      courseService.getLessonCompletionStatus(courseId)
-        .then(status => {
-          setIsCompleted(!!status[lessonId]);
-        })
-        .catch(error => {
-          console.error('获取课时完成状态失败:', error);
-        });
-    }
-  }, [courseId, lessonId, isLoading]);
+  // 使用课程完成状态Hook
+  const { 
+    isLessonCompleted,
+    updateCompletion
+  } = useCourseCompletion({
+    courseId: courseId || '',
+    autoLoad: true
+  });
+  
+  const isCompleted = isLessonCompleted(lessonId);
   
   // 处理标记完成或取消完成
   const handleToggleComplete = async () => {
@@ -66,7 +64,7 @@ const LessonCompletionButton: React.FC<LessonCompletionButtonProps> = ({
         // 取消完成
         await courseService.unmarkLessonComplete(lessonId);
         toast.success('已取消标记完成');
-        setIsCompleted(false);
+        updateCompletion(lessonId, false);
       } else {
         // 标记完成
         await courseService.markLessonComplete(
@@ -77,7 +75,7 @@ const LessonCompletionButton: React.FC<LessonCompletionButtonProps> = ({
           additionalData
         );
         toast.success('课时已标记为完成');
-        setIsCompleted(true);
+        updateCompletion(lessonId, true);
         
         // 调用完成回调
         if (onComplete) {

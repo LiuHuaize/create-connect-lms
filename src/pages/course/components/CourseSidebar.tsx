@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Course, CourseModule } from '@/types/course';
 import ContentTypeIcon from './ContentTypeIcon';
 import { CheckCircle, Loader2, BookOpen, GraduationCap, ChevronRight, Star, Award, Medal } from 'lucide-react';
-import { courseService, lessonCompletionCache } from '@/services/courseService';
+import { useCourseCompletion } from '@/hooks/useCourseCompletion';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -26,33 +26,15 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
   isMobile,
   collapsed = false
 }) => {
-  const [completionStatus, setCompletionStatus] = useState<Record<string, boolean>>({});
-  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-  
-  // 获取课时完成状态
-  useEffect(() => {
-    if (courseData?.id) {
-      setIsLoadingStatus(true);
-      
-      const loadCompletionStatus = async () => {
-        try {
-          // 首先清理无效的完成记录
-          await courseService.cleanInvalidLessonCompletions(courseData.id);
-          
-          // 然后强制从服务器刷新课程完成状态，不使用缓存
-          const status = await courseService.getLessonCompletionStatus(courseData.id, true);
-          console.log('获取到课时完成状态:', status);
-          setCompletionStatus(status);
-        } catch (error) {
-          console.error('获取课时完成状态失败:', error);
-        } finally {
-          setIsLoadingStatus(false);
-        }
-      };
-      
-      loadCompletionStatus();
-    }
-  }, [courseData?.id, progress]);
+  // 使用新的课程完成状态Hook作为备份
+  const { 
+    completionStatus, 
+    isLoading: isLoadingStatus 
+  } = useCourseCompletion({
+    courseId: courseData?.id,
+    autoLoad: true,
+    forceCleanup: false
+  });
   
   // 折叠状态下的简化渲染
   if (collapsed) {
@@ -86,7 +68,7 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
         {/* 模块指示点 */}
         {courseData?.modules && courseData.modules.map((module, moduleIndex) => {
           const totalLessons = module.lessons?.length || 0;
-          const completedLessons = module.lessons?.filter(lesson => completionStatus[lesson.id]).length || 0;
+          const completedLessons = module.lessons?.filter(lesson => lesson.isCompleted || completionStatus[lesson.id]).length || 0;
           const moduleProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
           
           const currentModuleHasActiveLesson = module.lessons?.some(
@@ -218,7 +200,7 @@ currentModuleHasActiveLesson
                   .sort((a, b) => a.order_index - b.order_index) // 按照order_index排序
                   .map((lesson) => {
                   // 使用从服务器获取的完成状态
-                  const isCompleted = completionStatus[lesson.id] || false;
+                  const isCompleted = lesson.isCompleted || completionStatus[lesson.id] || false;
                   const isActive = selectedLesson && selectedLesson.id === lesson.id;
                   
                   return (

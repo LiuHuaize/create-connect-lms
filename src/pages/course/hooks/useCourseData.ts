@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { courseService } from '@/services/courseService';
+import { courseService, lessonCompletionCache } from '@/services/courseService';
 import { toast } from 'sonner';
 import { Course, CourseModule, Lesson } from '@/types/course';
 import { useAuth } from '@/contexts/AuthContext';
 import indexedDBCache from '@/lib/indexedDBCache';
-import React, { useCallback, useRef, useMemo } from 'react';
+import React, { useCallback, useRef, useMemo, useEffect } from 'react';
+import { useCourseCompletionStore } from '@/stores/courseCompletionStore';
 
 // 性能监控工具 - 使用Map避免Timer重复，添加清理机制
 const performanceTimers = new Map<string, number>();
@@ -188,6 +189,16 @@ export const useCourseData = (courseId: string | undefined) => {
     enabled: !!courseId && !!user?.id,
     ...EMERGENCY_CACHE_CONFIG.enrollment
   });
+  
+  // 从课程详情中设置完成状态
+  const { setCompletionStatusFromCourseDetails } = useCourseCompletionStore();
+  
+  useEffect(() => {
+    // 当获取到课程数据且包含完成状态时，更新到store
+    if (courseData?.id && lessonCompletionCache[courseData.id]) {
+      setCompletionStatusFromCourseDetails(courseData.id);
+    }
+  }, [courseData?.id, setCompletionStatusFromCourseDetails]);
   
   // 标记为已初始化，避免重复请求
   if (!isInitializedRef.current && (courseData || courseError)) {
