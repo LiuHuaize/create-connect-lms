@@ -584,9 +584,110 @@ export const courseService = {
       }
       
       console.log(`课时保存成功，从数据库返回: ID: ${data.id}, 标题: "${data.title}"`);
+      
+      // 如果是新创建的 series_questionnaire 类型课时，创建对应的 series_questionnaires 记录
+      if (!isUpdate && data.type === 'series_questionnaire') {
+        console.log(`检测到新创建的系列问卷课时，创建对应的 series_questionnaires 记录...`);
+        try {
+          await this.createDefaultSeriesQuestionnaire(data.id, data.title);
+        } catch (questionnaireError) {
+          console.error('创建默认系列问卷失败:', questionnaireError);
+          // 不抛出异常，确保课时创建不会因此失败
+        }
+      }
+      
       return convertDbLessonToLesson(data);
     } catch (error) {
       console.error(`保存课时 "${lesson.title}" 时发生错误:`, error);
+      throw error;
+    }
+  },
+
+  // 为 series_questionnaire 类型课时创建默认的系列问卷记录
+  async createDefaultSeriesQuestionnaire(lessonId: string, lessonTitle: string): Promise<void> {
+    try {
+      console.log(`为课时 ${lessonId} 创建默认系列问卷记录...`);
+      
+      // 创建默认的系列问卷记录
+      const defaultQuestionnaire = {
+        lesson_id: lessonId,
+        title: lessonTitle || '未命名系列问卷',
+        description: '这是一个系列问答，请根据需要编辑问题和评分标准。',
+        instructions: '请仔细阅读每个问题，并认真作答。',
+        ai_grading_prompt: '请根据学生的回答进行评分，评分标准为1-100分。',
+        ai_grading_criteria: '评分标准：\n- 回答准确性 (40分)\n- 逻辑清晰度 (30分)\n- 创新思维 (20分)\n- 表达完整性 (10分)',
+        max_score: 100,
+        time_limit_minutes: 60,
+        allow_save_draft: true,
+        skill_tags: [],
+        key: `questionnaire_${uuidv4()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // 插入系列问卷记录
+      const { data: createdQuestionnaire, error: insertError } = await supabase
+        .from('series_questionnaires')
+        .insert(defaultQuestionnaire)
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('插入默认系列问卷记录失败:', insertError);
+        throw insertError;
+      }
+      
+      console.log(`成功创建默认系列问卷: ${createdQuestionnaire.title}, ID: ${createdQuestionnaire.id}`);
+      
+      // 创建默认的示例问题
+      const defaultQuestions = [
+        {
+          questionnaire_id: createdQuestionnaire.id,
+          question_text: '请简要描述你对本主题的理解。',
+          question_type: 'text',
+          order_index: 0,
+          is_required: true,
+          max_length: 500,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          questionnaire_id: createdQuestionnaire.id,
+          question_text: '请分享一个相关的例子或经验。',
+          question_type: 'text',
+          order_index: 1,
+          is_required: true,
+          max_length: 800,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          questionnaire_id: createdQuestionnaire.id,
+          question_text: '你认为这个主题的实际应用价值是什么？',
+          question_type: 'text',
+          order_index: 2,
+          is_required: true,
+          max_length: 600,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+      
+      // 批量插入默认问题
+      const { data: createdQuestions, error: questionsError } = await supabase
+        .from('series_questions')
+        .insert(defaultQuestions)
+        .select();
+      
+      if (questionsError) {
+        console.error('插入默认问题失败:', questionsError);
+        throw questionsError;
+      }
+      
+      console.log(`成功创建 ${createdQuestions.length} 个默认问题`);
+      
+    } catch (error) {
+      console.error('创建默认系列问卷失败:', error);
       throw error;
     }
   },
@@ -1165,6 +1266,10 @@ export const courseService = {
             // 批量保存课时
             const savedLessons = await this.saveLessonsInBatch(newLessons, createdModule.id!);
             console.log(`模块 ${createdModule.title} 下复制了 ${savedLessons.length} 个课时`);
+            
+            // 复制系列问答类型课时的关联数据
+            await this.duplicateSeriesQuestionnaires(sourceModule.lessons, savedLessons);
+            console.log(`系列问答数据复制完成`);
           }
           
           // 复制模块的资源文件
@@ -1184,6 +1289,135 @@ export const courseService = {
     }
   },
   
+  // 复制系列问答类型课时的关联数据
+  async duplicateSeriesQuestionnaires(sourceLessons: Lesson[], targetLessons: Lesson[]): Promise<void> {
+    try {
+      console.log(`开始复制系列问答数据`);
+      
+      // 创建原始课时ID到新课时ID的映射
+      const lessonIdMap: Record<string, string> = {};
+      for (let i = 0; i < sourceLessons.length; i++) {
+        if (sourceLessons[i].id && targetLessons[i].id) {
+          lessonIdMap[sourceLessons[i].id!] = targetLessons[i].id!;
+        }
+      }
+      
+      // 查找并复制系列问答数据
+      for (const sourceLesson of sourceLessons) {
+        if (sourceLesson.type === 'series_questionnaire' && sourceLesson.id) {
+          const targetLessonId = lessonIdMap[sourceLesson.id];
+          if (!targetLessonId) {
+            console.warn(`未找到课时 ${sourceLesson.id} 的目标ID，跳过复制`);
+            continue;
+          }
+          
+          // 获取原始系列问答数据
+          const { data: sourceQuestionnaires, error: questionnaireError } = await supabase
+            .from('series_questionnaires')
+            .select('*')
+            .eq('lesson_id', sourceLesson.id);
+          
+          if (questionnaireError) {
+            console.error(`获取系列问答数据失败:`, questionnaireError);
+            continue;
+          }
+          
+          if (!sourceQuestionnaires || sourceQuestionnaires.length === 0) {
+            console.log(`课时 ${sourceLesson.id} 没有找到系列问答数据，跳过复制`);
+            continue;
+          }
+          
+          // 复制每个系列问答
+          for (const sourceQuestionnaire of sourceQuestionnaires) {
+            const { id: _, key: __, ...questionnaireWithoutId } = sourceQuestionnaire;
+            const newQuestionnaire = {
+              ...questionnaireWithoutId,
+              lesson_id: targetLessonId,
+              key: `questionnaire_${uuidv4()}`,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            // 插入新的系列问答记录
+            const { data: createdQuestionnaire, error: insertError } = await supabase
+              .from('series_questionnaires')
+              .insert(newQuestionnaire)
+              .select()
+              .single();
+            
+            if (insertError) {
+              console.error(`插入系列问答记录失败:`, insertError);
+              continue;
+            }
+            
+            console.log(`成功复制系列问答: ${createdQuestionnaire.title}`);
+            
+            // 复制问答的问题
+            if (sourceQuestionnaire.id) {
+              await this.duplicateSeriesQuestions(sourceQuestionnaire.id, createdQuestionnaire.id);
+            }
+          }
+        }
+      }
+      
+      console.log(`系列问答数据复制完成`);
+    } catch (error) {
+      console.error('复制系列问答数据失败:', error);
+      // 不抛出异常，确保课程复制过程能继续
+    }
+  },
+  
+  // 复制系列问答的问题
+  async duplicateSeriesQuestions(sourceQuestionnaireId: string, targetQuestionnaireId: string): Promise<void> {
+    try {
+      console.log(`开始复制系列问答的问题，源问卷: ${sourceQuestionnaireId}, 目标问卷: ${targetQuestionnaireId}`);
+      
+      // 获取原始问题
+      const { data: sourceQuestions, error: questionsError } = await supabase
+        .from('series_questions')
+        .select('*')
+        .eq('questionnaire_id', sourceQuestionnaireId)
+        .order('order_index');
+      
+      if (questionsError) {
+        console.error(`获取系列问题失败:`, questionsError);
+        return;
+      }
+      
+      if (!sourceQuestions || sourceQuestions.length === 0) {
+        console.log(`问卷 ${sourceQuestionnaireId} 没有找到问题，跳过复制`);
+        return;
+      }
+      
+      // 复制每个问题
+      const newQuestions = sourceQuestions.map(sourceQuestion => {
+        const { id: _, ...questionWithoutId } = sourceQuestion;
+        return {
+          ...questionWithoutId,
+          questionnaire_id: targetQuestionnaireId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      });
+      
+      // 批量插入问题
+      const { data: createdQuestions, error: insertError } = await supabase
+        .from('series_questions')
+        .insert(newQuestions)
+        .select();
+      
+      if (insertError) {
+        console.error(`插入系列问题失败:`, insertError);
+        return;
+      }
+      
+      console.log(`成功复制 ${createdQuestions.length} 个问题`);
+    } catch (error) {
+      console.error('复制系列问题失败:', error);
+      // 不抛出异常，确保课程复制过程能继续
+    }
+  },
+
   // 复制模块资源文件
   async duplicateModuleResources(sourceModuleId: string, targetModuleId: string): Promise<void> {
     try {
@@ -1254,6 +1488,61 @@ export const courseService = {
       console.error('复制模块资源文件失败:', error);
       // 不抛出异常，确保课程复制过程能继续
       // 将错误记录下来，但不中断流程
+    }
+  },
+
+  // 修复现有 series_questionnaire 课时缺失的系列问卷记录
+  async fixMissingSeriesQuestionnaires(): Promise<{ fixed: number; errors: string[] }> {
+    try {
+      console.log('开始检查并修复缺失的系列问卷记录...');
+      
+      // 查找所有 series_questionnaire 类型但没有对应 series_questionnaires 记录的课时
+      const { data: orphanedLessons, error: queryError } = await supabase
+        .from('lessons')
+        .select(`
+          id, 
+          title, 
+          series_questionnaires!left (id)
+        `)
+        .eq('type', 'series_questionnaire')
+        .is('series_questionnaires.id', null);
+      
+      if (queryError) {
+        console.error('查询孤立课时失败:', queryError);
+        throw queryError;
+      }
+      
+      if (!orphanedLessons || orphanedLessons.length === 0) {
+        console.log('未发现缺失系列问卷记录的课时');
+        return { fixed: 0, errors: [] };
+      }
+      
+      console.log(`发现 ${orphanedLessons.length} 个需要修复的课时`);
+      
+      const errors: string[] = [];
+      let fixedCount = 0;
+      
+      // 为每个孤立的课时创建默认的系列问卷记录
+      for (const lesson of orphanedLessons) {
+        try {
+          console.log(`修复课时: ${lesson.title} (ID: ${lesson.id})`);
+          await this.createDefaultSeriesQuestionnaire(lesson.id, lesson.title);
+          fixedCount++;
+          console.log(`✓ 已修复课时: ${lesson.title}`);
+        } catch (error: any) {
+          const errorMsg = `修复课时 ${lesson.title} (${lesson.id}) 失败: ${error.message}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
+        }
+      }
+      
+      console.log(`修复完成: 成功修复 ${fixedCount} 个课时，失败 ${errors.length} 个`);
+      
+      return { fixed: fixedCount, errors };
+      
+    } catch (error) {
+      console.error('修复系列问卷记录失败:', error);
+      throw error;
     }
   },
 

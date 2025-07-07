@@ -32,22 +32,6 @@ export function useEventsData() {
             type: 'online',
             enrolledCount: 42,
             host: '张明'
-          },
-          {
-            id: '2',
-            title: '行业专家问答会',
-            date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 五天后
-            type: 'offline',
-            location: '创新中心',
-            enrolledCount: 28
-          },
-          {
-            id: '3',
-            title: '用户体验设计讲座',
-            date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 三天后
-            type: 'online',
-            enrolledCount: 35,
-            host: '李婷'
           }
         ];
         

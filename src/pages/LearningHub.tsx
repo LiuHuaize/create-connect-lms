@@ -46,8 +46,8 @@ const LearningHub: React.FC = () => {
   const activities = [
     {
       title: '产品设计工作坊',
-      date: '05月05日',
-      time: '01:58',
+      date: '07月09日',
+      time: '21:27',
       tags: ['线上'],
       isOnline: true
     }
