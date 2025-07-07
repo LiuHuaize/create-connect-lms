@@ -16,20 +16,20 @@
     --popover: 0 0% 100%; /* 纯白色弹出框 #FFFFFF */
     --popover-foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
 
-    /* 主色调 - 活泼的紫色 */
-    --primary: 260 80% 65%; /* 鲜艳紫色 #9364ED */
+    /* 主色调 - 优雅的深蓝色 */
+    --primary: 221 83% 53%; /* 优雅深蓝色 #3B82F6 */
     --primary-foreground: 0 0% 100%; /* 纯白色文字 #FFFFFF */
 
-    /* 次要色调 - 蓝绿色 */
-    --secondary: 190 90% 60%; /* 明亮的蓝绿色 #33C9E8 */
-    --secondary-foreground: 225 25% 25%; /* 深蓝灰色文字 #343B59 */
+    /* 次要色调 - 浅灰色 */
+    --secondary: 210 14% 95%; /* 极浅灰色 #F3F4F6 */
+    --secondary-foreground: 224 71% 4%; /* 深色文字 #020617 */
 
     /* 柔和中性色 */
-    --muted: 210 40% 96%; /* 极浅蓝灰色 #F0F4FA */
-    --muted-foreground: 215 25% 50%; /* 中蓝灰色文字 #6B7A9A */
+    --muted: 210 20% 98%; /* 极浅背景 #F9FAFB */
+    --muted-foreground: 215 16% 47%; /* 中灰色文字 #64748B */
 
-    /* 强调色 - 珊瑚色 */
-    --accent: 350 95% 65%; /* 鲜艳珊瑚色 #FF4D76 */
+    /* 强调色 - 温暖的蓝色 */
+    --accent: 217 91% 60%; /* 温暖蓝色 #5B8DFF */
     --accent-foreground: 0 0% 100%; /* 纯白色文字 #FFFFFF */
 
     /* 警告/危险色 */
@@ -45,14 +45,14 @@
     --radius: 1.5rem; /* 圆角, 24px */
 
     /* 侧边栏主题 */
-    --sidebar-background: 260 80% 97%; /* 浅紫色侧边栏 #F7F2FF */
-    --sidebar-foreground: 260 30% 30%; /* 深紫色文字 #5C4580 */
-    --sidebar-primary: 260 80% 65%; /* 紫色主色 #9364ED */
+    --sidebar-background: 0 0% 100%; /* 纯白色侧边栏 #FFFFFF */
+    --sidebar-foreground: 215 16% 47%; /* 中灰色文字 #64748B */
+    --sidebar-primary: 221 83% 53%; /* 深蓝色主色 #3B82F6 */
     --sidebar-primary-foreground: 0 0% 100%; /* 白色文字 #FFFFFF */
-    --sidebar-accent: 350 95% 65%; /* 珊瑚色强调 #FF4D76 */
-    --sidebar-accent-foreground: 0 0% 100%; /* 白色文字 #FFFFFF */
-    --sidebar-border: 260 40% 90%; /* 浅紫色边框 #E8DAFF */
-    --sidebar-ring: 260 80% 65%; /* 紫色环 #9364ED */
+    --sidebar-accent: 217 91% 96%; /* 极浅蓝色强调 #EBF5FF */
+    --sidebar-accent-foreground: 221 83% 53%; /* 深蓝色文字 #3B82F6 */
+    --sidebar-border: 210 18% 94%; /* 浅灰色边框 #E5E7EB */
+    --sidebar-ring: 221 83% 53%; /* 深蓝色环 #3B82F6 */
   }
 
   .dark {

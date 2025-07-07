@@ -241,7 +241,7 @@ const CoursePage = () => {
   const sidebarWidth = sidebarCollapsed ? 64 : 320; // 16rem = 64px, 80rem = 320px
   
   return (
-    <div className="flex flex-col h-screen bg-macaron-cream">
+    <div className="flex flex-col h-screen bg-gray-100">
       <CourseHeader
         courseData={courseData}
         isMobile={isMobile}
@@ -264,7 +264,7 @@ const CoursePage = () => {
       <div className="flex flex-1 overflow-hidden relative">
         {!isMobile && (
           <div 
-            className={`fixed bottom-0 left-0 bg-macaron-cream border-r border-muted flex-shrink-0 transition-all duration-300 ease-in-out flex flex-col z-20`}
+            className={`fixed bottom-0 left-0 bg-white border-r border-gray-200 flex-shrink-0 transition-all duration-300 ease-in-out flex flex-col z-20 shadow-sm`}
             style={{ 
               width: `${sidebarWidth}px`,
               top: `${headerHeight}px`,
@@ -274,9 +274,9 @@ const CoursePage = () => {
             }}
           >
             {/* 侧边栏顶部控制栏 */}
-            <div className="flex items-center justify-between p-4 border-b border-muted">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
               {!sidebarCollapsed && (
-                <h3 className="font-medium text-macaron-deepTeal">课程大纲</h3>
+                <h3 className="font-semibold text-gray-800">课程大纲</h3>
               )}
               <TooltipProvider>
                 <Tooltip>
@@ -285,7 +285,7 @@ const CoursePage = () => {
                       variant="ghost"
                       size="icon"
                       onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                      className={`text-primary hover:text-primary/80 ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-colors`}
+                      className={`text-gray-600 hover:text-gray-800 hover:bg-gray-100 ${sidebarCollapsed ? 'mx-auto' : 'ml-auto'} rounded-full transition-all`}
                       aria-label={sidebarCollapsed ? "展开大纲" : "收起大纲"}
                     >
                       {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -329,13 +329,13 @@ const CoursePage = () => {
           }}
         >
           {/* 内容区域顶部控制栏 */}
-          <div className="flex justify-between items-center px-6 py-3 border-b border-muted bg-white shadow-sm">
+          <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-white shadow-sm">
             {isMobile && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebarOpen(true)}
-                className="text-macaron-teal hover:text-macaron-deepTeal transition-colors mr-2"
+                className="text-gray-700 hover:bg-gray-100 transition-all mr-2"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 课程大纲
@@ -343,11 +343,11 @@ const CoursePage = () => {
             )}
             
             <div className="flex items-center gap-3 ml-auto">
-              <span className="text-xs font-medium text-macaron-brown">课程进度</span>
+              <span className="text-xs font-semibold text-gray-700">学习进度</span>
               <div className="w-48 mr-2 relative">
                 <Progress 
                   value={isProgressLoading ? 0 : progress} 
-                  className="h-2 progress-kids" 
+                  className="h-2.5 bg-gray-200" 
                 />
                 {isProgressLoading && (
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -355,7 +355,7 @@ const CoursePage = () => {
                   </div>
                 )}
               </div>
-              <span className="text-xs font-semibold text-macaron-deepMint min-w-[40px] bg-macaron-mint/30 py-1 px-2 rounded-full">
+              <span className="text-xs font-bold text-white min-w-[45px] bg-gradient-to-r from-blue-500 to-blue-600 py-1.5 px-3 rounded-full shadow-sm">
                 {isProgressLoading ? (
                   <Loader2 className="h-3 w-3 animate-spin inline" />
                 ) : (
@@ -366,7 +366,7 @@ const CoursePage = () => {
           </div>
           
           {/* 内容区域（可滚动） */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted bg-white">
+          <div className="flex-1 overflow-y-auto bg-white">
             <LessonContent
               selectedLesson={selectedLesson}
               selectedUnit={selectedUnit}

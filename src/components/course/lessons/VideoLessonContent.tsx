@@ -28,15 +28,15 @@ const VideoLessonContent: React.FC<VideoLessonContentProps> = ({
     <div className="space-y-6 mx-auto max-w-4xl">
       {/* 视频描述部分 - 移到上方 */}
       {content.description && (
-        <div className="bg-gradient-to-r from-ghibli-cream/30 via-ghibli-parchment/20 to-ghibli-cream/30 border border-ghibli-sand/50 rounded-xl p-6 shadow-sm backdrop-blur-sm">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-md">
           <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-1 h-6 bg-gradient-to-b from-ghibli-teal to-ghibli-skyBlue rounded-full mt-1"></div>
+            <div className="flex-shrink-0 w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full mt-1 shadow-sm"></div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-ghibli-deepTeal mb-2 flex items-center gap-2">
-                <Play size={18} className="text-ghibli-teal" />
+              <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                <Play size={18} className="text-blue-500" />
                 视频介绍
               </h3>
-              <p className="text-ghibli-brown leading-relaxed whitespace-pre-wrap text-base">
+              <p className="text-gray-600 leading-relaxed whitespace-pre-wrap text-base">
                 {content.description}
               </p>
             </div>
@@ -45,7 +45,7 @@ const VideoLessonContent: React.FC<VideoLessonContentProps> = ({
       )}
 
       {/* 视频播放器 */}
-      <div className="aspect-video bg-gradient-to-br from-gray-900 via-blue-900 to-indigo-900 rounded-xl flex items-center justify-center shadow-xl overflow-hidden border border-gray-700/50">
+      <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shadow-xl overflow-hidden border border-gray-300">
         {content.bilibiliUrl ? (
           <iframe
             src={formatBilibiliUrl(content.bilibiliUrl)}

@@ -32,19 +32,19 @@ const RecommendedCourses: React.FC<RecommendedCoursesProps> = ({
 }) => {
   return (
     <div className="mb-8">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2 sm:mb-0">为您推荐</h2>
-          <div className="flex flex-wrap items-center gap-2 text-sm mt-2">
-            <span className="text-gray-500">相关主题:</span>
-            <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer">商业规划</Badge>
-            <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-pointer">游戏设计</Badge>
-            <Badge className="bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer">产品开发</Badge>
+          <h2 className="text-2xl font-bold mb-3">为您推荐</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">相关主题:</span>
+            <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 cursor-pointer font-medium">商业规划</Badge>
+            <Badge variant="secondary" className="bg-purple-500/10 text-purple-700 hover:bg-purple-500/20 cursor-pointer font-medium">游戏设计</Badge>
+            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 cursor-pointer font-medium">产品开发</Badge>
           </div>
         </div>
         
-        <Link to="/explore-courses" className="hidden sm:flex items-center gap-1 text-connect-blue hover:underline text-sm mt-2 sm:mt-0">
-          更多课程 <ArrowRight size={16} />
+        <Link to="/explore-courses" className="hidden sm:flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors mt-2 sm:mt-0">
+          更多课程 <ArrowRight size={14} />
         </Link>
       </div>
       
@@ -73,20 +73,19 @@ const RecommendedCourses: React.FC<RecommendedCoursesProps> = ({
             />
           ))
         ) : (
-          <div className="text-center py-12 col-span-full">
-            <p className="text-gray-500 mb-4">暂无推荐课程</p>
+          <div className="text-center py-16 col-span-full bg-gray-50 rounded-xl">
+            <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">暂无推荐课程</p>
             <Link to="/explore-courses">
-              <Button variant="outline">浏览所有课程</Button>
+              <Button className="bg-primary hover:bg-primary/90">浏览所有课程</Button>
             </Link>
           </div>
         )}
       </div>
       
       <div className="flex justify-center mt-6 sm:hidden">
-        <Link to="/explore-courses">
-          <Button variant="outline" className="flex items-center gap-1">
-            查看更多 <ArrowRight size={16} />
-          </Button>
+        <Link to="/explore-courses" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
+          查看更多 <ArrowRight size={14} />
         </Link>
       </div>
     </div>
