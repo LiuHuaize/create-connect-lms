@@ -22,7 +22,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
       <div className="animate-fade-in p-8 max-w-7xl mx-auto">
         <div className={`flex justify-between items-center ${subtitle ? 'mb-2' : 'mb-8'}`}>
           <div>
-            <h1 className="text-3xl font-bold">{title}</h1>
+            <h1 className="text-2xl font-bold">{title}</h1>
             {subtitle && <p className="text-lg text-muted-foreground mt-2 mb-6">{subtitle}</p>}
           </div>
           {rightContent && (

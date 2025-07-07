@@ -34,7 +34,7 @@ const RecommendedCourses: React.FC<RecommendedCoursesProps> = ({
     <div className="mb-8">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold mb-3 text-foreground">为您推荐</h2>
+          <h2 className="text-xl font-bold mb-3 text-foreground">为您推荐</h2>
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="text-sm text-muted-foreground">相关主题:</span>
             <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 cursor-pointer font-medium px-3 py-1">商业规划</Badge>

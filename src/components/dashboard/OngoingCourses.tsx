@@ -31,7 +31,7 @@ const OngoingCourses: React.FC<OngoingCoursesProps> = ({
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-foreground">正在学习</h2>
+        <h2 className="text-xl font-bold text-foreground">正在学习</h2>
         <Link to="/learning" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
           查看全部 <ArrowRight size={14} />
         </Link>
