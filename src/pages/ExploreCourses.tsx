@@ -44,14 +44,23 @@ const ExploreCourses = () => {
         onValueChange={setActiveTab}
         className="mb-8"
       >
-        <TabsList className="bg-gray-100/80 p-1">
-          <TabsTrigger value="recommended" className="rounded-md data-[state=active]:bg-white">
+        <TabsList className="bg-blue-50/80 p-1 border border-blue-100">
+          <TabsTrigger 
+            value="recommended" 
+            className="rounded-md data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-sm text-blue-700 hover:bg-blue-100"
+          >
             推荐
           </TabsTrigger>
-          <TabsTrigger value="popular" className="rounded-md data-[state=active]:bg-white">
+          <TabsTrigger 
+            value="popular" 
+            className="rounded-md data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-sm text-blue-700 hover:bg-blue-100"
+          >
             热门
           </TabsTrigger>
-          <TabsTrigger value="latest" className="rounded-md data-[state=active]:bg-white">
+          <TabsTrigger 
+            value="latest" 
+            className="rounded-md data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-sm text-blue-700 hover:bg-blue-100"
+          >
             最新
           </TabsTrigger>
         </TabsList>

@@ -85,7 +85,7 @@ const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
         <Input
           placeholder="搜索课程..."
-          className="pl-10 pr-10"
+          className="pl-10 pr-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -99,27 +99,39 @@ const SearchAndFilter: React.FC<SearchAndFilterProps> = ({
         )}
       </div>
       
-      <div ref={containerRef} className="flex flex-wrap gap-2">
-        {visibleCategories.map((category) => (
-          <Badge 
-            key={category}
-            variant={selectedCategory === category ? "default" : "outline"}
-            className="cursor-pointer transition-all hover:shadow-sm"
-            onClick={() => handleCategoryClick(category)}
-          >
-            {category}
-          </Badge>
-        ))}
+      {/* 分类标签区域 */}
+      <div className="bg-gray-50/50 rounded-lg p-4 border border-gray-100">
+        <div className="flex items-center mb-3">
+          <div className="h-1 w-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full mr-3"></div>
+          <h4 className="text-sm font-medium text-gray-700">课程分类</h4>
+        </div>
         
-        {categories.length > visibleCategories.length && (
-          <Badge 
-            variant="outline"
-            className="cursor-pointer hover:bg-gray-100"
-            onClick={() => setShowAllCategories(!showAllCategories)}
-          >
-            {showAllCategories ? '收起' : `+${categories.length - visibleCategories.length}`}
-          </Badge>
-        )}
+        <div ref={containerRef} className="flex flex-wrap gap-2">
+          {visibleCategories.map((category) => (
+            <Badge 
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              className={
+                selectedCategory === category 
+                  ? "cursor-pointer transition-all hover:shadow-sm bg-blue-500 hover:bg-blue-600 text-white border-blue-500 px-3 py-1"
+                  : "cursor-pointer transition-all hover:shadow-sm hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 border-gray-300 text-gray-600 px-3 py-1"
+              }
+              onClick={() => handleCategoryClick(category)}
+            >
+              {category}
+            </Badge>
+          ))}
+          
+          {categories.length > visibleCategories.length && (
+            <Badge 
+              variant="outline"
+              className="cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 border-gray-300 text-gray-600 px-3 py-1"
+              onClick={() => setShowAllCategories(!showAllCategories)}
+            >
+              {showAllCategories ? '收起' : `+${categories.length - visibleCategories.length}`}
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
   );
