@@ -567,21 +567,56 @@ export class SeriesQuestionnaireRepository {
             .eq('type', 'series_questionnaire')
             .single();
 
+          console.log('📊 getSubmissionWithAuth - lessonData查询结果:', {
+            hasData: !!lessonData,
+            contentType: typeof lessonData?.content,
+            contentValue: lessonData?.content
+          });
+
+          // 解析content（可能是JSON字符串）
+          let parsedContent = null;
+          if (lessonData?.content) {
+            if (typeof lessonData.content === 'string') {
+              try {
+                parsedContent = JSON.parse(lessonData.content);
+                console.log('✅ getSubmissionWithAuth - content解析成功:', {
+                  hasAIPrompt: !!parsedContent.ai_grading_prompt,
+                  hasAICriteria: !!parsedContent.ai_grading_criteria,
+                  aiPromptLength: parsedContent.ai_grading_prompt?.length || 0,
+                  aiCriteriaLength: parsedContent.ai_grading_criteria?.length || 0
+                });
+              } catch (error) {
+                console.error('❌ getSubmissionWithAuth - content解析失败:', error);
+                parsedContent = {};
+              }
+            } else {
+              parsedContent = lessonData.content;
+            }
+          }
+
           // 构造问答配置
           const questionnaire = lessonData ? {
             id: lessonData.id,
             lesson_id: lessonData.id,
-            title: lessonData.content?.title || '',
-            description: lessonData.content?.description || '',
-            instructions: lessonData.content?.instructions || '',
-            ai_grading_prompt: lessonData.content?.ai_grading_prompt || '',
-            ai_grading_criteria: lessonData.content?.ai_grading_criteria || '',
-            max_score: lessonData.content?.max_score || 100,
-            time_limit_minutes: lessonData.content?.time_limit_minutes,
-            allow_save_draft: lessonData.content?.allow_save_draft !== false,
-            skill_tags: lessonData.content?.skill_tags || [],
-            questions: lessonData.content?.questions || [] // 添加问题列表
+            title: parsedContent?.title || '',
+            description: parsedContent?.description || '',
+            instructions: parsedContent?.instructions || '',
+            ai_grading_prompt: parsedContent?.ai_grading_prompt || '',
+            ai_grading_criteria: parsedContent?.ai_grading_criteria || '',
+            max_score: parsedContent?.max_score || 100,
+            time_limit_minutes: parsedContent?.time_limit_minutes,
+            allow_save_draft: parsedContent?.allow_save_draft !== false,
+            skill_tags: parsedContent?.skill_tags || [],
+            questions: parsedContent?.questions || [] // 添加问题列表
           } : null;
+
+          console.log('📋 getSubmissionWithAuth - 最终questionnaire配置:', {
+            hasQuestionnaire: !!questionnaire,
+            hasAIPrompt: !!questionnaire?.ai_grading_prompt,
+            hasAICriteria: !!questionnaire?.ai_grading_criteria,
+            aiPrompt: questionnaire?.ai_grading_prompt?.substring(0, 50) + '...',
+            aiCriteria: questionnaire?.ai_grading_criteria?.substring(0, 50) + '...'
+          });
 
           return {
             submission,

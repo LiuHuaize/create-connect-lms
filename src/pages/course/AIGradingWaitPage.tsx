@@ -11,7 +11,8 @@ import {
   ArrowLeft,
   RefreshCw,
   Award,
-  Zap
+  Zap,
+  AlertCircle
 } from 'lucide-react';
 import { seriesQuestionnaireService } from '@/services/seriesQuestionnaireService';
 import { toast } from 'sonner';
@@ -100,10 +101,14 @@ const AIGradingWaitPage: React.FC<AIGradingWaitPageProps> = () => {
     }
   }, [currentStep, gradingSteps]);
 
+  // 添加标记防止重复触发
+  const [hasTriggeredGrading, setHasTriggeredGrading] = useState(false);
+  const [gradingError, setGradingError] = useState<string | null>(null);
+
   // 触发AI评分和定期检查评分状态
   useEffect(() => {
     const triggerAIGradingAndCheck = async () => {
-      if (!questionnaireId || checkingStatus) return;
+      if (!questionnaireId || checkingStatus || hasTriggeredGrading) return;
 
       try {
         setCheckingStatus(true);
@@ -126,10 +131,12 @@ const AIGradingWaitPage: React.FC<AIGradingWaitPageProps> = () => {
             return;
           }
 
-          // 如果是已提交状态，触发AI评分
-          if (submission.status === 'submitted') {
+          // 如果是已提交状态，触发AI评分（只触发一次）
+          if (submission.status === 'submitted' && !hasTriggeredGrading) {
             try {
               console.log('触发AI评分:', submission.id);
+              setHasTriggeredGrading(true); // 标记已触发，防止重复
+              
               const gradingResponse = await seriesQuestionnaireService.triggerAIGrading({
                 submission_id: submission.id,
                 force_regrade: false
@@ -150,22 +157,48 @@ const AIGradingWaitPage: React.FC<AIGradingWaitPageProps> = () => {
                     }, 2000);
                   }
                 }, 3000);
+              } else {
+                // 处理评分失败的情况
+                const errorMsg = gradingResponse.error || 'AI评分启动失败';
+                setGradingError(errorMsg);
+                
+                // 如果是因为未配置AI评分，显示错误并返回
+                if (errorMsg.includes('未配置AI评分')) {
+                  toast.error('此问答未配置AI评分功能，请联系老师配置');
+                  setTimeout(() => {
+                    navigate(`/course/${courseId}/lesson/${lessonId}`, { replace: true });
+                  }, 3000);
+                  return;
+                }
               }
-            } catch (gradingError) {
+            } catch (gradingError: any) {
               console.error('触发AI评分失败:', gradingError);
+              const errorMessage = gradingError.message || 'AI评分启动失败';
+              setGradingError(errorMessage);
+              
+              // 如果是配置问题，返回课程页面
+              if (errorMessage.includes('未配置AI评分')) {
+                toast.error('此问答未配置AI评分功能，请联系老师配置');
+                setTimeout(() => {
+                  navigate(`/course/${courseId}/lesson/${lessonId}`, { replace: true });
+                }, 3000);
+                return;
+              }
+              
               toast.error('AI评分启动失败，请稍后重试');
             }
           }
         }
       } catch (error) {
         console.error('检查评分状态失败:', error);
+        setGradingError('检查评分状态失败');
       } finally {
         setCheckingStatus(false);
       }
     };
 
     const checkGradingStatus = async () => {
-      if (!questionnaireId || checkingStatus) return;
+      if (!questionnaireId || checkingStatus || gradingError) return;
 
       try {
         setCheckingStatus(true);
@@ -191,11 +224,15 @@ const AIGradingWaitPage: React.FC<AIGradingWaitPageProps> = () => {
     // 立即触发AI评分和检查
     triggerAIGradingAndCheck();
 
-    // 每5秒检查一次状态
-    const statusCheckInterval = setInterval(checkGradingStatus, 5000);
+    // 每5秒检查一次状态（只有在没有错误时才继续检查）
+    const statusCheckInterval = setInterval(() => {
+      if (!gradingError) {
+        checkGradingStatus();
+      }
+    }, 5000);
 
     return () => clearInterval(statusCheckInterval);
-  }, [questionnaireId, courseId, lessonId, navigate, checkingStatus]);
+  }, [questionnaireId, courseId, lessonId, navigate, checkingStatus, hasTriggeredGrading, gradingError]);
 
   // 格式化时间显示
   const formatTime = (seconds: number) => {
@@ -378,8 +415,26 @@ const AIGradingWaitPage: React.FC<AIGradingWaitPageProps> = () => {
               </div>
             </div>
 
+            {/* 错误状态 */}
+            {gradingError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-center space-x-2 text-red-600">
+                  <AlertCircle className="w-5 h-5" />
+                  <span className="font-semibold">AI评分遇到问题</span>
+                </div>
+                <p className="text-sm text-red-700 text-center">
+                  {gradingError}
+                </p>
+                {gradingError.includes('未配置AI评分') && (
+                  <p className="text-sm text-gray-600 text-center">
+                    系统将在3秒后返回课程页面
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* 完成状态 */}
-            {isCompleted && (
+            {isCompleted && !gradingError && (
               <div className="text-center space-y-4 animate-fade-in">
                 <div className="flex items-center justify-center space-x-2 text-green-600">
                   <CheckCircle className="w-6 h-6" />

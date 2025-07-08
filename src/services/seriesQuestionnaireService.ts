@@ -604,9 +604,18 @@ export const seriesQuestionnaireService = {
       }
 
       // 获取提交信息和权限
+      console.log('🔍 triggerAIGrading - 开始获取提交信息:', request.submission_id);
       const { submission, questionnaire, courseAuthorId } = await SeriesQuestionnaireRepository.getSubmissionWithAuth(
         request.submission_id
       );
+
+      console.log('📊 triggerAIGrading - 获取到的数据:', {
+        hasSubmission: !!submission,
+        hasQuestionnaire: !!questionnaire,
+        submissionType: submission?.lesson_id ? 'lesson' : 'questionnaire',
+        lessonId: submission?.lesson_id,
+        questionnaireId: submission?.questionnaire_id
+      });
 
       // 验证权限
       const isTeacher = courseAuthorId === userId;
@@ -622,16 +631,25 @@ export const seriesQuestionnaireService = {
 
       // 检查AI评分配置
       if (!questionnaire?.ai_grading_prompt) {
-        console.log('问答配置信息:', {
+        console.log('❌ 问答配置信息缺失AI评分提示词:', {
           id: questionnaire?.id,
           title: questionnaire?.title,
           hasPrompt: !!questionnaire?.ai_grading_prompt,
           hasGriteria: !!questionnaire?.ai_grading_criteria,
-          prompt: questionnaire?.ai_grading_prompt,
-          criteria: questionnaire?.ai_grading_criteria
+          promptValue: questionnaire?.ai_grading_prompt,
+          criteriaValue: questionnaire?.ai_grading_criteria,
+          questionnaireKeys: questionnaire ? Object.keys(questionnaire) : [],
+          fullQuestionnaire: questionnaire
         });
         throw new Error('此问答未配置AI评分提示词。请在课程编辑页面为此系列问答设置AI评分提示词。');
       }
+
+      console.log('✅ AI评分配置检查通过:', {
+        hasPrompt: !!questionnaire.ai_grading_prompt,
+        hasCriteria: !!questionnaire.ai_grading_criteria,
+        promptLength: questionnaire.ai_grading_prompt?.length || 0,
+        criteriaLength: questionnaire.ai_grading_criteria?.length || 0
+      });
 
       // 如果没有评分标准，提供默认标准
       if (!questionnaire?.ai_grading_criteria) {

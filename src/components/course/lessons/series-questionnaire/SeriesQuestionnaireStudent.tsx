@@ -52,6 +52,8 @@ interface SeriesQuestionnaireStudentProps {
   courseId: string;
   enrollmentId: string | null;
   onComplete?: () => void;
+  showGradingResult?: boolean;
+  onGradingResultShown?: () => void;
 }
 
 interface StudentSubmissionStatus {
@@ -66,7 +68,9 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   lessonId,
   courseId,
   enrollmentId,
-  onComplete
+  onComplete,
+  showGradingResult = false,
+  onGradingResultShown
 }) => {
   // 导航
   const navigate = useNavigate();
@@ -99,7 +103,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   }, [startTime]);
 
   // 加载问答数据
-  const loadQuestionnaireData = useCallback(async () => {
+  const loadQuestionnaireData = async () => {
     try {
       setLoading(true);
 
@@ -109,16 +113,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
       }
 
       // 获取问答详情
-      console.log('🔍 SeriesQuestionnaireStudent - 开始获取问答详情:', questionnaireId);
       const questionnaireResponse = await seriesQuestionnaireService.getSeriesQuestionnaire(questionnaireId);
-      
-      console.log('📋 SeriesQuestionnaireStudent - 收到问答响应:', {
-        success: questionnaireResponse.success,
-        hasData: !!questionnaireResponse.data,
-        title: questionnaireResponse.data?.title,
-        questionsCount: questionnaireResponse.data?.questions?.length || 0,
-        questions: questionnaireResponse.data?.questions
-      });
       
       if (!questionnaireResponse.success || !questionnaireResponse.data) {
         throw new Error('无法加载问答内容');
@@ -126,23 +121,16 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
 
       setQuestionnaire(questionnaireResponse.data);
       const questionsData = questionnaireResponse.data.questions || [];
-      console.log('✅ SeriesQuestionnaireStudent - 设置问题数据:', {
-        count: questionsData.length,
-        questions: questionsData
-      });
       setQuestions(questionsData);
 
       // 获取学生提交状态
       const statusResponse = await seriesQuestionnaireService.getStudentSubmissionStatus(questionnaireId);
-      console.log('加载问答数据 - 提交状态响应:', statusResponse);
 
       if (statusResponse.success && statusResponse.data) {
         setSubmissionStatus(statusResponse.data);
 
         // 如果有已保存的答案，加载它们
         if (statusResponse.data.submission?.answers && questionnaireResponse.data.questions) {
-          console.log('加载问答数据 - 已保存的答案:', statusResponse.data.submission.answers);
-          
           // 创建一个包含所有问题的答案数组，确保每个问题都有对应的答案条目
           const allAnswers: SeriesAnswer[] = questionnaireResponse.data.questions.map(question => {
             const savedAnswer = statusResponse.data.submission!.answers.find(
@@ -173,23 +161,14 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
         }
 
         // 如果已提交且已评分，手动获取AI评分数据
-        console.log('检查AI评分状态:', {
-          status: statusResponse.data.submission?.status,
-          hasGradings: statusResponse.data.submission?.series_ai_gradings?.length > 0,
-          gradingsCount: statusResponse.data.submission?.series_ai_gradings?.length
-        });
-        
         if (statusResponse.data.submission?.status === 'graded') {
           // 使用专门的AI评分服务查询最新数据
           try {
-            console.log('🔍 使用AI评分服务查询数据...');
             const gradingData = await seriesAIGradingService.getAIGrading(statusResponse.data.submission.id);
             
             if (gradingData) {
-              console.log('✅ 查询到最新AI评分数据:', gradingData);
               setAiGrading(gradingData);
             } else {
-              console.log('⚠️ 未找到AI评分数据');
               setAiGrading(null);
             }
           } catch (gradingQueryError) {
@@ -207,11 +186,14 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [questionnaireId]);
+  };
 
+  // 只在 questionnaireId 变化时加载数据
   useEffect(() => {
-    loadQuestionnaireData();
-  }, [loadQuestionnaireData]);
+    if (questionnaireId) {
+      loadQuestionnaireData();
+    }
+  }, [questionnaireId]);
 
   // 更新答案
   const updateAnswer = (questionId: string, answerText: string) => {
@@ -554,11 +536,6 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
           
           {/* 问题列表 */}
           <div className="space-y-8">
-            {console.log('🎨 SeriesQuestionnaireStudent - 渲染问题列表:', {
-              questionsCount: questions.length,
-              questions: questions,
-              questionnaire: questionnaire
-            })}
             {questions.map((question, index) => {
               const answer = submissionStatus.submission?.answers?.find(
                 (a: any) => a.question_id === question.id
@@ -995,39 +972,41 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
               </div>
               确认提交答案
             </DialogTitle>
-            <DialogDescription className="text-left space-y-4 pt-2">
-              <p className="text-gray-700">您即将提交系列问答的答案，请确认以下信息：</p>
+            <DialogDescription asChild>
+              <div className="text-left space-y-4 pt-2">
+                <p className="text-gray-700">您即将提交系列问答的答案，请确认以下信息：</p>
 
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h4 className="font-medium text-blue-800 mb-2">答题统计</h4>
-                <ul className="text-sm space-y-2 text-blue-700">
-                  <li className="flex justify-between">
-                    <span>已回答题目：</span>
-                    <span className="font-medium">{answers.filter(a => a.answer_text.trim() !== '').length} / {questions.length} 题</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>必填题完成：</span>
-                    <span className="font-medium text-green-600">✓ 已全部完成</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>总字数：</span>
-                    <span className="font-medium">{getTotalWords()} 字</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>答题用时：</span>
-                    <span className="font-medium">{timeSpent} 分钟</span>
-                  </li>
-                </ul>
-              </div>
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-medium text-blue-800 mb-2">答题统计</h4>
+                  <ul className="text-sm space-y-2 text-blue-700">
+                    <li className="flex justify-between">
+                      <span>已回答题目：</span>
+                      <span className="font-medium">{answers.filter(a => a.answer_text.trim() !== '').length} / {questions.length} 题</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>必填题完成：</span>
+                      <span className="font-medium text-green-600">✓ 已全部完成</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>总字数：</span>
+                      <span className="font-medium">{getTotalWords()} 字</span>
+                    </li>
+                    <li className="flex justify-between">
+                      <span>答题用时：</span>
+                      <span className="font-medium">{timeSpent} 分钟</span>
+                    </li>
+                  </ul>
+                </div>
 
-              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                <p className="text-amber-800 font-medium flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  重要提醒
-                </p>
-                <p className="text-amber-700 text-sm mt-1">
-                  提交后将无法修改答案，系统将自动进行AI评分。请仔细确认您的答案内容！
-                </p>
+                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                  <p className="text-amber-800 font-medium flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    重要提醒
+                  </p>
+                  <p className="text-amber-700 text-sm mt-1">
+                    提交后将无法修改答案，系统将自动进行AI评分。请仔细确认您的答案内容！
+                  </p>
+                </div>
               </div>
             </DialogDescription>
           </DialogHeader>
