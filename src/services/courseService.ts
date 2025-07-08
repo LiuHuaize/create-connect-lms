@@ -1227,6 +1227,82 @@ export const courseService = {
       const savedLessons = data ? data.map(convertDbLessonToLesson) : [];
       console.log(`成功批量保存了 ${savedLessons.length} 个课时`);
       
+      // 处理系列问答类型的课时
+      for (let i = 0; i < savedLessons.length; i++) {
+        const savedLesson = savedLessons[i];
+        const originalLesson = lessons[i];
+        
+        if (savedLesson.type === 'series_questionnaire' && originalLesson.content) {
+          console.log(`处理系列问答课时: ${savedLesson.title}`);
+          
+          try {
+            // 提取content中的问答数据
+            const content = typeof originalLesson.content === 'string' 
+              ? JSON.parse(originalLesson.content) 
+              : originalLesson.content;
+            
+            if (content && content.title) {
+              // 创建series_questionnaire记录
+              const questionnaireData = {
+                lesson_id: savedLesson.id,
+                title: content.title || savedLesson.title,
+                description: content.description || '',
+                instructions: content.instructions || '',
+                ai_grading_prompt: content.ai_grading_prompt || '',
+                ai_grading_criteria: content.ai_grading_criteria || '',
+                max_score: content.max_score || 100,
+                time_limit_minutes: content.time_limit_minutes || null,
+                allow_save_draft: content.allow_save_draft !== false,
+                skill_tags: content.skill_tags || [],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              };
+              
+              const { data: questionnaire, error: qError } = await supabase
+                .from('series_questionnaires')
+                .insert(questionnaireData)
+                .select()
+                .single();
+                
+              if (qError) {
+                console.error(`创建问答记录失败: ${qError.message}`);
+                continue;
+              }
+              
+              console.log(`创建问答记录成功: ${questionnaire.id}`);
+              
+              // 创建问题记录
+              if (content.questions && content.questions.length > 0) {
+                const questionsToInsert = content.questions.map((q: any, index: number) => ({
+                  questionnaire_id: questionnaire.id,
+                  title: q.title || `问题 ${index + 1}`,
+                  question_text: q.question_text || q.title || '',
+                  description: q.description || '',
+                  placeholder_text: q.placeholder_text || '在此输入你的答案...',
+                  order_index: q.order_index || index + 1,
+                  required: q.required !== false,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }));
+                
+                const { data: questions, error: questionsError } = await supabase
+                  .from('series_questions')
+                  .insert(questionsToInsert)
+                  .select();
+                  
+                if (questionsError) {
+                  console.error(`创建问题失败: ${questionsError.message}`);
+                } else {
+                  console.log(`成功创建 ${questions.length} 个问题`);
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`处理系列问答课时失败: ${error}`);
+          }
+        }
+      }
+      
       return savedLessons;
     } catch (error) {
       console.error('批量保存课时出错:', error);
@@ -1290,10 +1366,22 @@ export const courseService = {
             
             // 创建批量保存的课时数组，确保移除原始ID
             const newLessons: Lesson[] = sourceModule.lessons.map(sourceLesson => {
-              // 使用解构赋值明确移除原始ID
-              const { id: ___, ...lessonWithoutId } = sourceLesson;
+              // 使用解构赋值明确移除原始ID和运行时属性
+              const { id: ___, isCompleted: ____, ...lessonWithoutId } = sourceLesson;
+              
+              // 对于系列问答类型的课时，需要深拷贝content对象以确保questions数组被正确复制
+              let lessonContent = lessonWithoutId.content;
+              if (sourceLesson.type === 'series_questionnaire' && lessonContent) {
+                // 深拷贝content对象，特别是questions数组
+                lessonContent = {
+                  ...lessonContent,
+                  questions: lessonContent.questions ? [...lessonContent.questions.map(q => ({ ...q }))] : []
+                };
+              }
+              
               return {
                 ...lessonWithoutId,
+                content: lessonContent,
                 module_id: createdModule.id,  // 关联到新模块
                 updated_at: new Date().toISOString(),
                 created_at: new Date().toISOString()
@@ -1304,9 +1392,8 @@ export const courseService = {
             const savedLessons = await this.saveLessonsInBatch(newLessons, createdModule.id!);
             console.log(`模块 ${createdModule.title} 下复制了 ${savedLessons.length} 个课时`);
             
-            // 复制系列问答类型课时的关联数据
-            await this.duplicateSeriesQuestionnaires(sourceModule.lessons, savedLessons);
-            console.log(`系列问答数据复制完成`);
+            // 系列问答数据已在课时复制过程中正确处理，无需额外复制
+            console.log(`系列问答数据已在课时复制中完成`);
           }
           
           // 复制模块的资源文件

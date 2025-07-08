@@ -258,12 +258,19 @@ export const seriesQuestionnaireService = {
    */
   async getSeriesQuestionnaire(questionnaireId: string): Promise<GetSeriesQuestionnaireResponse> {
     try {
+      console.log('🔍 getSeriesQuestionnaire - 开始获取问答详情:', questionnaireId);
+      
       // 从缓存获取
       const cacheKey = SeriesQuestionnaireCacheManager.generateKey('questionnaire', questionnaireId);
       const cached = cacheManager.get<SeriesQuestionnaire>(cacheKey);
       if (cached) {
         // 确保返回的数据包含questions属性
         const questions = (cached as any).questions || [];
+        console.log('📦 getSeriesQuestionnaire - 从缓存返回数据:', {
+          title: cached.title,
+          questionsCount: questions.length,
+          questions: questions
+        });
         return {
           success: true,
           data: {
@@ -273,8 +280,18 @@ export const seriesQuestionnaireService = {
         };
       }
 
+      console.log('📋 getSeriesQuestionnaire - 缓存未命中，从数据库查询');
+      
       // 获取问答信息
-      const { questionnaire } = await QuestionnaireTypeChecker.getQuestionnaireInfo(questionnaireId);
+      const { questionnaire, isLessonType, lessonId } = await QuestionnaireTypeChecker.getQuestionnaireInfo(questionnaireId);
+      
+      console.log('📋 getSeriesQuestionnaire - 查询结果:', {
+        isLessonType,
+        lessonId,
+        title: questionnaire?.title,
+        hasQuestions: !!(questionnaire as any)?.questions,
+        questionsCount: (questionnaire as any)?.questions?.length || 0
+      });
       
       // 确保返回的数据包含questions属性
       const questions = (questionnaire as any).questions || [];
@@ -282,6 +299,17 @@ export const seriesQuestionnaireService = {
         ...questionnaire,
         questions
       };
+      
+      console.log('✅ getSeriesQuestionnaire - 准备返回数据:', {
+        id: fullQuestionnaire.id,
+        title: fullQuestionnaire.title,
+        questionsCount: fullQuestionnaire.questions.length,
+        questions: fullQuestionnaire.questions.map((q: any) => ({
+          id: q.id,
+          title: q.title,
+          question_text: q.question_text
+        }))
+      });
       
       // 缓存结果
       cacheManager.set(cacheKey, fullQuestionnaire);
@@ -291,7 +319,7 @@ export const seriesQuestionnaireService = {
         data: fullQuestionnaire
       };
     } catch (error) {
-      console.error('获取系列问答详情失败:', error);
+      console.error('❌ getSeriesQuestionnaire - 获取系列问答详情失败:', error);
       return buildErrorResponse(error, '获取系列问答详情失败');
     }
   },

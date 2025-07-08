@@ -123,8 +123,8 @@ export const SeriesGradingResult: React.FC<SeriesGradingResultProps> = ({
         {/* 标题区域 */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <Trophy className="h-6 w-6 text-purple-600" />
+            <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Trophy className="h-6 w-6 text-blue-600" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-800">AI 评分结果</h2>
@@ -157,9 +157,9 @@ export const SeriesGradingResult: React.FC<SeriesGradingResultProps> = ({
         
         {/* 总体反馈 */}
         {parsedFeedback.overall_feedback && (
-          <div className="mb-4 p-4 bg-purple-50 rounded-lg">
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
             <h3 className="font-medium mb-2 flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-purple-600" />
+              <MessageSquare className="h-4 w-4 text-blue-600" />
               总体评价
             </h3>
             <p className="text-gray-700 leading-relaxed">
@@ -172,7 +172,7 @@ export const SeriesGradingResult: React.FC<SeriesGradingResultProps> = ({
         {parsedFeedback.criteria_scores && Object.keys(parsedFeedback.criteria_scores).length > 0 && (
           <div className="mb-4">
             <h3 className="font-medium mb-3 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-purple-600" />
+              <BarChart3 className="h-4 w-4 text-blue-600" />
               评分维度
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -216,8 +216,8 @@ export const SeriesGradingResult: React.FC<SeriesGradingResultProps> = ({
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="mb-6">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Target className="h-5 w-5 text-purple-600" />
+              <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Target className="h-5 w-5 text-blue-600" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">各题详细反馈</h3>
@@ -271,7 +271,7 @@ export const SeriesGradingResult: React.FC<SeriesGradingResultProps> = ({
                       {/* AI反馈 - 主要展示区域 */}
                       <div className="bg-white p-4 rounded-lg">
                         <div className="flex items-center gap-2 mb-3">
-                          <Sparkles className="h-5 w-5 text-purple-600" />
+                          <Sparkles className="h-5 w-5 text-blue-600" />
                           <h4 className="font-medium text-gray-800">AI 评价反馈</h4>
                         </div>
                         <p className="text-gray-700 leading-relaxed">

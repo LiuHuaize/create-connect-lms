@@ -109,13 +109,28 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
       }
 
       // 获取问答详情
+      console.log('🔍 SeriesQuestionnaireStudent - 开始获取问答详情:', questionnaireId);
       const questionnaireResponse = await seriesQuestionnaireService.getSeriesQuestionnaire(questionnaireId);
+      
+      console.log('📋 SeriesQuestionnaireStudent - 收到问答响应:', {
+        success: questionnaireResponse.success,
+        hasData: !!questionnaireResponse.data,
+        title: questionnaireResponse.data?.title,
+        questionsCount: questionnaireResponse.data?.questions?.length || 0,
+        questions: questionnaireResponse.data?.questions
+      });
+      
       if (!questionnaireResponse.success || !questionnaireResponse.data) {
         throw new Error('无法加载问答内容');
       }
 
       setQuestionnaire(questionnaireResponse.data);
-      setQuestions(questionnaireResponse.data.questions || []);
+      const questionsData = questionnaireResponse.data.questions || [];
+      console.log('✅ SeriesQuestionnaireStudent - 设置问题数据:', {
+        count: questionsData.length,
+        questions: questionsData
+      });
+      setQuestions(questionsData);
 
       // 获取学生提交状态
       const statusResponse = await seriesQuestionnaireService.getStudentSubmissionStatus(questionnaireId);
@@ -526,8 +541,8 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           {/* 标题区域 */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-12 w-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <BookOpen className="h-6 w-6 text-purple-600" />
+            <div className="h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-blue-600" />
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-800">{questionnaire?.title}</h2>
@@ -539,6 +554,11 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
           
           {/* 问题列表 */}
           <div className="space-y-8">
+            {console.log('🎨 SeriesQuestionnaireStudent - 渲染问题列表:', {
+              questionsCount: questions.length,
+              questions: questions,
+              questionnaire: questionnaire
+            })}
             {questions.map((question, index) => {
               const answer = submissionStatus.submission?.answers?.find(
                 (a: any) => a.question_id === question.id
@@ -549,7 +569,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
                   {/* 问题标题区域 */}
                   <div className="p-4 bg-gray-50 border-b border-gray-200">
                     <div className="flex items-start gap-3">
-                      <div className="h-9 w-9 bg-purple-100 rounded-lg flex items-center justify-center text-purple-700 font-semibold flex-shrink-0">
+                      <div className="h-9 w-9 bg-blue-100 rounded-lg flex items-center justify-center text-blue-700 font-semibold flex-shrink-0">
                         {index + 1}
                       </div>
                       <div className="flex-1">
@@ -575,7 +595,7 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
                   
                   {/* 答案展示区域 */}
                   <div className="p-4">
-                    <div className="bg-purple-50 p-4 rounded-lg">
+                    <div className="bg-blue-50 p-4 rounded-lg">
                       <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
                         {answer?.answer_text || (
                           <span className="text-gray-400 italic">未作答</span>

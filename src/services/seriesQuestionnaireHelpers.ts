@@ -248,6 +248,8 @@ export class QuestionnaireTypeChecker {
     lessonId: string | null;
     questionnaire: any;
   }> {
+    console.log('🔍 getQuestionnaireInfo - 开始查询问答信息:', questionnaireId);
+    
     // 首先尝试从lessons表获取
     const { data: lessonData, error: lessonError } = await supabase
       .from('lessons')
@@ -256,43 +258,109 @@ export class QuestionnaireTypeChecker {
       .eq('type', 'series_questionnaire')
       .single();
 
+    console.log('📋 getQuestionnaireInfo - lessons表查询结果:', {
+      hasData: !!lessonData,
+      error: lessonError?.message,
+      contentKeys: lessonData?.content ? Object.keys(lessonData.content) : null
+    });
+
     if (lessonData && !lessonError) {
+      // 解析content字段（可能是JSON字符串）
+      let content = lessonData.content;
+      console.log('📋 getQuestionnaireInfo - content类型:', typeof content);
+      
+      if (typeof content === 'string') {
+        try {
+          content = JSON.parse(content);
+          console.log('📋 getQuestionnaireInfo - 解析后的content:', content);
+        } catch (e) {
+          console.error('❌ getQuestionnaireInfo - 解析content失败:', e);
+          content = {};
+        }
+      }
+      
+      const questionnaire = {
+        id: lessonData.id,
+        lesson_id: lessonData.id,
+        title: content?.title || '',
+        description: content?.description || '',
+        instructions: content?.instructions || '',
+        max_score: content?.max_score || 100,
+        time_limit_minutes: content?.time_limit_minutes,
+        allow_save_draft: content?.allow_save_draft !== false,
+        skill_tags: content?.skill_tags || [],
+        ai_grading_prompt: content?.ai_grading_prompt || '',
+        ai_grading_criteria: content?.ai_grading_criteria || '',
+        questions: content?.questions || []
+      };
+      
+      console.log('✅ getQuestionnaireInfo - 返回lesson类型问答:', {
+        title: questionnaire.title,
+        questionsCount: questionnaire.questions.length,
+        questions: questionnaire.questions
+      });
+      
       return {
         isLessonType: true,
         lessonId: lessonData.id,
-        questionnaire: {
-          id: lessonData.id,
-          lesson_id: lessonData.id,
-          title: lessonData.content?.title || '',
-          description: lessonData.content?.description || '',
-          instructions: lessonData.content?.instructions || '',
-          max_score: lessonData.content?.max_score || 100,
-          time_limit_minutes: lessonData.content?.time_limit_minutes,
-          allow_save_draft: lessonData.content?.allow_save_draft !== false,
-          skill_tags: lessonData.content?.skill_tags || [],
-          ai_grading_prompt: lessonData.content?.ai_grading_prompt || '',
-          ai_grading_criteria: lessonData.content?.ai_grading_criteria || '',
-          questions: lessonData.content?.questions || []
-        }
+        questionnaire
       };
     }
 
+    console.log('📋 getQuestionnaireInfo - lesson类型查询失败，尝试从series_questionnaires表查询');
+    
     // 如果不是lesson类型，从series_questionnaires表获取
     const { data: questionnaireData, error: questionnaireError } = await supabase
       .from('series_questionnaires')
-      .select('*, questions:series_questions(*)')
+      .select('*')
       .eq('id', questionnaireId)
       .single();
 
+    console.log('📋 getQuestionnaireInfo - series_questionnaires表查询结果:', {
+      hasData: !!questionnaireData,
+      error: questionnaireError?.message,
+      data: questionnaireData
+    });
+
     if (questionnaireError || !questionnaireData) {
+      console.error('❌ getQuestionnaireInfo - 系列问答不存在:', questionnaireError);
       throw new Error('系列问答不存在');
     }
 
-    return {
+    // 单独查询问题数据
+    const { data: questions, error: questionsError } = await supabase
+      .from('series_questions')
+      .select('*')
+      .eq('questionnaire_id', questionnaireId)
+      .order('order_index', { ascending: true });
+
+    console.log('📋 getQuestionnaireInfo - series_questions表查询结果:', {
+      hasData: !!questions,
+      count: questions?.length || 0,
+      error: questionsError?.message,
+      questions: questions
+    });
+
+    if (questionsError) {
+      console.warn('⚠️ getQuestionnaireInfo - 获取问题数据失败:', questionsError.message);
+    }
+
+    const result = {
       isLessonType: false,
       lessonId: questionnaireData.lesson_id,
-      questionnaire: questionnaireData
+      questionnaire: {
+        ...questionnaireData,
+        questions: questions || []
+      }
     };
+    
+    console.log('✅ getQuestionnaireInfo - 返回独立问答类型:', {
+      title: result.questionnaire.title,
+      questionsCount: result.questionnaire.questions.length,
+      questions: result.questionnaire.questions
+    });
+
+    return result;
   }
 
   /**

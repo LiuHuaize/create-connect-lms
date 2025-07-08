@@ -134,18 +134,18 @@ const SeriesQuestionnaireLessonContent: React.FC<SeriesQuestionnaireLessonConten
 
           {/* AI评分信息 */}
           {(questionnaire.ai_grading_prompt || questionnaire.ai_grading_criteria) && (
-            <div className="mt-6 bg-purple-50 p-4 rounded-lg">
-              <h4 className="text-sm font-medium text-purple-800 mb-2">AI评分设置</h4>
+            <div className="mt-6 bg-blue-50 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-800 mb-2">AI评分设置</h4>
               {questionnaire.ai_grading_prompt && (
                 <div className="mb-2">
-                  <p className="text-xs text-purple-600 font-medium">评分提示:</p>
-                  <p className="text-purple-700 text-xs">{questionnaire.ai_grading_prompt}</p>
+                  <p className="text-xs text-blue-600 font-medium">评分提示:</p>
+                  <p className="text-blue-700 text-xs">{questionnaire.ai_grading_prompt}</p>
                 </div>
               )}
               {questionnaire.ai_grading_criteria && (
                 <div>
-                  <p className="text-xs text-purple-600 font-medium">评分标准:</p>
-                  <p className="text-purple-700 text-xs">{questionnaire.ai_grading_criteria}</p>
+                  <p className="text-xs text-blue-600 font-medium">评分标准:</p>
+                  <p className="text-blue-700 text-xs">{questionnaire.ai_grading_criteria}</p>
                 </div>
               )}
             </div>

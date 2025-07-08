@@ -206,27 +206,62 @@ export class SeriesQuestionnaireRepository {
     lesson_id?: string;
     isLessonType: boolean;
   }): Promise<SeriesSubmissionRow | null> {
-    let query = supabase
-      .from('series_submissions')
-      .select(`
-        *,
-        series_ai_gradings(*)
-      `)
-      .eq('student_id', params.student_id);
+    try {
+      if (params.isLessonType && params.lesson_id) {
+        // 使用新创建的函数来获取数据，避免PostgREST嵌入查询问题
+        const { data, error } = await supabase
+          .rpc('get_series_submission_with_gradings', {
+            p_student_id: params.student_id,
+            p_lesson_id: params.lesson_id
+          });
 
-    if (params.isLessonType && params.lesson_id) {
-      query = query.eq('lesson_id', params.lesson_id).is('questionnaire_id', null);
-    } else if (params.questionnaire_id) {
-      query = query.eq('questionnaire_id', params.questionnaire_id);
+        if (error) {
+          console.warn('获取lesson类型提交失败:', error.message, 'Code:', error.code);
+          return null;
+        }
+
+        return data?.submission || null;
+      } else if (params.questionnaire_id) {
+        // 对于独立问卷类型，先查询submission，再单独查询gradings
+        const { data: submission, error: submissionError } = await supabase
+          .from('series_submissions')
+          .select('*')
+          .eq('student_id', params.student_id)
+          .eq('questionnaire_id', params.questionnaire_id)
+          .single();
+
+        if (submissionError && submissionError.code !== 'PGRST116') {
+          console.warn('获取问卷类型提交失败:', submissionError.message, 'Code:', submissionError.code);
+          return null;
+        }
+
+        if (!submission) {
+          return null;
+        }
+
+        // 单独查询评分数据
+        const { data: gradings, error: gradingsError } = await supabase
+          .from('series_ai_gradings')
+          .select('*')
+          .eq('submission_id', submission.id);
+
+        if (gradingsError) {
+          console.warn('获取评分数据失败:', gradingsError.message);
+          // 继续返回submission，即使没有评分数据
+        }
+
+        // 组合数据
+        return {
+          ...submission,
+          series_ai_gradings: gradings || []
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('getStudentSubmission查询异常:', error);
+      return null;
     }
-
-    const { data, error } = await query.single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw new Error('获取学生提交失败');
-    }
-
-    return data;
   }
 
   /**
@@ -330,13 +365,13 @@ export class SeriesQuestionnaireRepository {
     data: SeriesSubmission[];
     count: number;
   }> {
+    // 先获取提交记录，不包含嵌入查询
     let query = supabase
       .from('series_submissions')
       .select(`
         *,
         questionnaire:series_questionnaires(*),
-        student_profile:profiles(username, email),
-        series_ai_gradings(*)
+        student_profile:profiles(username, email)
       `, { count: 'exact' })
       .eq('questionnaire_id', params.questionnaire_id);
 
@@ -360,6 +395,43 @@ export class SeriesQuestionnaireRepository {
 
     if (error) {
       throw new Error('获取提交列表失败');
+    }
+
+    // 如果有提交记录，单独查询评分数据
+    if (data && data.length > 0) {
+      const submissionIds = data.map(submission => submission.id);
+      
+      // 批量查询所有相关的评分数据
+      const { data: gradings, error: gradingsError } = await supabase
+        .from('series_ai_gradings')
+        .select('*')
+        .in('submission_id', submissionIds);
+
+      if (gradingsError) {
+        console.warn('获取评分数据失败:', gradingsError.message);
+      }
+
+      // 将评分数据映射到对应的提交记录
+      const gradingsMap = new Map();
+      if (gradings) {
+        gradings.forEach(grading => {
+          if (!gradingsMap.has(grading.submission_id)) {
+            gradingsMap.set(grading.submission_id, []);
+          }
+          gradingsMap.get(grading.submission_id).push(grading);
+        });
+      }
+
+      // 组合数据
+      const enrichedData = data.map(submission => ({
+        ...submission,
+        series_ai_gradings: gradingsMap.get(submission.id) || []
+      }));
+
+      return {
+        data: enrichedData as SeriesSubmission[],
+        count: count || 0
+      };
     }
 
     return {

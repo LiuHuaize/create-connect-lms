@@ -162,8 +162,8 @@ const SeriesQuestionnaireEditor: React.FC<SeriesQuestionnaireEditorProps> = ({
       {/* 头部 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-100 rounded-lg">
-            <FileQuestion className="h-6 w-6 text-purple-600" />
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <FileQuestion className="h-6 w-6 text-blue-600" />
           </div>
           <div>
             <h2 className="text-xl font-semibold text-gray-900">系列问答编辑器</h2>
