@@ -85,6 +85,9 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [timeSpent, setTimeSpent] = useState(0);
+  const [aiGradingLoading, setAiGradingLoading] = useState(false);
+  const [aiGradingProgress, setAiGradingProgress] = useState(0);
+  const [aiGradingStep, setAiGradingStep] = useState('');
 
   // 导航和UI状态
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -194,6 +197,89 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
       loadQuestionnaireData();
     }
   }, [questionnaireId]);
+
+  // AI评分处理函数
+  const handleAIGrading = async (submissionId: string, forceRegrade: boolean = false) => {
+    try {
+      setAiGradingLoading(true);
+      setAiGradingProgress(0);
+      setAiGradingStep('准备开始AI评分...');
+
+      // 模拟进度更新
+      const progressSteps = [
+        { progress: 10, step: '正在分析您的答案...' },
+        { progress: 30, step: '评估答案质量...' },
+        { progress: 60, step: '生成详细反馈...' },
+        { progress: 85, step: '完成评分计算...' },
+        { progress: 95, step: '准备评分结果...' }
+      ];
+
+      // 启动进度动画
+      progressSteps.forEach((stepData, index) => {
+        setTimeout(() => {
+          setAiGradingProgress(stepData.progress);
+          setAiGradingStep(stepData.step);
+        }, (index + 1) * 1000);
+      });
+
+      // 触发AI评分
+      const gradingResponse = await seriesQuestionnaireService.triggerAIGrading({
+        submission_id: submissionId,
+        force_regrade: forceRegrade
+      });
+
+      if (gradingResponse.success) {
+        // 等待AI评分完成
+        let attempts = 0;
+        const maxAttempts = 20; // 最多等待100秒
+        
+        const checkGradingStatus = async (): Promise<boolean> => {
+          attempts++;
+          const statusResponse = await seriesQuestionnaireService.getStudentSubmissionStatus(questionnaireId);
+          
+          if (statusResponse.success && statusResponse.data?.submission?.status === 'graded') {
+            return true;
+          }
+          
+          if (attempts >= maxAttempts) {
+            throw new Error('AI评分超时，请稍后查看结果');
+          }
+          
+          // 继续等待
+          await new Promise(resolve => setTimeout(resolve, 5000));
+          return checkGradingStatus();
+        };
+
+        await checkGradingStatus();
+        
+        // 评分完成，更新进度
+        setAiGradingProgress(100);
+        setAiGradingStep('AI评分完成！');
+        
+        // 重新加载数据以获取评分结果
+        await loadQuestionnaireData();
+        
+        toast.success('AI评分完成！');
+        
+        // 短暂延迟后隐藏加载状态
+        setTimeout(() => {
+          setAiGradingLoading(false);
+          setAiGradingProgress(0);
+          setAiGradingStep('');
+        }, 2000);
+
+      } else {
+        throw new Error(gradingResponse.error || 'AI评分启动失败');
+      }
+
+    } catch (error) {
+      console.error('AI评分失败:', error);
+      toast.error(error instanceof Error ? error.message : 'AI评分失败，请稍后重试');
+      setAiGradingLoading(false);
+      setAiGradingProgress(0);
+      setAiGradingStep('');
+    }
+  };
 
   // 更新答案
   const updateAnswer = (questionId: string, answerText: string) => {
@@ -354,22 +440,22 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
       if (response.success) {
         toast.success('答案已提交！');
         
-        // 如果需要AI评分且有评分标准，直接跳转到AI评分等待页面
+        // 重新加载数据以获取最新状态
+        await loadQuestionnaireData();
+        
+        // 如果需要AI评分且有评分标准，在原界面启动AI评分
         if (response.data?.redirect_to_grading && 
             questionnaire?.ai_grading_prompt && 
-            questionnaire?.ai_grading_criteria) {
+            questionnaire?.ai_grading_criteria &&
+            response.data?.submission_id) {
           
-          console.log('🔄 跳转到AI评分页面');
-          toast.info('正在跳转到AI评分页面...');
+          console.log('🤖 开始AI评分流程');
+          toast.info('开始AI评分，请稍候...');
           
-          // 跳转到AI评分等待页面，让该页面统一处理AI评分
-          navigate(`/course/${courseId}/lesson/${lessonId}/ai-grading/${questionnaireId}`);
-          return;
+          // 在原界面启动AI评分
+          await handleAIGrading(response.data.submission_id);
         }
         
-        // 如果不需要AI评分，重新加载数据
-        console.log('🔄 重新加载数据');
-        await loadQuestionnaireData();
         // 延迟调用 onComplete 以防止立即触发父组件刷新
         setTimeout(() => {
           onComplete?.();
@@ -442,33 +528,8 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
       return;
     }
 
-    try {
-      setSubmitting(true);
-      toast.info('正在启动AI评分...');
-      
-      // 使用triggerAIGrading统一处理，避免重复调用
-      const gradingResponse = await seriesQuestionnaireService.triggerAIGrading({
-        submission_id: submissionStatus.submission.id,
-        force_regrade: true
-      });
-      
-      if (gradingResponse.success) {
-        toast.success('AI评分完成！');
-        // 重新加载数据以获取最新的AI评分结果（避免无限循环）
-        console.log('AI评分完成后重新加载数据');
-        setTimeout(() => {
-          loadQuestionnaireData();
-        }, 100);
-      } else {
-        toast.error('AI评分失败：' + (gradingResponse.error || '未知错误'));
-      }
-      
-    } catch (error) {
-      console.error('AI评分失败:', error);
-      toast.error('AI评分服务暂时不可用，请稍后重试');
-    } finally {
-      setSubmitting(false);
-    }
+    // 使用新的AI评分处理函数，手动请求时强制重新评分
+    await handleAIGrading(submissionStatus.submission.id, true);
   };
 
   if (loading) {
@@ -622,54 +683,96 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
           </Card>
         )}
 
-        {/* AI评分按钮区域 */}
-        <Card>
-          <CardContent className="text-center py-6">
-            <div className="space-y-4">
-              {aiGrading ? (
-                // 已有AI评分，显示重新评分选项
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
-                  <p className="text-green-800 font-medium">AI评分已完成</p>
-                  <p className="text-green-600 text-sm">评分结果已显示在上方，可重新评分</p>
+        {/* AI评分状态区域 */}
+        {aiGradingLoading ? (
+          // AI评分加载中
+          <Card>
+            <CardContent className="text-center py-8">
+              <div className="space-y-6">
+                {/* 加载动画 */}
+                <div className="flex items-center justify-center">
+                  <div className="relative">
+                    <div className="w-16 h-16 border-4 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Sparkles className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                // 未有AI评分
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <Sparkles className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                  <p className="text-blue-800 font-medium">获取AI评分</p>
-                  <p className="text-blue-600 text-sm">点击下方按钮让AI对您的答案进行评分</p>
+                
+                {/* 标题和描述 */}
+                <div>
+                  <h3 className="text-xl font-semibold text-blue-800 mb-2">AI 智能评分中</h3>
+                  <p className="text-gray-600">{aiGradingStep}</p>
                 </div>
-              )}
-              
-              <Button 
-                onClick={handleRequestAIGrading}
-                disabled={submitting}
-                className={aiGrading 
-                  ? "bg-orange-600 hover:bg-orange-700 text-white" 
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
-                }
-              >
-                {submitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    AI评分中...
-                  </>
-                ) : aiGrading ? (
-                  <>
-                    <Award className="h-4 w-4 mr-2" />
-                    重新AI评分
-                  </>
+                
+                {/* 进度条 */}
+                <div className="space-y-2 max-w-md mx-auto">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">评分进度</span>
+                    <span className="font-medium text-blue-600">{Math.round(aiGradingProgress)}%</span>
+                  </div>
+                  <Progress value={aiGradingProgress} className="h-2 bg-gray-100" />
+                </div>
+                
+                {/* 提示信息 */}
+                <div className="bg-blue-50 p-4 rounded-lg max-w-md mx-auto">
+                  <p className="text-sm text-blue-700">
+                    AI正在仔细分析您的答案，通常需要1-3分钟，请耐心等待...
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          // AI评分按钮区域
+          <Card>
+            <CardContent className="text-center py-6">
+              <div className="space-y-4">
+                {aiGrading ? (
+                  // 已有AI评分，显示重新评分选项
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                    <p className="text-green-800 font-medium">AI评分已完成</p>
+                    <p className="text-green-600 text-sm">评分结果已显示在上方，可重新评分</p>
+                  </div>
                 ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    请求AI评分
-                  </>
+                  // 未有AI评分
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <Sparkles className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                    <p className="text-blue-800 font-medium">获取AI评分</p>
+                    <p className="text-blue-600 text-sm">点击下方按钮让AI对您的答案进行评分</p>
+                  </div>
                 )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                
+                <Button 
+                  onClick={handleRequestAIGrading}
+                  disabled={submitting || aiGradingLoading}
+                  className={aiGrading 
+                    ? "bg-orange-600 hover:bg-orange-700 text-white" 
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }
+                >
+                  {submitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      AI评分中...
+                    </>
+                  ) : aiGrading ? (
+                    <>
+                      <Award className="h-4 w-4 mr-2" />
+                      重新AI评分
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      请求AI评分
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }

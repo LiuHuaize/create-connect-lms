@@ -442,7 +442,8 @@ const CourseSelection = () => {
             <AlertDialogTitle>确认永久删除</AlertDialogTitle>
             <AlertDialogDescription>
               您确定要永久删除课程 <span className="font-semibold">{deleteConfirm.courseName}</span> 吗？
-              <p className="mt-2 text-red-500">警告：此操作无法撤销，课程及其所有内容将被立即删除。</p>
+              <br />
+              <span className="mt-2 text-red-500 block">警告：此操作无法撤销，课程及其所有内容将被立即删除。</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
