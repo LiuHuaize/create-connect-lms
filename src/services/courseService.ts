@@ -916,8 +916,8 @@ export const courseService = {
 
         console.log('已创建新的课时完成记录');
 
-        // 只有在首次完成时才给经验值奖励
-        await this.handleLessonCompletionExperience(user.id, lessonId, courseId, score);
+        // 暂时注释掉经验值奖励逻辑
+        // await this.handleLessonCompletionExperience(user.id, lessonId, courseId, score);
       }
 
       // 更新缓存状态
