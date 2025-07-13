@@ -27,7 +27,6 @@ export const cacheUserRole = (userId: string, role: UserRole | null): void => {
     
     // 使用sessionStorage代替localStorage，这样仅限于当前会话
     sessionStorage.setItem(USER_ROLE_CACHE_KEY, JSON.stringify(cacheData));
-    console.log('用户角色已缓存:', role);
   } catch (error) {
     console.error('缓存用户角色失败:', error);
   }
@@ -53,7 +52,6 @@ export const getCachedUserRole = (userId: string): UserRole | null => {
       Date.now() - cacheData.timestamp < ROLE_CACHE_EXPIRY;
     
     if (isValid) {
-      console.log('从缓存读取用户角色:', cacheData.role);
       return cacheData.role;
     }
     

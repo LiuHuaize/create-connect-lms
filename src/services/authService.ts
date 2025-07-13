@@ -151,48 +151,76 @@ export const authService = {
    */
   async fetchUserRole(userId: string): Promise<UserRole | null> {
     try {
-      console.log('正在获取用户角色:', userId);
-      
       // 首先尝试从缓存获取角色
       const cachedRole = getCachedUserRole(userId);
       if (cachedRole) {
         return cachedRole;
       }
       
-      // 检查管理员角色
-      const { data: isAdmin, error: adminError } = await supabase
-        .rpc('has_role', { user_id: userId, role: 'admin' });
-
-      if (adminError) {
-        console.error('检查管理员角色失败:', adminError);
-        return null;
+      // 防止相同用户ID的并发请求
+      if ((globalThis as any).__roleRequests?.[userId]) {
+        return (globalThis as any).__roleRequests[userId];
       }
-
-      if (isAdmin === true) {
-        console.log('用户拥有管理员角色');
-        cacheUserRole(userId, 'admin');
-        return 'admin';
+      
+      console.log('正在获取用户角色:', userId);
+      
+      // 初始化请求跟踪
+      if (!(globalThis as any).__roleRequests) {
+        (globalThis as any).__roleRequests = {};
       }
+      
+      // 创建请求Promise并存储
+      const rolePromise = (async () => {
+        try {
+          // 检查管理员角色
+          const { data: isAdmin, error: adminError } = await supabase
+            .rpc('has_role', { user_id: userId, role: 'admin' });
 
-      // 检查教师角色
-      const { data: isTeacher, error: teacherError } = await supabase
-        .rpc('has_role', { user_id: userId, role: 'teacher' });
+          if (adminError) {
+            console.error('检查管理员角色失败:', adminError);
+            return null;
+          }
 
-      if (teacherError) {
-        console.error('检查教师角色失败:', teacherError);
-        return null;
-      }
+          if (isAdmin === true) {
+            console.log('用户拥有管理员角色');
+            cacheUserRole(userId, 'admin');
+            return 'admin';
+          }
 
-      if (isTeacher === true) {
-        console.log('用户拥有教师角色');
-        cacheUserRole(userId, 'teacher');
-        return 'teacher';
-      }
+          // 检查教师角色
+          const { data: isTeacher, error: teacherError } = await supabase
+            .rpc('has_role', { user_id: userId, role: 'teacher' });
 
-      // 默认为学生角色
-      console.log('用户拥有学生角色');
-      cacheUserRole(userId, 'student');
-      return 'student';
+          if (teacherError) {
+            console.error('检查教师角色失败:', teacherError);
+            return null;
+          }
+
+          if (isTeacher === true) {
+            console.log('用户拥有教师角色');
+            cacheUserRole(userId, 'teacher');
+            return 'teacher';
+          }
+
+          // 默认为学生角色
+          console.log('用户拥有学生角色');
+          cacheUserRole(userId, 'student');
+          return 'student';
+        } catch (error) {
+          console.error('获取用户角色过程中出错:', error);
+          return null;
+        } finally {
+          // 清除请求跟踪
+          if ((globalThis as any).__roleRequests) {
+            delete (globalThis as any).__roleRequests[userId];
+          }
+        }
+      })();
+      
+      // 存储请求Promise
+      (globalThis as any).__roleRequests[userId] = rolePromise;
+      
+      return await rolePromise;
     } catch (error) {
       console.error('获取用户角色过程中出错:', error);
       return null;

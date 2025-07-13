@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { UserRole } from '@/types/auth';
+import { FullScreenLoader } from '@/components/ui/loading-spinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,8 +13,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, loading, role } = useAuth();
   
   if (loading) {
-    // Consider using a shared loading component here
-    return <div className="flex h-screen items-center justify-center">加载中...</div>;
+    return <FullScreenLoader text="正在验证身份..." />;
   }
   
   if (!user) {

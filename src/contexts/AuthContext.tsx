@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthContextType, UserRole } from '@/types/auth';
 import { useAuthStore } from '@/stores/authStore';
+import { FullScreenLoader } from '@/components/ui/loading-spinner';
 
 // 创建一个空的默认Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session, 
     role, 
     loading, 
+    isInitializing,
     signIn, 
     signUp, 
     signOut, 
@@ -64,6 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut();
   };
   
+  // 如果正在初始化且没有用户会话，显示加载界面
+  if (isInitializing && !session) {
+    return <FullScreenLoader text="正在初始化应用..." />;
+  }
+
   // 提供给上下文的值，与原来的AuthContext保持相同的接口
   const contextValue: AuthContextType = {
     session,
