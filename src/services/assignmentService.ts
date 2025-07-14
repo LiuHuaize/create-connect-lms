@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AssignmentSubmission } from '@/types/course';
+import { notificationHelpers } from './notificationService';
 
 export interface TeacherGrading {
   score: number;
@@ -190,6 +191,59 @@ export async function submitTeacherGrading(submissionId: string, grading: Teache
       .single();
 
     if (error) throw error;
+
+    // 发送教师评分通知给学生
+    try {
+      // 获取提交详情
+      const submission = await getSubmissionById(submissionId);
+      if (!submission) return data;
+
+      // 获取课程作者ID
+      const { data: lesson } = await supabase
+        .from('lessons')
+        .select(`
+          title,
+          course_modules!inner (
+            courses!inner (
+              title,
+              author_id
+            )
+          )
+        `)
+        .eq('id', submission.lesson_id)
+        .single();
+
+      if (lesson && lesson.course_modules && lesson.course_modules.courses) {
+        const course = lesson.course_modules.courses;
+        
+        // 获取老师信息
+        const { data: teacher } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', course.author_id)
+          .single();
+
+        if (teacher) {
+          await notificationHelpers.notifyAssignmentGrading(
+            submission.student_id,
+            course.author_id,
+            {
+              submission_id: submissionId,
+              course_id: '', // 暂时留空，可以后续完善
+              lesson_id: submission.lesson_id,
+              teacher_name: teacher.username || '老师',
+              course_title: course.title || '课程',
+              assignment_title: lesson.title || '作业',
+              final_score: grading.score
+            }
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.warn('发送教师评分通知失败:', notificationError);
+      // 不影响主流程
+    }
+
     return data;
   } catch (error) {
     console.error('提交教师评分失败:', error);
@@ -247,9 +301,165 @@ export async function submitAIGrading(submissionId: string, grading: AIGrading) 
       .single();
 
     if (error) throw error;
+
+    // 发送AI评分通知给学生
+    try {
+      // 获取提交详情
+      const submission = await getSubmissionById(submissionId);
+      if (!submission) return data;
+
+      // 获取课程作者ID
+      const { data: lesson } = await supabase
+        .from('lessons')
+        .select(`
+          title,
+          course_modules!inner (
+            courses!inner (
+              title,
+              author_id
+            )
+          )
+        `)
+        .eq('id', submission.lesson_id)
+        .single();
+
+      if (lesson && lesson.course_modules && lesson.course_modules.courses) {
+        const course = lesson.course_modules.courses;
+        
+        // 获取老师信息
+        const { data: teacher } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', course.author_id)
+          .single();
+
+        if (teacher) {
+          await notificationHelpers.notifyAssignmentGrading(
+            submission.student_id,
+            course.author_id,
+            {
+              submission_id: submissionId,
+              course_id: '', // 暂时留空，可以后续完善
+              lesson_id: submission.lesson_id,
+              teacher_name: teacher.username || 'AI老师',
+              course_title: course.title || '课程',
+              assignment_title: lesson.title || '作业',
+              final_score: grading.score
+            }
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.warn('发送AI评分通知失败:', notificationError);
+      // 不影响主流程
+    }
+
     return data;
   } catch (error) {
     console.error('提交AI评分失败:', error);
+    throw error;
+  }
+}
+
+// 提交作业（新增函数）
+export async function submitAssignment(lessonId: string, studentId: string, fileSubmissions: any[]) {
+  try {
+    const now = new Date().toISOString();
+    
+    // 检查是否已有提交
+    const { data: existingSubmission } = await supabase
+      .from('assignment_submissions')
+      .select('id, status')
+      .eq('lesson_id', lessonId)
+      .eq('student_id', studentId)
+      .single();
+
+    let submissionData;
+
+    if (existingSubmission) {
+      // 更新已有提交
+      const { data, error } = await supabase
+        .from('assignment_submissions')
+        .update({
+          file_submissions: fileSubmissions,
+          status: 'submitted',
+          submitted_at: now,
+          updated_at: now
+        })
+        .eq('id', existingSubmission.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      submissionData = data;
+    } else {
+      // 创建新提交
+      const { data, error } = await supabase
+        .from('assignment_submissions')
+        .insert({
+          lesson_id: lessonId,
+          student_id: studentId,
+          content: JSON.stringify({}),
+          file_submissions: fileSubmissions,
+          status: 'submitted',
+          submitted_at: now
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      submissionData = data;
+    }
+
+    // 发送作业提交通知给老师
+    try {
+      // 获取课程信息和作者
+      const { data: lesson } = await supabase
+        .from('lessons')
+        .select(`
+          title,
+          course_modules!inner (
+            courses!inner (
+              title,
+              author_id
+            )
+          )
+        `)
+        .eq('id', lessonId)
+        .single();
+
+      if (lesson && lesson.course_modules && lesson.course_modules.courses) {
+        const course = lesson.course_modules.courses;
+        
+        // 获取学生信息
+        const { data: student } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', studentId)
+          .single();
+
+        if (student) {
+          await notificationHelpers.notifyAssignmentSubmission(
+            course.author_id,
+            {
+              submission_id: submissionData.id,
+              course_id: '', // 暂时留空，可以后续完善
+              lesson_id: lessonId,
+              student_name: student.username || '学生',
+              course_title: course.title || '课程',
+              assignment_title: lesson.title || '作业'
+            }
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.warn('发送作业提交通知失败:', notificationError);
+      // 不影响主流程
+    }
+
+    return submissionData;
+  } catch (error) {
+    console.error('提交作业失败:', error);
     throw error;
   }
 } 

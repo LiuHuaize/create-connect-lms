@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, BookOpen, Menu, GraduationCap, Users, RefreshCw, Loader2, Book } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { Course } from '@/types/course';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -101,13 +102,16 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
             </div>
           </div>
           
-          <div className="ml-4 flex-shrink-0 flex items-center">
+          <div className="ml-4 flex-shrink-0 flex items-center gap-3">
+            {/* 通知铃铛 */}
+            <NotificationBell size="sm" />
+            
             {/* 只在用户未注册或正在自动注册时显示刷新按钮 */}
             {(!enrollmentId || isAutoEnrolling) && (
               <Button
                 variant="default"
                 size="sm"
-                className={`mr-3 ${isRefreshing || isAutoEnrolling ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'} text-white font-medium min-w-[140px]`}
+                className={`${isRefreshing || isAutoEnrolling ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'} text-white font-medium min-w-[140px]`}
                 onClick={handleRefresh}
                 disabled={isRefreshing || isAutoEnrolling}
               >

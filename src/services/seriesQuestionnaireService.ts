@@ -5,6 +5,7 @@ import {
   SeriesAIGrading,
   SeriesAnswer
 } from "@/types/course";
+import { supabase } from '@/integrations/supabase/client';
 import {
   CreateSeriesQuestionnaireRequest,
   UpdateSeriesQuestionnaireRequest,
@@ -44,6 +45,7 @@ import {
   buildSuccessResponse,
   ValidationError
 } from './seriesQuestionnaireHelpers';
+import { notificationHelpers } from './notificationService';
 
 // 初始化缓存管理器
 const cacheManager = SeriesQuestionnaireCacheManager.getInstance();
@@ -555,13 +557,49 @@ export const seriesQuestionnaireService = {
 
       const submission = await SeriesQuestionnaireRepository.upsertSubmission(submissionData);
 
-      // 如果是正式提交，处理游戏化奖励
+      // 如果是正式提交，处理游戏化奖励和通知
       if (request.status === 'submitted') {
         await handleGamificationRewards('complete', userId, request.questionnaire_id, 
           questionnaire.title || '系列问答', {
           skillTags: questionnaire.skill_tags || [],
           totalWords
         });
+
+        // 发送提交通知给课程作者
+        try {
+          // 获取课程作者信息
+          const { courseAuthorId } = await SeriesQuestionnaireRepository.getQuestionnaireWithAuth(
+            request.questionnaire_id
+          );
+          
+          // 获取当前用户信息用于通知
+          const { data: student } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', userId)
+            .single();
+
+          // 获取课程信息
+          const { data: courseInfo } = await supabase
+            .from('courses')
+            .select('title')
+            .eq('author_id', courseAuthorId)
+            .single();
+
+          if (courseAuthorId && student && courseInfo) {
+            await notificationHelpers.notifySeriesSubmission(courseAuthorId, {
+              submission_id: submission.id,
+              course_id: '', // 暂时留空，可以后续完善
+              lesson_id: isLessonType ? request.questionnaire_id : null,
+              student_name: student.username || '学生',
+              course_title: courseInfo.title || '课程',
+              questionnaire_title: questionnaire.title || '系列问答'
+            });
+          }
+        } catch (error) {
+          console.warn('发送提交通知失败:', error);
+          // 不影响主流程
+        }
       }
 
       // 清除相关缓存
@@ -749,6 +787,43 @@ export const seriesQuestionnaireService = {
         score: aiResult.overall_score,
         maxScore: questionnaire.max_score || 100
       });
+
+      // 发送评分通知给学生
+      try {
+        // 获取老师信息
+        const { data: teacher } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', courseAuthorId)
+          .single();
+
+        // 获取课程信息
+        const { data: courseInfo } = await supabase
+          .from('courses')
+          .select('title')
+          .eq('author_id', courseAuthorId)
+          .single();
+
+        if (teacher && courseInfo) {
+          await notificationHelpers.notifySeriesGrading(
+            submission.student_id,
+            courseAuthorId,
+            {
+              submission_id: submission.id,
+              course_id: '', // 暂时留空，可以后续完善
+              lesson_id: isLessonType ? questionnaire.id : null,
+              teacher_name: teacher.username || 'AI老师',
+              course_title: courseInfo.title || '课程',
+              questionnaire_title: questionnaire.title || '系列问答',
+              final_score: aiResult.overall_score,
+              max_score: questionnaire.max_score || 100
+            }
+          );
+        }
+      } catch (error) {
+        console.warn('发送AI评分通知失败:', error);
+        // 不影响主流程
+      }
 
       console.log('AI评分完成:', grading.id, '分数:', grading.ai_score);
       return buildSuccessResponse(grading as SeriesAIGrading);
@@ -954,6 +1029,46 @@ export const seriesQuestionnaireService = {
         score: request.teacher_score,
         maxScore
       });
+
+      // 发送教师评分通知给学生
+      try {
+        // 获取问答类型信息
+        const { isLessonType } = await QuestionnaireTypeChecker.getQuestionnaireInfo(questionnaire.id);
+        
+        // 获取老师信息
+        const { data: teacher } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', userId)
+          .single();
+
+        // 获取课程信息
+        const { data: courseInfo } = await supabase
+          .from('courses')
+          .select('title')
+          .eq('author_id', userId)
+          .single();
+
+        if (teacher && courseInfo) {
+          await notificationHelpers.notifySeriesGrading(
+            submission.student_id,
+            userId,
+            {
+              submission_id: submission.id,
+              course_id: '', // 暂时留空，可以后续完善
+              lesson_id: isLessonType ? questionnaire.id : null,
+              teacher_name: teacher.username || '老师',
+              course_title: courseInfo.title || '课程',
+              questionnaire_title: questionnaire.title || '系列问答',
+              final_score: request.teacher_score,
+              max_score: maxScore
+            }
+          );
+        }
+      } catch (error) {
+        console.warn('发送教师评分通知失败:', error);
+        // 不影响主流程
+      }
 
       return buildSuccessResponse(saveResult.data as SeriesAIGrading);
     } catch (error) {

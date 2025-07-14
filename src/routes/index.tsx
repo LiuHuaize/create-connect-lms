@@ -43,7 +43,12 @@ const TestRadarOptimization = lazy(() => import('@/pages/test-radar-optimization
 const TimelinePage = lazy(() => import('@/pages/timeline/TimelinePage'));
 const TimelineTest = lazy(() => import('@/pages/test/TimelineTest'));
 const SeriesQuestionnaireTest = lazy(() => import('@/pages/test/SeriesQuestionnaireTest'));
+const TestNotificationPage = lazy(() => import('@/pages/test-notification'));
+const TestNotificationFix = lazy(() => import('@/pages/test-notification-fix'));
 const AIGradingWaitPage = lazy(() => import('@/pages/course/AIGradingWaitPage'));
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
+const SubmissionDetailsPage = lazy(() => import('@/pages/SubmissionDetailsPage'));
+const AssignmentDetailsPage = lazy(() => import('@/pages/AssignmentDetailsPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -109,6 +114,9 @@ const AppRoutes = () => {
           <Route path="/profile/edit" element={<ProtectedRoute><ProfileEditPage /></ProtectedRoute>} />
           <Route path="/timeline" element={<ProtectedRoute><TimelinePage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/submissions/:submissionId" element={<ProtectedRoute><SubmissionDetailsPage /></ProtectedRoute>} />
+          <Route path="/assignments/:assignmentId" element={<ProtectedRoute><AssignmentDetailsPage /></ProtectedRoute>} />
           <Route path="/trash" element={<ProtectedRoute><TrashPage /></ProtectedRoute>} />
           <Route path="/teacher/assignments" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><TeacherAssignmentsPage /></ProtectedRoute>} />
           <Route path="/course/:courseId/assignments" element={<ProtectedRoute allowedRoles={['teacher', 'admin']}><CourseAssignmentsPage /></ProtectedRoute>} />
@@ -145,6 +153,9 @@ const AppRoutes = () => {
         <Route path="/test-timeline" element={<TimelineTest />} />
 
         <Route path="/test-series-questionnaire" element={<SeriesQuestionnaireTest />} />
+
+        <Route path="/test-notification" element={<TestNotificationPage />} />
+        <Route path="/test-notification-fix" element={<TestNotificationFix />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

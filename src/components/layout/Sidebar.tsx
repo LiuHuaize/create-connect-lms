@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import Logo from "@/assets/Logo";
 import UserProfile from "./UserProfile";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 // 导入编辑器全屏事件常量
 import { EDITOR_FULLSCREEN_EVENT } from "@/components/editor/BlockNoteEditor";
 
@@ -157,16 +158,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
         <div className="flex items-center">
           <Logo variant="default" />
         </div>
+        <div className="flex items-center gap-2">
+          {/* 通知铃铛 */}
+          <NotificationBell size="sm" />
           {isMobile && (
             <Button
               variant="ghost"
               size="icon"
-            className="rounded-full hover:bg-primary/10"
+              className="rounded-full hover:bg-primary/10"
               onClick={onClose}
             >
               <X className="h-5 w-5" />
             </Button>
           )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -276,8 +281,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
   // Collapsed sidebar content
   const CollapsedSidebarContent = () => (
     <div className="h-full w-full flex flex-col bg-card overflow-hidden">
-      <div className="p-4 border-b border-border flex justify-center">
+      <div className="p-4 border-b border-border flex flex-col items-center gap-2">
         <Logo variant="icon" />
+        <NotificationBell size="sm" />
       </div>
 
       <div className="flex-1 py-4 overflow-y-auto">
@@ -403,10 +409,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, isMobile = false }) 
           >
             <ChevronRight className="h-4 w-4" />
           </button>
-          <div className="p-4 flex justify-center">
+          <div className="p-4 flex flex-col items-center gap-2">
             <Logo variant="compact" />
+            <NotificationBell size="sm" />
           </div>
-          <div className="flex flex-col items-center space-y-4 mt-8">
+          <div className="flex flex-col items-center space-y-4 mt-4">
             {links.map((link) => (
               <Link
                 key={link.href}
