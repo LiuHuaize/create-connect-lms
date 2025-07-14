@@ -195,6 +195,7 @@ The application uses a service-oriented architecture with key services:
 - **`seriesQuestionnaireService.ts`**: Complex questionnaire system with AI grading
 - **`gamificationService.ts`**: XP system and level progression
 - **`achievementService.ts`**: Badge/achievement system
+- **`notificationService.ts`**: 实时通知系统，支持师生间的作业提交和评分通知
 
 ### Data Flow
 1. **Course Hierarchy**: Course → Module → Lesson structure
@@ -284,6 +285,7 @@ The application uses a service-oriented architecture with key services:
 - No formal test framework currently configured
 - Manual testing across different user roles required
 - Test pages available for specific features (e.g., `/test-gamification`)
+
 
 ## File Organization
 
