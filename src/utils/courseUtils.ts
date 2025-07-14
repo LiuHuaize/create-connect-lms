@@ -1,12 +1,13 @@
 import { Course } from '@/types/course';
 import { CourseCategory, getCategoryDisplayName, CATEGORY_MAP } from '@/types/course-enrollment';
+import { CourseWithStats } from '@/hooks/useCoursesData';
 
 // 过滤课程的逻辑
 export const filterCourses = (
-  courses: Course[], 
+  courses: CourseWithStats[], 
   searchQuery: string, 
   selectedCategory: CourseCategory
-): Course[] => {
+): CourseWithStats[] => {
   try {
     return courses.filter(course => {
       // 标题、描述和简短描述的搜索匹配

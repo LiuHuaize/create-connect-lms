@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useCoursesData } from './useCoursesData';
+import { useCoursesData, CourseWithStats } from './useCoursesData';
 import { filterCourses } from '@/utils/courseUtils';
 import { CourseCategory, COURSE_CATEGORIES, updateCourseCategories } from '@/types/course-enrollment';
 import { useQueryClient } from '@tanstack/react-query';

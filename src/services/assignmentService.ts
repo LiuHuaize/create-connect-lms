@@ -149,6 +149,26 @@ export async function getSubmissionById(submissionId: string) {
       .single();
 
     if (error) throw error;
+    
+    // 获取学生用户名信息
+    if (data) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .eq('id', data.student_id)
+        .single();
+      
+      if (profileError) {
+        console.warn('获取用户配置文件失败:', profileError);
+      }
+      
+      // 合并数据
+      return {
+        ...data,
+        profiles: profile
+      };
+    }
+    
     return data;
   } catch (error) {
     console.error('获取作业提交详情失败:', error);

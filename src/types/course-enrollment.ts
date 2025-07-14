@@ -30,7 +30,6 @@ export const CATEGORY_MAP: Record<string, string> = {
 // 获取分类的显示名称
 export const getCategoryDisplayName = (categoryCode: string | null | undefined): string => {
   if (!categoryCode) return '未分类';
-  if (categoryCode === '测试') return ''; // 不显示"测试"标签
   return CATEGORY_MAP[categoryCode] || categoryCode; // 如果找不到映射，返回原始代码（自定义分类）
 };
 
@@ -48,26 +47,28 @@ export const updateCourseCategories = (courses: Course[]): CourseCategory[] => {
         console.log(`课程 "${course.title}" 的分类: ${course.category}, 显示名称: ${displayName}`);
         return displayName;
       })
-      // 只保留不在基础分类中且不是"未分类"的分类
-      .filter(category => 
-        category !== '未分类' && 
-        !BASE_CATEGORIES.includes(category)
-      );
+      // 过滤掉"未分类"
+      .filter(category => category !== '未分类');
 
-    console.log('提取的自定义分类:', categoriesFromCourses);
+    console.log('提取的所有分类:', categoriesFromCourses);
     
     // 创建唯一分类集合
     const uniqueCategories = Array.from(new Set(categoriesFromCourses));
-    console.log('唯一自定义分类:', uniqueCategories);
+    console.log('唯一分类:', uniqueCategories);
+    
+    // 只返回实际存在的分类，始终保持"全部"在第一位
+    const finalCategories = uniqueCategories.length > 0 
+      ? ['全部', ...uniqueCategories] 
+      : ['全部'];
     
     // 更新全局分类列表
-    COURSE_CATEGORIES = [...BASE_CATEGORIES, ...uniqueCategories];
+    COURSE_CATEGORIES = finalCategories;
     console.log('更新后的完整分类列表:', COURSE_CATEGORIES);
     
     return COURSE_CATEGORIES;
   } catch (error) {
     console.error('更新课程分类时出错:', error);
-    return BASE_CATEGORIES; // 出错时返回基础分类
+    return ['全部']; // 出错时只返回"全部"分类
   }
 };
 

@@ -80,8 +80,13 @@ export const clearAllCoursesCache = (queryClient?: any) => {
   }
 };
 
+// 扩展Course类型以包含enrollment_count
+export type CourseWithStats = Course & {
+  enrollment_count?: number;
+};
+
 // API函数
-export const fetchAllCourses = async (): Promise<Course[]> => {
+export const fetchAllCourses = async (): Promise<CourseWithStats[]> => {
   console.log('正在获取所有课程...');
   
   // 尝试从本地缓存获取
@@ -91,11 +96,8 @@ export const fetchAllCourses = async (): Promise<Course[]> => {
     return cachedCourses;
   }
   
-  // 从数据库获取
-  const { data, error } = await supabase
-    .from('courses')
-    .select('*')
-    .eq('status', 'published');
+  // 使用RPC函数获取带有注册人数的课程数据
+  const { data, error } = await supabase.rpc('get_courses_with_enrollment_count', {});
     
   if (error) {
     console.error('获取课程失败:', error);
@@ -107,12 +109,15 @@ export const fetchAllCourses = async (): Promise<Course[]> => {
     return [];
   }
   
-  console.log(`从API获取到 ${data.length} 个课程`);
+  // 数据已经包含enrollment_count字段，直接使用
+  const coursesWithStats = data;
+  
+  console.log(`从API获取到 ${coursesWithStats.length} 个课程`);
   
   // 保存到本地缓存
-  saveToLocalCache('all-courses', data);
+  saveToLocalCache('all-courses', coursesWithStats);
   
-  return data as Course[];
+  return coursesWithStats as CourseWithStats[];
 };
 
 // 获取用户已加入的课程
@@ -299,7 +304,7 @@ export const useCoursesData = () => {
   };
   
   return {
-    courses,
+    courses: courses as CourseWithStats[],
     enrolledCourses,
     loading,
     loadingEnrolled,

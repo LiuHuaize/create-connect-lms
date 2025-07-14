@@ -157,7 +157,10 @@ export const AssignmentSubmissionViewer: React.FC<AssignmentSubmissionViewerProp
           submittedAt: sub.submitted_at,
           fileSubmissions: sub.file_submissions || [],
           teacherGrading: sub.teacher_grading,
-          aiGrading: sub.ai_grading
+          aiGrading: sub.ai_grading,
+          profiles: sub.profiles ? {
+            username: sub.profiles.username
+          } : undefined
         }));
         
         setSubmissions(formattedSubmissions);
