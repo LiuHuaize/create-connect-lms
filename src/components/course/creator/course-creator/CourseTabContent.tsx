@@ -54,6 +54,37 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
   onSaveCourse,
 }) => {
   const { saveLesson } = useIncrementalSave({ courseId: course.id });
+  
+  // 专门为框架课时提供的保存函数
+  const handleSaveFrameLesson = async (updatedFrameLesson: Lesson): Promise<string | undefined | void> => {
+    try {
+      console.log('保存框架课时到数据库:', updatedFrameLesson);
+      await saveLesson(updatedFrameLesson);
+      
+      // 同时更新本地状态
+      const moduleId = modules.find(m => 
+        m.lessons.some(l => l.id === updatedFrameLesson.id)
+      )?.id;
+      
+      if (moduleId) {
+        const updatedModules = modules.map(module => {
+          if (module.id === moduleId) {
+            const updatedLessons = module.lessons.map(lesson => 
+              lesson.id === updatedFrameLesson.id ? { ...updatedFrameLesson } : lesson
+            );
+            return { ...module, lessons: updatedLessons };
+          }
+          return module;
+        });
+        setModules(updatedModules);
+      }
+      
+      return 'success';
+    } catch (error) {
+      console.error('保存框架课时失败:', error);
+      throw error;
+    }
+  };
   const updateLesson = async (moduleId: string, lessonId: string, updatedLesson: Lesson | null) => {
     if (!updatedLesson) {
       setCurrentLesson(null);
@@ -168,6 +199,7 @@ const CourseTabContent: React.FC<CourseTabContentProps> = ({
               }}
               onEditorFullscreenChange={onEditorFullscreenChange}
               onCourseDataSaved={onSaveCourse}
+              onSaveFrameLesson={handleSaveFrameLesson}
             />
           </div>
         ) : (

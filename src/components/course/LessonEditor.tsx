@@ -58,9 +58,10 @@ interface LessonEditorProps {
   onContentChange: (newContent: LessonContent) => void;
   onEditorFullscreenChange?: (isFullscreen: boolean) => void;
   onCourseDataSaved?: (updatedLesson: Lesson) => Promise<string | undefined | void>;
+  onSaveFrameLesson?: (updatedFrameLesson: Lesson) => Promise<string | undefined | void>;
 }
 
-const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChange, onCourseDataSaved }: LessonEditorProps) => {
+const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChange, onCourseDataSaved, onSaveFrameLesson }: LessonEditorProps) => {
   // Initialize content with the correct structure based on lesson type
   const initializeContent = (): LessonContent => {
     const baseContent = lesson.content;
@@ -580,7 +581,7 @@ const LessonEditor = ({ lesson, onSave, onContentChange, onEditorFullscreenChang
             setCurrentContent(content);
             onContentChange(content);
           }}
-          onCourseDataSaved={onCourseDataSaved}
+          onCourseDataSaved={onSaveFrameLesson || onCourseDataSaved}
         />
       );
     }
