@@ -36,7 +36,9 @@ export function useCourseCompletion(options: UseCourseCompletionOptions = {}) {
     if (courseId && Object.keys(status).length === 0) {
       console.log('⚠️ useCourseCompletion: 完成状态为空', { 
         courseId, 
-        storeHasData: !!storeCompletionStatus[courseId] 
+        storeHasData: !!storeCompletionStatus[courseId],
+        allStoreKeys: Object.keys(storeCompletionStatus),
+        fullStoreContent: storeCompletionStatus
       });
     }
     return status;

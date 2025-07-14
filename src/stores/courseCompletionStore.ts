@@ -65,6 +65,16 @@ export const useCourseCompletionStore = create<CourseCompletionState>((set, get)
       existingStoreState: get().completionStatus[courseId]
     });
     
+    // 如果已经有状态数据，且不是第一次设置，则跳过
+    const currentState = get().completionStatus[courseId];
+    const hasExistingData = currentState && Object.keys(currentState).length > 0;
+    const alreadySetFromDetails = get().courseCompletionFromDetails.has(courseId);
+    
+    if (hasExistingData && alreadySetFromDetails) {
+      console.log(`⏭️ 跳过重复同步，课程 ${courseId} 已有状态数据:`, currentState);
+      return;
+    }
+    
     // 标记这个课程的完成状态已从getCourseDetails获取
     set(state => ({
       courseCompletionFromDetails: new Set([...state.courseCompletionFromDetails, courseId])
@@ -74,17 +84,24 @@ export const useCourseCompletionStore = create<CourseCompletionState>((set, get)
     const cachedStatus = lessonCompletionCache[courseId];
     if (cachedStatus) {
       const oldState = get().completionStatus[courseId];
+      // 合并现有状态和缓存状态，优先保留现有的更新
+      const mergedStatus = {
+        ...cachedStatus,
+        ...oldState // 现有状态优先，这样用户操作的更新不会被覆盖
+      };
+      
       set(state => ({
         completionStatus: {
           ...state.completionStatus,
-          [courseId]: cachedStatus
+          [courseId]: mergedStatus
         }
       }));
       console.log(`✅ 从课程详情缓存设置完成状态成功:`, {
         courseId: courseId,
         oldState: oldState,
-        newState: cachedStatus,
-        completedLessonsCount: Object.values(cachedStatus).filter(Boolean).length
+        cachedState: cachedStatus,
+        mergedState: mergedStatus,
+        completedLessonsCount: Object.values(mergedStatus).filter(Boolean).length
       });
     } else {
       console.log(`❌ 课程 ${courseId} 在 lessonCompletionCache 中没有数据`);
@@ -163,6 +180,8 @@ export const useCourseCompletionStore = create<CourseCompletionState>((set, get)
   
   updateLessonCompletion: (courseId: string, lessonId: string, completed: boolean) => {
     console.log('🔄 Zustand updateLessonCompletion:', { courseId, lessonId, completed });
+    
+    // 同时更新 Zustand store 和 lessonCompletionCache
     set(state => ({
       completionStatus: {
         ...state.completionStatus,
@@ -172,6 +191,20 @@ export const useCourseCompletionStore = create<CourseCompletionState>((set, get)
         }
       }
     }));
+    
+    // 同步更新 lessonCompletionCache
+    if (lessonCompletionCache[courseId]) {
+      lessonCompletionCache[courseId] = {
+        ...lessonCompletionCache[courseId],
+        [lessonId]: completed
+      };
+      console.log('🔄 同步更新 lessonCompletionCache:', {
+        courseId,
+        lessonId,
+        completed,
+        updatedCache: lessonCompletionCache[courseId]
+      });
+    }
   },
   
   clearCourseCache: (courseId: string) => {

@@ -211,7 +211,7 @@ export const useCourseData = (courseId: string | undefined) => {
         hasCacheData: !!lessonCompletionCache[courseData?.id || '']
       });
     }
-  }, [courseData?.id, setCompletionStatusFromCourseDetails]);
+  }, [courseData?.id]); // 移除 setCompletionStatusFromCourseDetails 依赖
   
   // 标记为已初始化，避免重复请求
   if (!isInitializedRef.current && (courseData || courseError)) {

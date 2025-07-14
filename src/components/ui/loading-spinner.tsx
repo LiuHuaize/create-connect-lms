@@ -43,14 +43,10 @@ export const FullScreenLoader: React.FC<{ text?: string }> = ({ text = '页面�
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <BookOpen className="h-12 w-12 text-blue-600" />
-            <Loader2 className="absolute -top-1 -right-1 h-6 w-6 animate-spin text-blue-500" />
           </div>
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">亿小步课堂</h3>
             <p className="text-gray-600">{text}</p>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div className="bg-blue-600 h-1.5 rounded-full animate-pulse" style={{ width: '60%' }}></div>
           </div>
         </div>
       </div>
