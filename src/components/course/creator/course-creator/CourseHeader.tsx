@@ -77,16 +77,7 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
       // 显示发布中的提示
       const toastId = toast.loading('正在发布课程...');
       
-      // 先保存课程内容（会同步删除的模块和课时到数据库）
-      const savedCourseId = await handleSaveCourse();
-      if (!savedCourseId) {
-        throw new Error('保存课程失败，无法发布');
-      }
-      
-      // 等待一小段时间确保所有删除操作都完成
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 检查课程内容是否足够发布
+      // 检查课程内容是否足够发布（先验证，避免不必要的保存）
       if (modules.length === 0) {
         toast.error('课程需要至少包含一个模块才能发布', {
           id: toastId
@@ -105,8 +96,8 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         return;
       }
       
-      // 更新课程状态为发布
-      const updatedCourse = await courseService.updateCourseStatus(savedCourseId, 'published');
+      // 直接更新课程状态为发布（不重新保存所有内容）
+      const updatedCourse = await courseService.updateCourseStatus(course.id, 'published');
       
       // 更新本地状态
       if (setCourse) {
@@ -124,11 +115,6 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         id: toastId,
         duration: 3000
       });
-      
-      // 移除强制页面刷新，改为更优雅的状态更新
-      // setTimeout(() => {
-      //   window.location.reload();
-      // }, 1500);
     } catch (error) {
       console.error('发布课程失败:', error);
       toast.error('发布课程失败，请稍后重试', {
@@ -147,14 +133,8 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
       // 显示取消发布中的提示
       const toastId = toast.loading('正在取消发布课程...');
       
-      // 先保存课程内容
-      const savedCourseId = await handleSaveCourse();
-      if (!savedCourseId) {
-        throw new Error('保存课程失败，无法取消发布');
-      }
-      
-      // 更新课程状态为草稿
-      const updatedCourse = await courseService.updateCourseStatus(savedCourseId, 'draft');
+      // 直接更新课程状态为草稿（不重新保存所有内容）
+      const updatedCourse = await courseService.updateCourseStatus(course.id, 'draft');
       
       // 更新本地状态
       if (setCourse) {
@@ -172,11 +152,6 @@ const CourseHeader: React.FC<CourseHeaderProps> = ({
         id: toastId,
         duration: 3000
       });
-      
-      // 移除强制页面刷新，改为更优雅的状态更新
-      // setTimeout(() => {
-      //   window.location.reload();
-      // }, 1500);
     } catch (error) {
       console.error('取消发布课程失败:', error);
       toast.error('取消发布课程失败，请稍后重试', {

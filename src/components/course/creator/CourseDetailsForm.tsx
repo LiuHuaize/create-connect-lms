@@ -54,9 +54,9 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
       // 这是自定义分类，检查是否需要添加到分类列表
       const categoryExists = courseCategories.some(cat => cat.value === course.category);
       if (!categoryExists && course.category !== 'custom') {
-        // 添加自定义分类到列表
+        // 添加自定义分类到列表，确保过滤掉重复项
         setCourseCategories(prev => [
-          ...prev.filter(cat => cat.value !== 'custom'),
+          ...prev.filter(cat => cat.value !== 'custom' && cat.value !== course.category),
           { value: course.category, label: course.category },
           { value: 'custom', label: '自定义分类...' }
         ]);
@@ -64,7 +64,7 @@ const CourseDetailsForm: React.FC<CourseDetailsFormProps> = ({ course, setCourse
       // 设置显示值
       setSelectedCategoryDisplay(course.category);
     }
-  }, [course.category, courseCategories]);
+  }, [course.category]); // 移除courseCategories依赖避免无限循环
 
   const handleCategoryChange = (value: string) => {
     try {
