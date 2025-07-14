@@ -225,9 +225,9 @@ export const useCourseData = (courseId: string | undefined) => {
       }
 
       // 手动触发重新获取
-      refetchCourseData();
+      await refetchCourseData();
       if (user?.id) {
-        refetchEnrollment();
+        await refetchEnrollment();
       }
     }
   }, [courseId, user?.id, queryClient, refetchCourseData, refetchEnrollment]);

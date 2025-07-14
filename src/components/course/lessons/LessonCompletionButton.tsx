@@ -88,7 +88,10 @@ const LessonCompletionButton: React.FC<LessonCompletionButtonProps> = ({
         if (appConfig.debug.logRefreshEvents) {
           console.log('LessonCompletionButton: 根据配置执行自动刷新');
         }
-        refreshCourseData();
+        // 延迟一点刷新，确保数据库触发器执行完成
+        setTimeout(() => {
+          refreshCourseData();
+        }, 100);
       } else {
         if (appConfig.debug.logRefreshEvents) {
           console.log('LessonCompletionButton: 根据配置跳过自动刷新');
