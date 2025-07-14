@@ -36,6 +36,11 @@ const CourseSidebar: React.FC<CourseSidebarProps> = ({
     forceCleanup: false
   });
   
+  // 调试：检查 completionStatus 是否为空
+  if (Object.keys(completionStatus).length === 0) {
+    console.log('⚠️ CourseSidebar: completionStatus 为空', { courseId: courseData?.id });
+  }
+  
   // 折叠状态下的简化渲染
   if (collapsed) {
     return (
@@ -152,6 +157,7 @@ currentModuleHasActiveLesson
         const completedLessons = module.lessons?.filter(lesson => lesson.isCompleted || completionStatus[lesson.id]).length || 0;
         const moduleProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
         
+        
         // 统一的图标设计
         const moduleIcons = [
           <GraduationCap size={18} />,
@@ -202,6 +208,7 @@ currentModuleHasActiveLesson
                   // 使用从服务器获取的完成状态
                   const isCompleted = lesson.isCompleted || completionStatus[lesson.id] || false;
                   const isActive = selectedLesson && selectedLesson.id === lesson.id;
+                  
                   
                   return (
                     <li key={lesson.id}>

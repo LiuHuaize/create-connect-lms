@@ -45,8 +45,10 @@ const LessonCompletionButton: React.FC<LessonCompletionButtonProps> = ({
   
   const isCompleted = isLessonCompleted(lessonId);
   
+  
   // 处理标记完成或取消完成
   const handleToggleComplete = async () => {
+    
     if (!lessonId || !courseId) {
       toast.error('课程信息不完整，无法执行此操作');
       return;

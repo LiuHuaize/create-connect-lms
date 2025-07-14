@@ -195,8 +195,21 @@ export const useCourseData = (courseId: string | undefined) => {
   
   useEffect(() => {
     // 当获取到课程数据且包含完成状态时，更新到store
+    console.log('🔄 useCourseData 检查是否需要同步完成状态到 store:', {
+      courseId: courseData?.id,
+      lessonCompletionCacheExists: !!lessonCompletionCache[courseData?.id || ''],
+      lessonCompletionCacheContent: lessonCompletionCache[courseData?.id || ''],
+      allCacheKeys: Object.keys(lessonCompletionCache)
+    });
+    
     if (courseData?.id && lessonCompletionCache[courseData.id]) {
+      console.log('✅ 同步课程完成状态到 Zustand store:', courseData.id);
       setCompletionStatusFromCourseDetails(courseData.id);
+    } else {
+      console.log('❌ 跳过同步 - 条件不满足:', {
+        hasCourseId: !!courseData?.id,
+        hasCacheData: !!lessonCompletionCache[courseData?.id || '']
+      });
     }
   }, [courseData?.id, setCompletionStatusFromCourseDetails]);
   

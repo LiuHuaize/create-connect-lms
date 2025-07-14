@@ -17,8 +17,10 @@ export function useCourseCompletion(options: UseCourseCompletionOptions = {}) {
     isLessonCompleted,
     loadCompletionStatus,
     updateLessonCompletion,
-    loadingCourses
+    loadingCourses,
+    completionStatus: storeCompletionStatus
   } = useCourseCompletionStore();
+  
   
   // 自动加载完成状态
   useEffect(() => {
@@ -27,10 +29,18 @@ export function useCourseCompletion(options: UseCourseCompletionOptions = {}) {
     }
   }, [courseId, autoLoad, forceCleanup]);
   
-  // 获取当前课程的完成状态
+  // 获取当前课程的完成状态 - 直接从 store 订阅状态
   const completionStatus = useMemo(() => {
-    return courseId ? getCompletionStatus(courseId) : {};
-  }, [courseId, getCompletionStatus]);
+    const status = courseId ? (storeCompletionStatus[courseId] || {}) : {};
+    // 只在状态为空时输出调试信息
+    if (courseId && Object.keys(status).length === 0) {
+      console.log('⚠️ useCourseCompletion: 完成状态为空', { 
+        courseId, 
+        storeHasData: !!storeCompletionStatus[courseId] 
+      });
+    }
+    return status;
+  }, [courseId, storeCompletionStatus]);
   
   // 判断是否正在加载
   const isLoading = courseId ? loadingCourses.has(courseId) : false;

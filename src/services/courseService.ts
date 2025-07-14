@@ -311,7 +311,24 @@ export const courseService = {
       
       // 如果获取了完成状态，更新全局缓存
       if (courseId && Object.keys(completionStatus).length > 0) {
+        console.log('📝 更新 lessonCompletionCache:', {
+          courseId: courseId,
+          completionStatus: completionStatus,
+          completedCount: Object.values(completionStatus).filter(Boolean).length,
+          beforeUpdate: lessonCompletionCache[courseId]
+        });
         lessonCompletionCache[courseId] = completionStatus;
+        console.log('✅ lessonCompletionCache 更新完成:', {
+          courseId: courseId,
+          afterUpdate: lessonCompletionCache[courseId],
+          allCacheKeys: Object.keys(lessonCompletionCache)
+        });
+      } else {
+        console.log('❌ 跳过 lessonCompletionCache 更新:', {
+          courseId: courseId,
+          completionStatusKeys: Object.keys(completionStatus),
+          completionStatusLength: Object.keys(completionStatus).length
+        });
       }
       
       console.timeEnd(timerId);
@@ -925,7 +942,6 @@ export const courseService = {
         lessonCompletionCache[courseId] = {};
       }
       lessonCompletionCache[courseId][lessonId] = true;
-
       console.log('已更新课时完成状态缓存');
 
       // 触发器会自动更新课程进度，所以这里不需要手动更新
@@ -1047,7 +1063,7 @@ export const courseService = {
       // 更新缓存状态
       if (courseId && lessonCompletionCache[courseId]) {
         delete lessonCompletionCache[courseId][lessonId];
-        console.log(`已清除课程 ${courseId} 的完成状态缓存`);
+        console.log(`已更新课时 ${lessonId} 的完成状态缓存为 false`);
       }
       
       // 触发器会自动更新课程进度

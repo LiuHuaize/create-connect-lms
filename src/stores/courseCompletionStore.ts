@@ -58,6 +58,13 @@ export const useCourseCompletionStore = create<CourseCompletionState>((set, get)
   },
   
   setCompletionStatusFromCourseDetails: (courseId: string) => {
+    console.log('🔧 setCompletionStatusFromCourseDetails 被调用:', {
+      courseId: courseId,
+      lessonCompletionCache: lessonCompletionCache,
+      cachedStatusForCourse: lessonCompletionCache[courseId],
+      existingStoreState: get().completionStatus[courseId]
+    });
+    
     // 标记这个课程的完成状态已从getCourseDetails获取
     set(state => ({
       courseCompletionFromDetails: new Set([...state.courseCompletionFromDetails, courseId])
@@ -66,25 +73,31 @@ export const useCourseCompletionStore = create<CourseCompletionState>((set, get)
     // 从lessonCompletionCache获取状态
     const cachedStatus = lessonCompletionCache[courseId];
     if (cachedStatus) {
+      const oldState = get().completionStatus[courseId];
       set(state => ({
         completionStatus: {
           ...state.completionStatus,
           [courseId]: cachedStatus
         }
       }));
-      console.log(`从课程详情缓存设置完成状态，课程 ${courseId}`);
+      console.log(`✅ 从课程详情缓存设置完成状态成功:`, {
+        courseId: courseId,
+        oldState: oldState,
+        newState: cachedStatus,
+        completedLessonsCount: Object.values(cachedStatus).filter(Boolean).length
+      });
+    } else {
+      console.log(`❌ 课程 ${courseId} 在 lessonCompletionCache 中没有数据`);
     }
   },
   
   loadCompletionStatus: async (courseId: string, forceCleanup = false) => {
     // 如果完成状态已从getCourseDetails获取，跳过加载
     if (get().courseCompletionFromDetails.has(courseId)) {
-      console.log(`课程 ${courseId} 的完成状态已从getCourseDetails获取，跳过重复加载`);
       return;
     }
     // 如果已经有该课程的加载进程，直接返回现有的Promise
     if (loadingPromises[courseId]) {
-      console.log(`复用现有的完成状态加载进程: ${courseId}`);
       return loadingPromises[courseId];
     }
     
@@ -149,6 +162,7 @@ export const useCourseCompletionStore = create<CourseCompletionState>((set, get)
   },
   
   updateLessonCompletion: (courseId: string, lessonId: string, completed: boolean) => {
+    console.log('🔄 Zustand updateLessonCompletion:', { courseId, lessonId, completed });
     set(state => ({
       completionStatus: {
         ...state.completionStatus,
