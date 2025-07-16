@@ -24,6 +24,34 @@ export interface UserAchievement {
   achievement?: Achievement;
 }
 
+// 系列问答评分接口
+export interface SeriesAiGrading {
+  ai_score: number;
+  final_score: number;
+  graded_at: string;
+}
+
+// 系列问答提交接口
+export interface SeriesSubmission {
+  id: string;
+  student_id: string;
+  status: string;
+  total_words: number;
+  series_ai_gradings?: SeriesAiGrading;
+}
+
+// 作业提交接口
+export interface AssignmentSubmission {
+  id: string;
+  student_id: string;
+  status: string;
+  content: string;
+  teacher_grading?: {
+    score: number;
+    feedback?: string;
+  };
+}
+
 // 成就检查结果
 export interface AchievementCheckResult {
   achievement: Achievement;
@@ -83,11 +111,30 @@ export const achievementService = {
   // 检查用户是否已解锁特定成就
   async hasUserUnlockedAchievement(userId: string, achievementKey: string): Promise<boolean> {
     try {
+      // 首先获取成就ID
+      const { data: achievement, error: achievementError } = await supabase
+        .from('achievements')
+        .select('id')
+        .eq('achievement_key', achievementKey)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (achievementError) {
+        console.error('获取成就信息失败:', achievementError);
+        return false;
+      }
+
+      if (!achievement) {
+        console.warn(`成就 ${achievementKey} 不存在或未激活`);
+        return false;
+      }
+
+      // 检查用户是否已解锁该成就
       const { data, error } = await supabase
         .from('user_achievements')
         .select('id')
         .eq('user_id', userId)
-        .eq('achievement.achievement_key', achievementKey)
+        .eq('achievement_id', achievement.id)
         .maybeSingle();
 
       if (error) {
@@ -191,6 +238,10 @@ export const achievementService = {
       const seriesAchievements = await this.checkSeriesQuestionnaireAchievements(userId);
       unlockedAchievements.push(...seriesAchievements);
 
+      // 检查作业相关成就
+      const assignmentAchievements = await this.checkAssignmentAchievements(userId);
+      unlockedAchievements.push(...assignmentAchievements);
+
     } catch (error) {
       console.error('检查学习成就失败:', error);
     }
@@ -250,6 +301,81 @@ export const achievementService = {
     return unlockedAchievements;
   },
 
+  // 检查作业相关成就
+  async checkAssignmentAchievements(userId: string): Promise<Achievement[]> {
+    const unlockedAchievements: Achievement[] = [];
+
+    try {
+      // 获取用户的作业提交数据
+      const { data: submissions } = await supabase
+        .from('assignment_submissions')
+        .select(`
+          id,
+          status,
+          teacher_grading,
+          submitted_at,
+          content
+        `)
+        .eq('student_id', userId)
+        .eq('status', 'submitted');
+
+      if (!submissions || submissions.length === 0) {
+        return unlockedAchievements;
+      }
+
+      const submissionCount = submissions.length;
+      const gradedSubmissions = submissions.filter(s => s.teacher_grading).length;
+      const highScoreCount = submissions.filter(s => {
+        if (!s.teacher_grading) return false;
+        const grading = s.teacher_grading as any;
+        return grading.score >= 85;
+      }).length;
+
+      // 检查作业相关成就
+      const assignmentAchievements = [
+        { key: 'assignment_first', count: submissionCount, threshold: 1 },
+        { key: 'assignment_dedicated', count: submissionCount, threshold: 5 },
+        { key: 'assignment_master', count: submissionCount, threshold: 10 },
+      ];
+
+      for (const achievement of assignmentAchievements) {
+        if (achievement.count >= achievement.threshold) {
+          const unlocked = await this.checkAndUnlockByKey(userId, achievement.key);
+          if (unlocked) {
+            unlockedAchievements.push(unlocked);
+          }
+        }
+      }
+
+      // 检查高分作业成就
+      if (highScoreCount >= 3) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'assignment_excellence');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+      // 检查反思大师成就
+      const reflectionSubmissions = submissions.filter(s => {
+        if (!s.content) return false;
+        const wordCount = s.content.length;
+        return wordCount >= 200;
+      });
+
+      if (reflectionSubmissions.length > 0) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'reflection_master');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+    } catch (error) {
+      console.error('检查作业成就失败:', error);
+    }
+
+    return unlockedAchievements;
+  },
+
   // 检查并解锁技能类成就
   async checkSkillAchievements(userId: string): Promise<Achievement[]> {
     const unlockedAchievements: Achievement[] = [];
@@ -274,11 +400,13 @@ export const achievementService = {
         }
       }
 
-      // 检查各技能的新手成就
+      // 检查各技能的新手成就（包含新增的技能）
       const skillAchievements = [
         { key: 'communication_novice', skillType: 'communication' },
         { key: 'collaboration_novice', skillType: 'collaboration' },
         { key: 'critical_thinking_novice', skillType: 'critical_thinking' },
+        { key: 'cultural_intelligence_novice', skillType: 'cultural_intelligence' },
+        { key: 'complex_problem_solving_novice', skillType: 'complex_problem_solving' },
       ];
 
       // 检查高级技能成就
@@ -309,6 +437,24 @@ export const achievementService = {
         }
       }
 
+      // 检查全能大师成就（所有技能都达到3级）
+      const allSkillsLevel3 = skills.filter(s => s.skill_level >= 3).length;
+      if (allSkillsLevel3 >= 6) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'all_skills_intermediate');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+      // 检查专精大师成就（任意技能达到5级）
+      const maxSkillLevel = Math.max(...skills.map(s => s.skill_level));
+      if (maxSkillLevel >= 5) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'skill_master');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
     } catch (error) {
       console.error('检查技能成就失败:', error);
     }
@@ -331,10 +477,12 @@ export const achievementService = {
       if (profile) {
         const streak = profile.learning_streak || 0;
 
-        // 检查连续学习成就
+        // 检查连续学习成就（包含新增的长期成就）
         const streakAchievements = [
           { key: 'streak_starter', threshold: 3 },
           { key: 'streak_champion', threshold: 7 },
+          { key: 'learning_marathon', threshold: 14 },
+          { key: 'learning_legend', threshold: 30 },
         ];
 
         for (const achievement of streakAchievements) {
@@ -346,6 +494,12 @@ export const achievementService = {
           }
         }
       }
+
+      // 检查周末学习者成就
+      await this.checkWeekendLearnerAchievement(userId, unlockedAchievements);
+
+      // 检查活跃学习者成就
+      await this.checkActiveLearnerAchievement(userId, unlockedAchievements);
 
     } catch (error) {
       console.error('检查社交成就失败:', error);
@@ -406,7 +560,7 @@ export const achievementService = {
 
       if (recentSubmissions && recentSubmissions.length >= 3) {
         const allGoodScores = recentSubmissions.every(s => {
-          const grading = (s as any).series_ai_gradings;
+          const grading = s.series_ai_gradings as SeriesAiGrading;
           return grading && grading.final_score >= 75;
         });
 
@@ -423,11 +577,13 @@ export const achievementService = {
     }
   },
 
-  // 检查时间相关成就
+  // 检查时间相关成就（使用中国时区）
   async checkTimeBasedAchievements(userId: string, unlockedAchievements: Achievement[]): Promise<void> {
     try {
-      // 获取今天的学习活动
-      const today = new Date().toISOString().split('T')[0];
+      // 获取中国时区的今天日期
+      const chinaDate = new Date(new Date().getTime() + 8 * 60 * 60 * 1000);
+      const today = chinaDate.toISOString().split('T')[0];
+      
       const { data: todayActivities } = await supabase
         .from('timeline_activities')
         .select('created_at')
@@ -437,10 +593,11 @@ export const achievementService = {
 
       if (todayActivities && todayActivities.length > 0) {
         for (const activity of todayActivities) {
-          const activityTime = new Date(activity.created_at);
+          // 将UTC时间转换为中国时间
+          const activityTime = new Date(new Date(activity.created_at).getTime() + 8 * 60 * 60 * 1000);
           const hour = activityTime.getHours();
 
-          // 检查早起鸟成就（早上8点前）
+          // 检查早起鸟成就（中国时间早上8点前）
           if (hour < 8) {
             const unlocked = await this.checkAndUnlockByKey(userId, 'early_bird');
             if (unlocked) {
@@ -448,7 +605,7 @@ export const achievementService = {
             }
           }
 
-          // 检查夜猫子成就（晚上10点后）
+          // 检查夜猫子成就（中国时间晚上10点后）
           if (hour >= 22) {
             const unlocked = await this.checkAndUnlockByKey(userId, 'night_owl');
             if (unlocked) {
@@ -531,6 +688,225 @@ export const achievementService = {
     return null;
   },
 
+  // 检查周末学习者成就
+  async checkWeekendLearnerAchievement(userId: string, unlockedAchievements: Achievement[]): Promise<void> {
+    try {
+      // 获取最近4周的学习活动
+      const fourWeeksAgo = new Date();
+      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+      const { data: activities } = await supabase
+        .from('learning_timeline')
+        .select('created_at')
+        .eq('user_id', userId)
+        .gte('created_at', fourWeeksAgo.toISOString())
+        .order('created_at', { ascending: true });
+
+      if (!activities || activities.length === 0) {
+        return;
+      }
+
+      // 检查连续周末学习
+      let consecutiveWeekends = 0;
+      const weekendDates = new Set<string>();
+
+      for (const activity of activities) {
+        const date = new Date(activity.created_at);
+        const dayOfWeek = date.getDay();
+        
+        // 检查是否为周末（周六=6，周日=0）
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          const weekKey = this.getWeekKey(date);
+          weekendDates.add(weekKey);
+        }
+      }
+
+      // 检查连续周末
+      const today = new Date();
+      for (let i = 0; i < 4; i++) {
+        const weekStart = new Date(today);
+        weekStart.setDate(weekStart.getDate() - (i * 7));
+        const weekKey = this.getWeekKey(weekStart);
+        
+        if (weekendDates.has(weekKey)) {
+          consecutiveWeekends++;
+        } else {
+          break;
+        }
+      }
+
+      if (consecutiveWeekends >= 4) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'weekend_learner');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+    } catch (error) {
+      console.error('检查周末学习者成就失败:', error);
+    }
+  },
+
+  // 检查活跃学习者成就
+  async checkActiveLearnerAchievement(userId: string, unlockedAchievements: Achievement[]): Promise<void> {
+    try {
+      // 获取最近7天的学习活动
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const { data: activities } = await supabase
+        .from('learning_timeline')
+        .select('created_at')
+        .eq('user_id', userId)
+        .gte('created_at', sevenDaysAgo.toISOString());
+
+      if (!activities || activities.length === 0) {
+        return;
+      }
+
+      // 检查是否每天都有学习活动
+      const activeDays = new Set<string>();
+      for (const activity of activities) {
+        const date = new Date(activity.created_at);
+        const dayKey = date.toISOString().split('T')[0];
+        activeDays.add(dayKey);
+      }
+
+      if (activeDays.size >= 7) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'active_learner');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+    } catch (error) {
+      console.error('检查活跃学习者成就失败:', error);
+    }
+  },
+
+  // 获取周的标识符
+  getWeekKey(date: Date): string {
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() - date.getDay());
+    return startOfWeek.toISOString().split('T')[0];
+  },
+
+  // 检查课程探索者成就
+  async checkCourseExplorationAchievements(userId: string): Promise<Achievement[]> {
+    const unlockedAchievements: Achievement[] = [];
+
+    try {
+      // 获取用户已完成的课程及其类别
+      const { data: enrollments } = await supabase
+        .from('course_enrollments')
+        .select(`
+          course_id,
+          courses!inner(category)
+        `)
+        .eq('user_id', userId)
+        .not('completed_at', 'is', null);
+
+      if (!enrollments || enrollments.length === 0) {
+        return unlockedAchievements;
+      }
+
+      // 统计不同类别的课程数量
+      const categories = new Set(enrollments.map(e => (e as any).courses.category).filter(Boolean));
+
+      if (categories.size >= 3) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'course_explorer');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+    } catch (error) {
+      console.error('检查课程探索成就失败:', error);
+    }
+
+    return unlockedAchievements;
+  },
+
+  // 检查速度学习者成就
+  async checkSpeedLearningAchievements(userId: string): Promise<Achievement[]> {
+    const unlockedAchievements: Achievement[] = [];
+
+    try {
+      // 获取最近30天的课时完成记录
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: completions } = await supabase
+        .from('lesson_completions')
+        .select('completed_at')
+        .eq('user_id', userId)
+        .gte('completed_at', thirtyDaysAgo.toISOString());
+
+      if (!completions || completions.length === 0) {
+        return unlockedAchievements;
+      }
+
+      // 按天统计完成的课时数
+      const dailyCompletions = new Map<string, number>();
+      for (const completion of completions) {
+        const date = new Date(completion.completed_at);
+        const dayKey = date.toISOString().split('T')[0];
+        dailyCompletions.set(dayKey, (dailyCompletions.get(dayKey) || 0) + 1);
+      }
+
+      // 检查是否有任意一天完成了3个或更多课时
+      const maxDailyCompletions = Math.max(...dailyCompletions.values());
+      if (maxDailyCompletions >= 3) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'speed_learner');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+    } catch (error) {
+      console.error('检查速度学习成就失败:', error);
+    }
+
+    return unlockedAchievements;
+  },
+
+  // 检查进步达人成就
+  async checkProgressAchievements(userId: string): Promise<Achievement[]> {
+    const unlockedAchievements: Achievement[] = [];
+
+    try {
+      // 获取用户最近的测验成绩
+      const { data: completions } = await supabase
+        .from('lesson_completions')
+        .select('score, completed_at')
+        .eq('user_id', userId)
+        .not('score', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(10);
+
+      if (!completions || completions.length < 3) {
+        return unlockedAchievements;
+      }
+
+      // 检查连续3次测验分数是否递增
+      const recentThree = completions.slice(0, 3);
+      const isProgressive = recentThree[0].score > recentThree[1].score && 
+                           recentThree[1].score > recentThree[2].score;
+
+      if (isProgressive) {
+        const unlocked = await this.checkAndUnlockByKey(userId, 'progress_champion');
+        if (unlocked) {
+          unlockedAchievements.push(unlocked);
+        }
+      }
+
+    } catch (error) {
+      console.error('检查进步成就失败:', error);
+    }
+
+    return unlockedAchievements;
+  },
+
   // 检查所有成就
   async checkAllAchievements(userId: string): Promise<Achievement[]> {
     const allUnlocked: Achievement[] = [];
@@ -539,14 +915,33 @@ export const achievementService = {
       console.log(`开始为用户 ${userId} 检查所有成就...`);
 
       // 并行检查各类成就
-      const [learningAchievements, skillAchievements, socialAchievements, specialAchievements] = await Promise.all([
+      const [
+        learningAchievements, 
+        skillAchievements, 
+        socialAchievements, 
+        specialAchievements,
+        courseExplorationAchievements,
+        speedLearningAchievements,
+        progressAchievements
+      ] = await Promise.all([
         this.checkLearningAchievements(userId),
         this.checkSkillAchievements(userId),
         this.checkSocialAchievements(userId),
-        this.checkSpecialAchievements(userId)
+        this.checkSpecialAchievements(userId),
+        this.checkCourseExplorationAchievements(userId),
+        this.checkSpeedLearningAchievements(userId),
+        this.checkProgressAchievements(userId)
       ]);
 
-      allUnlocked.push(...learningAchievements, ...skillAchievements, ...socialAchievements, ...specialAchievements);
+      allUnlocked.push(
+        ...learningAchievements, 
+        ...skillAchievements, 
+        ...socialAchievements, 
+        ...specialAchievements,
+        ...courseExplorationAchievements,
+        ...speedLearningAchievements,
+        ...progressAchievements
+      );
 
       if (allUnlocked.length > 0) {
         console.log(`为用户 ${userId} 解锁了 ${allUnlocked.length} 个新成就:`,
@@ -698,10 +1093,68 @@ export const achievementService = {
           .eq('status', 'graded');
 
         const highScoreCount = submissions?.filter(s => {
-          const grading = (s as any).series_ai_gradings;
+          const grading = s.series_ai_gradings as SeriesAiGrading;
           return grading && grading.final_score >= 85;
         }).length || 0;
         return { current: highScoreCount, required };
+      }
+
+      // 新增的作业相关成就
+      case 'assignment_first':
+      case 'assignment_dedicated':
+      case 'assignment_master': {
+        const { data: submissions } = await supabase
+          .from('assignment_submissions')
+          .select('id')
+          .eq('student_id', userId)
+          .eq('status', 'submitted');
+        return { current: submissions?.length || 0, required };
+      }
+
+      case 'assignment_excellence': {
+        const { data: submissions } = await supabase
+          .from('assignment_submissions')
+          .select('teacher_grading')
+          .eq('student_id', userId)
+          .eq('status', 'submitted');
+        const highScoreCount = submissions?.filter(s => {
+          if (!s.teacher_grading) return false;
+          const grading = s.teacher_grading as { score: number; feedback?: string };
+          return grading.score >= 85;
+        }).length || 0;
+        return { current: highScoreCount, required };
+      }
+
+      case 'course_explorer': {
+        const { data: enrollments } = await supabase
+          .from('course_enrollments')
+          .select(`
+            course_id,
+            courses!inner(category)
+          `)
+          .eq('user_id', userId)
+          .not('completed_at', 'is', null);
+        const categories = new Set(enrollments?.map(e => (e as any).courses.category).filter(Boolean));
+        return { current: categories.size, required };
+      }
+
+      case 'speed_learner': {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const { data: completions } = await supabase
+          .from('lesson_completions')
+          .select('completed_at')
+          .eq('user_id', userId)
+          .gte('completed_at', thirtyDaysAgo.toISOString());
+        
+        const dailyCompletions = new Map<string, number>();
+        for (const completion of completions || []) {
+          const date = new Date(completion.completed_at);
+          const dayKey = date.toISOString().split('T')[0];
+          dailyCompletions.set(dayKey, (dailyCompletions.get(dayKey) || 0) + 1);
+        }
+        const maxDaily = dailyCompletions.size > 0 ? Math.max(...dailyCompletions.values()) : 0;
+        return { current: maxDaily, required };
       }
 
       default:
@@ -787,6 +1240,44 @@ export const achievementService = {
         return { current: skill?.skill_level || 0, required };
       }
 
+      case 'cultural_intelligence_novice': {
+        const { data: skill } = await supabase
+          .from('user_skills')
+          .select('skill_level')
+          .eq('user_id', userId)
+          .eq('skill_type', 'cultural_intelligence')
+          .maybeSingle();
+        return { current: skill?.skill_level || 0, required };
+      }
+
+      case 'complex_problem_solving_novice': {
+        const { data: skill } = await supabase
+          .from('user_skills')
+          .select('skill_level')
+          .eq('user_id', userId)
+          .eq('skill_type', 'complex_problem_solving')
+          .maybeSingle();
+        return { current: skill?.skill_level || 0, required };
+      }
+
+      case 'all_skills_intermediate': {
+        const { data: skills } = await supabase
+          .from('user_skills')
+          .select('skill_level')
+          .eq('user_id', userId)
+          .gte('skill_level', 3);
+        return { current: skills?.length || 0, required };
+      }
+
+      case 'skill_master': {
+        const { data: skills } = await supabase
+          .from('user_skills')
+          .select('skill_level')
+          .eq('user_id', userId);
+        const maxLevel = skills?.length > 0 ? Math.max(...skills.map(s => s.skill_level)) : 0;
+        return { current: maxLevel, required };
+      }
+
       default:
         return { current: 0, required };
     }
@@ -801,13 +1292,67 @@ export const achievementService = {
 
     switch (achievement.achievement_key) {
       case 'streak_starter':
-      case 'streak_champion': {
+      case 'streak_champion':
+      case 'learning_marathon':
+      case 'learning_legend': {
         const { data: profile } = await supabase
           .from('profiles')
           .select('learning_streak')
           .eq('id', userId)
           .single();
         return { current: profile?.learning_streak || 0, required };
+      }
+
+      case 'weekend_learner': {
+        const fourWeeksAgo = new Date();
+        fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+        const { data: activities } = await supabase
+          .from('learning_timeline')
+          .select('created_at')
+          .eq('user_id', userId)
+          .gte('created_at', fourWeeksAgo.toISOString());
+        
+        const weekendDates = new Set<string>();
+        for (const activity of activities || []) {
+          const date = new Date(activity.created_at);
+          const dayOfWeek = date.getDay();
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+            const weekKey = this.getWeekKey(date);
+            weekendDates.add(weekKey);
+          }
+        }
+        
+        let consecutiveWeekends = 0;
+        const today = new Date();
+        for (let i = 0; i < 4; i++) {
+          const weekStart = new Date(today);
+          weekStart.setDate(weekStart.getDate() - (i * 7));
+          const weekKey = this.getWeekKey(weekStart);
+          if (weekendDates.has(weekKey)) {
+            consecutiveWeekends++;
+          } else {
+            break;
+          }
+        }
+        return { current: consecutiveWeekends, required };
+      }
+
+      case 'active_learner': {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const { data: activities } = await supabase
+          .from('learning_timeline')
+          .select('created_at')
+          .eq('user_id', userId)
+          .gte('created_at', sevenDaysAgo.toISOString());
+        
+        const activeDays = new Set<string>();
+        for (const activity of activities || []) {
+          const date = new Date(activity.created_at);
+          const dayKey = date.toISOString().split('T')[0];
+          activeDays.add(dayKey);
+        }
+        return { current: activeDays.size, required };
       }
 
       default:
@@ -874,11 +1419,72 @@ export const achievementService = {
 
         // 检查最近3次是否都获得良好评分（75分以上）
         const consecutiveGoodScores = submissions.filter(s => {
-          const grading = (s as any).series_ai_gradings;
+          const grading = s.series_ai_gradings as SeriesAiGrading;
           return grading && grading.final_score >= 75;
         }).length;
 
         return { current: consecutiveGoodScores === 3 ? 1 : 0, required: 1 };
+      }
+
+      case 'reflection_master': {
+        const { data: submissions } = await supabase
+          .from('assignment_submissions')
+          .select('content')
+          .eq('student_id', userId)
+          .eq('status', 'submitted');
+        
+        const longReflections = submissions?.filter(s => {
+          return s.content && s.content.length >= 200;
+        }).length || 0;
+        
+        return { current: longReflections > 0 ? 1 : 0, required: 1 };
+      }
+
+      case 'progress_champion': {
+        const { data: completions } = await supabase
+          .from('lesson_completions')
+          .select('score, completed_at')
+          .eq('user_id', userId)
+          .not('score', 'is', null)
+          .order('completed_at', { ascending: false })
+          .limit(3);
+
+        if (!completions || completions.length < 3) {
+          return { current: completions?.length || 0, required: 3 };
+        }
+
+        const isProgressive = completions[0].score > completions[1].score && 
+                             completions[1].score > completions[2].score;
+        return { current: isProgressive ? 1 : 0, required: 1 };
+      }
+
+      case 'seasonal_learner': {
+        const { data: activities } = await supabase
+          .from('learning_timeline')
+          .select('created_at')
+          .eq('user_id', userId);
+        
+        const seasons = new Set<string>();
+        for (const activity of activities || []) {
+          const date = new Date(activity.created_at);
+          const month = date.getMonth();
+          let season = '';
+          if (month >= 2 && month <= 4) season = 'spring';
+          else if (month >= 5 && month <= 7) season = 'summer';
+          else if (month >= 8 && month <= 10) season = 'autumn';
+          else season = 'winter';
+          seasons.add(season);
+        }
+        return { current: seasons.size, required };
+      }
+
+      case 'perfect_attendance': {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('learning_streak')
+          .eq('id', userId)
+          .single();
+        return { current: profile?.learning_streak || 0, required };
       }
 
       default:

@@ -4,7 +4,7 @@ import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
 import { Json } from "@/integrations/supabase/types";
 import { v4 as uuidv4 } from 'uuid';
-import { gamificationService, LessonType as GamificationLessonType } from './gamificationService';
+import { gamificationService, LessonType as GamificationLessonType, experienceSystem } from './gamificationService';
 
 // 全局课程完成状态缓存
 export const lessonCompletionCache: Record<string, Record<string, boolean>> = {};
@@ -217,6 +217,47 @@ export const courseService = {
       // 获取当前用户ID
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
+      
+      // 记录课程访问到时间线（仅为学生角色记录）
+      if (userId) {
+        try {
+          // 获取用户角色以避免为教师/管理员记录过多的访问日志
+          const { data: userRole } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .single();
+          
+          // 只为学生记录课程访问，且限制记录频率
+          if (userRole?.role === 'student') {
+            // 检查过去1小时内是否已记录过此课程的访问
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+            const { data: recentAccess } = await supabase
+              .from('learning_timeline')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('course_id', courseId)
+              .eq('activity_type', 'course_access')
+              .gte('created_at', oneHourAgo)
+              .limit(1);
+            
+            if (!recentAccess || recentAccess.length === 0) {
+              await gamificationService.addTimelineActivity(
+                userId,
+                'course_access',
+                `访问课程：${courseData.title}`,
+                '正在学习课程内容',
+                courseId,
+                undefined,
+                0
+              );
+            }
+          }
+        } catch (accessLogError) {
+          console.error('记录课程访问失败:', accessLogError);
+          // 不影响课程加载流程
+        }
+      }
       
       // 修复：获取完整的课时数据，包括content和完成状态
       const stageTimer3 = `getModuleLessonsComplete-stage_${courseId}_${Date.now()}`;
@@ -933,8 +974,8 @@ export const courseService = {
 
         console.log('已创建新的课时完成记录');
 
-        // 暂时注释掉经验值奖励逻辑
-        // await this.handleLessonCompletionExperience(user.id, lessonId, courseId, score);
+        // 处理经验值奖励
+        await this.handleLessonCompletionExperience(user.id, lessonId, courseId, score);
       }
 
       // 更新缓存状态
@@ -973,18 +1014,15 @@ export const courseService = {
         return;
       }
 
-      // 将课时类型映射到游戏化系统的类型
-      const lessonType = this.mapLessonTypeToGamification(lessonData.type);
-
-      // 调用游戏化服务处理经验值
-      const success = await gamificationService.handleLessonComplete(
-        userId,
+      // 使用新的ExperienceSystem记录活动
+      const success = await experienceSystem.recordActivity(userId, 'lesson_complete', {
         lessonId,
         courseId,
-        lessonData.title,
-        lessonType,
-        score
-      );
+        lessonTitle: lessonData.title,
+        lessonType: lessonData.type,
+        score,
+        timestamp: new Date().toISOString()
+      });
 
       if (success) {
         console.log(`成功为课时 ${lessonId} 添加经验值奖励`);

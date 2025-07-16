@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/auth';
 import { cacheUserRole, getCachedUserRole, clearUserRoleCache } from '@/utils/authCache';
 import { pinyin } from 'pinyin-pro';
+import { gamificationService } from './gamificationService';
 
 /**
  * 辅助函数：将中文用户名转换为拼音，用于邮箱地址
@@ -57,6 +58,25 @@ export const authService = {
       
       if (!error) {
         console.log('登录成功');
+        
+        // 记录登录到时间线
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await gamificationService.addTimelineActivity(
+              user.id,
+              'user_login',
+              '用户登录',
+              `欢迎回来！`,
+              undefined,
+              undefined,
+              0
+            );
+          }
+        } catch (timelineError) {
+          console.error('记录登录时间线失败:', timelineError);
+          // 不影响登录流程
+        }
       } else {
         console.error('登录错误:', error);
       }
@@ -125,6 +145,26 @@ export const authService = {
    */
   async signOut() {
     console.log('正在退出登录');
+    
+    // 记录登出到时间线（在登出前记录）
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await gamificationService.addTimelineActivity(
+          user.id,
+          'user_logout',
+          '用户登出',
+          `再见！感谢您的学习`,
+          undefined,
+          undefined,
+          0
+        );
+      }
+    } catch (timelineError) {
+      console.error('记录登出时间线失败:', timelineError);
+      // 不影响登出流程
+    }
+    
     clearUserRoleCache();
     
     // 清除用户会话缓存

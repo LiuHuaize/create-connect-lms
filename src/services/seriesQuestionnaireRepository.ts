@@ -458,6 +458,71 @@ export class SeriesQuestionnaireRepository {
   }
 
   /**
+   * 保存或更新AI评分记录
+   */
+  static async saveOrUpdateAIGrading(submissionId: string, gradingData: {
+    overall_score?: number;
+    ai_score?: number;
+    ai_feedback?: string;
+    ai_detailed_feedback?: any;
+    teacher_score?: number;
+    teacher_feedback?: string;
+    final_score?: number;
+    teacher_reviewed_at?: string;
+  }): Promise<{ success: boolean; error?: string; data?: SeriesAIGrading }> {
+    try {
+      // 先尝试获取现有记录
+      const existingGrading = await this.getAIGrading(submissionId);
+      
+      if (existingGrading) {
+        // 更新现有记录
+        const { data, error } = await supabase
+          .from('series_ai_gradings')
+          .update({
+            ...gradingData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('submission_id', submissionId)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('更新AI评分失败:', error);
+          return { success: false, error: error.message };
+        }
+
+        return { success: true, data: data as SeriesAIGrading };
+      } else {
+        // 创建新记录
+        const { data, error } = await supabase
+          .from('series_ai_gradings')
+          .insert({
+            submission_id: submissionId,
+            ...gradingData,
+            graded_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('创建AI评分失败:', error);
+          return { success: false, error: error.message };
+        }
+
+        return { success: true, data: data as SeriesAIGrading };
+      }
+    } catch (error) {
+      console.error('保存AI评分出错:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : '保存AI评分失败' 
+      };
+    }
+  }
+
+  /**
    * 验证系列问答权限
    */
   static async getQuestionnaireWithAuth(questionnaireId: string): Promise<{

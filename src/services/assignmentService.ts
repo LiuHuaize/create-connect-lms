@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AssignmentSubmission } from '@/types/course';
 import { notificationHelpers } from './notificationService';
+import { experienceSystem } from './gamificationService';
 
 export interface TeacherGrading {
   score: number;
@@ -191,6 +192,32 @@ export async function submitTeacherGrading(submissionId: string, grading: Teache
       .single();
 
     if (error) throw error;
+
+    // 处理作业评分的gamification奖励
+    try {
+      if (grading.score >= 70) { // 只有达到70分以上才给予评分奖励
+        const { data: lesson } = await supabase
+          .from('lessons')
+          .select('title, type')
+          .eq('id', data.lesson_id)
+          .single();
+
+        if (lesson) {
+          await experienceSystem.recordActivity(data.student_id, 'assignment_graded', {
+            lessonId: data.lesson_id,
+            lessonTitle: lesson.title,
+            lessonType: lesson.type,
+            submissionId,
+            score: grading.score,
+            gradingType: 'teacher',
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    } catch (gamificationError) {
+      console.warn('处理作业评分gamification奖励失败:', gamificationError);
+      // 不影响主流程
+    }
 
     // 发送教师评分通知给学生
     try {
@@ -409,6 +436,39 @@ export async function submitAssignment(lessonId: string, studentId: string, file
 
       if (error) throw error;
       submissionData = data;
+    }
+
+    // 处理gamification奖励
+    try {
+      const { data: lesson } = await supabase
+        .from('lessons')
+        .select(`
+          title,
+          type,
+          course_modules!inner (
+            courses!inner (
+              title,
+              author_id
+            )
+          )
+        `)
+        .eq('id', lessonId)
+        .single();
+
+      if (lesson) {
+        // 记录作业提交活动到gamification系统
+        await experienceSystem.recordActivity(studentId, 'assignment_submit', {
+          lessonId,
+          lessonTitle: lesson.title,
+          lessonType: lesson.type,
+          submissionId: submissionData.id,
+          fileCount: fileSubmissions.length,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (gamificationError) {
+      console.warn('处理作业提交gamification奖励失败:', gamificationError);
+      // 不影响主流程
     }
 
     // 发送作业提交通知给老师

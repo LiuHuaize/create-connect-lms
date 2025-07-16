@@ -11,6 +11,9 @@ export const EXPERIENCE_RULES = {
     assignment: 50, // 作业课时
     hotspot: 35,   // 热点课时
     card_creator: 45, // 卡片创建课时
+    drag_sort: 35, // 拖拽分类课时
+    resource: 15,  // 资源下载课时
+    frame: 25,     // 框架课时
     series_questionnaire: 55, // 系列问答课时，给予最高经验值
   },
   
@@ -40,8 +43,15 @@ export type ActivityType =
   | 'daily_streak'
   | 'series_questionnaire_complete'
   | 'series_questionnaire_graded'
+  | 'assignment_submit'
+  | 'assignment_graded'
+  | 'series_complete'
   | 'achievement_unlock'
-  | 'level_up';
+  | 'level_up'
+  | 'user_login'
+  | 'user_logout'
+  | 'course_access'
+  | 'file_download';
 
 // 课时类型定义
 export type LessonType = keyof typeof EXPERIENCE_RULES.LESSON_COMPLETE;
@@ -73,8 +83,14 @@ export function calculateLessonExperience(
   lessonType: LessonType, 
   score?: number
 ): number {
-  // 基础经验值
+  // 基础经验值 - 确保对所有课时类型都有默认值
   let baseExp = EXPERIENCE_RULES.LESSON_COMPLETE[lessonType];
+  
+  // 如果课时类型未配置，使用默认值
+  if (baseExp === undefined) {
+    console.warn(`未配置的课时类型: ${lessonType}，使用默认经验值`);
+    baseExp = 20; // 默认经验值
+  }
   
   // 如果是测验，根据分数给予额外奖励
   if (lessonType === 'quiz' && score !== undefined) {
@@ -152,6 +168,266 @@ export const SKILL_LEVEL_EXPERIENCE = 50;
 export function calculateSkillLevel(experience: number): number {
   return Math.floor(experience / SKILL_LEVEL_EXPERIENCE) + 1;
 }
+
+// 技能标签映射函数
+export function mapSkillTags(skillTags: string[]): SkillType[] {
+  const skillTypeMapping: Record<string, SkillType> = {
+    'Communication': 'communication',
+    'Collaboration': 'collaboration',
+    'Critical Thinking': 'critical_thinking',
+    'Creativity': 'creativity',
+    'Cultural Intelligence': 'cultural_intelligence',
+    'Complex Problem Solving': 'complex_problem_solving',
+    // 中文映射
+    '沟通协调': 'communication',
+    '团体合作': 'collaboration',
+    '批判思考': 'critical_thinking',
+    '创新能力': 'creativity',
+    '文化智力': 'cultural_intelligence',
+    '复杂问题解决': 'complex_problem_solving',
+    // 直接映射（如果已经是系统类型）
+    'communication': 'communication',
+    'collaboration': 'collaboration',
+    'critical_thinking': 'critical_thinking',
+    'creativity': 'creativity',
+    'cultural_intelligence': 'cultural_intelligence',
+    'complex_problem_solving': 'complex_problem_solving'
+  };
+
+  return skillTags
+    .map(tag => skillTypeMapping[tag])
+    .filter(skillType => skillType !== undefined);
+}
+
+// 经验值系统类
+export class ExperienceSystem {
+  private readonly EXPERIENCE_RULES = {
+    lesson_complete: { 
+      base: 30, 
+      bonus: { 
+        score_90: 20, 
+        score_80: 15, 
+        score_70: 10,
+        series_questionnaire_word_500: 25,
+        series_questionnaire_word_1000: 50
+      } 
+    },
+    quiz_complete: { 
+      base: 20, 
+      bonus: { 
+        perfect: 15, 
+        good: 10, 
+        fair: 5 
+      } 
+    },
+    assignment_submit: { 
+      base: 40, 
+      bonus: { 
+        excellent: 30, 
+        good: 20, 
+        fair: 10 
+      } 
+    },
+    assignment_graded: { 
+      base: 20, 
+      bonus: { 
+        score_90: 30, 
+        score_80: 20, 
+        score_70: 10 
+      } 
+    },
+    series_complete: { 
+      base: 100, 
+      bonus: { 
+        word_count_500: 50, 
+        word_count_1000: 100 
+      } 
+    },
+    achievement_unlock: { 
+      base: 0, 
+      bonus: { 
+        varies_by_achievement: true 
+      } 
+    }
+  };
+
+  // 计算活动经验值
+  async calculateExperience(activityType: string, metadata: any): Promise<number> {
+    const rule = this.EXPERIENCE_RULES[activityType as keyof typeof this.EXPERIENCE_RULES];
+    if (!rule) {
+      console.warn(`未配置的活动类型: ${activityType}，使用默认经验值20`);
+      return 20;
+    }
+
+    let experience = rule.base;
+    
+    // 根据元数据计算奖励经验值
+    if (metadata.score) {
+      if (metadata.score >= 90) {
+        experience += rule.bonus.score_90 || 0;
+      } else if (metadata.score >= 80) {
+        experience += rule.bonus.score_80 || 0;
+      } else if (metadata.score >= 70) {
+        experience += rule.bonus.score_70 || 0;
+      }
+    }
+
+    // 系列问答特殊处理
+    if (activityType === 'lesson_complete' && metadata.lessonType === 'series_questionnaire') {
+      if (metadata.wordCount >= 1000) {
+        experience += rule.bonus.series_questionnaire_word_1000 || 0;
+      } else if (metadata.wordCount >= 500) {
+        experience += rule.bonus.series_questionnaire_word_500 || 0;
+      }
+    }
+    
+    return experience;
+  }
+
+  // 更新用户经验值
+  async updateUserExperience(userId: string, experience: number): Promise<{success: boolean, levelUp: boolean, newLevel: number}> {
+    try {
+      console.log(`为用户 ${userId} 更新经验值: +${experience}`);
+      
+      const { data: profile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('total_experience, total_level')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) {
+        console.error('获取用户档案失败:', fetchError);
+        return { success: false, levelUp: false, newLevel: 0 };
+      }
+
+      const currentExperience = profile?.total_experience || 0;
+      const currentLevel = profile?.total_level || 1;
+      const newExperience = currentExperience + experience;
+      const newLevel = this.calculateLevel(newExperience);
+      const levelUp = newLevel > currentLevel;
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          total_experience: newExperience,
+          total_level: newLevel,
+          last_activity_date: new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('更新用户档案失败:', updateError);
+        return { success: false, levelUp: false, newLevel: currentLevel };
+      }
+
+      // 检查是否升级
+      if (levelUp) {
+        await this.handleLevelUp(userId, newLevel);
+      }
+
+      console.log(`成功为用户 ${userId} 更新经验值: ${currentExperience} -> ${newExperience}, 等级: ${currentLevel} -> ${newLevel}`);
+      return { success: true, levelUp, newLevel };
+    } catch (error) {
+      console.error('更新用户经验值失败:', error);
+      return { success: false, levelUp: false, newLevel: 0 };
+    }
+  }
+
+  // 计算等级
+  private calculateLevel(totalExperience: number): number {
+    return Math.floor(totalExperience / EXPERIENCE_RULES.LEVEL_EXPERIENCE) + 1;
+  }
+
+  // 处理升级
+  private async handleLevelUp(userId: string, newLevel: number): Promise<void> {
+    try {
+      console.log(`用户 ${userId} 升级到 ${newLevel} 级！`);
+      
+      // 记录升级活动到时间线
+      await supabase
+        .from('learning_timeline')
+        .insert({
+          user_id: userId,
+          activity_type: 'level_up' as ActivityType,
+          activity_title: `升级到 ${newLevel} 级`,
+          activity_description: `恭喜！您已升级到 ${newLevel} 级`,
+          experience_gained: 0, // 升级本身不给经验值
+        });
+
+      console.log(`成功记录用户 ${userId} 升级到 ${newLevel} 级`);
+    } catch (error) {
+      console.error('处理升级失败:', error);
+    }
+  }
+
+  // 记录活动到时间线
+  async recordActivity(userId: string, activityType: string, metadata: any): Promise<boolean> {
+    try {
+      console.log(`记录用户 ${userId} 活动: ${activityType}`, metadata);
+      
+      // 计算经验值
+      const experience = await this.calculateExperience(activityType, metadata);
+      
+      // 更新用户经验值
+      const { success, levelUp } = await this.updateUserExperience(userId, experience);
+      
+      if (!success) {
+        return false;
+      }
+
+      // 创建活动标题和描述
+      let activityTitle = '';
+      let activityDescription = '';
+      
+      switch (activityType) {
+        case 'lesson_complete':
+          activityTitle = `完成课时：${metadata.lessonTitle || '未知课时'}`;
+          activityDescription = metadata.score !== undefined 
+            ? `测验得分：${metadata.score}分` 
+            : '课时学习完成';
+          break;
+        case 'series_complete':
+          activityTitle = `完成系列问答：${metadata.title || '未知问答'}`;
+          activityDescription = `字数：${metadata.wordCount || 0}字`;
+          break;
+        case 'assignment_submit':
+          activityTitle = `提交作业：${metadata.lessonTitle || '未知作业'}`;
+          activityDescription = `提交文件：${metadata.fileCount || 0}个`;
+          break;
+        case 'assignment_graded':
+          activityTitle = `作业已评分：${metadata.lessonTitle || '未知作业'}`;
+          activityDescription = `得分：${metadata.score || 0}分`;
+          break;
+        default:
+          activityTitle = `活动：${activityType}`;
+          activityDescription = JSON.stringify(metadata);
+      }
+
+      // 记录到时间线
+      await supabase
+        .from('learning_timeline')
+        .insert({
+          user_id: userId,
+          activity_type: activityType as ActivityType,
+          activity_title: activityTitle,
+          activity_description: activityDescription,
+          course_id: metadata.courseId,
+          lesson_id: metadata.lessonId,
+          experience_gained: experience,
+        });
+
+      console.log(`成功记录用户 ${userId} 活动 ${activityType}，获得 ${experience} 经验值`);
+      return true;
+    } catch (error) {
+      console.error('记录活动失败:', error);
+      return false;
+    }
+  }
+}
+
+// 创建经验值系统实例
+export const experienceSystem = new ExperienceSystem();
 
 // 游戏化服务
 export const gamificationService = {
@@ -377,12 +653,23 @@ export const gamificationService = {
       // 计算技能经验值（基于课时类型和分数）
       const skillExperience = this.calculateSkillExperience(lessonType, score);
 
+      // 将技能标签映射到系统技能类型
+      const validSkillTypes = mapSkillTags(skillTags);
+
+      if (validSkillTypes.length === 0) {
+        console.log(`课时 ${lessonId} 没有有效的技能类型，跳过技能经验分配`);
+        return true;
+      }
+
+      // 计算每个技能的经验值（平均分配）
+      const experiencePerSkill = Math.floor(skillExperience / validSkillTypes.length);
+
       // 为每个技能标记分配经验
-      const skillPromises = skillTags.map(async (skillType: string) => {
+      const skillPromises = validSkillTypes.map(async (skillType: SkillType) => {
         return await this.addSkillExperience(
           userId,
-          skillType as SkillType,
-          skillExperience,
+          skillType,
+          experiencePerSkill,
           'lesson',
           lessonId,
           `完成课时：${lessonTitle}`
@@ -393,7 +680,7 @@ export const gamificationService = {
       const allSuccess = results.every(result => result);
 
       if (allSuccess) {
-        console.log(`成功为课时 ${lessonId} 分配技能经验，涉及技能：${skillTags.join(', ')}`);
+        console.log(`成功为课时 ${lessonId} 分配技能经验，涉及技能：${validSkillTypes.join(', ')}`);
       } else {
         console.error(`课时 ${lessonId} 部分技能经验分配失败`);
       }
@@ -420,26 +707,7 @@ export const gamificationService = {
       }
 
       // 将技能标签映射到系统技能类型
-      const skillTypeMapping: Record<string, SkillType> = {
-        'Communication': 'communication',
-        'Collaboration': 'collaboration',
-        'Critical Thinking': 'critical_thinking',
-        'Creativity': 'creativity',
-        'Cultural Intelligence': 'cultural_intelligence',
-        'Complex Problem Solving': 'complex_problem_solving',
-        // 中文映射
-        '沟通协调': 'communication',
-        '团体合作': 'collaboration',
-        '批判思考': 'critical_thinking',
-        '创新能力': 'creativity',
-        '文化智力': 'cultural_intelligence',
-        '复杂问题解决': 'complex_problem_solving'
-      };
-
-      // 过滤有效的技能类型
-      const validSkillTypes = skillTags
-        .map(tag => skillTypeMapping[tag])
-        .filter(skillType => skillType !== undefined);
+      const validSkillTypes = mapSkillTags(skillTags);
 
       if (validSkillTypes.length === 0) {
         console.log('没有有效的技能类型，跳过技能经验分配');
@@ -480,7 +748,7 @@ export const gamificationService = {
   // 计算技能经验值
   calculateSkillExperience(lessonType: LessonType, score?: number): number {
     // 基础技能经验值（比总经验值稍低）
-    const baseSkillExperience = {
+    const baseSkillExperience: Record<LessonType, number> = {
       text: 15,
       video: 20,
       quiz: 25,
@@ -531,6 +799,7 @@ export const gamificationService = {
     try {
       console.log(`为用户 ${userId} 添加时间线活动: ${activityTitle}`);
 
+      // 直接尝试插入时间线记录，依赖数据库RLS策略进行权限控制
       const { error } = await supabase
         .from('learning_timeline')
         .insert({
@@ -545,7 +814,9 @@ export const gamificationService = {
 
       if (error) {
         console.error('添加时间线活动失败:', error);
-        return false;
+        // 对于开发环境，记录错误但不阻塞主要功能
+        console.warn(`时间线记录失败但继续执行: ${activityTitle}`);
+        return true; // 返回true避免影响主要功能
       }
 
       console.log(`成功添加时间线活动: ${activityTitle}`);
@@ -559,23 +830,137 @@ export const gamificationService = {
   // 获取用户学习时间线
   async getUserTimeline(userId: string, limit: number = 20): Promise<any[]> {
     try {
+      console.log(`[DEBUG] 获取时间线数据开始`);
+      console.log(`[DEBUG] 用户ID: ${userId}`);
+      console.log(`[DEBUG] 限制条数: ${limit}`);
+      
+      // 调试：先检查表是否存在以及是否有数据
+      console.log(`[DEBUG] 检查learning_timeline表...`);
+      const { count, error: countError } = await supabase
+        .from('learning_timeline')
+        .select('*', { count: 'exact', head: true });
+      
+      console.log(`[DEBUG] 表总记录数:`, count);
+      if (countError) {
+        console.error(`[DEBUG] 统计记录数失败:`, countError);
+      }
+      
+      // 调试：检查当前用户是否有记录
+      console.log(`[DEBUG] 检查用户 ${userId} 的记录数...`);
+      const { count: userCount, error: userCountError } = await supabase
+        .from('learning_timeline')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      console.log(`[DEBUG] 用户记录数:`, userCount);
+      if (userCountError) {
+        console.error(`[DEBUG] 统计用户记录数失败:`, userCountError);
+      }
+      
+      // 调试：检查当前用户信息
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
+      console.log(`[DEBUG] 当前Supabase用户:`, authUser);
+      console.log(`[DEBUG] 认证错误:`, authError);
+      console.log(`[DEBUG] 认证用户ID:`, authUser?.user?.id);
+      console.log(`[DEBUG] 目标用户ID:`, userId);
+      console.log(`[DEBUG] ID匹配:`, authUser?.user?.id === userId);
+      
+      // 先用最简单的查询，不带关联，只查询重要活动
+      console.log(`[DEBUG] 执行主查询...`);
+      
+      // 定义重要的活动类型（只保留最重要的里程碑事件）
+      const importantActivityTypes = [
+        'course_complete',              // 完成课程
+        'achievement_unlock',           // 解锁成就
+        'level_up'                     // 等级提升
+      ];
+      
       const { data, error } = await supabase
         .from('learning_timeline')
-        .select(`
-          *,
-          courses:course_id(title),
-          lessons:lesson_id(title)
-        `)
+        .select('*')
         .eq('user_id', userId)
+        .in('activity_type', importantActivityTypes)
         .order('created_at', { ascending: false })
         .limit(limit);
 
+      console.log(`[DEBUG] 查询完成`);
+      console.log(`[DEBUG] 错误:`, error);
+      console.log(`[DEBUG] 数据:`, data);
+      console.log(`[DEBUG] 数据类型:`, typeof data);
+      console.log(`[DEBUG] 数据长度:`, data?.length);
+
       if (error) {
-        console.error('获取用户时间线失败:', error);
+        console.error('[ERROR] 获取用户时间线失败:', error);
+        console.error('[ERROR] 错误码:', error.code);
+        console.error('[ERROR] 错误消息:', error.message);
+        console.error('[ERROR] 错误详情:', error.details);
         return [];
       }
 
-      return data || [];
+      console.log(`[DEBUG] 获取时间线数据结果：`, data);
+      
+      if (!data || data.length === 0) {
+        console.log('[WARNING] 没有找到时间线数据');
+        // 再做一次不带条件的查询看看能否获取任何数据
+        console.log(`[DEBUG] 尝试获取前5条记录（不限用户）...`);
+        const { data: allData, error: allError } = await supabase
+          .from('learning_timeline')
+          .select('user_id, activity_type, activity_title, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        
+        console.log(`[DEBUG] 全部数据样本:`, allData);
+        if (allError) {
+          console.error(`[DEBUG] 获取全部数据失败:`, allError);
+        }
+        
+        return [];
+      }
+
+      // 手动获取关联的课程和课时信息
+      const enrichedData = await Promise.all(
+        data.map(async (item) => {
+          let courseInfo = null;
+          let lessonInfo = null;
+
+          // 如果有课程ID，获取课程信息
+          if (item.course_id) {
+            try {
+              const { data: course } = await supabase
+                .from('courses')
+                .select('title')
+                .eq('id', item.course_id)
+                .single();
+              courseInfo = course;
+            } catch (err) {
+              console.warn(`获取课程信息失败 (ID: ${item.course_id}):`, err);
+            }
+          }
+
+          // 如果有课时ID，获取课时信息
+          if (item.lesson_id) {
+            try {
+              const { data: lesson } = await supabase
+                .from('lessons')
+                .select('title')
+                .eq('id', item.lesson_id)
+                .single();
+              lessonInfo = lesson;
+            } catch (err) {
+              console.warn(`获取课时信息失败 (ID: ${item.lesson_id}):`, err);
+            }
+          }
+
+          return {
+            ...item,
+            courses: courseInfo,
+            lessons: lessonInfo
+          };
+        })
+      );
+
+      console.log(`丰富后的时间线数据：`, enrichedData);
+      return enrichedData;
     } catch (error) {
       console.error('获取用户时间线异常:', error);
       return [];
@@ -951,6 +1336,61 @@ export const gamificationService = {
       }
     } catch (error) {
       console.error('处理系列问答评分奖励失败:', error);
+      return false;
+    }
+  },
+
+  // 记录文件下载活动
+  async recordFileDownload(
+    userId: string,
+    fileName: string,
+    fileType?: string,
+    courseId?: string,
+    lessonId?: string
+  ): Promise<boolean> {
+    try {
+      console.log(`记录用户 ${userId} 下载文件：${fileName}`);
+
+      // 为了避免过度记录，检查过去10分钟内是否已记录过相同文件的下载
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: recentDownload } = await supabase
+        .from('learning_timeline')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('activity_type', 'file_download')
+        .eq('activity_title', `下载文件：${fileName}`)
+        .gte('created_at', tenMinutesAgo)
+        .limit(1);
+
+      if (recentDownload && recentDownload.length > 0) {
+        console.log(`文件 ${fileName} 最近已记录过下载，跳过`);
+        return true;
+      }
+
+      // 构建活动描述
+      let activityDescription = `文件类型：${fileType || '未知'}`;
+      if (courseId) {
+        activityDescription += `，来源：课程资源`;
+      }
+
+      // 记录文件下载活动（不给经验值）
+      const success = await this.addTimelineActivity(
+        userId,
+        'file_download',
+        `下载文件：${fileName}`,
+        activityDescription,
+        courseId,
+        lessonId,
+        0
+      );
+
+      if (success) {
+        console.log(`成功记录用户 ${userId} 文件下载：${fileName}`);
+      }
+
+      return success;
+    } catch (error) {
+      console.error('记录文件下载失败:', error);
       return false;
     }
   }

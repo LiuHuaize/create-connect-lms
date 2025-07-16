@@ -7,8 +7,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
 import EditorLayout from '@/components/layout/EditorLayout';
-import TestCourseOptimization from '../pages/TestCourseOptimization';
-import TestDuplicateRequestsFix from '../pages/TestDuplicateRequestsFix';
 
 // Lazy load page components
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
@@ -30,21 +28,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const BlockNoteEditorTest = lazy(() => import('@/components/editor').then(module => ({ default: module.BlockNoteEditorTest })));
 const ModelTestComponent = lazy(() => import('@/components/ModelTestComponent'));
 const CourseAssignmentsPage = lazy(() => import('@/pages/teacher/CourseAssignmentsPage'));
-const TestVideoUploadPage = lazy(() => import('@/pages/test-video-upload'));
-const QuizMarkdownTest = lazy(() => import('@/components/test/QuizMarkdownTest'));
-const GamificationTest = lazy(() => import('@/pages/test/GamificationTest').then(module => ({ default: module.GamificationTest })));
-const TestSeriesAIGrading = lazy(() => import('@/pages/test/TestSeriesAIGrading'));
-const TestAchievements = lazy(() => import('@/pages/TestAchievements'));
-const TestAchievementLogic = lazy(() => import('@/pages/TestAchievementLogic'));
-const DebugAchievements = lazy(() => import('@/pages/DebugAchievements'));
-const TestSkillRadar = lazy(() => import('@/pages/TestSkillRadar'));
-const SkillRadarDemo = lazy(() => import('@/pages/SkillRadarDemo'));
-const TestRadarOptimization = lazy(() => import('@/pages/test-radar-optimization'));
 const TimelinePage = lazy(() => import('@/pages/timeline/TimelinePage'));
-const TimelineTest = lazy(() => import('@/pages/test/TimelineTest'));
-const SeriesQuestionnaireTest = lazy(() => import('@/pages/test/SeriesQuestionnaireTest'));
-const TestNotificationPage = lazy(() => import('@/pages/test-notification'));
-const TestNotificationFix = lazy(() => import('@/pages/test-notification-fix'));
 const AIGradingWaitPage = lazy(() => import('@/pages/course/AIGradingWaitPage'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const SubmissionDetailsPage = lazy(() => import('@/pages/SubmissionDetailsPage'));
@@ -127,35 +111,6 @@ const AppRoutes = () => {
 
         <Route path="/model-test" element={<ModelTestComponent />} />
 
-        <Route path="/test-optimization" element={<TestCourseOptimization />} />
-
-        <Route path="/test-duplicate-fix" element={<TestDuplicateRequestsFix />} />
-
-        <Route path="/test-video-upload" element={<TestVideoUploadPage />} />
-
-        <Route path="/test-quiz-markdown" element={<QuizMarkdownTest />} />
-
-        <Route path="/test-gamification" element={<GamificationTest />} />
-        <Route path="/test-series-ai-grading" element={<TestSeriesAIGrading />} />
-
-        <Route path="/test-achievements" element={<TestAchievements />} />
-
-        <Route path="/test-achievement-logic" element={<TestAchievementLogic />} />
-
-        <Route path="/debug-achievements" element={<DebugAchievements />} />
-
-        <Route path="/test-skill-radar" element={<TestSkillRadar />} />
-
-        <Route path="/skill-radar-demo" element={<SkillRadarDemo />} />
-
-        <Route path="/test-radar-optimization" element={<TestRadarOptimization />} />
-
-        <Route path="/test-timeline" element={<TimelineTest />} />
-
-        <Route path="/test-series-questionnaire" element={<SeriesQuestionnaireTest />} />
-
-        <Route path="/test-notification" element={<TestNotificationPage />} />
-        <Route path="/test-notification-fix" element={<TestNotificationFix />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

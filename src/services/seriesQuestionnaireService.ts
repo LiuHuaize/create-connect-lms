@@ -26,8 +26,7 @@ import {
   GetSubmissionsParams
 } from "@/types/series-questionnaire";
 import { gradeSeriesQuestionnaire, SeriesQuestionnaireData } from '@/services/aiService';
-import { gamificationService } from '@/services/gamificationService';
-import { aiGradingFix } from '@/services/aiGradingFix';
+import { experienceSystem } from '@/services/gamificationService';
 import { SeriesQuestionnaireCacheManager } from './seriesQuestionnaireCacheManager';
 import { SeriesQuestionnaireRepository } from './seriesQuestionnaireRepository';
 import {
@@ -72,21 +71,26 @@ async function handleGamificationRewards(
 ): Promise<void> {
   try {
     if (type === 'complete' && data.skillTags && data.totalWords !== undefined) {
-      await gamificationService.handleSeriesQuestionnaireComplete(
-        userId,
+      // 使用新的ExperienceSystem记录系列问答完成活动
+      await experienceSystem.recordActivity(userId, 'series_complete', {
         questionnaireId,
-        questionnaireTitle,
-        data.skillTags,
-        data.totalWords
-      );
+        title: questionnaireTitle,
+        skillTags: data.skillTags,
+        wordCount: data.totalWords,
+        timestamp: new Date().toISOString()
+      });
     } else if (type === 'graded' && data.score !== undefined && data.maxScore !== undefined) {
-      await gamificationService.handleSeriesQuestionnaireGraded(
-        userId,
-        questionnaireId,
-        questionnaireTitle,
-        data.score,
-        data.maxScore
-      );
+      // 计算分数百分比并记录评分完成活动
+      const scorePercentage = (data.score / data.maxScore) * 100;
+      if (scorePercentage >= 70) { // 只有达到70分以上才给予评分奖励
+        await experienceSystem.recordActivity(userId, 'series_complete', {
+          questionnaireId,
+          title: questionnaireTitle,
+          score: scorePercentage,
+          gradingType: 'completed',
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   } catch (error) {
     console.warn(`处理${type === 'complete' ? '完成' : '评分'}游戏化奖励失败:`, error);
@@ -758,14 +762,12 @@ export const seriesQuestionnaireService = {
       const aiResult = await gradeSeriesQuestionnaire(aiGradingData);
 
       // 保存评分结果
-      const saveResult = await aiGradingFix.saveOrUpdateAIGrading(request.submission_id, {
+      const saveResult = await SeriesQuestionnaireRepository.saveOrUpdateAIGrading(request.submission_id, {
         overall_score: aiResult.overall_score,
         ai_score: aiResult.overall_score,
         ai_feedback: aiResult.overall_feedback,
         ai_detailed_feedback: aiResult.detailed_feedback,
-        detailed_feedback: aiResult.detailed_feedback,
-        final_score: aiResult.overall_score,
-        grading_criteria_used: questionnaire.ai_grading_criteria
+        final_score: aiResult.overall_score
       });
 
       if (!saveResult.success) {
@@ -1008,7 +1010,7 @@ export const seriesQuestionnaireService = {
       }
 
       // 使用安全的保存方法
-      const saveResult = await aiGradingFix.saveOrUpdateAIGrading(request.submission_id, {
+      const saveResult = await SeriesQuestionnaireRepository.saveOrUpdateAIGrading(request.submission_id, {
         teacher_score: request.teacher_score,
         teacher_feedback: request.teacher_feedback,
         final_score: request.teacher_score,
@@ -1132,7 +1134,7 @@ export const seriesQuestionnaireService = {
       await PermissionChecker.requireUser();
 
       // 使用安全的评分保存方法
-      const saveResult = await aiGradingFix.saveOrUpdateAIGrading(submissionId, gradingResult);
+      const saveResult = await SeriesQuestionnaireRepository.saveOrUpdateAIGrading(submissionId, gradingResult);
       
       if (!saveResult.success) {
         throw new Error(saveResult.error || '保存AI评分失败');

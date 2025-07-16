@@ -44,7 +44,6 @@ import {
 import { getCurrentUser } from '@/utils/userSession';
 import WordCountDisplay from '@/components/course/creator/series-questionnaire/WordCountDisplay';
 import { SeriesGradingResult } from './SeriesGradingResult';
-import { fixSubmissionStatus, diagnoseSubmissionStatus } from '@/services/fixSubmissionStatus';
 
 interface SeriesQuestionnaireStudentProps {
   questionnaireId: string;
@@ -489,30 +488,6 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
     return answers.reduce((total, answer) => total + (answer.word_count || 0), 0);
   };
 
-  // 诊断和修复提交状态
-  const handleFixSubmissionStatus = async () => {
-    try {
-      // 先诊断问题
-      const diagResult = await diagnoseSubmissionStatus(submissionStatus?.submission?.id);
-      console.log('诊断结果:', diagResult);
-      
-      // 修复状态
-      const fixResult = await fixSubmissionStatus();
-      if (fixResult.success) {
-        toast.success(`成功修复 ${fixResult.fixedCount} 条记录`);
-        // 重新加载数据（避免无限循环）
-        console.log('修复状态后重新加载数据');
-        setTimeout(() => {
-          loadQuestionnaireData();
-        }, 100);
-      } else {
-        toast.error('修复失败，请查看控制台');
-      }
-    } catch (error) {
-      console.error('修复状态错误:', error);
-      toast.error('修复过程中出错');
-    }
-  };
 
   // 手动请求AI评分
   const handleRequestAIGrading = async () => {
@@ -521,10 +496,10 @@ const SeriesQuestionnaireStudent: React.FC<SeriesQuestionnaireStudentProps> = ({
       return;
     }
 
-    // 如果状态不是submitted，先尝试修复
+    // 如果状态不是submitted，直接返回
     if (submissionStatus.submission.status !== 'submitted' && submissionStatus.submission.status !== 'graded') {
       console.log('检测到异常状态:', submissionStatus.submission.status);
-      await handleFixSubmissionStatus();
+      toast.error('提交状态异常，请联系管理员');
       return;
     }
 

@@ -25,6 +25,16 @@ const activityIcons = {
   course_complete: Award,
   daily_streak: TrendingUp,
   project_submit: Clock,
+  achievement_unlock: Award,
+  level_up: TrendingUp,
+  series_questionnaire_complete: BookOpen,
+  series_questionnaire_graded: Target,
+  assignment_submit: Clock,
+  assignment_graded: Target,
+  user_login: '🚪',
+  user_logout: '👋',
+  course_access: '👀',
+  file_download: '📥',
 } as const;
 
 // 活动类型颜色映射
@@ -34,6 +44,16 @@ const activityColors = {
   course_complete: 'bg-purple-500',
   daily_streak: 'bg-orange-500',
   project_submit: 'bg-indigo-500',
+  achievement_unlock: 'bg-yellow-500',
+  level_up: 'bg-purple-600',
+  series_questionnaire_complete: 'bg-cyan-500',
+  series_questionnaire_graded: 'bg-green-600',
+  assignment_submit: 'bg-indigo-600',
+  assignment_graded: 'bg-green-600',
+  user_login: 'bg-emerald-500',
+  user_logout: 'bg-gray-500',
+  course_access: 'bg-sky-500',
+  file_download: 'bg-teal-500',
 } as const;
 
 // 活动类型中文名称映射
@@ -43,6 +63,16 @@ const activityNames = {
   course_complete: '完成课程',
   daily_streak: '连续学习',
   project_submit: '提交项目',
+  achievement_unlock: '解锁成就',
+  level_up: '等级提升',
+  series_questionnaire_complete: '完成问答',
+  series_questionnaire_graded: '问答评分',
+  assignment_submit: '提交作业',
+  assignment_graded: '作业评分',
+  user_login: '用户登录',
+  user_logout: '用户登出',
+  course_access: '课程访问',
+  file_download: '文件下载',
 } as const;
 
 interface TimelineActivity {
@@ -185,7 +215,12 @@ export const LearningTimeline: React.FC<LearningTimelineProps> = ({
                 <option value="lesson_complete">完成课时</option>
                 <option value="quiz_pass">通过测验</option>
                 <option value="course_complete">完成课程</option>
-                <option value="daily_streak">连续学习</option>
+                <option value="achievement_unlock">解锁成就</option>
+                <option value="level_up">等级提升</option>
+                <option value="series_questionnaire_complete">完成问答</option>
+                <option value="assignment_submit">提交作业</option>
+                <option value="user_login">用户登录</option>
+                <option value="course_access">课程访问</option>
               </select>
             )}
             <Button onClick={loadTimeline} variant="outline" size="sm">
@@ -219,7 +254,11 @@ export const LearningTimeline: React.FC<LearningTimelineProps> = ({
                       "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
                       colorClass
                     )}>
-                      <IconComponent className="h-4 w-4 text-white" />
+                      {typeof IconComponent === 'string' ? (
+                        <span className="text-sm">{IconComponent}</span>
+                      ) : (
+                        <IconComponent className="h-4 w-4 text-white" />
+                      )}
                     </div>
                     
                     {/* 活动内容 */}
