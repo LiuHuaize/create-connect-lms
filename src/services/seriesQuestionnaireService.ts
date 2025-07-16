@@ -26,7 +26,7 @@ import {
   GetSubmissionsParams
 } from "@/types/series-questionnaire";
 import { gradeSeriesQuestionnaire, SeriesQuestionnaireData } from '@/services/aiService';
-import { experienceSystem } from '@/services/gamificationService';
+import { gamificationService } from '@/services/gamificationService';
 import { SeriesQuestionnaireCacheManager } from './seriesQuestionnaireCacheManager';
 import { SeriesQuestionnaireRepository } from './seriesQuestionnaireRepository';
 import {
@@ -71,26 +71,23 @@ async function handleGamificationRewards(
 ): Promise<void> {
   try {
     if (type === 'complete' && data.skillTags && data.totalWords !== undefined) {
-      // 使用新的ExperienceSystem记录系列问答完成活动
-      await experienceSystem.recordActivity(userId, 'series_complete', {
+      // 使用gamificationService记录系列问答完成活动
+      await gamificationService.handleSeriesQuestionnaireComplete(
+        userId,
         questionnaireId,
-        title: questionnaireTitle,
-        skillTags: data.skillTags,
-        wordCount: data.totalWords,
-        timestamp: new Date().toISOString()
-      });
+        questionnaireTitle,
+        data.skillTags,
+        data.totalWords
+      );
     } else if (type === 'graded' && data.score !== undefined && data.maxScore !== undefined) {
-      // 计算分数百分比并记录评分完成活动
-      const scorePercentage = (data.score / data.maxScore) * 100;
-      if (scorePercentage >= 70) { // 只有达到70分以上才给予评分奖励
-        await experienceSystem.recordActivity(userId, 'series_complete', {
-          questionnaireId,
-          title: questionnaireTitle,
-          score: scorePercentage,
-          gradingType: 'completed',
-          timestamp: new Date().toISOString()
-        });
-      }
+      // 记录评分完成活动
+      await gamificationService.handleSeriesQuestionnaireGraded(
+        userId,
+        questionnaireId,
+        questionnaireTitle,
+        data.score,
+        data.maxScore
+      );
     }
   } catch (error) {
     console.warn(`处理${type === 'complete' ? '完成' : '评分'}游戏化奖励失败:`, error);

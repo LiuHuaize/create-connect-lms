@@ -78,7 +78,7 @@ export interface UserGameProfile {
   last_activity_date?: string;
 }
 
-// 经验值计算函数
+// 统一的经验值计算函数
 export function calculateLessonExperience(
   lessonType: LessonType, 
   score?: number
@@ -199,235 +199,7 @@ export function mapSkillTags(skillTags: string[]): SkillType[] {
     .filter(skillType => skillType !== undefined);
 }
 
-// 经验值系统类
-export class ExperienceSystem {
-  private readonly EXPERIENCE_RULES = {
-    lesson_complete: { 
-      base: 30, 
-      bonus: { 
-        score_90: 20, 
-        score_80: 15, 
-        score_70: 10,
-        series_questionnaire_word_500: 25,
-        series_questionnaire_word_1000: 50
-      } 
-    },
-    quiz_complete: { 
-      base: 20, 
-      bonus: { 
-        perfect: 15, 
-        good: 10, 
-        fair: 5 
-      } 
-    },
-    assignment_submit: { 
-      base: 40, 
-      bonus: { 
-        excellent: 30, 
-        good: 20, 
-        fair: 10 
-      } 
-    },
-    assignment_graded: { 
-      base: 20, 
-      bonus: { 
-        score_90: 30, 
-        score_80: 20, 
-        score_70: 10 
-      } 
-    },
-    series_complete: { 
-      base: 100, 
-      bonus: { 
-        word_count_500: 50, 
-        word_count_1000: 100 
-      } 
-    },
-    achievement_unlock: { 
-      base: 0, 
-      bonus: { 
-        varies_by_achievement: true 
-      } 
-    }
-  };
-
-  // 计算活动经验值
-  async calculateExperience(activityType: string, metadata: any): Promise<number> {
-    const rule = this.EXPERIENCE_RULES[activityType as keyof typeof this.EXPERIENCE_RULES];
-    if (!rule) {
-      console.warn(`未配置的活动类型: ${activityType}，使用默认经验值20`);
-      return 20;
-    }
-
-    let experience = rule.base;
-    
-    // 根据元数据计算奖励经验值
-    if (metadata.score) {
-      if (metadata.score >= 90) {
-        experience += rule.bonus.score_90 || 0;
-      } else if (metadata.score >= 80) {
-        experience += rule.bonus.score_80 || 0;
-      } else if (metadata.score >= 70) {
-        experience += rule.bonus.score_70 || 0;
-      }
-    }
-
-    // 系列问答特殊处理
-    if (activityType === 'lesson_complete' && metadata.lessonType === 'series_questionnaire') {
-      if (metadata.wordCount >= 1000) {
-        experience += rule.bonus.series_questionnaire_word_1000 || 0;
-      } else if (metadata.wordCount >= 500) {
-        experience += rule.bonus.series_questionnaire_word_500 || 0;
-      }
-    }
-    
-    return experience;
-  }
-
-  // 更新用户经验值
-  async updateUserExperience(userId: string, experience: number): Promise<{success: boolean, levelUp: boolean, newLevel: number}> {
-    try {
-      console.log(`为用户 ${userId} 更新经验值: +${experience}`);
-      
-      const { data: profile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('total_experience, total_level')
-        .eq('id', userId)
-        .single();
-
-      if (fetchError) {
-        console.error('获取用户档案失败:', fetchError);
-        return { success: false, levelUp: false, newLevel: 0 };
-      }
-
-      const currentExperience = profile?.total_experience || 0;
-      const currentLevel = profile?.total_level || 1;
-      const newExperience = currentExperience + experience;
-      const newLevel = this.calculateLevel(newExperience);
-      const levelUp = newLevel > currentLevel;
-      
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          total_experience: newExperience,
-          total_level: newLevel,
-          last_activity_date: new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error('更新用户档案失败:', updateError);
-        return { success: false, levelUp: false, newLevel: currentLevel };
-      }
-
-      // 检查是否升级
-      if (levelUp) {
-        await this.handleLevelUp(userId, newLevel);
-      }
-
-      console.log(`成功为用户 ${userId} 更新经验值: ${currentExperience} -> ${newExperience}, 等级: ${currentLevel} -> ${newLevel}`);
-      return { success: true, levelUp, newLevel };
-    } catch (error) {
-      console.error('更新用户经验值失败:', error);
-      return { success: false, levelUp: false, newLevel: 0 };
-    }
-  }
-
-  // 计算等级
-  private calculateLevel(totalExperience: number): number {
-    return Math.floor(totalExperience / EXPERIENCE_RULES.LEVEL_EXPERIENCE) + 1;
-  }
-
-  // 处理升级
-  private async handleLevelUp(userId: string, newLevel: number): Promise<void> {
-    try {
-      console.log(`用户 ${userId} 升级到 ${newLevel} 级！`);
-      
-      // 记录升级活动到时间线
-      await supabase
-        .from('learning_timeline')
-        .insert({
-          user_id: userId,
-          activity_type: 'level_up' as ActivityType,
-          activity_title: `升级到 ${newLevel} 级`,
-          activity_description: `恭喜！您已升级到 ${newLevel} 级`,
-          experience_gained: 0, // 升级本身不给经验值
-        });
-
-      console.log(`成功记录用户 ${userId} 升级到 ${newLevel} 级`);
-    } catch (error) {
-      console.error('处理升级失败:', error);
-    }
-  }
-
-  // 记录活动到时间线
-  async recordActivity(userId: string, activityType: string, metadata: any): Promise<boolean> {
-    try {
-      console.log(`记录用户 ${userId} 活动: ${activityType}`, metadata);
-      
-      // 计算经验值
-      const experience = await this.calculateExperience(activityType, metadata);
-      
-      // 更新用户经验值
-      const { success, levelUp } = await this.updateUserExperience(userId, experience);
-      
-      if (!success) {
-        return false;
-      }
-
-      // 创建活动标题和描述
-      let activityTitle = '';
-      let activityDescription = '';
-      
-      switch (activityType) {
-        case 'lesson_complete':
-          activityTitle = `完成课时：${metadata.lessonTitle || '未知课时'}`;
-          activityDescription = metadata.score !== undefined 
-            ? `测验得分：${metadata.score}分` 
-            : '课时学习完成';
-          break;
-        case 'series_complete':
-          activityTitle = `完成系列问答：${metadata.title || '未知问答'}`;
-          activityDescription = `字数：${metadata.wordCount || 0}字`;
-          break;
-        case 'assignment_submit':
-          activityTitle = `提交作业：${metadata.lessonTitle || '未知作业'}`;
-          activityDescription = `提交文件：${metadata.fileCount || 0}个`;
-          break;
-        case 'assignment_graded':
-          activityTitle = `作业已评分：${metadata.lessonTitle || '未知作业'}`;
-          activityDescription = `得分：${metadata.score || 0}分`;
-          break;
-        default:
-          activityTitle = `活动：${activityType}`;
-          activityDescription = JSON.stringify(metadata);
-      }
-
-      // 记录到时间线
-      await supabase
-        .from('learning_timeline')
-        .insert({
-          user_id: userId,
-          activity_type: activityType as ActivityType,
-          activity_title: activityTitle,
-          activity_description: activityDescription,
-          course_id: metadata.courseId,
-          lesson_id: metadata.lessonId,
-          experience_gained: experience,
-        });
-
-      console.log(`成功记录用户 ${userId} 活动 ${activityType}，获得 ${experience} 经验值`);
-      return true;
-    } catch (error) {
-      console.error('记录活动失败:', error);
-      return false;
-    }
-  }
-}
-
-// 创建经验值系统实例
-export const experienceSystem = new ExperienceSystem();
+// 注意：旧的ExperienceSystem类已被移除，统一使用gamificationService中的方法
 
 // 游戏化服务
 export const gamificationService = {
@@ -533,7 +305,7 @@ export const gamificationService = {
     }
   },
 
-  // 处理课时完成的经验值奖励
+  // 处理课时完成的经验值奖励（已修复重复记录问题）
   async handleLessonComplete(
     userId: string,
     lessonId: string,
@@ -543,17 +315,16 @@ export const gamificationService = {
     score?: number
   ): Promise<boolean> {
     try {
-      // 检查是否已经为此课时给过经验值
-      const { data: existingRecord } = await supabase
+      // 使用唯一约束检查，防止重复记录
+      const { data: existingRecords } = await supabase
         .from('learning_timeline')
         .select('id')
         .eq('user_id', userId)
         .eq('lesson_id', lessonId)
-        .eq('activity_type', 'lesson_complete')
-        .maybeSingle();
+        .eq('activity_type', 'lesson_complete');
 
-      if (existingRecord) {
-        console.log(`课时 ${lessonId} 已经给过经验值，跳过`);
+      if (existingRecords && existingRecords.length > 0) {
+        console.log(`课时 ${lessonId} 已经给过经验值，跳过（已存在 ${existingRecords.length} 条记录）`);
         return true;
       }
 
@@ -1186,17 +957,16 @@ export const gamificationService = {
     try {
       console.log(`处理用户 ${userId} 完成系列问答：${questionnaireTitle}`);
 
-      // 检查是否已经为此系列问答给过经验值
-      const { data: existingRecord } = await supabase
+      // 使用更准确的去重检查：同时检查questionnaire_id和activity_description
+      const { data: existingRecords } = await supabase
         .from('learning_timeline')
         .select('id')
         .eq('user_id', userId)
         .eq('activity_type', 'series_questionnaire_complete')
-        .eq('activity_description', questionnaireId)
-        .maybeSingle();
+        .or(`activity_description.eq.${questionnaireId}`);
 
-      if (existingRecord) {
-        console.log(`系列问答 ${questionnaireId} 已经给过经验值，跳过`);
+      if (existingRecords && existingRecords.length > 0) {
+        console.log(`系列问答 ${questionnaireId} 已经给过经验值，跳过（已存在 ${existingRecords.length} 条记录）`);
         return true;
       }
 
@@ -1286,17 +1056,16 @@ export const gamificationService = {
     try {
       console.log(`处理用户 ${userId} 系列问答评分完成：${questionnaireTitle}，得分：${finalScore}/${maxScore}`);
 
-      // 检查是否已经为此评分给过经验值
-      const { data: existingRecord } = await supabase
+      // 使用更准确的去重检查
+      const { data: existingRecords } = await supabase
         .from('learning_timeline')
         .select('id')
         .eq('user_id', userId)
         .eq('activity_type', 'series_questionnaire_graded')
-        .eq('activity_description', questionnaireId)
-        .maybeSingle();
+        .or(`activity_description.eq.${questionnaireId}`);
 
-      if (existingRecord) {
-        console.log(`系列问答评分 ${questionnaireId} 已经给过经验值，跳过`);
+      if (existingRecords && existingRecords.length > 0) {
+        console.log(`系列问答评分 ${questionnaireId} 已经给过经验值，跳过（已存在 ${existingRecords.length} 条记录）`);
         return true;
       }
 

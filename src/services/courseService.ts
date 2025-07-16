@@ -4,7 +4,7 @@ import { Course, CourseModule, CourseStatus } from "@/types/course";
 import { Lesson, LessonContent, LessonType } from "@/types/course";
 import { Json } from "@/integrations/supabase/types";
 import { v4 as uuidv4 } from 'uuid';
-import { gamificationService, LessonType as GamificationLessonType, experienceSystem } from './gamificationService';
+import { gamificationService, LessonType as GamificationLessonType } from './gamificationService';
 
 // 全局课程完成状态缓存
 export const lessonCompletionCache: Record<string, Record<string, boolean>> = {};
@@ -1014,15 +1014,15 @@ export const courseService = {
         return;
       }
 
-      // 使用新的ExperienceSystem记录活动
-      const success = await experienceSystem.recordActivity(userId, 'lesson_complete', {
+      // 使用gamificationService处理课时完成
+      const success = await gamificationService.handleLessonComplete(
+        userId,
         lessonId,
         courseId,
-        lessonTitle: lessonData.title,
-        lessonType: lessonData.type,
-        score,
-        timestamp: new Date().toISOString()
-      });
+        lessonData.title,
+        lessonData.type as GamificationLessonType,
+        score
+      );
 
       if (success) {
         console.log(`成功为课时 ${lessonId} 添加经验值奖励`);

@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { AssignmentSubmission } from '@/types/course';
 import { notificationHelpers } from './notificationService';
-import { experienceSystem } from './gamificationService';
+import { gamificationService } from './gamificationService';
 
 export interface TeacherGrading {
   score: number;
@@ -203,15 +203,15 @@ export async function submitTeacherGrading(submissionId: string, grading: Teache
           .single();
 
         if (lesson) {
-          await experienceSystem.recordActivity(data.student_id, 'assignment_graded', {
-            lessonId: data.lesson_id,
-            lessonTitle: lesson.title,
-            lessonType: lesson.type,
-            submissionId,
-            score: grading.score,
-            gradingType: 'teacher',
-            timestamp: new Date().toISOString()
-          });
+          await gamificationService.addTimelineActivity(
+            data.student_id,
+            'assignment_graded',
+            `作业已评分：${lesson.title}`,
+            `得分：${grading.score}分`,
+            undefined,
+            data.lesson_id,
+            0 // 作业评分不直接给经验值
+          );
         }
       }
     } catch (gamificationError) {
@@ -457,14 +457,15 @@ export async function submitAssignment(lessonId: string, studentId: string, file
 
       if (lesson) {
         // 记录作业提交活动到gamification系统
-        await experienceSystem.recordActivity(studentId, 'assignment_submit', {
+        await gamificationService.addTimelineActivity(
+          studentId,
+          'assignment_submit',
+          `提交作业：${lesson.title}`,
+          `提交文件数：${fileSubmissions.length}`,
+          undefined,
           lessonId,
-          lessonTitle: lesson.title,
-          lessonType: lesson.type,
-          submissionId: submissionData.id,
-          fileCount: fileSubmissions.length,
-          timestamp: new Date().toISOString()
-        });
+          15 // 作业提交给予15经验值
+        );
       }
     } catch (gamificationError) {
       console.warn('处理作业提交gamification奖励失败:', gamificationError);

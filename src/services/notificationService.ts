@@ -200,7 +200,7 @@ export const notificationService = {
 
       const { count, error } = await supabase
         .from('notifications')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact' })
         .eq('recipient_id', userId)
         .eq('is_read', false);
 
