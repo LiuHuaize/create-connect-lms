@@ -763,7 +763,7 @@ export const gamificationService = {
     }
   },
 
-  // 初始化用户技能（为新用户创建所有技能记录）
+  // 初始化用户技能（为新用户创建所有技能记录和对应日志）
   async initializeUserSkills(userId: string): Promise<UserSkill[]> {
     try {
       const skillTypes: SkillType[] = [
@@ -782,6 +782,16 @@ export const gamificationService = {
         skill_experience: 0
       }));
 
+      // 创建对应的初始化日志记录
+      const logRecords = skillTypes.map(skillType => ({
+        user_id: userId,
+        skill_type: skillType,
+        experience_gained: 0,
+        source_type: 'manual',
+        reason: '用户技能初始化'
+      }));
+
+      // 使用事务同时创建技能记录和日志
       const { data, error } = await supabase
         .from('user_skills')
         .insert(skillRecords)
@@ -792,6 +802,22 @@ export const gamificationService = {
         return [];
       }
 
+      // 创建对应的日志记录
+      const { error: logError } = await supabase
+        .from('skill_experience_logs')
+        .insert(logRecords);
+
+      if (logError) {
+        console.error('初始化技能日志失败:', logError);
+        // 如果日志创建失败，删除已创建的技能记录以保持一致性
+        await supabase
+          .from('user_skills')
+          .delete()
+          .eq('user_id', userId);
+        return [];
+      }
+
+      console.log(`成功为用户 ${userId} 初始化 ${skillTypes.length} 个技能`);
       return data as UserSkill[];
     } catch (error) {
       console.error('初始化用户技能异常:', error);
@@ -830,56 +856,27 @@ export const gamificationService = {
       if (currentSkill) {
         newExperience = currentSkill.skill_experience + experience;
         newLevel = calculateSkillLevel(newExperience);
-
-        // 更新现有技能记录
-        const { error: updateError } = await supabase
-          .from('user_skills')
-          .update({
-            skill_experience: newExperience,
-            skill_level: newLevel,
-            last_updated: new Date().toISOString()
-          })
-          .eq('user_id', userId)
-          .eq('skill_type', skillType);
-
-        if (updateError) {
-          console.error('更新技能数据失败:', updateError);
-          return false;
-        }
       } else {
-        // 创建新的技能记录
+        // 新技能记录
         newLevel = calculateSkillLevel(newExperience);
-
-        const { error: insertError } = await supabase
-          .from('user_skills')
-          .insert({
-            user_id: userId,
-            skill_type: skillType,
-            skill_experience: newExperience,
-            skill_level: newLevel
-          });
-
-        if (insertError) {
-          console.error('创建技能记录失败:', insertError);
-          return false;
-        }
       }
 
-      // 记录技能经验日志
-      const { error: logError } = await supabase
-        .from('skill_experience_logs')
-        .insert({
-          user_id: userId,
-          skill_type: skillType,
-          experience_gained: experience,
-          source_type: sourceType,
-          source_id: sourceId,
-          reason: reason
-        });
+      // 使用事务函数同时更新技能记录和日志，确保数据一致性
+      const { data: transactionResult, error: rpcError } = await supabase.rpc('update_skill_experience_with_log', {
+        p_user_id: userId,
+        p_skill_type: skillType,
+        p_experience_gained: experience,
+        p_new_experience: newExperience,
+        p_new_level: newLevel,
+        p_source_type: sourceType,
+        p_source_id: sourceId,
+        p_reason: reason,
+        p_is_new_skill: !currentSkill
+      });
 
-      if (logError) {
-        console.error('记录技能经验日志失败:', logError);
-        // 不返回false，因为技能经验已经添加成功
+      if (rpcError || !transactionResult) {
+        console.error('使用事务更新技能经验失败:', rpcError);
+        return false;
       }
 
       console.log(`成功为用户 ${userId} 的 ${skillType} 技能添加 ${experience} 经验值`);
